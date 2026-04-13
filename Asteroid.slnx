@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Asteroid.vcxproj" Id="b98d500f-39ef-461d-b1e1-14b9fd2c1298" />
+</Solution>
