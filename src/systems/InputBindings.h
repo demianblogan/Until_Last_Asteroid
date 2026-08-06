@@ -21,9 +21,6 @@ namespace InputBindings
 		bindings.AddBinding(Config::PlayerAction::Right,
 			InputAction(sf::Keyboard::Key::Right, InputAction::TriggerType::WhileHeld));
 
-		bindings.AddBinding(Config::PlayerAction::Shoot,
-			InputAction(sf::Keyboard::Key::Space, InputAction::TriggerType::OnPress));
-
 		return bindings;
 	}
 }

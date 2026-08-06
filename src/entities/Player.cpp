@@ -20,7 +20,6 @@ Player::~Player()
 	input.UnsubscribeAll(Config::PlayerAction::Down);
 	input.UnsubscribeAll(Config::PlayerAction::Left);
 	input.UnsubscribeAll(Config::PlayerAction::Right);
-	input.UnsubscribeAll(Config::PlayerAction::Shoot);
 }
 
 Entity::Type Player::GetType() const noexcept
@@ -30,6 +29,9 @@ Entity::Type Player::GetType() const noexcept
 
 bool Player::IsCollideWith(const Entity& other) const
 {
+	if (IsSpawnProtected())
+		return false;
+
 	if (other.GetType() == Type::Projectile_Player)
 		return false;
 
@@ -40,6 +42,7 @@ void Player::Update(float deltaTime)
 {
 	shootTimer += deltaTime;
 
+	UpdateSpawnProtection(deltaTime);
 	UpdateMovement(deltaTime);
 	UpdateRotation();
 }
@@ -109,6 +112,32 @@ void Player::UpdateRotation()
 	float angle{ std::atan2(toMouse.y, toMouse.x) };
 
 	SetRotation(sf::radians(angle + std::numbers::pi_v<float> / 2.f));
+}
+
+void Player::UpdateSpawnProtection(float dt)
+{
+	if (spawnProtectionTimer <= 0.f)
+	{
+		SetVisible(true);
+		return;
+	}
+
+	spawnProtectionTimer -= dt;
+
+	if (spawnProtectionTimer <= 0.f)
+	{
+		spawnProtectionTimer = 0.f;
+		SetVisible(true);
+		return;
+	}
+
+	const int blinkPhase{ static_cast<int>(spawnProtectionTimer / SPAWN_BLINK_INTERVAL) };
+	SetVisible(blinkPhase % 2 == 0);
+}
+
+bool Player::IsSpawnProtected() const noexcept
+{
+	return spawnProtectionTimer > 0.f;
 }
 
 void Player::Shoot()

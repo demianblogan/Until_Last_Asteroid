@@ -66,7 +66,6 @@ namespace Config
 		Up,
 		Down,
 		Left,
-		Right,
-		Shoot
+		Right
 	};
 };

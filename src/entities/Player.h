@@ -31,12 +31,17 @@ private:
 
 	void UpdateMovement(float dt);
 	void UpdateRotation();
+	void UpdateSpawnProtection(float dt);
+	[[nodiscard]] bool IsSpawnProtected() const noexcept;
 
 	InputHandler<Config::PlayerAction>& input;
 	sf::Vector2f moveInput{ 0.f, 0.f };
 	float shootTimer{ 0.f };
+	float spawnProtectionTimer{ SPAWN_PROTECTION_DURATION };
 
 	static constexpr float ACCELERATION = 1200.f;
 	static constexpr float DAMPING = 0.98f;
 	static constexpr float MAX_SPEED = 600.f;
+	static constexpr float SPAWN_PROTECTION_DURATION = 2.f;
+	static constexpr float SPAWN_BLINK_INTERVAL = 0.1f;
 };

@@ -42,7 +42,7 @@ void Game::Run()
 
 	while (window.isOpen())
 	{
-		float deltaTime = clock.restart().asSeconds();
+		const float deltaTime{ std::min(clock.restart().asSeconds(), MAX_FRAME_TIME) };
 
 		ProcessEvents();
 		Update(deltaTime);
@@ -95,7 +95,6 @@ void Game::SetupInput()
 	actions.AddBinding(Left, InputAction(Key::A, WhileHeld));
 	actions.AddBinding(Right, InputAction(Key::D, WhileHeld));
 	actions.AddBinding(Down, InputAction(Key::S, WhileHeld));
-	actions.AddBinding(Shoot, InputAction(Key::Space, OnPress));
 }
 
 void Game::SetupUI()
@@ -245,7 +244,10 @@ void Game::Update(float dt)
 	gameTime += dt;
 
 	if (gameState.IsWin() && winTexts.size() >= 2)
+	{
 		winTexts[1].setString("Score: " + std::to_string(gameState.GetScore()));
+		CenterTextX(winTexts[1]);
+	}
 
 	if (!gameState.IsPlaying())
 		return;
@@ -309,7 +311,10 @@ void Game::Update(float dt)
 			gameState.SetLevelComplete();
 
 			if (!levelCompleteTexts.empty())
+			{
 				levelCompleteTexts[0].setString("LEVEL " + std::to_string(gameState.GetLevel()) + " COMPLETE");
+				CenterTextX(levelCompleteTexts[0]);
+			}
 		}
 
 		return;
@@ -528,6 +533,9 @@ void Game::CenterText(sf::Text& text, float y)
 
 sf::View Game::GetLetterboxView(const sf::View& view, int windowWidth, int windowHeight)
 {
+	if (windowWidth <= 0 || windowHeight <= 0)
+		return view;
+
 	float windowRatio{ static_cast<float>(windowWidth) / windowHeight };
 	float viewRatio{ view.getSize().x / view.getSize().y };
 
