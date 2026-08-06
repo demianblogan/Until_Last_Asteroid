@@ -22,7 +22,7 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Removed the unused keyboard shoot action.
 - Added temporary protection and blinking after player respawn.
 
-## In progress — v1.0.3
+### v1.0.3
 
 - Preserve `Game Over` when the player and the last enemy are destroyed together.
 - Stop the current frame immediately after the game window closes.
