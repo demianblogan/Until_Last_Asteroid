@@ -444,6 +444,8 @@ sf::Vector2f Game::GetSafeEdgeSpawnPosition()
 				return sf::Vector2f{ width, Random::Float(0.f, height) };
 			case 2: 
 				return sf::Vector2f{ Random::Float(0.f, width), 0.f };
+			case 3:
+				return sf::Vector2f{ Random::Float(0.f, width), height };
 			default: 
 				std::unreachable();
 			}
