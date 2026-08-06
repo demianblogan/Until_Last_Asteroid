@@ -58,7 +58,7 @@ public:
 private:
 	void Wrap(Entity& e) const;
 	void HandleCollisions();
-	void OnCollision(Entity& entity);
+	void OnCollision(Entity& entity, const Entity& other);
 	void RemoveDeadEntities();
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 

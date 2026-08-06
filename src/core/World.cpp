@@ -194,14 +194,14 @@ void World::HandleCollisions()
 
 			if (a.IsCollideWith(b) && b.IsCollideWith(a))
 			{
-				OnCollision(a);
-				OnCollision(b);
+				OnCollision(a, b);
+				OnCollision(b, a);
 			}
 		}
 	}
 }
 
-void World::OnCollision(Entity& entity)
+void World::OnCollision(Entity& entity, const Entity& other)
 {
 	if (entity.GetType() == Entity::Type::Player)
 	{
@@ -213,8 +213,9 @@ void World::OnCollision(Entity& entity)
 
 	entity.Destroy();
 
-	if (entity.GetType() == Entity::Type::Enemy ||
-		entity.GetType() == Entity::Type::Asteroid)
+	if (other.GetType() == Entity::Type::Projectile_Player &&
+		(entity.GetType() == Entity::Type::Enemy ||
+			entity.GetType() == Entity::Type::Asteroid))
 	{
 		Enemy* enemy = dynamic_cast<Enemy*>(&entity);
 		if (enemy != nullptr)
