@@ -232,10 +232,12 @@ void Game::ProcessEvents()
 			}
 		}
 
-		world.HandlePlayerEvent(*event);
+		if (gameState.IsPlaying())
+			world.HandlePlayerEvent(*event);
 	}
 
-	world.HandlePlayerRealtime();
+	if (gameState.IsPlaying())
+		world.HandlePlayerRealtime();
 }
 
 void Game::Update(float dt)
