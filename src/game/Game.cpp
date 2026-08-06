@@ -528,6 +528,9 @@ void Game::CenterText(sf::Text& text, float y)
 
 sf::View Game::GetLetterboxView(const sf::View& view, int windowWidth, int windowHeight)
 {
+	if (windowWidth <= 0 || windowHeight <= 0)
+		return view;
+
 	float windowRatio{ static_cast<float>(windowWidth) / windowHeight };
 	float viewRatio{ view.getSize().x / view.getSize().y };
 
