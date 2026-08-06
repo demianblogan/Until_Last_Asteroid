@@ -95,7 +95,6 @@ void Game::SetupInput()
 	actions.AddBinding(Left, InputAction(Key::A, WhileHeld));
 	actions.AddBinding(Right, InputAction(Key::D, WhileHeld));
 	actions.AddBinding(Down, InputAction(Key::S, WhileHeld));
-	actions.AddBinding(Shoot, InputAction(Key::Space, OnPress));
 }
 
 void Game::SetupUI()

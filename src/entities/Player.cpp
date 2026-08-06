@@ -20,7 +20,6 @@ Player::~Player()
 	input.UnsubscribeAll(Config::PlayerAction::Down);
 	input.UnsubscribeAll(Config::PlayerAction::Left);
 	input.UnsubscribeAll(Config::PlayerAction::Right);
-	input.UnsubscribeAll(Config::PlayerAction::Shoot);
 }
 
 Entity::Type Player::GetType() const noexcept
