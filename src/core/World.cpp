@@ -82,19 +82,24 @@ void World::SetWindow(sf::RenderWindow& window)
 
 bool World::IsCleared() const noexcept
 {
-	for (const auto& entity : entities)
+	auto containsAliveEnemy = [](const auto& entityList)
 	{
-		if (!entity->IsAlive())
-			continue;
-
-		if (entity->GetType() == Entity::Type::Enemy ||
-			entity->GetType() == Entity::Type::Asteroid)
+		for (const auto& entity : entityList)
 		{
-			return false;
-		}
-	}
+			if (!entity->IsAlive())
+				continue;
 
-	return true;
+			if (entity->GetType() == Entity::Type::Enemy ||
+				entity->GetType() == Entity::Type::Asteroid)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	return !containsAliveEnemy(entities) && !containsAliveEnemy(pendingEntities);
 }
 
 bool World::HasPlayer() const noexcept

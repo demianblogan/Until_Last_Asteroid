@@ -1,5 +1,6 @@
 #include "Game.h"
 
+#include <algorithm>
 #include <SFML/Audio/Sound.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/View.hpp>
@@ -289,7 +290,13 @@ void Game::Update(float dt)
 	// ====================================================
 	// LEVEL CHECKING
 	// ====================================================
-	if (world.IsCleared())
+	const bool allWavesSpawned{ std::all_of(currentLevel.waves.begin(), currentLevel.waves.end(),
+		[](const SpawnWave& wave)
+		{
+			return wave.spawned >= wave.totalSpawns;
+		}) };
+
+	if (allWavesSpawned && world.IsCleared())
 	{
 		if (gameState.GetLevel() >= 5)
 		{
