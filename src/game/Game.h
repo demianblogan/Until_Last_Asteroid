@@ -61,7 +61,6 @@ private:
 	void SpawnLevel();
 	LevelData CreateLevel(int level);
 
-	void CenterTextBlock(std::vector<sf::Text>& texts, float startY, float spacing);
 	void CenterTextX(sf::Text& text);
 	void CenterText(sf::Text& text, float y);
 
@@ -82,8 +81,6 @@ private:
 
 	ActionMap<Config::PlayerAction> actions;
 	InputHandler<Config::PlayerAction> input;
-
-	float gameTime{ 0.f };
 
 	std::vector<sf::Text> startScreenTexts;
 	std::vector<sf::Text> gameOverTexts;

@@ -41,9 +41,7 @@
     <ClInclude Include="src\core\GameState.h" />
     <ClInclude Include="src\utils\ConfigEnums.h" />
     <ClInclude Include="src\assets\AssetStore.h" />
-    <ClInclude Include="src\systems\InputBindings.h" />
     <ClInclude Include="src\game\Game.h" />
     <ClInclude Include="src\ui\HUD.h" />
-    <ClInclude Include="Code\LevelSystem.h" />
   </ItemGroup>
 </Project>

@@ -20,15 +20,6 @@ float Random::Float(float min, float max)
 	return distribution(GetGenerator());
 }
 
-double Random::Double(double min, double max)
-{
-	if (min > max)
-		std::swap(min, max);
-
-	std::uniform_real_distribution<double> distribution(min, max);
-	return distribution(GetGenerator());
-}
-
 std::mt19937_64& Random::GetGenerator()
 {
 	static std::mt19937_64 generator{ std::random_device{}() };

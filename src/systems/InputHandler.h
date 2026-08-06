@@ -33,7 +33,7 @@ public:
 
 	void HandleEvent(const sf::Event& event)
 	{
-		auto bindings = actionMap.GetBindingsMap();
+		const auto& bindings{ actionMap.GetBindingsMap() };
 
 		for (const auto& [action, inputs] : bindings)
 			for (const auto& input : inputs)
@@ -43,7 +43,7 @@ public:
 
 	void Update()
 	{
-		auto bindings = actionMap.GetBindingsMap();
+		const auto& bindings{ actionMap.GetBindingsMap() };
 
 		for (const auto& [action, inputs] : bindings)
 			for (const auto& input : inputs)
