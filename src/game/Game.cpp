@@ -245,7 +245,10 @@ void Game::Update(float dt)
 	gameTime += dt;
 
 	if (gameState.IsWin() && winTexts.size() >= 2)
+	{
 		winTexts[1].setString("Score: " + std::to_string(gameState.GetScore()));
+		CenterTextX(winTexts[1]);
+	}
 
 	if (!gameState.IsPlaying())
 		return;
@@ -309,7 +312,10 @@ void Game::Update(float dt)
 			gameState.SetLevelComplete();
 
 			if (!levelCompleteTexts.empty())
+			{
 				levelCompleteTexts[0].setString("LEVEL " + std::to_string(gameState.GetLevel()) + " COMPLETE");
+				CenterTextX(levelCompleteTexts[0]);
+			}
 		}
 
 		return;
