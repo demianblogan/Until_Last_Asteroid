@@ -79,6 +79,11 @@ void Entity::Accelerate(const sf::Vector2f& delta) noexcept
 	velocity += delta;
 }
 
+void Entity::SetVisible(bool visible) noexcept
+{
+	isVisible = visible;
+}
+
 void Entity::SetRotation(sf::Angle angle) noexcept
 {
 	sprite.setRotation(angle);
@@ -91,5 +96,6 @@ sf::Angle Entity::GetRotation() const noexcept
 
 void Entity::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-	target.draw(sprite, states);
+	if (isVisible)
+		target.draw(sprite, states);
 }

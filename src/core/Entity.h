@@ -63,6 +63,7 @@ protected:
 
 	void Move(float deltaTime) noexcept;
 	void Accelerate(const sf::Vector2f& delta) noexcept;
+	void SetVisible(bool visible) noexcept;
 
 	virtual void OnDestroy();
 
@@ -74,6 +75,7 @@ private:
 	World& world;
 
 	bool isAlive{ true };
+	bool isVisible{ true };
 
 private:
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
