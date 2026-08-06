@@ -14,11 +14,6 @@ Meteor::Meteor(AssetStore& assets, World& world, Size size)
 	// No code
 }
 
-Meteor::Size Meteor::GetSize() const noexcept
-{
-	return size;
-}
-
 Entity::Type Meteor::GetType() const noexcept
 {
 	return Type::Asteroid;
@@ -128,7 +123,7 @@ sf::Texture& Meteor::GetRandomTexture(AssetStore& assets, Meteor::Size size)
 			Texture::SmallMeteor4
 		};
 
-		return assets.Textures().Get(small[Random::Int(0, small.size() - 1)]);
+		return assets.Textures().Get(small[Random::Int(0, static_cast<int>(small.size()) - 1)]);
 	}
 
 	case Size::Medium:

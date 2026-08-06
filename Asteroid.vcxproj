@@ -163,11 +163,9 @@
     <ClInclude Include="src\ui\HUD.h" />
     <ClInclude Include="src\systems\InputAction.h" />
     <ClInclude Include="src\systems\ActionMap.h" />
-    <ClInclude Include="src\systems\InputBindings.h" />
     <ClInclude Include="src\systems\InputHandler.h" />
     <ClInclude Include="src\core\GameState.h" />
     <ClInclude Include="src\assets\AssetStore.h" />
-    <ClInclude Include="Code\LevelSystem.h" />
     <ClInclude Include="src\utils\Random.h" />
     <ClInclude Include="src\assets\AssetStorage.h" />
     <ClInclude Include="src\systems\Collision.h" />

@@ -84,8 +84,8 @@ void AssetStore::InitializeTextures()
 	textures.LoadFromFile(Config::Texture::SmallMeteor3, "assets/sprites/meteors/SmallMeteor3.png");
 	textures.LoadFromFile(Config::Texture::SmallMeteor4, "assets/sprites/meteors/SmallMeteor4.png");
 
-	textures.LoadFromFile(Config::Texture::PlayerShot, "assets/sprites/Shots/PlayerShot.png");
-	textures.LoadFromFile(Config::Texture::EnemySaucerShot, "assets/sprites/Shots/EnemySaucerShot.png");
+	textures.LoadFromFile(Config::Texture::PlayerShot, "assets/sprites/shots/PlayerShot.png");
+	textures.LoadFromFile(Config::Texture::EnemySaucerShot, "assets/sprites/shots/EnemySaucerShot.png");
 }
 
 void AssetStore::InitializeFonts()

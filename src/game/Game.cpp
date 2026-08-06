@@ -45,6 +45,9 @@ void Game::Run()
 		const float deltaTime{ std::min(clock.restart().asSeconds(), MAX_FRAME_TIME) };
 
 		ProcessEvents();
+		if (!window.isOpen())
+			break;
+
 		Update(deltaTime);
 		Render();
 	}
@@ -241,8 +244,6 @@ void Game::ProcessEvents()
 
 void Game::Update(float dt)
 {
-	gameTime += dt;
-
 	if (gameState.IsWin() && winTexts.size() >= 2)
 	{
 		winTexts[1].setString("Score: " + std::to_string(gameState.GetScore()));
@@ -255,6 +256,10 @@ void Game::Update(float dt)
 	SpawnPlayerIfNeeded();
 	world.Update(dt);
 
+	// A collision may have changed the state to GameOver. Do not let the
+	// remaining level logic overwrite that terminal state.
+	if (!gameState.IsPlaying())
+		return;
 
 	// ====================================================
 	// LEVEL SPAWN SYSTEM
@@ -371,8 +376,6 @@ void Game::SpawnPlayerIfNeeded()
 
 void Game::Reset()
 {
-	gameTime = 0.f;
-
 	world.Clear();
 	gameState.Reset();
 
@@ -485,32 +488,6 @@ sf::Vector2f Game::GetSafeEdgeSpawnPosition()
 	}
 
 	return spawnAtEdge();
-}
-
-void Game::CenterTextBlock(std::vector<sf::Text>& texts, float startY, float spacing)
-{
-	float totalHeight{ 0.f };
-
-	for (sf::Text& text : texts)
-	{
-		sf::FloatRect bounds{ text.getLocalBounds() };
-		totalHeight += bounds.size.y;
-	}
-
-	totalHeight += spacing * (texts.size() - 1);
-
-	float y{ startY - totalHeight / 2.f };
-
-	for (sf::Text& text : texts)
-	{
-		auto bounds = text.getLocalBounds();
-
-		text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y });
-
-		text.setPosition({ LOGICAL_SIZE.x * 0.5f, y });
-
-		y += bounds.size.y + spacing;
-	}
 }
 
 void Game::CenterTextX(sf::Text& text)
