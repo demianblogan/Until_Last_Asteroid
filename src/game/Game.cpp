@@ -1,5 +1,6 @@
 #include "Game.h"
 
+#include <algorithm>
 #include <SFML/Audio/Sound.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/View.hpp>
@@ -231,10 +232,12 @@ void Game::ProcessEvents()
 			}
 		}
 
-		world.HandlePlayerEvent(*event);
+		if (gameState.IsPlaying())
+			world.HandlePlayerEvent(*event);
 	}
 
-	world.HandlePlayerRealtime();
+	if (gameState.IsPlaying())
+		world.HandlePlayerRealtime();
 }
 
 void Game::Update(float dt)
@@ -289,7 +292,13 @@ void Game::Update(float dt)
 	// ====================================================
 	// LEVEL CHECKING
 	// ====================================================
-	if (world.IsCleared())
+	const bool allWavesSpawned{ std::all_of(currentLevel.waves.begin(), currentLevel.waves.end(),
+		[](const SpawnWave& wave)
+		{
+			return wave.spawned >= wave.totalSpawns;
+		}) };
+
+	if (allWavesSpawned && world.IsCleared())
 	{
 		if (gameState.GetLevel() >= 5)
 		{
@@ -444,6 +453,8 @@ sf::Vector2f Game::GetSafeEdgeSpawnPosition()
 				return sf::Vector2f{ width, Random::Float(0.f, height) };
 			case 2: 
 				return sf::Vector2f{ Random::Float(0.f, width), 0.f };
+			case 3:
+				return sf::Vector2f{ Random::Float(0.f, width), height };
 			default: 
 				std::unreachable();
 			}

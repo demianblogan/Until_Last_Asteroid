@@ -85,7 +85,6 @@ void Saucer::Shoot(const sf::Vector2f& playerPosition)
 	shootTimer = 0.f;
 
 	GetWorld().SpawnSaucerShot(GetPosition(), playerPosition);
-	GetWorld().AddSound(Config::Sound::EnemyLaserShot);
 }
 
 float Saucer::GetSpeed(Mode mode) noexcept

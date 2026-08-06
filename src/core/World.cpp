@@ -82,19 +82,24 @@ void World::SetWindow(sf::RenderWindow& window)
 
 bool World::IsCleared() const noexcept
 {
-	for (const auto& entity : entities)
+	auto containsAliveEnemy = [](const auto& entityList)
 	{
-		if (!entity->IsAlive())
-			continue;
-
-		if (entity->GetType() == Entity::Type::Enemy ||
-			entity->GetType() == Entity::Type::Asteroid)
+		for (const auto& entity : entityList)
 		{
-			return false;
-		}
-	}
+			if (!entity->IsAlive())
+				continue;
 
-	return true;
+			if (entity->GetType() == Entity::Type::Enemy ||
+				entity->GetType() == Entity::Type::Asteroid)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	};
+
+	return !containsAliveEnemy(entities) && !containsAliveEnemy(pendingEntities);
 }
 
 bool World::HasPlayer() const noexcept
@@ -189,14 +194,14 @@ void World::HandleCollisions()
 
 			if (a.IsCollideWith(b) && b.IsCollideWith(a))
 			{
-				OnCollision(a);
-				OnCollision(b);
+				OnCollision(a, b);
+				OnCollision(b, a);
 			}
 		}
 	}
 }
 
-void World::OnCollision(Entity& entity)
+void World::OnCollision(Entity& entity, const Entity& other)
 {
 	if (entity.GetType() == Entity::Type::Player)
 	{
@@ -208,8 +213,9 @@ void World::OnCollision(Entity& entity)
 
 	entity.Destroy();
 
-	if (entity.GetType() == Entity::Type::Enemy ||
-		entity.GetType() == Entity::Type::Asteroid)
+	if (other.GetType() == Entity::Type::Projectile_Player &&
+		(entity.GetType() == Entity::Type::Enemy ||
+			entity.GetType() == Entity::Type::Asteroid))
 	{
 		Enemy* enemy = dynamic_cast<Enemy*>(&entity);
 		if (enemy != nullptr)
