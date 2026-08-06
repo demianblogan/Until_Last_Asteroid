@@ -42,7 +42,7 @@ void Game::Run()
 
 	while (window.isOpen())
 	{
-		float deltaTime = clock.restart().asSeconds();
+		const float deltaTime{ std::min(clock.restart().asSeconds(), MAX_FRAME_TIME) };
 
 		ProcessEvents();
 		Update(deltaTime);

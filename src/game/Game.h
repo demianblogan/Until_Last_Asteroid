@@ -71,6 +71,7 @@ private:
 
 	static constexpr sf::Vector2f LOGICAL_SIZE{ 1920.f, 1080.f };
 	static constexpr float SPAWN_SAFE_RADIUS = 250.f;
+	static constexpr float MAX_FRAME_TIME = 0.1f;
 
 	sf::RenderWindow window;
 
