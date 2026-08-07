@@ -30,6 +30,7 @@ namespace
     constexpr float ActivationDelay{ 0.12f };
     constexpr float BlurRadius{ 4.f };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
+    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
 
     sf::Vector2u EnsureNonZero(sf::Vector2u size)
     {
@@ -59,9 +60,13 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "PAUSED", 92)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "PAUSED", 92)
     , neonGlow(context.assets)
+    , menuCursor(
+        context.assets,
+        Config::Texture::MenuPointer,
+        { 6.f, 2.f },
+        InterfaceGlowColor)
 {
-    context.window.setMouseCursorVisible(true);
-    context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
+    context.window.setMouseCursorVisible(false);
 
     windowSnapshot.setSmooth(true);
     horizontalBlur.setSmooth(true);
@@ -179,6 +184,7 @@ void PauseState::HandleEvent(const sf::Event& event)
 void PauseState::Update(float deltaTime)
 {
     neonGlow.Update(deltaTime);
+    menuCursor.Update(deltaTime);
 
     if (!activationPending)
         return;
@@ -226,6 +232,11 @@ void PauseState::Render()
 
     if (!buttons.empty())
         neonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), SelectionGlowColor);
+}
+
+void PauseState::RenderOverlay()
+{
+    menuCursor.Draw(GetContext().window);
 }
 
 bool PauseState::IsTransparent() const noexcept

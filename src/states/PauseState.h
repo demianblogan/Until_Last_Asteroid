@@ -9,6 +9,7 @@
 #include <SFML/Graphics/Texture.hpp>
 
 #include "states/State.h"
+#include "ui/GlowingCursor.h"
 #include "ui/MenuButton.h"
 #include "ui/NeonGlow.h"
 
@@ -23,6 +24,7 @@ public:
     void HandleEvent(const sf::Event& event) override;
     void Update(float deltaTime) override;
     void Render() override;
+    void RenderOverlay() override;
     [[nodiscard]] bool IsTransparent() const noexcept override;
 
 private:
@@ -42,6 +44,7 @@ private:
     sf::Text titleGlow;
     sf::Text title;
     NeonGlow neonGlow;
+    GlowingCursor menuCursor;
     std::vector<MenuButton> buttons;
     std::size_t selectedIndex{ 0 };
     std::size_t pendingActivation{ 0 };

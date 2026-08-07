@@ -6,6 +6,7 @@
 #include <SFML/Graphics/Text.hpp>
 
 #include "states/State.h"
+#include "ui/GlowingCursor.h"
 #include "ui/MenuButton.h"
 #include "ui/NeonGlow.h"
 
@@ -16,6 +17,7 @@ public:
     void HandleEvent(const sf::Event& event) override;
     void Update(float deltaTime) override;
     void Render() override;
+    void RenderOverlay() override;
 
 protected:
     PlaceholderState(StateStack& stateStack, StateContext context, std::string titleText);
@@ -28,6 +30,7 @@ private:
     sf::Text message;
     MenuButton backButton;
     NeonGlow neonGlow;
+    GlowingCursor menuCursor;
     bool backRequested{ false };
     float backDelayRemaining{ 0.f };
 };

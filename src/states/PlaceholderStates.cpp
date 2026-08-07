@@ -16,6 +16,7 @@ namespace
 {
     constexpr float BackDelay{ 0.12f };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
+    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
 }
 
 PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context, std::string titleText)
@@ -30,9 +31,13 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
         "Back",
         { 420.f, 82.f })
     , neonGlow(context.assets)
+    , menuCursor(
+        context.assets,
+        Config::Texture::MenuPointer,
+        { 6.f, 2.f },
+        InterfaceGlowColor)
 {
-    context.window.setMouseCursorVisible(true);
-    context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
+    context.window.setMouseCursorVisible(false);
 
     background.setFillColor(sf::Color(3, 8, 16));
 
@@ -90,6 +95,7 @@ void PlaceholderState::HandleEvent(const sf::Event& event)
 void PlaceholderState::Update(float deltaTime)
 {
     neonGlow.Update(deltaTime);
+    menuCursor.Update(deltaTime);
 
     if (!backRequested)
         return;
@@ -117,6 +123,11 @@ void PlaceholderState::Render()
 
     backButton.Draw(window);
     neonGlow.DrawHighlight(window, backButton.GetBounds(), SelectionGlowColor);
+}
+
+void PlaceholderState::RenderOverlay()
+{
+    menuCursor.Draw(GetContext().window);
 }
 
 void PlaceholderState::GoBack()

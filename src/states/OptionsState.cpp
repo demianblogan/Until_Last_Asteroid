@@ -25,6 +25,7 @@ namespace
     constexpr sf::Color Disabled{ 76, 88, 101 };
     constexpr sf::Color Red{ 245, 92, 92 };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
+    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
     constexpr sf::Vector2f RowPosition{ 260.f, 220.f };
     constexpr sf::Vector2f RowSize{ 1400.f, 82.f };
     constexpr float RowSpacing{ 98.f };
@@ -82,12 +83,16 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context)
     , neonGlow(context.assets)
     , dropdownGlow(context.assets)
     , dialogGlow(context.assets)
+    , menuCursor(
+        context.assets,
+        Config::Texture::MenuPointer,
+        { 6.f, 2.f },
+        InterfaceGlowColor)
     , toggleOnText(context.assets.Fonts().Get(Config::Font::MenuRegular), "ON", 23)
     , toggleOffText(context.assets.Fonts().Get(Config::Font::MenuRegular), "OFF", 23)
     , previousGraphics(context.settings.Get().graphics)
 {
-    context.window.setMouseCursorVisible(true);
-    context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
+    context.window.setMouseCursorVisible(false);
     shade.setFillColor(sf::Color(0, 4, 10, 150));
 
     titleGlow.setFillColor(sf::Color(80, 215, 245, 25));
@@ -275,6 +280,7 @@ void OptionsState::Update(float deltaTime)
     neonGlow.Update(deltaTime);
     dropdownGlow.Update(deltaTime);
     dialogGlow.Update(deltaTime);
+    menuCursor.Update(deltaTime);
     if (!displayConfirmationOpen)
         return;
 
@@ -294,6 +300,11 @@ void OptionsState::Render()
         DrawDropdown(window);
     if (pendingBinding.has_value() || displayConfirmationOpen)
         DrawDialog(window);
+}
+
+void OptionsState::RenderOverlay()
+{
+    menuCursor.Draw(GetContext().window);
 }
 
 void OptionsState::SetPage(Page newPage)
@@ -870,8 +881,7 @@ void OptionsState::BeginDisplayChange(const GraphicsSettings& previous)
     previousGraphics = previous;
     SaveSettings();
     GetContext().display.ApplyDisplaySettings(GetContext().settings.Get().graphics);
-    GetContext().window.setMouseCursorVisible(true);
-    GetContext().window.setMouseCursor(GetContext().assets.GetCursor(Config::Cursor::MenuPointer));
+    GetContext().window.setMouseCursorVisible(false);
     displayConfirmationRemaining = DisplayConfirmationDuration;
     dialogSelectedIndex = 0u;
     dialogGlow.Invalidate();
@@ -908,8 +918,7 @@ void OptionsState::RevertDisplayChange()
     GetContext().settings.Edit().graphics = previousGraphics;
     SaveSettings();
     GetContext().display.ApplyDisplaySettings(previousGraphics);
-    GetContext().window.setMouseCursorVisible(true);
-    GetContext().window.setMouseCursor(GetContext().assets.GetCursor(Config::Cursor::MenuPointer));
+    GetContext().window.setMouseCursorVisible(false);
     displayConfirmationOpen = false;
     RebuildRows();
 }

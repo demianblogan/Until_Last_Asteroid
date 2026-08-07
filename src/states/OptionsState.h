@@ -10,6 +10,7 @@
 
 #include "settings/GameSettings.h"
 #include "states/State.h"
+#include "ui/GlowingCursor.h"
 #include "ui/MenuBackground.h"
 #include "ui/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
@@ -23,6 +24,7 @@ public:
     void HandleEvent(const sf::Event& event) override;
     void Update(float deltaTime) override;
     void Render() override;
+    void RenderOverlay() override;
 
 private:
     enum class Page
@@ -184,6 +186,7 @@ private:
     NeonGlow neonGlow;
     NeonGlow dropdownGlow;
     NeonGlow dialogGlow;
+    GlowingCursor menuCursor;
     Page page{ Page::Root };
     std::vector<Row> rows;
     std::vector<sf::Text> rowLabels;
