@@ -4,13 +4,13 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include "assets/AssetStore.h"
 #include "entities/Enemy.h"
-#include "GameState.h"
+#include "game/GameplaySession.h"
 #include "entities/Player.h"
 #include "entities/Shot.h"
 
 // --------------------------------------------------------
-World::World(unsigned int width, unsigned int height, AssetStore& assets, GameState& gameState)
-	: width(width), height(height), assets(assets), gameState(gameState)
+World::World(unsigned int width, unsigned int height, AssetStore& assets, GameplaySession& session)
+	: width(width), height(height), assets(assets), session(session)
 {
 	// No code
 }
@@ -127,7 +127,7 @@ void World::SpawnPlayerShot(const sf::Vector2f& pos, float rotation)
 void World::SpawnSaucerShot(const sf::Vector2f& pos,
 	const sf::Vector2f& target)
 {
-	Spawn(std::make_unique<SaucerShot>(assets, *this, pos, target, gameState.GetScore()));
+	Spawn(std::make_unique<SaucerShot>(assets, *this, pos, target, session.GetScore()));
 }
 
 void World::AddSound(Config::Sound id)
@@ -205,10 +205,10 @@ void World::OnCollision(Entity& entity, const Entity& other)
 {
 	if (entity.GetType() == Entity::Type::Player)
 	{
-		gameState.LoseLife();
+		session.LoseLife();
 
-		if (gameState.GetLives() <= 0)
-			gameState.SetGameOver();
+		if (session.GetLives() <= 0)
+			session.SetGameOver();
 	}
 
 	entity.Destroy();
@@ -220,7 +220,7 @@ void World::OnCollision(Entity& entity, const Entity& other)
 		Enemy* enemy = dynamic_cast<Enemy*>(&entity);
 		if (enemy != nullptr)
 		{
-			gameState.AddScore(enemy->GetScoreValue());
+			session.AddScore(enemy->GetScoreValue());
 		}
 	}
 }

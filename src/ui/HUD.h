@@ -5,7 +5,7 @@
 #include <SFML/System/Vector2.hpp>
 
 class AssetStore;
-class GameState;
+class GameplaySession;
 
 namespace sf
 {
@@ -15,14 +15,14 @@ namespace sf
 class HUD
 {
 public:
-	HUD(AssetStore& assets, const GameState& gameState);
+	HUD(AssetStore& assets, const GameplaySession& session);
 
 	void Update();
 	void Draw(sf::RenderTarget& target) const;
 
 private:
 	AssetStore& assets;
-	const GameState& gameState;
+	const GameplaySession& session;
 
 	sf::Text scoreText;
 	sf::Sprite lifeSprite;
