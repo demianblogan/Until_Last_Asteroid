@@ -111,8 +111,3 @@ ScoresState::ScoresState(StateStack& stateStack, StateContext context)
     : PlaceholderState(stateStack, context, "SCORES")
 {
 }
-
-OptionsState::OptionsState(StateStack& stateStack, StateContext context)
-    : PlaceholderState(stateStack, context, "OPTIONS")
-{
-}

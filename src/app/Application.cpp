@@ -8,13 +8,16 @@
 #include "states/CompanySplashState.h"
 #include "states/GameplayState.h"
 #include "states/MainMenuState.h"
+#include "states/OptionsState.h"
 #include "states/PauseState.h"
 #include "states/PlaceholderStates.h"
+#include "utils/ConfigEnums.h"
 
 Application::Application()
     : window(CreateWindow(settings.Get().graphics))
     , audio(assets, settings)
-    , stateStack(StateContext{ window, assets, settings, audio, LOGICAL_SIZE })
+    , display(window, LOGICAL_SIZE)
+    , stateStack(StateContext{ window, assets, settings, audio, display, LOGICAL_SIZE })
 {
     const sf::View logicalView(sf::FloatRect({ 0.f, 0.f }, LOGICAL_SIZE));
     window.setView(GetLetterboxView(logicalView, window.getSize().x, window.getSize().y));
@@ -24,6 +27,11 @@ Application::Application()
 
     assets.Initialize();
     audio.ApplySettings();
+
+    fpsText.emplace(assets.Fonts().Get(Config::Font::MenuRegular), "FPS: --", 24);
+    fpsText->setFillColor(sf::Color(130, 235, 245));
+    fpsText->setOutlineColor(sf::Color(2, 10, 18, 220));
+    fpsText->setOutlineThickness(2.f);
 
     stateStack.RegisterState<CompanySplashState>(StateId::CompanySplash);
     stateStack.RegisterState<MainMenuState>(StateId::MainMenu);
@@ -106,11 +114,35 @@ void Application::Run()
         stateStack.HandleRealtime();
         stateStack.Update(deltaTime);
         audio.Update();
+        UpdateFpsCounter(deltaTime);
 
         window.clear();
         stateStack.Render();
+        if (settings.Get().graphics.showFps && fpsText.has_value())
+            window.draw(*fpsText);
         window.display();
     }
+}
+
+void Application::UpdateFpsCounter(float deltaTime)
+{
+    if (!fpsText.has_value())
+        return;
+
+    fpsElapsed += deltaTime;
+    ++fpsFrames;
+    if (fpsElapsed >= 0.25f)
+    {
+        const auto fps{ static_cast<unsigned int>(
+            static_cast<float>(fpsFrames) / fpsElapsed + 0.5f) };
+        fpsText->setString("FPS: " + std::to_string(fps));
+        fpsElapsed = 0.f;
+        fpsFrames = 0u;
+    }
+
+    const sf::FloatRect bounds{ fpsText->getLocalBounds() };
+    fpsText->setOrigin({ bounds.position.x + bounds.size.x, bounds.position.y });
+    fpsText->setPosition({ LOGICAL_SIZE.x - 24.f, 18.f });
 }
 
 sf::View Application::GetLetterboxView(

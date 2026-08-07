@@ -62,6 +62,54 @@ namespace
         return fallback;
     }
 
+    std::string ToString(InputDevice device)
+    {
+        return device == InputDevice::Mouse ? "mouse" : "keyboard";
+    }
+
+    InputDevice ParseInputDevice(const std::string& value, InputDevice fallback)
+    {
+        if (value == "keyboard")
+            return InputDevice::Keyboard;
+        if (value == "mouse")
+            return InputDevice::Mouse;
+
+        return fallback;
+    }
+
+    Json SerializeBinding(const ControlBinding& binding)
+    {
+        return {
+            { "device", ToString(binding.device) },
+            { "code", binding.code }
+        };
+    }
+
+    ControlBinding DeserializeBinding(const Json& object, const ControlBinding& fallback)
+    {
+        if (!object.is_object())
+            return fallback;
+
+        ControlBinding result{ fallback };
+        result.device = ParseInputDevice(
+            ReadValue(object, "device", ToString(fallback.device)),
+            fallback.device);
+        result.code = ReadValue(object, "code", fallback.code);
+
+        const bool validKeyboard{
+            result.device == InputDevice::Keyboard &&
+            result.code >= 0 &&
+            result.code < static_cast<int>(sf::Keyboard::KeyCount)
+        };
+        const bool validMouse{
+            result.device == InputDevice::Mouse &&
+            result.code >= 0 &&
+            result.code < static_cast<int>(sf::Mouse::ButtonCount)
+        };
+
+        return validKeyboard || validMouse ? result : fallback;
+    }
+
     Json Serialize(const GameSettings& settings)
     {
         return {
@@ -82,6 +130,16 @@ namespace
                 {
                     { "music", settings.audio.musicVolume },
                     { "sounds", settings.audio.soundVolume }
+                }
+            },
+            {
+                "controls",
+                {
+                    { "moveUp", SerializeBinding(settings.controls.moveUp) },
+                    { "moveDown", SerializeBinding(settings.controls.moveDown) },
+                    { "moveLeft", SerializeBinding(settings.controls.moveLeft) },
+                    { "moveRight", SerializeBinding(settings.controls.moveRight) },
+                    { "fire", SerializeBinding(settings.controls.fire) }
                 }
             }
         };
@@ -126,6 +184,24 @@ namespace
                 ReadValue(*audio, "sounds", result.audio.soundVolume),
                 0.f,
                 100.f);
+        }
+
+        if (const auto controls{ data.find("controls") };
+            controls != data.end() && controls->is_object())
+        {
+            const auto readBinding{ [&controls](const char* key, const ControlBinding& fallback)
+                {
+                    const auto binding{ controls->find(key) };
+                    return binding == controls->end()
+                        ? fallback
+                        : DeserializeBinding(*binding, fallback);
+                } };
+
+            result.controls.moveUp = readBinding("moveUp", result.controls.moveUp);
+            result.controls.moveDown = readBinding("moveDown", result.controls.moveDown);
+            result.controls.moveLeft = readBinding("moveLeft", result.controls.moveLeft);
+            result.controls.moveRight = readBinding("moveRight", result.controls.moveRight);
+            result.controls.fire = readBinding("fire", result.controls.fire);
         }
 
         return result;

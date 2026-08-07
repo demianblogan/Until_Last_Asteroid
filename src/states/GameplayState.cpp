@@ -12,6 +12,7 @@
 #include "entities/Saucer.h"
 #include "ui/HUD.h"
 #include "utils/Random.h"
+#include "settings/SettingsManager.h"
 
 GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	: State(stateStack, context)
@@ -79,12 +80,23 @@ void GameplayState::SetupInput()
 {
 	using enum Config::PlayerAction;
 	using enum InputAction::TriggerType;
-	using namespace sf::Keyboard;
 
-	actions.AddBinding(Up, InputAction(Key::W, WhileHeld));
-	actions.AddBinding(Left, InputAction(Key::A, WhileHeld));
-	actions.AddBinding(Right, InputAction(Key::D, WhileHeld));
-	actions.AddBinding(Down, InputAction(Key::S, WhileHeld));
+	const ControlSettings& controls{ GetContext().settings.Get().controls };
+	const auto addBinding{ [this](Config::PlayerAction action, const ControlBinding& binding)
+		{
+			if (binding.device == InputDevice::Keyboard)
+				actions.AddBinding(action, InputAction(
+					static_cast<sf::Keyboard::Key>(binding.code), WhileHeld));
+			else
+				actions.AddBinding(action, InputAction(
+					static_cast<sf::Mouse::Button>(binding.code), WhileHeld));
+		} };
+
+	addBinding(Up, controls.moveUp);
+	addBinding(Down, controls.moveDown);
+	addBinding(Left, controls.moveLeft);
+	addBinding(Right, controls.moveRight);
+	addBinding(Fire, controls.fire);
 }
 
 void GameplayState::SetupUI()

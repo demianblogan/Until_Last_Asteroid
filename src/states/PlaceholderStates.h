@@ -34,9 +34,3 @@ class ScoresState final : public PlaceholderState
 public:
     ScoresState(StateStack& stateStack, StateContext context);
 };
-
-class OptionsState final : public PlaceholderState
-{
-public:
-    OptionsState(StateStack& stateStack, StateContext context);
-};

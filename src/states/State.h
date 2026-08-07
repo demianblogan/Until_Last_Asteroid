@@ -6,6 +6,7 @@
 
 class AssetStore;
 class AudioManager;
+class DisplayManager;
 class SettingsManager;
 class StateStack;
 
@@ -21,6 +22,7 @@ struct StateContext
     AssetStore& assets;
     SettingsManager& settings;
     AudioManager& audio;
+    DisplayManager& display;
     sf::Vector2f logicalSize;
 };
 

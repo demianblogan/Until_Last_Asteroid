@@ -142,6 +142,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\assets\AssetStore.cpp" />
+    <ClCompile Include="src\app\DisplayManager.cpp" />
     <ClCompile Include="src\audio\AudioManager.cpp" />
     <ClCompile Include="src\systems\Collision.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
@@ -151,6 +152,7 @@
     <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
     <ClCompile Include="src\states\MainMenuState.cpp" />
+    <ClCompile Include="src\states\OptionsState.cpp" />
     <ClCompile Include="src\states\PauseState.cpp" />
     <ClCompile Include="src\states\PlaceholderStates.cpp" />
     <ClCompile Include="src\states\State.cpp" />
@@ -172,6 +174,7 @@
   <ItemGroup>
     <ClInclude Include="src\utils\ConfigEnums.h" />
     <ClInclude Include="src\audio\AudioManager.h" />
+    <ClInclude Include="src\app\DisplayManager.h" />
     <ClInclude Include="src\app\Application.h" />
     <ClInclude Include="src\core\GameVersion.h" />
     <ClInclude Include="src\ui\HUD.h" />
@@ -184,6 +187,7 @@
     <ClInclude Include="src\states\CompanySplashState.h" />
     <ClInclude Include="src\states\GameplayState.h" />
     <ClInclude Include="src\states\MainMenuState.h" />
+    <ClInclude Include="src\states\OptionsState.h" />
     <ClInclude Include="src\states\PauseState.h" />
     <ClInclude Include="src\states\PlaceholderStates.h" />
     <ClInclude Include="src\states\State.h" />

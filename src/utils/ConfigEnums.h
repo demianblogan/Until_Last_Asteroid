@@ -86,6 +86,7 @@ namespace Config
 		Up,
 		Down,
 		Left,
-		Right
+		Right,
+		Fire
 	};
 };
