@@ -15,6 +15,7 @@
 namespace
 {
     constexpr float BackDelay{ 0.12f };
+    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
 }
 
 PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context, std::string titleText)
@@ -28,6 +29,7 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
         context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
         "Back",
         { 420.f, 82.f })
+    , neonGlow(context.assets)
 {
     background.setFillColor(sf::Color(3, 8, 16));
 
@@ -78,6 +80,8 @@ void PlaceholderState::HandleEvent(const sf::Event& event)
 
 void PlaceholderState::Update(float deltaTime)
 {
+    neonGlow.Update(deltaTime);
+
     if (!backRequested)
         return;
 
@@ -92,7 +96,18 @@ void PlaceholderState::Render()
     window.draw(background);
     window.draw(title);
     window.draw(message);
+
+    neonGlow.DrawBloom(
+        window,
+        backButton.GetBounds(),
+        [this](sf::RenderTarget& target, const sf::RenderStates& states)
+        {
+            backButton.Draw(target, states);
+        },
+        SelectionGlowColor);
+
     backButton.Draw(window);
+    neonGlow.DrawHighlight(window, backButton.GetBounds(), SelectionGlowColor);
 }
 
 void PlaceholderState::GoBack()

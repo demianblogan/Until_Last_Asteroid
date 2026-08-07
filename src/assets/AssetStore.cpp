@@ -158,11 +158,18 @@ void AssetStore::InitializeMusic()
 void AssetStore::InitializeShaders()
 {
 	sf::Shader blurShader;
-	const std::string path{ "assets/shaders/gaussian_blur.frag" };
-	if (!blurShader.loadFromFile(path, sf::Shader::Type::Fragment))
-		throw std::runtime_error("Failed to load shader: " + path);
+	const std::string blurPath{ "assets/shaders/gaussian_blur.frag" };
+	if (!blurShader.loadFromFile(blurPath, sf::Shader::Type::Fragment))
+		throw std::runtime_error("Failed to load shader: " + blurPath);
 
 	shaders.emplace(Config::Shader::GaussianBlur, std::move(blurShader));
+
+	sf::Shader brightPassShader;
+	const std::string brightPassPath{ "assets/shaders/bright_pass.frag" };
+	if (!brightPassShader.loadFromFile(brightPassPath, sf::Shader::Type::Fragment))
+		throw std::runtime_error("Failed to load shader: " + brightPassPath);
+
+	shaders.emplace(Config::Shader::BrightPass, std::move(brightPassShader));
 }
 
 void AssetStore::InitializeCursors()

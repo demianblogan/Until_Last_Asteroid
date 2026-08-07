@@ -76,7 +76,8 @@ namespace Config
 
 	enum class Shader
 	{
-		GaussianBlur
+		GaussianBlur,
+		BrightPass
 	};
 
 	enum class Cursor

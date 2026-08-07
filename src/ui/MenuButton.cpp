@@ -5,6 +5,7 @@
 #include <utility>
 
 #include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Texture.hpp>
 
@@ -70,8 +71,13 @@ sf::FloatRect MenuButton::GetBounds() const
 
 void MenuButton::Draw(sf::RenderTarget& target) const
 {
-    target.draw(background);
-    target.draw(label);
+    Draw(target, sf::RenderStates::Default);
+}
+
+void MenuButton::Draw(sf::RenderTarget& target, const sf::RenderStates& states) const
+{
+    target.draw(background, states);
+    target.draw(label, states);
 }
 
 void MenuButton::CenterLabel()

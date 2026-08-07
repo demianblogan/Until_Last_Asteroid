@@ -28,6 +28,7 @@ namespace
     constexpr float TitleStartY{ 540.f };
     constexpr float TitleEndY{ 125.f };
     constexpr float ActivationDelay{ 0.12f };
+    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
     constexpr std::size_t TypingSoundPoolSize{ 4 };
     constexpr std::array<float, TypingSoundPoolSize> TypingPitches{ 0.97f, 1.02f, 0.99f, 1.04f };
 }
@@ -194,10 +195,23 @@ void MainMenuState::Render()
     window.draw(title);
 
     if (introAnimation.IsInteractive() && !buttons.empty())
-        neonGlow.Draw(window, buttons[selectedIndex].GetBounds());
+    {
+        const MenuButton& selectedButton{ buttons[selectedIndex] };
+        neonGlow.DrawBloom(
+            window,
+            selectedButton.GetBounds(),
+            [&selectedButton](sf::RenderTarget& target, const sf::RenderStates& states)
+            {
+                selectedButton.Draw(target, states);
+            },
+            SelectionGlowColor);
+    }
 
     for (const MenuButton& button : buttons)
         button.Draw(window);
+
+    if (introAnimation.IsInteractive() && !buttons.empty())
+        neonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), SelectionGlowColor);
 
     window.draw(version);
 }
@@ -218,6 +232,9 @@ void MainMenuState::Select(std::size_t index, bool playSound)
     selectedIndex = index;
     for (std::size_t buttonIndex{ 0 }; buttonIndex < buttons.size(); ++buttonIndex)
         buttons[buttonIndex].SetSelected(buttonIndex == selectedIndex);
+
+    if (selectionChanged)
+        neonGlow.Invalidate();
 
     if (selectionChanged && playSound)
         GetContext().audio.PlaySound(

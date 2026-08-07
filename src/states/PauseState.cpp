@@ -29,6 +29,7 @@ namespace
     constexpr float TitleY{ 620.f };
     constexpr float ActivationDelay{ 0.12f };
     constexpr float BlurRadius{ 4.f };
+    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
 
     sf::Vector2u EnsureNonZero(sf::Vector2u size)
     {
@@ -211,10 +212,23 @@ void PauseState::Render()
     window.draw(title);
 
     if (!buttons.empty())
-        neonGlow.Draw(window, buttons[selectedIndex].GetBounds());
+    {
+        const MenuButton& selectedButton{ buttons[selectedIndex] };
+        neonGlow.DrawBloom(
+            window,
+            selectedButton.GetBounds(),
+            [&selectedButton](sf::RenderTarget& target, const sf::RenderStates& states)
+            {
+                selectedButton.Draw(target, states);
+            },
+            SelectionGlowColor);
+    }
 
     for (const MenuButton& button : buttons)
         button.Draw(window);
+
+    if (!buttons.empty())
+        neonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), SelectionGlowColor);
 }
 
 bool PauseState::IsTransparent() const noexcept
@@ -290,6 +304,9 @@ void PauseState::Select(std::size_t index, bool playSound)
 
     for (std::size_t buttonIndex{ 0 }; buttonIndex < buttons.size(); ++buttonIndex)
         buttons[buttonIndex].SetSelected(buttonIndex == selectedIndex);
+
+    if (selectionChanged)
+        neonGlow.Invalidate();
 
     if (selectionChanged && playSound)
     {

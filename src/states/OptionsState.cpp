@@ -24,6 +24,7 @@ namespace
     constexpr sf::Color Muted{ 128, 148, 164 };
     constexpr sf::Color Disabled{ 76, 88, 101 };
     constexpr sf::Color Red{ 245, 92, 92 };
+    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
     constexpr sf::Vector2f RowPosition{ 260.f, 220.f };
     constexpr sf::Vector2f RowSize{ 1400.f, 82.f };
     constexpr float RowSpacing{ 98.f };
@@ -79,6 +80,7 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context)
     , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "OPTIONS", 76)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "OPTIONS", 76)
     , neonGlow(context.assets)
+    , dropdownGlow(context.assets)
     , dialogGlow(context.assets)
     , toggleOnText(context.assets.Fonts().Get(Config::Font::MenuRegular), "ON", 23)
     , toggleOffText(context.assets.Fonts().Get(Config::Font::MenuRegular), "OFF", 23)
@@ -271,6 +273,7 @@ void OptionsState::Update(float deltaTime)
 {
     background.Update(deltaTime);
     neonGlow.Update(deltaTime);
+    dropdownGlow.Update(deltaTime);
     dialogGlow.Update(deltaTime);
     if (!displayConfirmationOpen)
         return;
@@ -377,6 +380,7 @@ void OptionsState::RebuildRows()
         SelectNext();
 
     RebuildRowTextCache();
+    neonGlow.Invalidate();
 }
 
 void OptionsState::RebuildRowTextCache()
@@ -431,6 +435,8 @@ void OptionsState::RefreshRowTextValues()
 
     for (std::size_t index{ 0u }; index < rows.size(); ++index)
         rowValues[index].setString(GetRowValue(rows[index]));
+
+    neonGlow.Invalidate();
 }
 
 void OptionsState::Select(std::size_t index, bool playSound)
@@ -439,6 +445,8 @@ void OptionsState::Select(std::size_t index, bool playSound)
         return;
     const bool changed{ selectedIndex != index };
     selectedIndex = index;
+    if (changed)
+        neonGlow.Invalidate();
     if (changed && playSound)
         GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f,
             SoundPlayback::Restart);
@@ -596,6 +604,7 @@ void OptionsState::OpenDropdown(Action action)
     dropdownOpen = true;
     dropdownScrollbarDragging = false;
     EnsureDropdownSelectionVisible();
+    dropdownGlow.Invalidate();
 }
 
 void OptionsState::CloseDropdown()
@@ -619,6 +628,7 @@ void OptionsState::MoveDropdownSelection(int direction)
     if (dropdownIndex != previous)
     {
         EnsureDropdownSelectionVisible();
+        dropdownGlow.Invalidate();
         GetContext().audio.PlaySound(
             Config::Sound::ItemSelect,
             SoundGroup::UI,
@@ -660,6 +670,7 @@ void OptionsState::HandleDropdownMouseMove(sf::Vector2f position)
         if (hovered != dropdownIndex)
         {
             dropdownIndex = hovered;
+            dropdownGlow.Invalidate();
             GetContext().audio.PlaySound(
                 Config::Sound::ItemSelect,
                 SoundGroup::UI,
@@ -713,6 +724,7 @@ void OptionsState::HandleMouseWheel(float delta)
         dropdownIndex,
         dropdownFirstVisible,
         dropdownFirstVisible + MaximumVisibleDropdownItems - 1u);
+    dropdownGlow.Invalidate();
     if (dropdownIndex != previousSelection)
     {
         GetContext().audio.PlaySound(
@@ -744,6 +756,7 @@ void OptionsState::UpdateDropdownScrollbar(sf::Vector2f position)
         dropdownIndex,
         dropdownFirstVisible,
         dropdownFirstVisible + MaximumVisibleDropdownItems - 1u);
+    dropdownGlow.Invalidate();
     if (dropdownIndex != previousSelection)
     {
         GetContext().audio.PlaySound(
@@ -855,6 +868,7 @@ void OptionsState::BeginDisplayChange(const GraphicsSettings& previous)
     GetContext().window.setMouseCursor(GetContext().assets.GetCursor(Config::Cursor::MenuPointer));
     displayConfirmationRemaining = DisplayConfirmationDuration;
     dialogSelectedIndex = 0u;
+    dialogGlow.Invalidate();
     displayConfirmationOpen = true;
 }
 
@@ -863,6 +877,8 @@ void OptionsState::SelectDialogOption(std::size_t index, bool playSound)
     index = std::min(index, std::size_t{ 1u });
     const bool changed{ dialogSelectedIndex != index };
     dialogSelectedIndex = index;
+    if (changed)
+        dialogGlow.Invalidate();
     if (changed && playSound)
         GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI);
 }
@@ -936,6 +952,7 @@ bool OptionsState::RequiresWindowRecreation(
 void OptionsState::BeginBinding(Action action)
 {
     pendingBinding = action;
+    dialogGlow.Invalidate();
 }
 
 void OptionsState::ApplyBinding(ControlBinding binding)
@@ -1135,10 +1152,23 @@ void OptionsState::DrawTitle(sf::RenderTarget& target) const
 void OptionsState::DrawRows(sf::RenderTarget& target)
 {
     if (!displayConfirmationOpen && !pendingBinding.has_value() && IsSelectedRowEnabled())
-        neonGlow.Draw(target, rows[selectedIndex].bounds);
+    {
+        const Row& selectedRow{ rows[selectedIndex] };
+        neonGlow.DrawBloom(
+            target,
+            selectedRow.bounds,
+            [this, &selectedRow](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+            {
+                DrawRow(glowTarget, selectedRow, selectedIndex, states);
+            },
+            SelectionGlowColor);
+    }
 
     for (std::size_t index{ 0u }; index < rows.size(); ++index)
-        DrawRow(target, rows[index], index);
+        DrawRow(target, rows[index], index, sf::RenderStates::Default);
+
+    if (!displayConfirmationOpen && !pendingBinding.has_value() && IsSelectedRowEnabled())
+        neonGlow.DrawHighlight(target, rows[selectedIndex].bounds, SelectionGlowColor);
 
     if (saveFailed)
     {
@@ -1147,7 +1177,11 @@ void OptionsState::DrawRows(sf::RenderTarget& target)
     }
 }
 
-void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t index)
+void OptionsState::DrawRow(
+    sf::RenderTarget& target,
+    const Row& row,
+    std::size_t index,
+    const sf::RenderStates& states)
 {
     const bool selected{ index == selectedIndex && row.enabled };
     RoundedRectangleShape panel(row.bounds.size, 15.f, 10u);
@@ -1155,27 +1189,27 @@ void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t
     panel.setFillColor(selected ? sf::Color(8, 34, 48, 226) : sf::Color(5, 17, 29, 210));
     panel.setOutlineColor(selected ? Cyan : sf::Color(52, 76, 92));
     panel.setOutlineThickness(selected ? 2.f : 1.f);
-    target.draw(panel);
+    target.draw(panel, states);
 
     const sf::Color textColor{ !row.enabled ? Disabled : (selected ? Orange : BrightCyan) };
     rowLabels[index].setFillColor(textColor);
-    target.draw(rowLabels[index]);
+    target.draw(rowLabels[index], states);
 
     if (row.kind == RowKind::Slider)
     {
         const float value{ row.action == Action::MusicVolume
             ? GetContext().settings.Get().audio.musicVolume
             : GetContext().settings.Get().audio.soundVolume };
-        DrawSlider(target, row, value);
+        DrawSlider(target, row, value, states);
         rowValues[index].setFillColor(Cyan);
-        target.draw(rowValues[index]);
+        target.draw(rowValues[index], states);
     }
     else if (row.kind == RowKind::Toggle)
     {
         const bool value{ row.action == Action::ShowFps
             ? GetContext().settings.Get().graphics.showFps
             : GetContext().settings.Get().graphics.verticalSync };
-        DrawToggle(target, row, value);
+        DrawToggle(target, row, value, states);
     }
     else if (row.kind == RowKind::Dropdown)
     {
@@ -1185,24 +1219,24 @@ void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t
         box.setFillColor(row.enabled ? sf::Color(2, 15, 27, 242) : sf::Color(10, 14, 20, 225));
         box.setOutlineColor(row.enabled ? sf::Color(60, 126, 151) : sf::Color(45, 51, 59));
         box.setOutlineThickness(1.5f);
-        target.draw(box);
+        target.draw(box, states);
 
         sf::RectangleShape divider({ 1.f, bounds.size.y - 12.f });
         divider.setPosition({ bounds.position.x + bounds.size.x - 58.f, bounds.position.y + 6.f });
         divider.setFillColor(row.enabled ? sf::Color(60, 126, 151) : sf::Color(45, 51, 59));
-        target.draw(divider);
+        target.draw(divider, states);
 
         RoundedRectangleShape arrowButton({ 46.f, 46.f }, 7.f, 6u);
         arrowButton.setPosition({ bounds.position.x + bounds.size.x - 52.f, bounds.position.y + 6.f });
         arrowButton.setFillColor(row.enabled ? sf::Color(10, 55, 73, 235) : sf::Color(22, 27, 33, 220));
         arrowButton.setOutlineColor(row.enabled ? sf::Color(75, 170, 196) : sf::Color(48, 55, 63));
         arrowButton.setOutlineThickness(1.f);
-        target.draw(arrowButton);
+        target.draw(arrowButton, states);
 
         rowValues[index].setFillColor(row.enabled ? Cyan : Disabled);
-        target.draw(rowValues[index]);
+        target.draw(rowValues[index], states);
         if (!row.enabled)
-            target.draw(rowHints[index]);
+            target.draw(rowHints[index], states);
 
         sf::ConvexShape arrow(3u);
         arrow.setPoint(0u, { 0.f, 0.f });
@@ -1210,29 +1244,33 @@ void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t
         arrow.setPoint(2u, { 9.f, 10.f });
         arrow.setPosition({ bounds.position.x + bounds.size.x - 38.f, bounds.position.y + 25.f });
         arrow.setFillColor(row.enabled ? BrightCyan : Disabled);
-        target.draw(arrow);
+        target.draw(arrow, states);
     }
     else
     {
         if (!rowValues[index].getString().isEmpty())
         {
             rowValues[index].setFillColor(row.enabled ? Cyan : Disabled);
-            target.draw(rowValues[index]);
+            target.draw(rowValues[index], states);
         }
     }
 }
 
-void OptionsState::DrawSlider(sf::RenderTarget& target, const Row& row, float value) const
+void OptionsState::DrawSlider(
+    sf::RenderTarget& target,
+    const Row& row,
+    float value,
+    const sf::RenderStates& states) const
 {
     sf::RectangleShape track({ SliderWidth, 8.f });
     track.setPosition({ SliderLeft, row.bounds.position.y + 38.f });
     track.setFillColor(sf::Color(52, 70, 83));
-    target.draw(track);
+    target.draw(track, states);
 
     sf::RectangleShape fill({ SliderWidth * value / 100.f, 8.f });
     fill.setPosition(track.getPosition());
     fill.setFillColor(Cyan);
-    target.draw(fill);
+    target.draw(fill, states);
 
     sf::CircleShape knob(13.f);
     knob.setOrigin({ 13.f, 13.f });
@@ -1240,10 +1278,14 @@ void OptionsState::DrawSlider(sf::RenderTarget& target, const Row& row, float va
     knob.setFillColor(BrightCyan);
     knob.setOutlineColor(sf::Color(40, 210, 245, 90));
     knob.setOutlineThickness(6.f);
-    target.draw(knob);
+    target.draw(knob, states);
 }
 
-void OptionsState::DrawToggle(sf::RenderTarget& target, const Row& row, bool value)
+void OptionsState::DrawToggle(
+    sf::RenderTarget& target,
+    const Row& row,
+    bool value,
+    const sf::RenderStates& states)
 {
     const sf::Vector2f position{ 1280.f, row.bounds.position.y + 17.f };
     RoundedRectangleShape shell({ 270.f, 50.f }, 10.f, 8u);
@@ -1251,23 +1293,23 @@ void OptionsState::DrawToggle(sf::RenderTarget& target, const Row& row, bool val
     shell.setFillColor(sf::Color(3, 13, 23, 230));
     shell.setOutlineColor(sf::Color(55, 93, 111));
     shell.setOutlineThickness(1.f);
-    target.draw(shell);
+    target.draw(shell, states);
 
     RoundedRectangleShape active({ 128.f, 42.f }, 8.f, 8u);
     active.setPosition(position + sf::Vector2f{ value ? 4.f : 138.f, 4.f });
     active.setFillColor(sf::Color(18, 132, 157, 150));
     active.setOutlineColor(Cyan);
     active.setOutlineThickness(1.f);
-    target.draw(active);
+    target.draw(active, states);
     toggleOnText.setPosition(position + sf::Vector2f{ 44.f, 10.f });
     toggleOnText.setFillColor(value ? BrightCyan : Muted);
-    target.draw(toggleOnText);
+    target.draw(toggleOnText, states);
     toggleOffText.setPosition(position + sf::Vector2f{ 178.f, 10.f });
     toggleOffText.setFillColor(value ? Muted : BrightCyan);
-    target.draw(toggleOffText);
+    target.draw(toggleOffText, states);
 }
 
-void OptionsState::DrawDropdown(sf::RenderTarget& target) const
+void OptionsState::DrawDropdown(sf::RenderTarget& target)
 {
     const std::size_t itemCount{ GetDropdownItemCount() };
     if (itemCount == 0u)
@@ -1276,21 +1318,27 @@ void OptionsState::DrawDropdown(sf::RenderTarget& target) const
     const std::size_t visibleCount{ std::min(
         MaximumVisibleDropdownItems,
         itemCount - dropdownFirstVisible) };
+    const std::size_t selectedVisibleIndex{ dropdownIndex - dropdownFirstVisible };
+    const sf::FloatRect selectedBounds{ GetDropdownItemBounds(selectedVisibleIndex) };
+    dropdownGlow.DrawBloom(
+        target,
+        selectedBounds,
+        [this, selectedBounds](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+        {
+            DrawDropdownItem(glowTarget, selectedBounds, dropdownIndex, true, states);
+        },
+        SelectionGlowColor);
+
     for (std::size_t visibleIndex{ 0u }; visibleIndex < visibleCount; ++visibleIndex)
     {
         const std::size_t itemIndex{ dropdownFirstVisible + visibleIndex };
         const sf::FloatRect bounds{ GetDropdownItemBounds(visibleIndex) };
-        RoundedRectangleShape item(bounds.size, 7.f, 6u);
-        item.setPosition(bounds.position);
-        item.setFillColor(itemIndex == dropdownIndex
-            ? sf::Color(12, 58, 76, 250)
-            : sf::Color(3, 16, 28, 248));
-        item.setOutlineColor(itemIndex == dropdownIndex ? Cyan : sf::Color(50, 78, 94));
-        item.setOutlineThickness(1.f);
-        target.draw(item);
-        DrawText(target, GetDropdownItemLabel(itemIndex),
-            bounds.position + sf::Vector2f{ 20.f, 13.f }, 24,
-            itemIndex == dropdownIndex ? Orange : BrightCyan);
+        DrawDropdownItem(
+            target,
+            bounds,
+            itemIndex,
+            itemIndex == dropdownIndex,
+            sf::RenderStates::Default);
     }
 
     if (itemCount > MaximumVisibleDropdownItems)
@@ -1311,6 +1359,31 @@ void OptionsState::DrawDropdown(sf::RenderTarget& target) const
         thumb.setFillColor(Cyan);
         target.draw(thumb);
     }
+
+    dropdownGlow.DrawHighlight(target, selectedBounds, SelectionGlowColor);
+}
+
+void OptionsState::DrawDropdownItem(
+    sf::RenderTarget& target,
+    const sf::FloatRect& bounds,
+    std::size_t itemIndex,
+    bool selected,
+    const sf::RenderStates& states) const
+{
+    RoundedRectangleShape item(bounds.size, 7.f, 6u);
+    item.setPosition(bounds.position);
+    item.setFillColor(selected ? sf::Color(12, 58, 76, 250) : sf::Color(3, 16, 28, 248));
+    item.setOutlineColor(selected ? Cyan : sf::Color(50, 78, 94));
+    item.setOutlineThickness(1.f);
+    target.draw(item, states);
+
+    sf::Text label(
+        GetContext().assets.Fonts().Get(Config::Font::MenuRegular),
+        GetDropdownItemLabel(itemIndex),
+        24);
+    label.setPosition(bounds.position + sf::Vector2f{ 20.f, 13.f });
+    label.setFillColor(selected ? Orange : BrightCyan);
+    target.draw(label, states);
 }
 
 void OptionsState::DrawDialog(sf::RenderTarget& target)
@@ -1336,40 +1409,87 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
             std::pair{ DialogConfirmBounds, std::string{ "Confirm" } },
             std::pair{ DialogCancelBounds, std::string{ "Cancel" } }
         };
-        dialogGlow.Draw(target, buttons[dialogSelectedIndex].first);
+        const auto& [selectedBounds, selectedLabel]{ buttons[dialogSelectedIndex] };
+        dialogGlow.DrawBloom(
+            target,
+            selectedBounds,
+            [this, &selectedBounds, &selectedLabel](
+                sf::RenderTarget& glowTarget,
+                const sf::RenderStates& states)
+            {
+                DrawDialogButton(
+                    glowTarget,
+                    selectedBounds,
+                    selectedLabel,
+                    true,
+                    states);
+            },
+            SelectionGlowColor);
         for (std::size_t index{ 0u }; index < buttons.size(); ++index)
         {
             const auto& [bounds, label]{ buttons[index] };
-            const bool selected{ index == dialogSelectedIndex };
-            RoundedRectangleShape button(bounds.size, 12.f, 8u);
-            button.setPosition(bounds.position);
-            button.setFillColor(selected ? sf::Color(7, 39, 54, 245) : sf::Color(5, 20, 31, 245));
-            button.setOutlineColor(selected ? BrightCyan : sf::Color(54, 91, 108));
-            button.setOutlineThickness(selected ? 2.f : 1.f);
-            target.draw(button);
-            DrawCenteredText(target, label,
-                bounds.position.x + bounds.size.x * 0.5f,
-                bounds.position.y + 13.f,
-                25,
-                selected ? Orange : BrightCyan);
+            DrawDialogButton(
+                target,
+                bounds,
+                label,
+                index == dialogSelectedIndex,
+                sf::RenderStates::Default);
         }
+        dialogGlow.DrawHighlight(target, selectedBounds, SelectionGlowColor);
     }
     else
     {
         DrawCenteredText(target, "Press a key or mouse button", 960.f, 475.f, 34, BrightCyan);
-        dialogGlow.Draw(target, BindingCancelBounds);
-        RoundedRectangleShape cancelButton(BindingCancelBounds.size, 12.f, 8u);
-        cancelButton.setPosition(BindingCancelBounds.position);
-        cancelButton.setFillColor(sf::Color(7, 39, 54, 245));
-        cancelButton.setOutlineColor(BrightCyan);
-        cancelButton.setOutlineThickness(2.f);
-        target.draw(cancelButton);
-        DrawCenteredText(target, "Cancel",
-            BindingCancelBounds.position.x + BindingCancelBounds.size.x * 0.5f,
-            BindingCancelBounds.position.y + 13.f,
-            25,
-            Orange);
+        const std::string cancelLabel{ "Cancel" };
+        dialogGlow.DrawBloom(
+            target,
+            BindingCancelBounds,
+            [this, &cancelLabel](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+            {
+                DrawDialogButton(
+                    glowTarget,
+                    BindingCancelBounds,
+                    cancelLabel,
+                    true,
+                    states);
+            },
+            SelectionGlowColor);
+        DrawDialogButton(
+            target,
+            BindingCancelBounds,
+            cancelLabel,
+            true,
+            sf::RenderStates::Default);
+        dialogGlow.DrawHighlight(target, BindingCancelBounds, SelectionGlowColor);
     }
+}
+
+void OptionsState::DrawDialogButton(
+    sf::RenderTarget& target,
+    const sf::FloatRect& bounds,
+    const std::string& labelValue,
+    bool selected,
+    const sf::RenderStates& states) const
+{
+    RoundedRectangleShape button(bounds.size, 12.f, 8u);
+    button.setPosition(bounds.position);
+    button.setFillColor(selected ? sf::Color(7, 39, 54, 245) : sf::Color(5, 20, 31, 245));
+    button.setOutlineColor(selected ? BrightCyan : sf::Color(54, 91, 108));
+    button.setOutlineThickness(selected ? 2.f : 1.f);
+    target.draw(button, states);
+
+    sf::Text label(
+        GetContext().assets.Fonts().Get(Config::Font::MenuRegular),
+        labelValue,
+        25);
+    const sf::FloatRect textBounds{ label.getLocalBounds() };
+    label.setOrigin({
+        textBounds.position.x + textBounds.size.x * 0.5f,
+        textBounds.position.y
+    });
+    label.setPosition({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y + 13.f });
+    label.setFillColor(selected ? Orange : BrightCyan);
+    target.draw(label, states);
 }
 
 void OptionsState::DrawCenteredText(

@@ -131,11 +131,35 @@ private:
 
     void DrawTitle(sf::RenderTarget& target) const;
     void DrawRows(sf::RenderTarget& target);
-    void DrawRow(sf::RenderTarget& target, const Row& row, std::size_t index);
-    void DrawSlider(sf::RenderTarget& target, const Row& row, float value) const;
-    void DrawToggle(sf::RenderTarget& target, const Row& row, bool value);
-    void DrawDropdown(sf::RenderTarget& target) const;
+    void DrawRow(
+        sf::RenderTarget& target,
+        const Row& row,
+        std::size_t index,
+        const sf::RenderStates& states);
+    void DrawSlider(
+        sf::RenderTarget& target,
+        const Row& row,
+        float value,
+        const sf::RenderStates& states) const;
+    void DrawToggle(
+        sf::RenderTarget& target,
+        const Row& row,
+        bool value,
+        const sf::RenderStates& states);
+    void DrawDropdown(sf::RenderTarget& target);
+    void DrawDropdownItem(
+        sf::RenderTarget& target,
+        const sf::FloatRect& bounds,
+        std::size_t itemIndex,
+        bool selected,
+        const sf::RenderStates& states) const;
     void DrawDialog(sf::RenderTarget& target);
+    void DrawDialogButton(
+        sf::RenderTarget& target,
+        const sf::FloatRect& bounds,
+        const std::string& label,
+        bool selected,
+        const sf::RenderStates& states) const;
     void DrawCenteredText(
         sf::RenderTarget& target,
         const std::string& value,
@@ -157,6 +181,7 @@ private:
     sf::Text titleGlow;
     sf::Text title;
     NeonGlow neonGlow;
+    NeonGlow dropdownGlow;
     NeonGlow dialogGlow;
     Page page{ Page::Root };
     std::vector<Row> rows;

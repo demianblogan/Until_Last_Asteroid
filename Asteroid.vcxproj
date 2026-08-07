@@ -216,6 +216,7 @@
     <ClInclude Include="libs\nlohmann\json.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="assets\shaders\bright_pass.frag" />
     <None Include="assets\shaders\gaussian_blur.frag" />
     <None Include="assets\data\audio_balance.json" />
     <None Include="libs\nlohmann\LICENSE.MIT" />

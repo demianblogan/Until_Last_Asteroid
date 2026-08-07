@@ -7,6 +7,7 @@
 
 #include "states/State.h"
 #include "ui/MenuButton.h"
+#include "ui/NeonGlow.h"
 
 class PlaceholderState : public State
 {
@@ -25,6 +26,7 @@ private:
     sf::Text title;
     sf::Text message;
     MenuButton backButton;
+    NeonGlow neonGlow;
     bool backRequested{ false };
     float backDelayRemaining{ 0.f };
 };
