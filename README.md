@@ -1,6 +1,6 @@
 # 🚀 Until Last Asteroid (C++ / SFML)
 
-A fast-paced top-down space shooter built with **C++23** and **SFML 3.0.2**.
+A fast-paced top-down space shooter built with **C++23** and **SFML 3.1.0**.
 
 Destroy asteroids, fight enemy ships, survive waves, and complete all levels.
 
@@ -75,7 +75,7 @@ The game contains **5 levels** with increasing difficulty:
 
 - C++23 compatible compiler
 - Visual Studio 2026
-- SFML 3.0.2 (64-bit)
+- SFML 3.1.0 (64-bit)
 
 📦 Setup guide:  
 👉 [SFML Setup](libs/SFML/README.md)
@@ -118,7 +118,7 @@ This project was created as a **portfolio piece** to demonstrate:
 ## 📌 Tech Stack
 
 - **C++23**
-- **SFML 3.0.2**
+- **SFML 3.1.0**
 
 ---
 
