@@ -15,11 +15,6 @@ int GameplaySession::GetScore() const noexcept
 	return score;
 }
 
-bool GameplaySession::IsStart() const noexcept
-{
-	return state == State::Start;
-}
-
 bool GameplaySession::IsPlaying() const noexcept
 {
 	return state == State::Playing;
@@ -50,11 +45,6 @@ void GameplaySession::SetLevelComplete() noexcept
 	state = State::LevelComplete;
 }
 
-void GameplaySession::StartGame() noexcept
-{
-	state = State::Playing;
-}
-
 void GameplaySession::SetGameOver() noexcept
 {
 	state = State::GameOver;
@@ -65,7 +55,7 @@ void GameplaySession::Reset() noexcept
 	lives = 3;
 	level = 1;
 	score = 0;
-	state = State::Start;
+	state = State::Playing;
 }
 
 void GameplaySession::AddScore(int points) noexcept
@@ -83,4 +73,5 @@ void GameplaySession::LoseLife() noexcept
 void GameplaySession::NextLevel() noexcept
 {
 	level++;
+	state = State::Playing;
 }

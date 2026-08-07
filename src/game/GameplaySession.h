@@ -5,7 +5,6 @@ class GameplaySession
 public:
 	enum class State
 	{
-		Start,
 		Playing,
 		LevelComplete,
 		GameOver,
@@ -16,7 +15,6 @@ public:
 	[[nodiscard]] int GetLevel() const noexcept;
 	[[nodiscard]] int GetScore() const noexcept;
 
-	[[nodiscard]] bool IsStart() const noexcept;
 	[[nodiscard]] bool IsPlaying() const noexcept;
 	[[nodiscard]] bool IsGameOver() const noexcept;
 	[[nodiscard]] bool IsLevelComplete() const noexcept;
@@ -25,7 +23,6 @@ public:
 	void SetWin() noexcept;
 
 	void SetLevelComplete() noexcept;
-	void StartGame() noexcept;
 	void SetGameOver() noexcept;
 
 	void Reset() noexcept;
@@ -34,7 +31,7 @@ public:
 	void NextLevel() noexcept;
 
 private:
-	State state{ State::Start };
+	State state{ State::Playing };
 	int lives{ 3 };
 	int level{ 1 };
 	int score{ 0 };

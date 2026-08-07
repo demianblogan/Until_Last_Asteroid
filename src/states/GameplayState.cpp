@@ -15,15 +15,15 @@
 
 GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	: State(stateStack, context)
+	, input(actions)
 	, world(
 		static_cast<unsigned int>(context.logicalSize.x),
 		static_cast<unsigned int>(context.logicalSize.y),
 		context.assets,
 		session)
-	, input(actions)
 {
 	world.SetWindow(context.window);
-	context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::Crosshair));
+	context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::GameplayCrosshair));
 
 	hud.emplace(context.assets, session);
 
@@ -31,9 +31,15 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	SetupUI();
 	Reset();
 
-	sf::Music& backgroundMusic = context.assets.Music().Get(Config::Music::BackgroundTheme);
-	backgroundMusic.setLooping(true);
-	backgroundMusic.play();
+	sf::Music& gameplayMusic{ context.assets.Music().Get(Config::Music::GameplayTheme) };
+	gameplayMusic.setLooping(true);
+	if (gameplayMusic.getStatus() != sf::SoundSource::Status::Playing)
+		gameplayMusic.play();
+}
+
+GameplayState::~GameplayState()
+{
+	GetContext().assets.Music().Get(Config::Music::GameplayTheme).stop();
 }
 
 GameplayState::LevelData GameplayState::CreateLevel(int level)
@@ -89,33 +95,9 @@ void GameplayState::SetupUI()
 
 	// EXIT
 	exitHintText.emplace(font);
-	exitHintText->setString("ESC - Exit");
+	exitHintText->setString("ESC - Pause Menu");
 	exitHintText->setCharacterSize(25);
 	exitHintText->setPosition({ 20.f, 20.f });
-
-	// START
-	{
-		sf::Text title(font);
-		title.setString("UNTIL LAST ASTEROID");
-		title.setCharacterSize(100);
-		CenterText(title, GetContext().logicalSize.y * 0.10f);
-
-		sf::Text controls(font);
-		controls.setString(
-			"W A S D - Move\n"
-			"Mouse - Aim\n"
-			"LMB - Shoot"
-		);
-		controls.setCharacterSize(40);
-		CenterText(controls, GetContext().logicalSize.y * 0.4f);
-
-		sf::Text start(font);
-		start.setString("Press SPACE to start");
-		start.setCharacterSize(50);
-		CenterText(start, GetContext().logicalSize.y * 0.75f);
-
-		startScreenTexts = { title, controls, start };
-	}
 
 	// GAME OVER
 	{
@@ -170,37 +152,35 @@ void GameplayState::SetupUI()
 
 void GameplayState::HandleEvent(const sf::Event& event)
 {
+	if (event.is<sf::Event::FocusLost>() && session.IsPlaying())
+	{
+		OpenPauseMenu();
+		return;
+	}
+
 	if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
 	{
 		if (key->code == sf::Keyboard::Key::Escape)
 		{
-			GetContext().window.close();
+			OpenPauseMenu();
 			return;
 		}
 
 		if (key->code == sf::Keyboard::Key::Space)
 		{
-			if (session.IsStart())
-			{
-				session.StartGame();
-				return;
-			}
-			else if (session.IsGameOver())
+			if (session.IsGameOver())
 			{
 				Reset();
-				session.StartGame();
 				return;
 			}
 			else if (session.IsLevelComplete())
 			{
 				NextLevel();
-				session.StartGame();
 				return;
 			}
 			else if (session.IsWin())
 			{
 				Reset();
-				session.StartGame();
 				return;
 			}
 		}
@@ -212,8 +192,30 @@ void GameplayState::HandleEvent(const sf::Event& event)
 
 void GameplayState::HandleRealtime()
 {
+	ResumeGameplaySounds();
+
 	if (session.IsPlaying())
 		world.HandlePlayerRealtime();
+}
+
+void GameplayState::OpenPauseMenu()
+{
+	if (!gameplaySoundsPaused)
+	{
+		world.PauseActiveSounds();
+		gameplaySoundsPaused = true;
+	}
+
+	RequestPush(StateId::Pause);
+}
+
+void GameplayState::ResumeGameplaySounds()
+{
+	if (!gameplaySoundsPaused)
+		return;
+
+	world.ResumePausedSounds();
+	gameplaySoundsPaused = false;
 }
 
 void GameplayState::Update(float dt)
@@ -308,12 +310,7 @@ void GameplayState::Render()
 {
 	auto& window{ GetContext().window };
 
-	if (session.IsStart())
-	{
-		for (sf::Text& text : startScreenTexts)
-			window.draw(text);
-	}
-	else if (session.IsGameOver())
+	if (session.IsGameOver())
 	{
 		for (sf::Text& text : gameOverTexts)
 			window.draw(text);

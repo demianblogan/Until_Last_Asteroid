@@ -41,31 +41,52 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Kept the existing Visual Studio project setup without migrating to CMake or
   vcpkg.
 
-## Planned — v1.1.0
+## In development — v1.1.0
+
+### Completed on the release branch
 
 - Introduce an explicit application state machine.
 - Add the skippable Alone Bull Company splash with fade-in, hold, fade-out,
   and its accompanying sound.
 - Add the first functional main menu with Start Game, Scores, Options, and
   Quit.
-- Animate the title letter by letter before moving it to the top of the menu.
+- Animate the title letter by letter with typing sounds before moving it to the
+  top of the menu.
+- Type menu labels sequentially, reveal their interface frames, and start the
+  menu ambience after the interface activation sound.
 - Display the current game version in small text at the bottom-right.
 - Move music and sounds under `assets/audio/` and update all asset paths.
-- Use the existing `trs-million` font until the later UI/UX art pass.
-- Reserve the lower-left for menu controls and the rest of the screen for a
-  future layered space-and-asteroid parallax background.
+- Standardize asset file names using `snake_case`.
+- Use Orbitron for the title and menu controls.
+- Reserve the lower-left for menu controls and use a layered space-and-asteroid
+  parallax background.
+- Add menu navigation and confirmation sounds.
+- Add custom sci-fi cursors for the menu and active gameplay.
 - Add an explicit paused game state.
 - Pause and resume active gameplay with Escape.
 - Pause automatically when the window loses focus or is minimized.
 - Disable movement and shooting while paused.
-- Add a pause overlay or menu.
+- Add a lower-left pause menu with Resume and Back to Main Menu.
+- Blur the captured gameplay frame at the native viewport resolution with a
+  cached two-pass shader, then darken it behind the pause interface.
+- Pause gameplay music and active sound effects, then restore the gameplay
+  cursor and audio on resume.
 - Resume without a large frame-time jump.
+
+### Release verification
+
+- Completed the manual v1.1.0 regression checklist.
+- Prepared, extracted, smoke-tested, and approved the v1.1.0 release candidate.
 
 ## Deferred / needs design
 
+- Add localization with externalized UI text and language selection in Options.
+- Add controller support, including skipping the company splash with a gamepad.
 - Review collision behaviour across wrapped screen edges only if the current
   collision style becomes a gameplay problem.
 - Decide whether slow motion improves major explosions after the visual-effects
   pass; do not treat it as a committed feature yet.
 - Add object pooling only when profiling shows allocation pressure during
   chaotic scenes; do not migrate the game to ECS pre-emptively.
+- Consider adding subtle glow to the menu pointer and gameplay crosshair during
+  the later visual-effects pass.

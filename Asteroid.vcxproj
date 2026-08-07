@@ -147,10 +147,17 @@
     <ClCompile Include="src\core\Entity.cpp" />
     <ClCompile Include="src\app\Application.cpp" />
     <ClCompile Include="src\game\GameplaySession.cpp" />
+    <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
+    <ClCompile Include="src\states\MainMenuState.cpp" />
+    <ClCompile Include="src\states\PauseState.cpp" />
+    <ClCompile Include="src\states\PlaceholderStates.cpp" />
     <ClCompile Include="src\states\State.cpp" />
     <ClCompile Include="src\states\StateStack.cpp" />
     <ClCompile Include="src\ui\HUD.cpp" />
+    <ClCompile Include="src\ui\MenuBackground.cpp" />
+    <ClCompile Include="src\ui\MenuButton.cpp" />
+    <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
     <ClCompile Include="src\systems\InputAction.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\entities\Meteor.cpp" />
@@ -163,12 +170,17 @@
   <ItemGroup>
     <ClInclude Include="src\utils\ConfigEnums.h" />
     <ClInclude Include="src\app\Application.h" />
+    <ClInclude Include="src\core\GameVersion.h" />
     <ClInclude Include="src\ui\HUD.h" />
     <ClInclude Include="src\systems\InputAction.h" />
     <ClInclude Include="src\systems\ActionMap.h" />
     <ClInclude Include="src\systems\InputHandler.h" />
     <ClInclude Include="src\game\GameplaySession.h" />
+    <ClInclude Include="src\states\CompanySplashState.h" />
     <ClInclude Include="src\states\GameplayState.h" />
+    <ClInclude Include="src\states\MainMenuState.h" />
+    <ClInclude Include="src\states\PauseState.h" />
+    <ClInclude Include="src\states\PlaceholderStates.h" />
     <ClInclude Include="src\states\State.h" />
     <ClInclude Include="src\states\StateId.h" />
     <ClInclude Include="src\states\StateStack.h" />
@@ -183,6 +195,12 @@
     <ClInclude Include="src\entities\Saucer.h" />
     <ClInclude Include="src\entities\Shot.h" />
     <ClInclude Include="src\core\World.h" />
+    <ClInclude Include="src\ui\MenuBackground.h" />
+    <ClInclude Include="src\ui\MenuButton.h" />
+    <ClInclude Include="src\ui\MenuIntroAnimation.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\shaders\gaussian_blur.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

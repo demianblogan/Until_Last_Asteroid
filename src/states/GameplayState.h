@@ -17,6 +17,7 @@ class GameplayState final : public State
 {
 public:
     GameplayState(StateStack& stateStack, StateContext context);
+    ~GameplayState() override;
 
     void HandleEvent(const sf::Event& event) override;
     void HandleRealtime() override;
@@ -45,6 +46,8 @@ private:
 
     void SetupInput();
     void SetupUI();
+    void OpenPauseMenu();
+    void ResumeGameplaySounds();
 
     void SpawnPlayerIfNeeded();
 
@@ -62,17 +65,16 @@ private:
     static constexpr float SPAWN_SAFE_RADIUS{ 250.f };
 
     GameplaySession session;
+    ActionMap<Config::PlayerAction> actions;
+    InputHandler<Config::PlayerAction> input;
     World world;
     std::optional<HUD> hud;
 
-    ActionMap<Config::PlayerAction> actions;
-    InputHandler<Config::PlayerAction> input;
-
-    std::vector<sf::Text> startScreenTexts;
     std::vector<sf::Text> gameOverTexts;
     std::vector<sf::Text> levelCompleteTexts;
     std::vector<sf::Text> winTexts;
     std::optional<sf::Text> exitHintText;
 
     LevelData currentLevel;
+    bool gameplaySoundsPaused{ false };
 };

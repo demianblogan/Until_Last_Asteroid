@@ -7,6 +7,11 @@ namespace Config
 {
 	enum class Texture
 	{
+		CompanyLogo,
+		MainMenuBackground,
+		MenuButtonIdle,
+		MenuButtonSelected,
+
 		PlayerShip,
 		PlayerLife,
 
@@ -32,11 +37,18 @@ namespace Config
 
 	enum class Font
 	{
-		GUI
+		GUI,
+		MenuRegular,
+		MenuSemibold
 	};
 
 	enum class Sound
 	{
+		CharacterTyping,
+		InterfaceActivation,
+		ItemSelect,
+		ItemPress,
+
 		PlayerLaserShot,
 		EnemyLaserShot,
 
@@ -53,12 +65,20 @@ namespace Config
 
 	enum class Music
 	{
-		BackgroundTheme
+		CompanySplash,
+		MainMenuBackground,
+		GameplayTheme
+	};
+
+	enum class Shader
+	{
+		GaussianBlur
 	};
 
 	enum class Cursor
 	{
-		Crosshair
+		MenuPointer,
+		GameplayCrosshair
 	};
 
 	enum class PlayerAction
