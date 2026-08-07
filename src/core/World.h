@@ -10,7 +10,7 @@
 #include "systems/InputHandler.h"
 
 class AssetStore;
-class GameState;
+class GameplaySession;
 class Player;
 
 namespace sf
@@ -29,7 +29,7 @@ class SaucerShot;
 class World : public sf::Drawable
 {
 public:
-	World(unsigned int width, unsigned int height, AssetStore& assets, GameState& gameState);
+	World(unsigned int width, unsigned int height, AssetStore& assets, GameplaySession& session);
 
 	void Update(float deltaTime);
 
@@ -67,7 +67,7 @@ private:
 	std::vector<std::unique_ptr<sf::Sound>> sounds;
 
 	AssetStore& assets;
-	GameState& gameState;
+	GameplaySession& session;
 
 	Player* player{ nullptr };
 	sf::RenderWindow* window{ nullptr };

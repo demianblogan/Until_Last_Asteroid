@@ -4,12 +4,12 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 
 #include "assets/AssetStore.h"
-#include "core/GameState.h"
+#include "game/GameplaySession.h"
 #include "utils/ConfigEnums.h"
 
-HUD::HUD(AssetStore& assets, const GameState& gameState)
+HUD::HUD(AssetStore& assets, const GameplaySession& session)
 	: assets(assets)
-	, gameState(gameState)
+	, session(session)
 	, scoreText(assets.Fonts().Get(Config::Font::GUI))
 	, lifeSprite(assets.Textures().Get(Config::Texture::PlayerLife))
 {
@@ -21,7 +21,7 @@ HUD::HUD(AssetStore& assets, const GameState& gameState)
 
 void HUD::Update()
 {
-	scoreText.setString(std::to_string(gameState.GetScore()));
+	scoreText.setString(std::to_string(session.GetScore()));
 }
 
 void HUD::Draw(sf::RenderTarget& target) const
@@ -29,7 +29,7 @@ void HUD::Draw(sf::RenderTarget& target) const
 	target.draw(scoreText);
 
 	float offsetFromLeftBound{ 20 };
-	for (int i{ 0 }; i < gameState.GetLives(); i++)
+	for (int i{ 0 }; i < session.GetLives(); i++)
 	{
 		sf::Sprite spriteCopy = lifeSprite;
 		spriteCopy.setPosition({ offsetFromLeftBound + LIFE_OFFSET.x * i, LIFE_OFFSET.y });
