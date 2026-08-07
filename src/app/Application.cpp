@@ -19,6 +19,7 @@ Application::Application()
     , display(window, LOGICAL_SIZE)
     , stateStack(StateContext{ window, assets, settings, audio, display, LOGICAL_SIZE })
 {
+    display.ConfigureExistingWindow(settings.Get().graphics);
     const sf::View logicalView(sf::FloatRect({ 0.f, 0.f }, LOGICAL_SIZE));
     window.setView(GetLetterboxView(logicalView, window.getSize().x, window.getSize().y));
     window.setVerticalSyncEnabled(settings.Get().graphics.verticalSync);
@@ -86,7 +87,8 @@ void Application::Run()
 
     while (window.isOpen())
     {
-        const float deltaTime{ std::min(clock.restart().asSeconds(), MAX_FRAME_TIME) };
+        const float frameTime{ clock.restart().asSeconds() };
+        const float deltaTime{ std::min(frameTime, MAX_FRAME_TIME) };
 
         while (const std::optional<sf::Event> event{ window.pollEvent() })
         {
@@ -114,7 +116,7 @@ void Application::Run()
         stateStack.HandleRealtime();
         stateStack.Update(deltaTime);
         audio.Update();
-        UpdateFpsCounter(deltaTime);
+        UpdateFpsCounter(frameTime);
 
         window.clear();
         stateStack.Render();
@@ -131,7 +133,7 @@ void Application::UpdateFpsCounter(float deltaTime)
 
     fpsElapsed += deltaTime;
     ++fpsFrames;
-    if (fpsElapsed >= 0.25f)
+    if (fpsElapsed >= 1.f)
     {
         const auto fps{ static_cast<unsigned int>(
             static_cast<float>(fpsFrames) / fpsElapsed + 0.5f) };

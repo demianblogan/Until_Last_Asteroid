@@ -27,6 +27,7 @@ struct AudioManager::ActiveSound
 AudioManager::AudioManager(AssetStore& assets, SettingsManager& settings)
     : assets(assets)
     , settings(settings)
+    , balance("assets/data/audio_balance.json")
 {
 }
 
@@ -43,10 +44,10 @@ void AudioManager::Update()
 void AudioManager::ApplySettings()
 {
     for (const auto& activeSound : activeSounds)
-        activeSound->sound.setVolume(GetSoundVolume(activeSound->baseVolume));
+        activeSound->sound.setVolume(GetSoundVolume(activeSound->id, activeSound->baseVolume));
 
     for (const auto& [id, baseVolume] : musicBaseVolumes)
-        assets.Music().Get(id).setVolume(GetMusicVolume(baseVolume));
+        assets.Music().Get(id).setVolume(GetMusicVolume(id, baseVolume));
 }
 
 void AudioManager::PlaySound(
@@ -74,7 +75,7 @@ void AudioManager::PlaySound(
         baseVolume,
         assets.Sounds().Get(id)) };
     activeSound->sound.setAttenuation(0.f);
-    activeSound->sound.setVolume(GetSoundVolume(baseVolume));
+    activeSound->sound.setVolume(GetSoundVolume(id, baseVolume));
     activeSound->sound.setPitch(pitch);
     activeSound->sound.play();
     activeSounds.push_back(std::move(activeSound));
@@ -109,7 +110,7 @@ void AudioManager::PlayMusic(Config::Music id, bool looping, float baseVolume)
     sf::Music& music{ assets.Music().Get(id) };
     musicBaseVolumes[id] = baseVolume;
     music.setLooping(looping);
-    music.setVolume(GetMusicVolume(baseVolume));
+    music.setVolume(GetMusicVolume(id, baseVolume));
     if (music.getStatus() != sf::SoundSource::Status::Playing)
         music.play();
 }
@@ -136,12 +137,22 @@ bool AudioManager::IsMusicPlaying(Config::Music id) const
     return assets.Music().Get(id).getStatus() == sf::SoundSource::Status::Playing;
 }
 
-float AudioManager::GetMusicVolume(float baseVolume) const noexcept
+float AudioManager::GetMusicVolume(Config::Music id, float playbackVolume) const noexcept
 {
-    return std::clamp(baseVolume * settings.Get().audio.musicVolume / 100.f, 0.f, 100.f);
+    const AudioSettings& audio{ settings.Get().audio };
+    const float resourceVolume{ balance.GetMusicVolume(id) };
+    return std::clamp(
+        playbackVolume * resourceVolume * audio.musicVolume / 10'000.f,
+        0.f,
+        100.f);
 }
 
-float AudioManager::GetSoundVolume(float baseVolume) const noexcept
+float AudioManager::GetSoundVolume(Config::Sound id, float playbackVolume) const noexcept
 {
-    return std::clamp(baseVolume * settings.Get().audio.soundVolume / 100.f, 0.f, 100.f);
+    const AudioSettings& audio{ settings.Get().audio };
+    const float resourceVolume{ balance.GetSoundVolume(id) };
+    return std::clamp(
+        playbackVolume * resourceVolume * audio.soundVolume / 10'000.f,
+        0.f,
+        100.f);
 }

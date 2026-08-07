@@ -218,7 +218,7 @@ void MainMenuState::Select(std::size_t index, bool playSound)
         GetContext().audio.PlaySound(
             Config::Sound::ItemSelect,
             SoundGroup::UI,
-            45.f,
+            100.f,
             1.f,
             SoundPlayback::Restart);
 }
@@ -241,7 +241,7 @@ void MainMenuState::ActivateSelected()
     GetContext().audio.PlaySound(
         Config::Sound::ItemPress,
         SoundGroup::UI,
-        60.f,
+        100.f,
         1.f,
         SoundPlayback::Restart);
 
@@ -305,7 +305,7 @@ void MainMenuState::HandleAnimationEvents(const MenuIntroAnimation::Events& even
         GetContext().audio.PlaySound(
             Config::Sound::InterfaceActivation,
             SoundGroup::UI,
-            58.f,
+            100.f,
             1.f,
             SoundPlayback::Restart);
 
@@ -323,7 +323,7 @@ void MainMenuState::PlayTypingSounds(std::size_t count)
         GetContext().audio.PlaySound(
             Config::Sound::CharacterTyping,
             SoundGroup::UI,
-            34.f,
+            100.f,
             TypingPitches[typingSoundIndex % TypingPitches.size()]);
         ++typingSoundIndex;
     }

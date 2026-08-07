@@ -128,8 +128,8 @@ namespace
             {
                 "audio",
                 {
-                    { "music", settings.audio.musicVolume },
-                    { "sounds", settings.audio.soundVolume }
+                    { "musicMaster", settings.audio.musicVolume },
+                    { "soundsMaster", settings.audio.soundVolume }
                 }
             },
             {
@@ -176,12 +176,14 @@ namespace
         if (const auto audio{ data.find("audio") };
             audio != data.end() && audio->is_object())
         {
+            const float legacyMusic{ ReadValue(*audio, "music", result.audio.musicVolume) };
+            const float legacySounds{ ReadValue(*audio, "sounds", result.audio.soundVolume) };
             result.audio.musicVolume = std::clamp(
-                ReadValue(*audio, "music", result.audio.musicVolume),
+                ReadValue(*audio, "musicMaster", legacyMusic),
                 0.f,
                 100.f);
             result.audio.soundVolume = std::clamp(
-                ReadValue(*audio, "sounds", result.audio.soundVolume),
+                ReadValue(*audio, "soundsMaster", legacySounds),
                 0.f,
                 100.f);
         }

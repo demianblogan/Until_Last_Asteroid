@@ -100,7 +100,7 @@ void PlaceholderState::GoBack()
     GetContext().audio.PlaySound(
         Config::Sound::ItemPress,
         SoundGroup::UI,
-        60.f,
+        100.f,
         1.f,
         SoundPlayback::Restart);
     backRequested = true;

@@ -17,6 +17,7 @@ public:
     DisplayManager(sf::RenderWindow& window, sf::Vector2f logicalSize);
 
     [[nodiscard]] const std::vector<sf::Vector2u>& GetSupportedResolutions() const noexcept;
+    void ConfigureExistingWindow(const GraphicsSettings& settings);
     void ApplyLiveSettings(const GraphicsSettings& settings);
     void ApplyDisplaySettings(const GraphicsSettings& settings);
 

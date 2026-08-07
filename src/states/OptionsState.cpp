@@ -6,7 +6,11 @@
 #include <format>
 
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/Shader.hpp>
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/ConvexShape.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
@@ -29,6 +33,14 @@ namespace
     constexpr float RowSpacing{ 98.f };
     constexpr float SliderLeft{ 1160.f };
     constexpr float SliderWidth{ 380.f };
+    constexpr float ValueBoxLeft{ 1080.f };
+    constexpr float ValueBoxWidth{ 500.f };
+    constexpr float ValueBoxHeight{ 58.f };
+    constexpr float DropdownItemHeight{ 56.f };
+    constexpr std::size_t MaximumVisibleDropdownItems{ 6u };
+    constexpr sf::Vector2u GlowTextureSize{ 960u, 540u };
+    constexpr float GlowScale{ 0.5f };
+    constexpr float GlowRadius{ 9.f };
     constexpr std::array<unsigned int, 7> FrameLimits{ 0u, 30u, 60u, 120u, 144u, 240u, 360u };
 
     std::string WindowModeName(WindowMode mode)
@@ -70,6 +82,10 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context)
     , shade(context.logicalSize)
     , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "OPTIONS", 76)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "OPTIONS", 76)
+    , glowMask(GlowTextureSize)
+    , glowHorizontal(GlowTextureSize)
+    , glowBlurred(GlowTextureSize)
+    , glowBlurShader(context.assets.GetShader(Config::Shader::GaussianBlur))
     , previousGraphics(context.settings.Get().graphics)
 {
     context.window.setMouseCursorVisible(true);
@@ -82,6 +98,9 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context)
     title.setFillColor(BrightCyan);
     title.setOutlineColor(sf::Color(2, 14, 25, 235));
     title.setOutlineThickness(3.f);
+    glowMask.setSmooth(true);
+    glowHorizontal.setSmooth(true);
+    glowBlurred.setSmooth(true);
     SetPage(Page::Root);
 }
 
@@ -119,37 +138,37 @@ void OptionsState::HandleEvent(const sf::Event& event)
     {
         if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
         {
-            const auto& resolutions{ GetContext().display.GetSupportedResolutions() };
-            if (key->code == sf::Keyboard::Key::Up && dropdownIndex > 0u)
-                --dropdownIndex;
-            else if (key->code == sf::Keyboard::Key::Down && dropdownIndex + 1u < resolutions.size())
-                ++dropdownIndex;
+            if (key->code == sf::Keyboard::Key::Up)
+                MoveDropdownSelection(-1);
+            else if (key->code == sf::Keyboard::Key::Down)
+                MoveDropdownSelection(1);
             else if (key->code == sf::Keyboard::Key::Enter)
-                ApplyResolution(dropdownIndex);
+                ApplyDropdownSelection();
             else if (key->code == sf::Keyboard::Key::Escape)
-                dropdownOpen = false;
+                CloseDropdown();
+        }
+        else if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
+        {
+            const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
+            background.SetMousePosition(point);
+            if (dropdownScrollbarDragging)
+                UpdateDropdownScrollbar(point);
+            else
+                HandleDropdownMouseMove(point);
+        }
+        else if (const auto* wheel{ event.getIf<sf::Event::MouseWheelScrolled>() })
+        {
+            HandleMouseWheel(wheel->delta);
         }
         else if (const auto* mouse{ event.getIf<sf::Event::MouseButtonPressed>() })
         {
             if (mouse->button == sf::Mouse::Button::Left)
-            {
-                const sf::Vector2f point{ GetContext().window.mapPixelToCoords(mouse->position) };
-                const std::size_t first{ dropdownIndex > 2u ? dropdownIndex - 2u : 0u };
-                const std::size_t count{ std::min<std::size_t>(6u,
-                    GetContext().display.GetSupportedResolutions().size() - first) };
-                for (std::size_t index{ 0u }; index < count; ++index)
-                {
-                    const sf::FloatRect bounds(
-                        { 1110.f, 306.f + 58.f * static_cast<float>(index) },
-                        { 470.f, 54.f });
-                    if (bounds.contains(point))
-                    {
-                        ApplyResolution(first + index);
-                        return;
-                    }
-                }
-                dropdownOpen = false;
-            }
+                HandleDropdownMousePress(
+                    GetContext().window.mapPixelToCoords(mouse->position));
+        }
+        else if (event.is<sf::Event::MouseButtonReleased>())
+        {
+            dropdownScrollbarDragging = false;
         }
         return;
     }
@@ -267,7 +286,7 @@ void OptionsState::RebuildRows()
     case Page::Graphics:
         add("Display Resolution", RowKind::Dropdown, Action::Resolution,
             GetContext().settings.Get().graphics.windowMode != WindowMode::Borderless);
-        add("Window Mode", RowKind::Choice, Action::WindowMode);
+        add("Window Mode", RowKind::Dropdown, Action::WindowMode);
         add("Show FPS", RowKind::Toggle, Action::ShowFps);
         add("Vertical Synchronization", RowKind::Toggle, Action::VerticalSync);
         add("Frame Rate Limit", RowKind::Choice, Action::FrameRateLimit,
@@ -302,8 +321,10 @@ void OptionsState::Select(std::size_t index, bool playSound)
         return;
     const bool changed{ selectedIndex != index };
     selectedIndex = index;
+    if (changed)
+        glowDirty = true;
     if (changed && playSound)
-        GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI, 45.f, 1.f,
+        GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f,
             SoundPlayback::Restart);
 }
 
@@ -335,17 +356,14 @@ void OptionsState::ActivateSelected()
 {
     if (!IsSelectedRowEnabled())
         return;
-    GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI, 60.f, 1.f,
+    GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f,
         SoundPlayback::Restart);
 
     const Row& row{ rows[selectedIndex] };
     if (row.kind == RowKind::Toggle || row.kind == RowKind::Choice)
         AdjustSelected(1);
     else if (row.kind == RowKind::Dropdown)
-    {
-        dropdownIndex = FindCurrentResolution();
-        dropdownOpen = true;
-    }
+        OpenDropdown(row.action);
     else if (row.kind == RowKind::Binding)
         BeginBinding(row.action);
     else if (row.kind == RowKind::Button)
@@ -390,15 +408,6 @@ void OptionsState::AdjustSelected(int direction)
         settings.graphics.frameRateLimit = FrameLimits[index];
         SaveAndApplyLiveGraphics();
     }
-    else if (action == Action::WindowMode)
-    {
-        const GraphicsSettings previous{ settings.graphics };
-        int index{ static_cast<int>(settings.graphics.windowMode) };
-        index = (index + (direction > 0 ? 1 : 2)) % 3;
-        settings.graphics.windowMode = static_cast<WindowMode>(index);
-        BeginDisplayChange(previous);
-        RebuildRows();
-    }
 }
 
 void OptionsState::HandleMousePosition(sf::Vector2i pixelPosition)
@@ -423,6 +432,12 @@ void OptionsState::HandleMousePress(sf::Vector2i pixelPosition)
     const sf::Vector2f point{ GetContext().window.mapPixelToCoords(pixelPosition) };
     if (!rows[selectedIndex].bounds.contains(point))
         return;
+
+    if (rows[selectedIndex].kind == RowKind::Dropdown &&
+        !GetValueBoxBounds(rows[selectedIndex]).contains(point))
+    {
+        return;
+    }
 
     if (rows[selectedIndex].kind == RowKind::Slider)
     {
@@ -452,6 +467,192 @@ void OptionsState::UpdateSliderFromMouse(sf::Vector2f position)
     SaveAndApplyAudio();
 }
 
+void OptionsState::OpenDropdown(Action action)
+{
+    dropdownAction = action;
+    dropdownIndex = action == Action::Resolution
+        ? FindCurrentResolution()
+        : static_cast<std::size_t>(GetContext().settings.Get().graphics.windowMode);
+    dropdownFirstVisible = 0u;
+    dropdownOpen = true;
+    dropdownScrollbarDragging = false;
+    EnsureDropdownSelectionVisible();
+}
+
+void OptionsState::CloseDropdown()
+{
+    dropdownOpen = false;
+    dropdownScrollbarDragging = false;
+}
+
+void OptionsState::MoveDropdownSelection(int direction)
+{
+    const std::size_t count{ GetDropdownItemCount() };
+    if (count == 0u)
+        return;
+
+    const std::size_t previous{ dropdownIndex };
+    if (direction < 0 && dropdownIndex > 0u)
+        --dropdownIndex;
+    else if (direction > 0 && dropdownIndex + 1u < count)
+        ++dropdownIndex;
+
+    if (dropdownIndex != previous)
+    {
+        EnsureDropdownSelectionVisible();
+        GetContext().audio.PlaySound(
+            Config::Sound::ItemSelect,
+            SoundGroup::UI,
+            100.f,
+            1.f,
+            SoundPlayback::Restart);
+    }
+}
+
+void OptionsState::EnsureDropdownSelectionVisible()
+{
+    const std::size_t count{ GetDropdownItemCount() };
+    if (count <= MaximumVisibleDropdownItems)
+    {
+        dropdownFirstVisible = 0u;
+        return;
+    }
+
+    if (dropdownIndex < dropdownFirstVisible)
+        dropdownFirstVisible = dropdownIndex;
+    else if (dropdownIndex >= dropdownFirstVisible + MaximumVisibleDropdownItems)
+        dropdownFirstVisible = dropdownIndex - MaximumVisibleDropdownItems + 1u;
+
+    dropdownFirstVisible = std::min(
+        dropdownFirstVisible,
+        count - MaximumVisibleDropdownItems);
+}
+
+void OptionsState::HandleDropdownMouseMove(sf::Vector2f position)
+{
+    const std::size_t visibleCount{ std::min(MaximumVisibleDropdownItems,
+        GetDropdownItemCount() - dropdownFirstVisible) };
+    for (std::size_t visibleIndex{ 0u }; visibleIndex < visibleCount; ++visibleIndex)
+    {
+        if (!GetDropdownItemBounds(visibleIndex).contains(position))
+            continue;
+
+        const std::size_t hovered{ dropdownFirstVisible + visibleIndex };
+        if (hovered != dropdownIndex)
+        {
+            dropdownIndex = hovered;
+            GetContext().audio.PlaySound(
+                Config::Sound::ItemSelect,
+                SoundGroup::UI,
+                100.f,
+                1.f,
+                SoundPlayback::Restart);
+        }
+        return;
+    }
+}
+
+void OptionsState::HandleDropdownMousePress(sf::Vector2f position)
+{
+    const std::size_t count{ GetDropdownItemCount() };
+    const std::size_t visibleCount{ std::min(MaximumVisibleDropdownItems,
+        count - dropdownFirstVisible) };
+    if (count > MaximumVisibleDropdownItems && GetDropdownScrollbarBounds().contains(position))
+    {
+        dropdownScrollbarDragging = true;
+        UpdateDropdownScrollbar(position);
+        return;
+    }
+
+    for (std::size_t visibleIndex{ 0u }; visibleIndex < visibleCount; ++visibleIndex)
+    {
+        if (GetDropdownItemBounds(visibleIndex).contains(position))
+        {
+            dropdownIndex = dropdownFirstVisible + visibleIndex;
+            ApplyDropdownSelection();
+            return;
+        }
+    }
+
+    CloseDropdown();
+}
+
+void OptionsState::HandleMouseWheel(float delta)
+{
+    const std::size_t count{ GetDropdownItemCount() };
+    if (count <= MaximumVisibleDropdownItems || delta == 0.f)
+        return;
+
+    const std::size_t previousSelection{ dropdownIndex };
+    const std::size_t maximumFirst{ count - MaximumVisibleDropdownItems };
+    if (delta > 0.f && dropdownFirstVisible > 0u)
+        --dropdownFirstVisible;
+    else if (delta < 0.f && dropdownFirstVisible < maximumFirst)
+        ++dropdownFirstVisible;
+
+    dropdownIndex = std::clamp(
+        dropdownIndex,
+        dropdownFirstVisible,
+        dropdownFirstVisible + MaximumVisibleDropdownItems - 1u);
+    if (dropdownIndex != previousSelection)
+    {
+        GetContext().audio.PlaySound(
+            Config::Sound::ItemSelect,
+            SoundGroup::UI,
+            100.f,
+            1.f,
+            SoundPlayback::Restart);
+    }
+}
+
+void OptionsState::UpdateDropdownScrollbar(sf::Vector2f position)
+{
+    const std::size_t count{ GetDropdownItemCount() };
+    if (count <= MaximumVisibleDropdownItems)
+        return;
+
+    const std::size_t previousSelection{ dropdownIndex };
+    const sf::FloatRect track{ GetDropdownScrollbarBounds() };
+    const float thumbHeight{ track.size.y * static_cast<float>(MaximumVisibleDropdownItems) /
+        static_cast<float>(count) };
+    const float travel{ track.size.y - thumbHeight };
+    const float normalized{ travel <= 0.f
+        ? 0.f
+        : std::clamp((position.y - track.position.y - thumbHeight * 0.5f) / travel, 0.f, 1.f) };
+    dropdownFirstVisible = static_cast<std::size_t>(std::round(
+        normalized * static_cast<float>(count - MaximumVisibleDropdownItems)));
+    dropdownIndex = std::clamp(
+        dropdownIndex,
+        dropdownFirstVisible,
+        dropdownFirstVisible + MaximumVisibleDropdownItems - 1u);
+    if (dropdownIndex != previousSelection)
+    {
+        GetContext().audio.PlaySound(
+            Config::Sound::ItemSelect,
+            SoundGroup::UI,
+            100.f,
+            1.f,
+            SoundPlayback::Restart);
+    }
+}
+
+void OptionsState::ApplyDropdownSelection()
+{
+    GetContext().audio.PlaySound(
+        Config::Sound::ItemPress,
+        SoundGroup::UI,
+        100.f,
+        1.f,
+        SoundPlayback::Restart);
+
+    if (dropdownAction == Action::Resolution)
+        ApplyResolution(dropdownIndex);
+    else if (dropdownAction == Action::WindowMode)
+        ApplyWindowMode(static_cast<WindowMode>(dropdownIndex));
+    else
+        CloseDropdown();
+}
+
 void OptionsState::Execute(Action action)
 {
     switch (action)
@@ -476,7 +677,10 @@ void OptionsState::Execute(Action action)
         const GraphicsSettings previous{ GetContext().settings.Get().graphics };
         GetContext().settings.Edit() = GetContext().settings.GetDefaults();
         SaveAndApplyAudio();
-        BeginDisplayChange(previous);
+        if (RequiresWindowRecreation(previous, GetContext().settings.Get().graphics))
+            BeginDisplayChange(previous);
+        else
+            SaveAndApplyLiveGraphics();
         RebuildRows();
         break;
     }
@@ -484,7 +688,10 @@ void OptionsState::Execute(Action action)
     {
         const GraphicsSettings previous{ GetContext().settings.Get().graphics };
         GetContext().settings.Edit().graphics = GetContext().settings.GetDefaults().graphics;
-        BeginDisplayChange(previous);
+        if (RequiresWindowRecreation(previous, GetContext().settings.Get().graphics))
+            BeginDisplayChange(previous);
+        else
+            SaveAndApplyLiveGraphics();
         RebuildRows();
         break;
     }
@@ -551,9 +758,39 @@ void OptionsState::ApplyResolution(std::size_t resolutionIndex)
     if (resolutionIndex >= resolutions.size())
         return;
     const GraphicsSettings previous{ GetContext().settings.Get().graphics };
+    if (previous.resolution == resolutions[resolutionIndex])
+    {
+        CloseDropdown();
+        return;
+    }
     GetContext().settings.Edit().graphics.resolution = resolutions[resolutionIndex];
-    dropdownOpen = false;
+    CloseDropdown();
     BeginDisplayChange(previous);
+}
+
+void OptionsState::ApplyWindowMode(WindowMode mode)
+{
+    const GraphicsSettings previous{ GetContext().settings.Get().graphics };
+    if (previous.windowMode == mode)
+    {
+        CloseDropdown();
+        return;
+    }
+
+    GetContext().settings.Edit().graphics.windowMode = mode;
+    CloseDropdown();
+    BeginDisplayChange(previous);
+    RebuildRows();
+}
+
+bool OptionsState::RequiresWindowRecreation(
+    const GraphicsSettings& before,
+    const GraphicsSettings& after) const noexcept
+{
+    if (before.windowMode != after.windowMode)
+        return true;
+
+    return before.windowMode != WindowMode::Borderless && before.resolution != after.resolution;
 }
 
 void OptionsState::BeginBinding(Action action)
@@ -673,6 +910,74 @@ std::size_t OptionsState::FindCurrentResolution() const
         : static_cast<std::size_t>(std::distance(resolutions.begin(), iterator));
 }
 
+std::size_t OptionsState::GetDropdownItemCount() const
+{
+    if (dropdownAction == Action::Resolution)
+        return GetContext().display.GetSupportedResolutions().size();
+    if (dropdownAction == Action::WindowMode)
+        return 3u;
+    return 0u;
+}
+
+std::string OptionsState::GetDropdownItemLabel(std::size_t index) const
+{
+    if (dropdownAction == Action::Resolution)
+    {
+        const auto& resolutions{ GetContext().display.GetSupportedResolutions() };
+        if (index < resolutions.size())
+            return std::format("{} x {}", resolutions[index].x, resolutions[index].y);
+    }
+    else if (dropdownAction == Action::WindowMode && index < 3u)
+    {
+        return WindowModeName(static_cast<WindowMode>(index));
+    }
+    return {};
+}
+
+sf::FloatRect OptionsState::GetValueBoxBounds(const Row& row) const
+{
+    return sf::FloatRect(
+        { ValueBoxLeft, row.bounds.position.y + 12.f },
+        { ValueBoxWidth, ValueBoxHeight });
+}
+
+sf::FloatRect OptionsState::GetDropdownItemBounds(std::size_t visibleIndex) const
+{
+    const auto activeRow{ std::ranges::find_if(rows, [this](const Row& row)
+        {
+            return row.action == dropdownAction;
+        }) };
+    if (activeRow == rows.end())
+        return {};
+
+    const sf::FloatRect valueBox{ GetValueBoxBounds(*activeRow) };
+    const float itemWidth{ ValueBoxWidth -
+        (GetDropdownItemCount() > MaximumVisibleDropdownItems ? 24.f : 0.f) };
+    return sf::FloatRect(
+        { valueBox.position.x,
+            valueBox.position.y + valueBox.size.y + DropdownItemHeight * static_cast<float>(visibleIndex) },
+        { itemWidth, DropdownItemHeight });
+}
+
+sf::FloatRect OptionsState::GetDropdownScrollbarBounds() const
+{
+    const auto activeRow{ std::ranges::find_if(rows, [this](const Row& row)
+        {
+            return row.action == dropdownAction;
+        }) };
+    if (activeRow == rows.end())
+        return {};
+
+    const sf::FloatRect valueBox{ GetValueBoxBounds(*activeRow) };
+    const std::size_t visibleCount{ std::min(
+        MaximumVisibleDropdownItems,
+        GetDropdownItemCount()) };
+    return sf::FloatRect(
+        { valueBox.position.x + valueBox.size.x - 17.f,
+            valueBox.position.y + valueBox.size.y + 8.f },
+        { 10.f, DropdownItemHeight * static_cast<float>(visibleCount) - 16.f });
+}
+
 bool OptionsState::IsSelectedRowEnabled() const
 {
     return selectedIndex < rows.size() && rows[selectedIndex].enabled;
@@ -702,17 +1007,13 @@ void OptionsState::DrawTitle(sf::RenderTarget& target) const
     target.draw(center(title));
 }
 
-void OptionsState::DrawRows(sf::RenderTarget& target) const
+void OptionsState::DrawRows(sf::RenderTarget& target)
 {
+    if (IsSelectedRowEnabled())
+        DrawSelectionGlow(target, rows[selectedIndex].bounds);
+
     for (std::size_t index{ 0u }; index < rows.size(); ++index)
         DrawRow(target, rows[index], index);
-
-    if (page == Page::Graphics &&
-        GetContext().settings.Get().graphics.windowMode == WindowMode::Borderless)
-    {
-        DrawText(target, "Resolution is controlled by the desktop in Borderless mode",
-            { 980.f, 296.f }, 20, Red);
-    }
 
     if (saveFailed)
     {
@@ -724,18 +1025,7 @@ void OptionsState::DrawRows(sf::RenderTarget& target) const
 void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t index) const
 {
     const bool selected{ index == selectedIndex && row.enabled };
-    if (selected)
-    {
-        for (int layer{ 3 }; layer >= 1; --layer)
-        {
-            sf::RectangleShape glow(row.bounds.size + sf::Vector2f{ 12.f * layer, 8.f * layer });
-            glow.setPosition(row.bounds.position - sf::Vector2f{ 6.f * layer, 4.f * layer });
-            glow.setFillColor(sf::Color(30, 195, 235, static_cast<std::uint8_t>(8 * layer)));
-            target.draw(glow);
-        }
-    }
-
-    sf::RectangleShape panel(row.bounds.size);
+    RoundedRectangleShape panel(row.bounds.size, 15.f, 10u);
     panel.setPosition(row.bounds.position);
     panel.setFillColor(selected ? sf::Color(8, 34, 48, 226) : sf::Color(5, 17, 29, 210));
     panel.setOutlineColor(selected ? Cyan : sf::Color(52, 76, 92));
@@ -758,6 +1048,44 @@ void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t
             ? GetContext().settings.Get().graphics.showFps
             : GetContext().settings.Get().graphics.verticalSync };
         DrawToggle(target, row, value);
+    }
+    else if (row.kind == RowKind::Dropdown)
+    {
+        const sf::FloatRect bounds{ GetValueBoxBounds(row) };
+        RoundedRectangleShape box(bounds.size, 10.f, 8u);
+        box.setPosition(bounds.position);
+        box.setFillColor(row.enabled ? sf::Color(2, 15, 27, 242) : sf::Color(10, 14, 20, 225));
+        box.setOutlineColor(row.enabled ? sf::Color(60, 126, 151) : sf::Color(45, 51, 59));
+        box.setOutlineThickness(1.5f);
+        target.draw(box);
+
+        sf::RectangleShape divider({ 1.f, bounds.size.y - 12.f });
+        divider.setPosition({ bounds.position.x + bounds.size.x - 58.f, bounds.position.y + 6.f });
+        divider.setFillColor(row.enabled ? sf::Color(60, 126, 151) : sf::Color(45, 51, 59));
+        target.draw(divider);
+
+        RoundedRectangleShape arrowButton({ 46.f, 46.f }, 7.f, 6u);
+        arrowButton.setPosition({ bounds.position.x + bounds.size.x - 52.f, bounds.position.y + 6.f });
+        arrowButton.setFillColor(row.enabled ? sf::Color(10, 55, 73, 235) : sf::Color(22, 27, 33, 220));
+        arrowButton.setOutlineColor(row.enabled ? sf::Color(75, 170, 196) : sf::Color(48, 55, 63));
+        arrowButton.setOutlineThickness(1.f);
+        target.draw(arrowButton);
+
+        DrawText(target, GetRowValue(row), bounds.position + sf::Vector2f{ 20.f, row.enabled ? 13.f : 5.f },
+            row.enabled ? 25u : 21u, row.enabled ? Cyan : Disabled);
+        if (!row.enabled)
+        {
+            DrawText(target, "Controlled by desktop in Borderless mode",
+                bounds.position + sf::Vector2f{ 20.f, 33.f }, 14, Red);
+        }
+
+        sf::ConvexShape arrow(3u);
+        arrow.setPoint(0u, { 0.f, 0.f });
+        arrow.setPoint(1u, { 18.f, 0.f });
+        arrow.setPoint(2u, { 9.f, 10.f });
+        arrow.setPosition({ bounds.position.x + bounds.size.x - 38.f, bounds.position.y + 25.f });
+        arrow.setFillColor(row.enabled ? BrightCyan : Disabled);
+        target.draw(arrow);
     }
     else
     {
@@ -793,14 +1121,14 @@ void OptionsState::DrawSlider(sf::RenderTarget& target, const Row& row, float va
 void OptionsState::DrawToggle(sf::RenderTarget& target, const Row& row, bool value) const
 {
     const sf::Vector2f position{ 1280.f, row.bounds.position.y + 17.f };
-    sf::RectangleShape shell({ 270.f, 50.f });
+    RoundedRectangleShape shell({ 270.f, 50.f }, 10.f, 8u);
     shell.setPosition(position);
     shell.setFillColor(sf::Color(3, 13, 23, 230));
     shell.setOutlineColor(sf::Color(55, 93, 111));
     shell.setOutlineThickness(1.f);
     target.draw(shell);
 
-    sf::RectangleShape active({ 128.f, 42.f });
+    RoundedRectangleShape active({ 128.f, 42.f }, 8.f, 8u);
     active.setPosition(position + sf::Vector2f{ value ? 4.f : 138.f, 4.f });
     active.setFillColor(sf::Color(18, 132, 157, 150));
     active.setOutlineColor(Cyan);
@@ -814,26 +1142,47 @@ void OptionsState::DrawToggle(sf::RenderTarget& target, const Row& row, bool val
 
 void OptionsState::DrawDropdown(sf::RenderTarget& target) const
 {
-    const auto& resolutions{ GetContext().display.GetSupportedResolutions() };
-    if (resolutions.empty())
+    const std::size_t itemCount{ GetDropdownItemCount() };
+    if (itemCount == 0u)
         return;
-    const std::size_t first{ dropdownIndex > 2u ? dropdownIndex - 2u : 0u };
-    const std::size_t count{ std::min<std::size_t>(6u, resolutions.size() - first) };
-    for (std::size_t index{ 0u }; index < count; ++index)
+
+    const std::size_t visibleCount{ std::min(
+        MaximumVisibleDropdownItems,
+        itemCount - dropdownFirstVisible) };
+    for (std::size_t visibleIndex{ 0u }; visibleIndex < visibleCount; ++visibleIndex)
     {
-        const std::size_t resolutionIndex{ first + index };
-        sf::RectangleShape item({ 470.f, 54.f });
-        item.setPosition({ 1110.f, 306.f + 58.f * static_cast<float>(index) });
-        item.setFillColor(resolutionIndex == dropdownIndex
+        const std::size_t itemIndex{ dropdownFirstVisible + visibleIndex };
+        const sf::FloatRect bounds{ GetDropdownItemBounds(visibleIndex) };
+        RoundedRectangleShape item(bounds.size, 7.f, 6u);
+        item.setPosition(bounds.position);
+        item.setFillColor(itemIndex == dropdownIndex
             ? sf::Color(12, 58, 76, 250)
             : sf::Color(3, 16, 28, 248));
-        item.setOutlineColor(resolutionIndex == dropdownIndex ? Cyan : sf::Color(50, 78, 94));
+        item.setOutlineColor(itemIndex == dropdownIndex ? Cyan : sf::Color(50, 78, 94));
         item.setOutlineThickness(1.f);
         target.draw(item);
-        DrawText(target,
-            std::format("{} x {}", resolutions[resolutionIndex].x, resolutions[resolutionIndex].y),
-            item.getPosition() + sf::Vector2f{ 22.f, 12.f }, 24,
-            resolutionIndex == dropdownIndex ? Orange : BrightCyan);
+        DrawText(target, GetDropdownItemLabel(itemIndex),
+            bounds.position + sf::Vector2f{ 20.f, 13.f }, 24,
+            itemIndex == dropdownIndex ? Orange : BrightCyan);
+    }
+
+    if (itemCount > MaximumVisibleDropdownItems)
+    {
+        const sf::FloatRect trackBounds{ GetDropdownScrollbarBounds() };
+        RoundedRectangleShape track(trackBounds.size, 5.f, 6u);
+        track.setPosition(trackBounds.position);
+        track.setFillColor(sf::Color(22, 42, 55, 235));
+        target.draw(track);
+
+        const float thumbHeight{ trackBounds.size.y *
+            static_cast<float>(MaximumVisibleDropdownItems) / static_cast<float>(itemCount) };
+        const float progress{ static_cast<float>(dropdownFirstVisible) /
+            static_cast<float>(itemCount - MaximumVisibleDropdownItems) };
+        RoundedRectangleShape thumb({ trackBounds.size.x, thumbHeight }, 5.f, 6u);
+        thumb.setPosition({ trackBounds.position.x,
+            trackBounds.position.y + (trackBounds.size.y - thumbHeight) * progress });
+        thumb.setFillColor(Cyan);
+        target.draw(thumb);
     }
 }
 
@@ -842,7 +1191,7 @@ void OptionsState::DrawDialog(sf::RenderTarget& target) const
     sf::RectangleShape veil(GetContext().logicalSize);
     veil.setFillColor(sf::Color(0, 2, 6, 190));
     target.draw(veil);
-    sf::RectangleShape dialog({ 900.f, 260.f });
+    RoundedRectangleShape dialog({ 900.f, 260.f }, 22.f, 12u);
     dialog.setPosition({ 510.f, 410.f });
     dialog.setFillColor(sf::Color(4, 19, 31, 248));
     dialog.setOutlineColor(Cyan);
@@ -851,16 +1200,75 @@ void OptionsState::DrawDialog(sf::RenderTarget& target) const
 
     if (displayConfirmationOpen)
     {
-        DrawText(target, "Keep these display settings?", { 650.f, 465.f }, 36, BrightCyan);
-        DrawText(target, std::format("Reverting in {} seconds",
-            static_cast<int>(std::ceil(displayConfirmationRemaining))), { 730.f, 530.f }, 26, Orange);
-        DrawText(target, "ENTER  Keep     ESC  Revert", { 690.f, 600.f }, 24, Muted);
+        DrawCenteredText(target, "Keep these display settings?", 960.f, 465.f, 36, BrightCyan);
+        DrawCenteredText(target, std::format("Reverting in {} seconds",
+            static_cast<int>(std::ceil(displayConfirmationRemaining))), 960.f, 530.f, 26, Orange);
+        DrawCenteredText(target, "ENTER  Keep     ESC  Revert", 960.f, 600.f, 24, Muted);
     }
     else
     {
-        DrawText(target, "Press a key or mouse button", { 645.f, 475.f }, 34, BrightCyan);
-        DrawText(target, "ESC cancels rebinding", { 760.f, 560.f }, 24, Muted);
+        DrawCenteredText(target, "Press a key or mouse button", 960.f, 475.f, 34, BrightCyan);
+        DrawCenteredText(target, "ESC cancels rebinding", 960.f, 560.f, 24, Muted);
     }
+}
+
+void OptionsState::DrawSelectionGlow(sf::RenderTarget& target, const sf::FloatRect& bounds)
+{
+    const bool boundsChanged{
+        cachedGlowBounds.position != bounds.position || cachedGlowBounds.size != bounds.size
+    };
+    if (glowDirty || boundsChanged)
+    {
+        cachedGlowBounds = bounds;
+        glowDirty = false;
+        glowMask.clear(sf::Color::Transparent);
+        RoundedRectangleShape mask(bounds.size * GlowScale, 15.f * GlowScale, 10u);
+        mask.setPosition(bounds.position * GlowScale);
+        mask.setFillColor(sf::Color(32, 220, 255, 210));
+        glowMask.draw(mask);
+        glowMask.display();
+
+        glowBlurShader.setUniform("source", sf::Shader::CurrentTexture);
+        glowBlurShader.setUniform("direction", sf::Glsl::Vec2(
+            GlowRadius / static_cast<float>(GlowTextureSize.x), 0.f));
+        sf::RenderStates blurStates;
+        blurStates.shader = &glowBlurShader;
+
+        glowHorizontal.clear(sf::Color::Transparent);
+        glowHorizontal.draw(sf::Sprite(glowMask.getTexture()), blurStates);
+        glowHorizontal.display();
+
+        glowBlurShader.setUniform("direction", sf::Glsl::Vec2(
+            0.f, GlowRadius / static_cast<float>(GlowTextureSize.y)));
+        glowBlurred.clear(sf::Color::Transparent);
+        glowBlurred.draw(sf::Sprite(glowHorizontal.getTexture()), blurStates);
+        glowBlurred.display();
+    }
+
+    sf::Sprite glow(glowBlurred.getTexture());
+    glow.setScale({ 1.f / GlowScale, 1.f / GlowScale });
+    glow.setColor(sf::Color(45, 220, 255, 220));
+    sf::RenderStates glowStates;
+    glowStates.blendMode = sf::BlendAdd;
+    target.draw(glow, glowStates);
+    glow.setColor(sf::Color(70, 225, 255, 145));
+    target.draw(glow, glowStates);
+}
+
+void OptionsState::DrawCenteredText(
+    sf::RenderTarget& target,
+    const std::string& value,
+    float centerX,
+    float y,
+    unsigned int size,
+    sf::Color color) const
+{
+    sf::Text text(GetContext().assets.Fonts().Get(Config::Font::MenuRegular), value, size);
+    const sf::FloatRect bounds{ text.getLocalBounds() };
+    text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y });
+    text.setPosition({ centerX, y });
+    text.setFillColor(color);
+    target.draw(text);
 }
 
 void OptionsState::DrawText(

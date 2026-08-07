@@ -6,6 +6,11 @@
 #include <SFML/Graphics/View.hpp>
 #include <SFML/Window/VideoMode.hpp>
 
+#ifdef _WIN32
+#define NOMINMAX
+#include <Windows.h>
+#endif
+
 namespace
 {
     constexpr const char* WindowTitle{ "Until last asteroid" };
@@ -39,6 +44,33 @@ namespace
     }
 }
 
+void ConfigureBorderlessWindow(sf::RenderWindow& window, sf::Vector2u desktopSize)
+{
+    window.setPosition({ 0, 0 });
+
+#ifdef _WIN32
+    const HWND handle{ static_cast<HWND>(window.getNativeHandle()) };
+    LONG_PTR style{ GetWindowLongPtrW(handle, GWL_STYLE) };
+    style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+    style |= WS_POPUP | WS_VISIBLE;
+    SetWindowLongPtrW(handle, GWL_STYLE, style);
+
+    LONG_PTR extendedStyle{ GetWindowLongPtrW(handle, GWL_EXSTYLE) };
+    extendedStyle &= ~WS_EX_TOPMOST;
+    extendedStyle |= WS_EX_APPWINDOW;
+    SetWindowLongPtrW(handle, GWL_EXSTYLE, extendedStyle);
+
+    SetWindowPos(
+        handle,
+        HWND_NOTOPMOST,
+        0,
+        0,
+        static_cast<int>(desktopSize.x),
+        static_cast<int>(desktopSize.y),
+        SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOOWNERZORDER);
+#endif
+}
+
 DisplayManager::DisplayManager(sf::RenderWindow& window, sf::Vector2f logicalSize)
     : window(window)
     , logicalSize(logicalSize)
@@ -60,6 +92,12 @@ DisplayManager::DisplayManager(sf::RenderWindow& window, sf::Vector2f logicalSiz
 const std::vector<sf::Vector2u>& DisplayManager::GetSupportedResolutions() const noexcept
 {
     return supportedResolutions;
+}
+
+void DisplayManager::ConfigureExistingWindow(const GraphicsSettings& settings)
+{
+    if (settings.windowMode == WindowMode::Borderless)
+        ConfigureBorderlessWindow(window, sf::VideoMode::getDesktopMode().size);
 }
 
 void DisplayManager::ApplyLiveSettings(const GraphicsSettings& settings)
@@ -87,6 +125,7 @@ void DisplayManager::ApplyDisplaySettings(const GraphicsSettings& settings)
     }
 
     window.create(mode, WindowTitle, style, state);
+    ConfigureExistingWindow(settings);
     RestoreLogicalView();
     ApplyLiveSettings(settings);
 }

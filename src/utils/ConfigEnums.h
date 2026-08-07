@@ -60,14 +60,18 @@ namespace Config
 
 		SmallMeteorExplosion,
 		MediumMeteorExplosion,
-		BigMeteorExplosion
+		BigMeteorExplosion,
+
+		Count
 	};
 
 	enum class Music
 	{
 		CompanySplash,
 		MainMenuBackground,
-		GameplayTheme
+		GameplayTheme,
+
+		Count
 	};
 
 	enum class Shader

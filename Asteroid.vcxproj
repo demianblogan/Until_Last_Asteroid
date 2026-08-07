@@ -144,6 +144,7 @@
     <ClCompile Include="src\assets\AssetStore.cpp" />
     <ClCompile Include="src\app\DisplayManager.cpp" />
     <ClCompile Include="src\audio\AudioManager.cpp" />
+    <ClCompile Include="src\audio\AudioBalance.cpp" />
     <ClCompile Include="src\systems\Collision.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
     <ClCompile Include="src\core\Entity.cpp" />
@@ -161,6 +162,7 @@
     <ClCompile Include="src\ui\MenuBackground.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
+    <ClCompile Include="src\ui\RoundedRectangleShape.cpp" />
     <ClCompile Include="src\systems\InputAction.cpp" />
     <ClCompile Include="src\settings\SettingsManager.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -174,6 +176,7 @@
   <ItemGroup>
     <ClInclude Include="src\utils\ConfigEnums.h" />
     <ClInclude Include="src\audio\AudioManager.h" />
+    <ClInclude Include="src\audio\AudioBalance.h" />
     <ClInclude Include="src\app\DisplayManager.h" />
     <ClInclude Include="src\app\Application.h" />
     <ClInclude Include="src\core\GameVersion.h" />
@@ -207,10 +210,12 @@
     <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
+    <ClInclude Include="src\ui\RoundedRectangleShape.h" />
     <ClInclude Include="libs\nlohmann\json.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\gaussian_blur.frag" />
+    <None Include="assets\data\audio_balance.json" />
     <None Include="libs\nlohmann\LICENSE.MIT" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

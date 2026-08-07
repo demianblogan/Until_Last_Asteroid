@@ -285,7 +285,7 @@ void PauseState::Select(std::size_t index, bool playSound)
         GetContext().audio.PlaySound(
             Config::Sound::ItemSelect,
             SoundGroup::UI,
-            45.f,
+            100.f,
             1.f,
             SoundPlayback::Restart);
     }
@@ -309,7 +309,7 @@ void PauseState::BeginActivation(std::size_t index)
     GetContext().audio.PlaySound(
         Config::Sound::ItemPress,
         SoundGroup::UI,
-        60.f,
+        100.f,
         1.f,
         SoundPlayback::Restart);
 

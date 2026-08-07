@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "audio/AudioBalance.h"
 #include "utils/ConfigEnums.h"
 
 class AssetStore;
@@ -51,11 +52,12 @@ public:
 private:
     struct ActiveSound;
 
-    [[nodiscard]] float GetMusicVolume(float baseVolume) const noexcept;
-    [[nodiscard]] float GetSoundVolume(float baseVolume) const noexcept;
+    [[nodiscard]] float GetMusicVolume(Config::Music id, float playbackVolume) const noexcept;
+    [[nodiscard]] float GetSoundVolume(Config::Sound id, float playbackVolume) const noexcept;
 
     AssetStore& assets;
     SettingsManager& settings;
+    AudioBalance balance;
     std::vector<std::unique_ptr<ActiveSound>> activeSounds;
     std::unordered_map<Config::Music, float> musicBaseVolumes;
 };
