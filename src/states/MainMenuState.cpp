@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <string>
 
-#include <SFML/Audio/Music.hpp>
-#include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -14,6 +12,7 @@
 #include <SFML/Window/Mouse.hpp>
 
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 #include "core/GameVersion.h"
 #include "states/StateId.h"
 #include "utils/ConfigEnums.h"
@@ -29,6 +28,8 @@ namespace
     constexpr float TitleStartY{ 540.f };
     constexpr float TitleEndY{ 125.f };
     constexpr float ActivationDelay{ 0.12f };
+    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
+    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
     constexpr std::size_t TypingSoundPoolSize{ 4 };
     constexpr std::array<float, TypingSoundPoolSize> TypingPitches{ 0.97f, 1.02f, 0.99f, 1.04f };
 }
@@ -36,19 +37,18 @@ namespace
 MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     : State(stateStack, context)
     , background(context.assets, context.logicalSize)
+    , neonGlow(context.assets)
+    , titleNeonGlow(context.assets)
+    , menuCursor(
+        context.assets,
+        Config::Texture::MenuPointer,
+        { 6.f, 2.f },
+        InterfaceGlowColor)
     , introAnimation(MenuTitle, MenuLabels)
-    , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
     , version(context.assets.Fonts().Get(Config::Font::MenuRegular), std::string(GameVersion::Text), 20)
-    , menuMusic(context.assets.Music().Get(Config::Music::MainMenuBackground))
 {
-    context.window.setMouseCursorVisible(true);
-    context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
-
-    titleGlow.setFillColor(sf::Color(80, 215, 245, 24));
-    titleGlow.setOutlineColor(sf::Color(45, 205, 245, 78));
-    titleGlow.setOutlineThickness(9.f);
-    titleGlow.setLetterSpacing(1.08f);
+    context.window.setMouseCursorVisible(false);
 
     title.setFillColor(sf::Color(215, 247, 252));
     title.setOutlineColor(sf::Color(3, 18, 31, 235));
@@ -63,7 +63,6 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
         0.f,
         fullTitleBounds.position.y + fullTitleBounds.size.y * 0.5f
     });
-    titleGlow.setOrigin(title.getOrigin());
     title.setString("");
 
     version.setFillColor(sf::Color(145, 160, 175, 0));
@@ -87,30 +86,12 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
         buttons.back().SetFrameOpacity(0.f);
     }
 
-    const sf::SoundBuffer& typingBuffer{ context.assets.Sounds().Get(Config::Sound::CharacterTyping) };
-    typingSounds.reserve(TypingSoundPoolSize);
-    for (std::size_t index{ 0 }; index < TypingSoundPoolSize; ++index)
-    {
-        typingSounds.emplace_back(typingBuffer);
-        typingSounds.back().setVolume(34.f);
-    }
-
-    activationSound.emplace(context.assets.Sounds().Get(Config::Sound::InterfaceActivation));
-    activationSound->setVolume(58.f);
-
-    selectionSound.emplace(context.assets.Sounds().Get(Config::Sound::ItemSelect));
-    selectionSound->setVolume(45.f);
-
-    pressSound.emplace(context.assets.Sounds().Get(Config::Sound::ItemPress));
-    pressSound->setVolume(60.f);
-
-    menuMusic.setLooping(true);
     ApplyAnimationState();
 }
 
 MainMenuState::~MainMenuState()
 {
-    menuMusic.stop();
+    GetContext().audio.StopMusic(Config::Music::MainMenuBackground);
 }
 
 void MainMenuState::HandleEvent(const sf::Event& event)
@@ -189,6 +170,9 @@ void MainMenuState::HandleEvent(const sf::Event& event)
 void MainMenuState::Update(float deltaTime)
 {
     background.Update(deltaTime);
+    neonGlow.Update(deltaTime);
+    titleNeonGlow.Update(deltaTime);
+    menuCursor.Update(deltaTime);
     HandleAnimationEvents(introAnimation.Update(deltaTime));
     ApplyAnimationState();
 
@@ -208,13 +192,49 @@ void MainMenuState::Render()
 {
     sf::RenderWindow& window{ GetContext().window };
     background.Draw(window);
-    window.draw(titleGlow);
+
+    if (!title.getString().isEmpty())
+    {
+        const sf::FloatRect titleBounds{ title.getGlobalBounds() };
+        titleNeonGlow.DrawBloom(
+            window,
+            titleBounds,
+            [this](sf::RenderTarget& target, const sf::RenderStates& states)
+            {
+                target.draw(title, states);
+            },
+            InterfaceGlowColor);
+    }
+
     window.draw(title);
+    if (!title.getString().isEmpty())
+        titleNeonGlow.DrawHighlight(window, title.getGlobalBounds(), InterfaceGlowColor);
+
+    if (introAnimation.IsInteractive() && !buttons.empty())
+    {
+        const MenuButton& selectedButton{ buttons[selectedIndex] };
+        neonGlow.DrawBloom(
+            window,
+            selectedButton.GetBounds(),
+            [&selectedButton](sf::RenderTarget& target, const sf::RenderStates& states)
+            {
+                selectedButton.Draw(target, states);
+            },
+            SelectionGlowColor);
+    }
 
     for (const MenuButton& button : buttons)
         button.Draw(window);
 
+    if (introAnimation.IsInteractive() && !buttons.empty())
+        neonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), SelectionGlowColor);
+
     window.draw(version);
+}
+
+void MainMenuState::RenderOverlay()
+{
+    menuCursor.Draw(GetContext().window);
 }
 
 void MainMenuState::SelectPrevious()
@@ -234,11 +254,16 @@ void MainMenuState::Select(std::size_t index, bool playSound)
     for (std::size_t buttonIndex{ 0 }; buttonIndex < buttons.size(); ++buttonIndex)
         buttons[buttonIndex].SetSelected(buttonIndex == selectedIndex);
 
-    if (selectionChanged && playSound && selectionSound.has_value())
-    {
-        selectionSound->stop();
-        selectionSound->play();
-    }
+    if (selectionChanged)
+        neonGlow.Invalidate();
+
+    if (selectionChanged && playSound)
+        GetContext().audio.PlaySound(
+            Config::Sound::ItemSelect,
+            SoundGroup::UI,
+            100.f,
+            1.f,
+            SoundPlayback::Restart);
 }
 
 void MainMenuState::UpdateMouseSelection(sf::Vector2i pixelPosition)
@@ -256,11 +281,12 @@ void MainMenuState::UpdateMouseSelection(sf::Vector2i pixelPosition)
 
 void MainMenuState::ActivateSelected()
 {
-    if (pressSound.has_value())
-    {
-        pressSound->stop();
-        pressSound->play();
-    }
+    GetContext().audio.PlaySound(
+        Config::Sound::ItemPress,
+        SoundGroup::UI,
+        100.f,
+        1.f,
+        SoundPlayback::Restart);
 
     pendingActivation = selectedIndex;
     activationDelayRemaining = ActivationDelay;
@@ -271,7 +297,7 @@ void MainMenuState::CompleteActivation(std::size_t index)
     switch (index)
     {
     case 0:
-        menuMusic.stop();
+        GetContext().audio.StopMusic(Config::Music::MainMenuBackground);
         RequestClear();
         RequestPush(StateId::Gameplay);
         break;
@@ -293,14 +319,16 @@ void MainMenuState::CompleteActivation(std::size_t index)
 void MainMenuState::ApplyAnimationState()
 {
     const std::string visibleTitle{ introAnimation.GetVisibleTitle() };
-    titleGlow.setString(visibleTitle);
-    title.setString(visibleTitle);
+    if (title.getString().toAnsiString() != visibleTitle)
+    {
+        title.setString(visibleTitle);
+        titleNeonGlow.Invalidate();
+    }
 
     const float titleY{
         TitleStartY + (TitleEndY - TitleStartY) * introAnimation.GetTitleMoveProgress()
     };
     const sf::Vector2f titlePosition{ titleLeftPosition, titleY };
-    titleGlow.setPosition(titlePosition);
     title.setPosition(titlePosition);
 
     const float frameOpacity{ introAnimation.GetFrameOpacity() };
@@ -318,11 +346,13 @@ void MainMenuState::HandleAnimationEvents(const MenuIntroAnimation::Events& even
 {
     PlayTypingSounds(events.typedCharacters);
 
-    if (events.activationStarted && activationSound.has_value())
-    {
-        activationSound->stop();
-        activationSound->play();
-    }
+    if (events.activationStarted)
+        GetContext().audio.PlaySound(
+            Config::Sound::InterfaceActivation,
+            SoundGroup::UI,
+            100.f,
+            1.f,
+            SoundPlayback::Restart);
 
     if (events.becameInteractive)
     {
@@ -335,16 +365,16 @@ void MainMenuState::PlayTypingSounds(std::size_t count)
 {
     for (std::size_t index{ 0 }; index < count; ++index)
     {
-        sf::Sound& sound{ typingSounds[typingSoundIndex % typingSounds.size()] };
-        sound.stop();
-        sound.setPitch(TypingPitches[typingSoundIndex % TypingPitches.size()]);
-        sound.play();
+        GetContext().audio.PlaySound(
+            Config::Sound::CharacterTyping,
+            SoundGroup::UI,
+            100.f,
+            TypingPitches[typingSoundIndex % TypingPitches.size()]);
         ++typingSoundIndex;
     }
 }
 
 void MainMenuState::StartMenuMusic()
 {
-    if (menuMusic.getStatus() != sf::SoundSource::Status::Playing)
-        menuMusic.play();
+    GetContext().audio.PlayMusic(Config::Music::MainMenuBackground);
 }

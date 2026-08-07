@@ -10,10 +10,13 @@
 #include <SFML/Window/Mouse.hpp>
 
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 
 namespace
 {
     constexpr float BackDelay{ 0.12f };
+    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
+    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
 }
 
 PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context, std::string titleText)
@@ -27,8 +30,15 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
         context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
         "Back",
         { 420.f, 82.f })
-    , backSound(context.assets.Sounds().Get(Config::Sound::ItemPress))
+    , neonGlow(context.assets)
+    , menuCursor(
+        context.assets,
+        Config::Texture::MenuPointer,
+        { 6.f, 2.f },
+        InterfaceGlowColor)
 {
+    context.window.setMouseCursorVisible(false);
+
     background.setFillColor(sf::Color(3, 8, 16));
 
     title.setFillColor(sf::Color(110, 225, 240));
@@ -49,7 +59,12 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
 
     backButton.SetPosition({ 90.f, context.logicalSize.y - 140.f });
     backButton.SetSelected(true);
-    backSound.setVolume(60.f);
+}
+
+PlaceholderState::~PlaceholderState()
+{
+    if (GetContext().window.isOpen())
+        GetContext().window.setMouseCursorVisible(false);
 }
 
 void PlaceholderState::HandleEvent(const sf::Event& event)
@@ -79,6 +94,9 @@ void PlaceholderState::HandleEvent(const sf::Event& event)
 
 void PlaceholderState::Update(float deltaTime)
 {
+    neonGlow.Update(deltaTime);
+    menuCursor.Update(deltaTime);
+
     if (!backRequested)
         return;
 
@@ -93,23 +111,38 @@ void PlaceholderState::Render()
     window.draw(background);
     window.draw(title);
     window.draw(message);
+
+    neonGlow.DrawBloom(
+        window,
+        backButton.GetBounds(),
+        [this](sf::RenderTarget& target, const sf::RenderStates& states)
+        {
+            backButton.Draw(target, states);
+        },
+        SelectionGlowColor);
+
     backButton.Draw(window);
+    neonGlow.DrawHighlight(window, backButton.GetBounds(), SelectionGlowColor);
+}
+
+void PlaceholderState::RenderOverlay()
+{
+    menuCursor.Draw(GetContext().window);
 }
 
 void PlaceholderState::GoBack()
 {
-    backSound.stop();
-    backSound.play();
+    GetContext().audio.PlaySound(
+        Config::Sound::ItemPress,
+        SoundGroup::UI,
+        100.f,
+        1.f,
+        SoundPlayback::Restart);
     backRequested = true;
     backDelayRemaining = BackDelay;
 }
 
 ScoresState::ScoresState(StateStack& stateStack, StateContext context)
     : PlaceholderState(stateStack, context, "SCORES")
-{
-}
-
-OptionsState::OptionsState(StateStack& stateStack, StateContext context)
-    : PlaceholderState(stateStack, context, "OPTIONS")
 {
 }

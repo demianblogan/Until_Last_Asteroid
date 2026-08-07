@@ -111,7 +111,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)libs;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -130,7 +130,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)libs;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -142,6 +142,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\assets\AssetStore.cpp" />
+    <ClCompile Include="src\app\DisplayManager.cpp" />
+    <ClCompile Include="src\audio\AudioManager.cpp" />
+    <ClCompile Include="src\audio\AudioBalance.cpp" />
     <ClCompile Include="src\systems\Collision.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
     <ClCompile Include="src\core\Entity.cpp" />
@@ -150,15 +153,20 @@
     <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
     <ClCompile Include="src\states\MainMenuState.cpp" />
+    <ClCompile Include="src\states\OptionsState.cpp" />
     <ClCompile Include="src\states\PauseState.cpp" />
     <ClCompile Include="src\states\PlaceholderStates.cpp" />
     <ClCompile Include="src\states\State.cpp" />
     <ClCompile Include="src\states\StateStack.cpp" />
     <ClCompile Include="src\ui\HUD.cpp" />
+    <ClCompile Include="src\ui\GlowingCursor.cpp" />
     <ClCompile Include="src\ui\MenuBackground.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
+    <ClCompile Include="src\ui\NeonGlow.cpp" />
+    <ClCompile Include="src\ui\RoundedRectangleShape.cpp" />
     <ClCompile Include="src\systems\InputAction.cpp" />
+    <ClCompile Include="src\settings\SettingsManager.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\entities\Meteor.cpp" />
     <ClCompile Include="src\entities\Player.cpp" />
@@ -169,16 +177,23 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\ConfigEnums.h" />
+    <ClInclude Include="src\audio\AudioManager.h" />
+    <ClInclude Include="src\audio\AudioBalance.h" />
+    <ClInclude Include="src\app\DisplayManager.h" />
     <ClInclude Include="src\app\Application.h" />
     <ClInclude Include="src\core\GameVersion.h" />
     <ClInclude Include="src\ui\HUD.h" />
+    <ClInclude Include="src\ui\GlowingCursor.h" />
     <ClInclude Include="src\systems\InputAction.h" />
     <ClInclude Include="src\systems\ActionMap.h" />
     <ClInclude Include="src\systems\InputHandler.h" />
+    <ClInclude Include="src\settings\GameSettings.h" />
+    <ClInclude Include="src\settings\SettingsManager.h" />
     <ClInclude Include="src\game\GameplaySession.h" />
     <ClInclude Include="src\states\CompanySplashState.h" />
     <ClInclude Include="src\states\GameplayState.h" />
     <ClInclude Include="src\states\MainMenuState.h" />
+    <ClInclude Include="src\states\OptionsState.h" />
     <ClInclude Include="src\states\PauseState.h" />
     <ClInclude Include="src\states\PlaceholderStates.h" />
     <ClInclude Include="src\states\State.h" />
@@ -198,9 +213,15 @@
     <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
+    <ClInclude Include="src\ui\NeonGlow.h" />
+    <ClInclude Include="src\ui\RoundedRectangleShape.h" />
+    <ClInclude Include="libs\nlohmann\json.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="assets\shaders\bright_pass.frag" />
     <None Include="assets\shaders\gaussian_blur.frag" />
+    <None Include="assets\data\audio_balance.json" />
+    <None Include="libs\nlohmann\LICENSE.MIT" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

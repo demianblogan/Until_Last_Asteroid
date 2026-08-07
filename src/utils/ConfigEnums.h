@@ -11,6 +11,8 @@ namespace Config
 		MainMenuBackground,
 		MenuButtonIdle,
 		MenuButtonSelected,
+		MenuPointer,
+		GameplayCrosshair,
 
 		PlayerShip,
 		PlayerLife,
@@ -60,19 +62,24 @@ namespace Config
 
 		SmallMeteorExplosion,
 		MediumMeteorExplosion,
-		BigMeteorExplosion
+		BigMeteorExplosion,
+
+		Count
 	};
 
 	enum class Music
 	{
 		CompanySplash,
 		MainMenuBackground,
-		GameplayTheme
+		GameplayTheme,
+
+		Count
 	};
 
 	enum class Shader
 	{
-		GaussianBlur
+		GaussianBlur,
+		BrightPass
 	};
 
 	enum class Cursor
@@ -86,6 +93,7 @@ namespace Config
 		Up,
 		Down,
 		Left,
-		Right
+		Right,
+		Fire
 	};
 };

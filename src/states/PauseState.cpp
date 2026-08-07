@@ -4,7 +4,6 @@
 #include <array>
 #include <string>
 
-#include <SFML/Audio/Music.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderStates.hpp>
@@ -16,6 +15,7 @@
 #include <SFML/Window/Mouse.hpp>
 
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 #include "states/StateId.h"
 #include "utils/ConfigEnums.h"
 
@@ -29,6 +29,8 @@ namespace
     constexpr float TitleY{ 620.f };
     constexpr float ActivationDelay{ 0.12f };
     constexpr float BlurRadius{ 4.f };
+    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
+    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
 
     sf::Vector2u EnsureNonZero(sf::Vector2u size)
     {
@@ -57,12 +59,14 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     , darkOverlay(context.logicalSize)
     , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "PAUSED", 92)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "PAUSED", 92)
-    , selectionSound(context.assets.Sounds().Get(Config::Sound::ItemSelect))
-    , pressSound(context.assets.Sounds().Get(Config::Sound::ItemPress))
-    , gameplayMusic(context.assets.Music().Get(Config::Music::GameplayTheme))
+    , neonGlow(context.assets)
+    , menuCursor(
+        context.assets,
+        Config::Texture::MenuPointer,
+        { 6.f, 2.f },
+        InterfaceGlowColor)
 {
-    context.window.setMouseCursorVisible(true);
-    context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
+    context.window.setMouseCursorVisible(false);
 
     windowSnapshot.setSmooth(true);
     horizontalBlur.setSmooth(true);
@@ -107,23 +111,17 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     }
     Select(0, false);
 
-    selectionSound.setVolume(45.f);
-    pressSound.setVolume(60.f);
-
-    musicWasPlaying = gameplayMusic.getStatus() == sf::SoundSource::Status::Playing;
-    gameplayMusic.pause();
+    musicWasPlaying = context.audio.IsMusicPlaying(Config::Music::GameplayTheme);
+    context.audio.PauseMusic(Config::Music::GameplayTheme);
 }
 
 PauseState::~PauseState()
 {
     if (musicWasPlaying && !returningToMainMenu)
-        gameplayMusic.play();
+        GetContext().audio.ResumeMusic(Config::Music::GameplayTheme);
 
     if (GetContext().window.isOpen())
-    {
-        GetContext().window.setMouseCursor(
-            GetContext().assets.GetCursor(Config::Cursor::GameplayCrosshair));
-    }
+        GetContext().window.setMouseCursorVisible(false);
 }
 
 void PauseState::HandleEvent(const sf::Event& event)
@@ -185,6 +183,9 @@ void PauseState::HandleEvent(const sf::Event& event)
 
 void PauseState::Update(float deltaTime)
 {
+    neonGlow.Update(deltaTime);
+    menuCursor.Update(deltaTime);
+
     if (!activationPending)
         return;
 
@@ -213,8 +214,34 @@ void PauseState::Render()
     window.draw(titleGlow);
     window.draw(title);
 
+    if (!buttons.empty())
+    {
+        const MenuButton& selectedButton{ buttons[selectedIndex] };
+        neonGlow.DrawBloom(
+            window,
+            selectedButton.GetBounds(),
+            [&selectedButton](sf::RenderTarget& target, const sf::RenderStates& states)
+            {
+                selectedButton.Draw(target, states);
+            },
+            SelectionGlowColor);
+    }
+
     for (const MenuButton& button : buttons)
         button.Draw(window);
+
+    if (!buttons.empty())
+        neonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), SelectionGlowColor);
+}
+
+void PauseState::RenderOverlay()
+{
+    menuCursor.Draw(GetContext().window);
+}
+
+bool PauseState::IsTransparent() const noexcept
+{
+    return true;
 }
 
 void PauseState::CaptureBlurredFrame()
@@ -286,10 +313,17 @@ void PauseState::Select(std::size_t index, bool playSound)
     for (std::size_t buttonIndex{ 0 }; buttonIndex < buttons.size(); ++buttonIndex)
         buttons[buttonIndex].SetSelected(buttonIndex == selectedIndex);
 
+    if (selectionChanged)
+        neonGlow.Invalidate();
+
     if (selectionChanged && playSound)
     {
-        selectionSound.stop();
-        selectionSound.play();
+        GetContext().audio.PlaySound(
+            Config::Sound::ItemSelect,
+            SoundGroup::UI,
+            100.f,
+            1.f,
+            SoundPlayback::Restart);
     }
 }
 
@@ -308,8 +342,12 @@ void PauseState::UpdateMouseSelection(sf::Vector2i pixelPosition)
 
 void PauseState::BeginActivation(std::size_t index)
 {
-    pressSound.stop();
-    pressSound.play();
+    GetContext().audio.PlaySound(
+        Config::Sound::ItemPress,
+        SoundGroup::UI,
+        100.f,
+        1.f,
+        SoundPlayback::Restart);
 
     pendingActivation = index;
     activationDelayRemaining = ActivationDelay;
@@ -326,7 +364,7 @@ void PauseState::CompleteActivation(std::size_t index)
 
     case 1:
         returningToMainMenu = true;
-        gameplayMusic.stop();
+        GetContext().audio.StopMusic(Config::Music::GameplayTheme);
         RequestClear();
         RequestPush(StateId::MainMenu);
         break;

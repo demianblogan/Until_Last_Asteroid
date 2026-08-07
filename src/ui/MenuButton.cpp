@@ -5,6 +5,7 @@
 #include <utility>
 
 #include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Texture.hpp>
 
@@ -63,10 +64,20 @@ bool MenuButton::Contains(sf::Vector2f point) const
     return background.getGlobalBounds().contains(point);
 }
 
+sf::FloatRect MenuButton::GetBounds() const
+{
+    return background.getGlobalBounds();
+}
+
 void MenuButton::Draw(sf::RenderTarget& target) const
 {
-    target.draw(background);
-    target.draw(label);
+    Draw(target, sf::RenderStates::Default);
+}
+
+void MenuButton::Draw(sf::RenderTarget& target, const sf::RenderStates& states) const
+{
+    target.draw(background, states);
+    target.draw(label, states);
 }
 
 void MenuButton::CenterLabel()

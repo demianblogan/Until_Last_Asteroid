@@ -4,18 +4,14 @@
 #include <optional>
 #include <vector>
 
-#include <SFML/Audio/Sound.hpp>
 #include <SFML/Graphics/Text.hpp>
 
 #include "states/State.h"
+#include "ui/GlowingCursor.h"
 #include "ui/MenuBackground.h"
 #include "ui/MenuButton.h"
 #include "ui/MenuIntroAnimation.h"
-
-namespace sf
-{
-    class Music;
-}
+#include "ui/NeonGlow.h"
 
 class MainMenuState final : public State
 {
@@ -26,6 +22,7 @@ public:
     void HandleEvent(const sf::Event& event) override;
     void Update(float deltaTime) override;
     void Render() override;
+    void RenderOverlay() override;
 
 private:
     void SelectPrevious();
@@ -40,16 +37,13 @@ private:
     void StartMenuMusic();
 
     MenuBackground background;
+    NeonGlow neonGlow;
+    NeonGlow titleNeonGlow;
+    GlowingCursor menuCursor;
     MenuIntroAnimation introAnimation;
-    sf::Text titleGlow;
     sf::Text title;
     sf::Text version;
     std::vector<MenuButton> buttons;
-    std::vector<sf::Sound> typingSounds;
-    std::optional<sf::Sound> activationSound;
-    std::optional<sf::Sound> selectionSound;
-    std::optional<sf::Sound> pressSound;
-    sf::Music& menuMusic;
     std::optional<std::size_t> pendingActivation;
     std::size_t selectedIndex{ 0 };
     std::size_t typingSoundIndex{ 0 };

@@ -76,6 +76,32 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Completed the manual v1.1.0 regression checklist.
 - Prepared, extracted, smoke-tested, and approved the v1.1.0 release candidate.
 
+### v1.2.0
+
+- Replaced the Options placeholder with Graphics, Audio, and Controls pages.
+- Added supported display resolution discovery and Fullscreen, Windowed, and
+  Borderless modes.
+- Disabled resolution selection in Borderless mode and explained why in the UI.
+- Added Show FPS, Vertical Synchronization, and Frame Rate Limit settings.
+- Applied settings immediately, with a timed safety rollback for display mode and
+  resolution changes.
+- Added Music and Sounds volume sliders backed by a centralized audio manager.
+- Added per-asset audio balancing through JSON configuration.
+- Added keyboard and mouse rebinding with conflict handling and defaults.
+- Stored validated JSON settings under the current Windows user's LocalAppData.
+- Added reusable dropdown, slider, segmented toggle, and key-binding controls.
+- Added a focused UI bloom pass for selected controls, the title, cursor, and
+  gameplay crosshair.
+- Deferred Scores until the campaign and scoring rules are finalized.
+- Deferred Gameplay options until the game has meaningful gameplay and
+  accessibility settings.
+
+#### Release verification
+
+- Completed the manual v1.2.0 regression checklist.
+- Built and verified the x64 Debug and Release configurations.
+- Prepared and verified the standalone Windows release package.
+
 ## Deferred / needs design
 
 - Add localization with externalized UI text and language selection in Options.
@@ -86,5 +112,3 @@ deferred ideas. Update it whenever an item changes scope or release.
   pass; do not treat it as a committed feature yet.
 - Add object pooling only when profiling shows allocation pressure during
   chaotic scenes; do not migrate the game to ECS pre-emptively.
-- Consider adding subtle glow to the menu pointer and gameplay crosshair during
-  the later visual-effects pass.

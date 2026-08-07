@@ -10,6 +10,9 @@
       <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="src\assets\AssetStore.cpp" />
+    <ClCompile Include="src\app\DisplayManager.cpp" />
+    <ClCompile Include="src\audio\AudioManager.cpp" />
+    <ClCompile Include="src\audio\AudioBalance.cpp" />
     <ClCompile Include="src\systems\Collision.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
     <ClCompile Include="src\core\Entity.cpp" />
@@ -18,6 +21,7 @@
     <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
     <ClCompile Include="src\states\MainMenuState.cpp" />
+    <ClCompile Include="src\states\OptionsState.cpp" />
     <ClCompile Include="src\states\PauseState.cpp" />
     <ClCompile Include="src\states\PlaceholderStates.cpp" />
     <ClCompile Include="src\states\State.cpp" />
@@ -30,12 +34,19 @@
     <ClCompile Include="src\entities\Saucer.cpp" />
     <ClCompile Include="src\entities\Shot.cpp" />
     <ClCompile Include="src\ui\HUD.cpp" />
+    <ClCompile Include="src\ui\GlowingCursor.cpp" />
     <ClCompile Include="src\ui\MenuBackground.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
+    <ClCompile Include="src\ui\NeonGlow.cpp" />
+    <ClCompile Include="src\ui\RoundedRectangleShape.cpp" />
+    <ClCompile Include="src\settings\SettingsManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\Random.h" />
+    <ClInclude Include="src\audio\AudioManager.h" />
+    <ClInclude Include="src\audio\AudioBalance.h" />
+    <ClInclude Include="src\app\DisplayManager.h" />
     <ClInclude Include="src\assets\AssetStorage.h" />
     <ClInclude Include="src\systems\Collision.h" />
     <ClInclude Include="src\systems\InputAction.h" />
@@ -56,17 +67,27 @@
     <ClInclude Include="src\states\GameplayState.h" />
     <ClInclude Include="src\states\CompanySplashState.h" />
     <ClInclude Include="src\states\MainMenuState.h" />
+    <ClInclude Include="src\states\OptionsState.h" />
     <ClInclude Include="src\states\PauseState.h" />
     <ClInclude Include="src\states\PlaceholderStates.h" />
     <ClInclude Include="src\states\State.h" />
     <ClInclude Include="src\states\StateId.h" />
     <ClInclude Include="src\states\StateStack.h" />
     <ClInclude Include="src\ui\HUD.h" />
+    <ClInclude Include="src\ui\GlowingCursor.h" />
     <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
+    <ClInclude Include="src\ui\NeonGlow.h" />
+    <ClInclude Include="src\ui\RoundedRectangleShape.h" />
+    <ClInclude Include="src\settings\GameSettings.h" />
+    <ClInclude Include="src\settings\SettingsManager.h" />
+    <ClInclude Include="libs\nlohmann\json.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="assets\shaders\bright_pass.frag" />
     <None Include="assets\shaders\gaussian_blur.frag" />
+    <None Include="assets\data\audio_balance.json" />
+    <None Include="libs\nlohmann\LICENSE.MIT" />
   </ItemGroup>
 </Project>

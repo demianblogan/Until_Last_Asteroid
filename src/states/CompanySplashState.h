@@ -4,11 +4,7 @@
 
 #include "states/State.h"
 
-namespace sf
-{
-    class Event;
-    class Music;
-}
+namespace sf { class Event; }
 
 class CompanySplashState final : public State
 {
@@ -30,7 +26,6 @@ private:
     static constexpr float FADE_OUT_DURATION{ 0.5f };
 
     sf::Sprite logo;
-    sf::Music& splashMusic;
     float elapsedTime{ 0.f };
     bool isFinishing{ false };
 };

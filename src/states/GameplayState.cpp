@@ -1,17 +1,23 @@
 #include "GameplayState.h"
 
 #include <algorithm>
-#include <SFML/Audio/Music.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 #include "entities/Meteor.h"
 #include "entities/Saucer.h"
 #include "ui/HUD.h"
 #include "utils/Random.h"
+#include "settings/SettingsManager.h"
+
+namespace
+{
+	constexpr sf::Color CrosshairGlowColor{ 25, 220, 255 };
+}
 
 GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	: State(stateStack, context)
@@ -20,10 +26,16 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 		static_cast<unsigned int>(context.logicalSize.x),
 		static_cast<unsigned int>(context.logicalSize.y),
 		context.assets,
+		context.audio,
 		session)
+	, crosshair(
+		context.assets,
+		Config::Texture::GameplayCrosshair,
+		{ 32.f, 32.f },
+		CrosshairGlowColor)
 {
 	world.SetWindow(context.window);
-	context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::GameplayCrosshair));
+	context.window.setMouseCursorVisible(false);
 
 	hud.emplace(context.assets, session);
 
@@ -31,15 +43,12 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	SetupUI();
 	Reset();
 
-	sf::Music& gameplayMusic{ context.assets.Music().Get(Config::Music::GameplayTheme) };
-	gameplayMusic.setLooping(true);
-	if (gameplayMusic.getStatus() != sf::SoundSource::Status::Playing)
-		gameplayMusic.play();
+	context.audio.PlayMusic(Config::Music::GameplayTheme);
 }
 
 GameplayState::~GameplayState()
 {
-	GetContext().assets.Music().Get(Config::Music::GameplayTheme).stop();
+	GetContext().audio.StopMusic(Config::Music::GameplayTheme);
 }
 
 GameplayState::LevelData GameplayState::CreateLevel(int level)
@@ -81,12 +90,23 @@ void GameplayState::SetupInput()
 {
 	using enum Config::PlayerAction;
 	using enum InputAction::TriggerType;
-	using namespace sf::Keyboard;
 
-	actions.AddBinding(Up, InputAction(Key::W, WhileHeld));
-	actions.AddBinding(Left, InputAction(Key::A, WhileHeld));
-	actions.AddBinding(Right, InputAction(Key::D, WhileHeld));
-	actions.AddBinding(Down, InputAction(Key::S, WhileHeld));
+	const ControlSettings& controls{ GetContext().settings.Get().controls };
+	const auto addBinding{ [this](Config::PlayerAction action, const ControlBinding& binding)
+		{
+			if (binding.device == InputDevice::Keyboard)
+				actions.AddBinding(action, InputAction(
+					static_cast<sf::Keyboard::Key>(binding.code), WhileHeld));
+			else
+				actions.AddBinding(action, InputAction(
+					static_cast<sf::Mouse::Button>(binding.code), WhileHeld));
+		} };
+
+	addBinding(Up, controls.moveUp);
+	addBinding(Down, controls.moveDown);
+	addBinding(Left, controls.moveLeft);
+	addBinding(Right, controls.moveRight);
+	addBinding(Fire, controls.fire);
 }
 
 void GameplayState::SetupUI()
@@ -220,6 +240,8 @@ void GameplayState::ResumeGameplaySounds()
 
 void GameplayState::Update(float dt)
 {
+	crosshair.Update(dt);
+
 	if (session.IsWin() && winTexts.size() >= 2)
 	{
 		winTexts[1].setString("Score: " + std::to_string(session.GetScore()));
@@ -335,6 +357,11 @@ void GameplayState::Render()
 
 	if (!session.IsPlaying() && exitHintText)
 		window.draw(*exitHintText);
+}
+
+void GameplayState::RenderOverlay()
+{
+	crosshair.Draw(GetContext().window);
 }
 
 void GameplayState::SpawnPlayerIfNeeded()

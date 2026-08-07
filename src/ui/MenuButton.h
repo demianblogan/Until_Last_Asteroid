@@ -10,6 +10,7 @@
 namespace sf
 {
     class Font;
+    struct RenderStates;
     class RenderTarget;
     class Texture;
 }
@@ -30,7 +31,9 @@ public:
     void SetFrameOpacity(float opacity);
 
     [[nodiscard]] bool Contains(sf::Vector2f point) const;
+    [[nodiscard]] sf::FloatRect GetBounds() const;
     void Draw(sf::RenderTarget& target) const;
+    void Draw(sf::RenderTarget& target, const sf::RenderStates& states) const;
 
 private:
     void CenterLabel();

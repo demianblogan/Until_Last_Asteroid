@@ -20,6 +20,7 @@ Player::~Player()
 	input.UnsubscribeAll(Config::PlayerAction::Down);
 	input.UnsubscribeAll(Config::PlayerAction::Left);
 	input.UnsubscribeAll(Config::PlayerAction::Right);
+	input.UnsubscribeAll(Config::PlayerAction::Fire);
 }
 
 Entity::Type Player::GetType() const noexcept
@@ -56,8 +57,6 @@ void Player::HandleRealtime()
 {
 	input.Update();
 
-	if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
-		Shoot();
 }
 
 void Player::OnDestroy()
@@ -73,6 +72,7 @@ void Player::BindInput()
 	input.Subscribe(Down, [this]() { moveInput.y += 1.f; });
 	input.Subscribe(Left, [this]() { moveInput.x -= 1.f; });
 	input.Subscribe(Right, [this]() { moveInput.x += 1.f; });
+	input.Subscribe(Fire, [this]() { Shoot(); });
 }
 
 // --------------------------------------------------------

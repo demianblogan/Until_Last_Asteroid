@@ -3,20 +3,17 @@
 #include <cstddef>
 #include <vector>
 
-#include <SFML/Audio/Sound.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/Graphics/Texture.hpp>
 
 #include "states/State.h"
+#include "ui/GlowingCursor.h"
 #include "ui/MenuButton.h"
+#include "ui/NeonGlow.h"
 
-namespace sf
-{
-    class Music;
-    class Shader;
-}
+namespace sf { class Shader; }
 
 class PauseState final : public State
 {
@@ -27,6 +24,8 @@ public:
     void HandleEvent(const sf::Event& event) override;
     void Update(float deltaTime) override;
     void Render() override;
+    void RenderOverlay() override;
+    [[nodiscard]] bool IsTransparent() const noexcept override;
 
 private:
     void CaptureBlurredFrame();
@@ -44,10 +43,9 @@ private:
     sf::RectangleShape darkOverlay;
     sf::Text titleGlow;
     sf::Text title;
+    NeonGlow neonGlow;
+    GlowingCursor menuCursor;
     std::vector<MenuButton> buttons;
-    sf::Sound selectionSound;
-    sf::Sound pressSound;
-    sf::Music& gameplayMusic;
     std::size_t selectedIndex{ 0 };
     std::size_t pendingActivation{ 0 };
     float activationDelayRemaining{ 0.f };

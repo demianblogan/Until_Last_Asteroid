@@ -8,18 +8,37 @@
 #include "states/CompanySplashState.h"
 #include "states/GameplayState.h"
 #include "states/MainMenuState.h"
+#include "states/OptionsState.h"
 #include "states/PauseState.h"
 #include "states/PlaceholderStates.h"
+#include "utils/ConfigEnums.h"
 
 Application::Application()
-    : window(sf::VideoMode::getDesktopMode(), "Until last asteroid", sf::State::Fullscreen)
-    , stateStack(StateContext{ window, assets, LOGICAL_SIZE })
+    : window(CreateWindow(settings.Get().graphics))
+    , audio(assets, settings)
+    , display(window, LOGICAL_SIZE)
+    , stateStack(StateContext{ window, assets, settings, audio, display, LOGICAL_SIZE })
 {
+    display.ConfigureExistingWindow(settings.Get().graphics);
     const sf::View logicalView(sf::FloatRect({ 0.f, 0.f }, LOGICAL_SIZE));
     window.setView(GetLetterboxView(logicalView, window.getSize().x, window.getSize().y));
-    window.setVerticalSyncEnabled(true);
+    window.setVerticalSyncEnabled(settings.Get().graphics.verticalSync);
+    window.setFramerateLimit(
+        settings.Get().graphics.verticalSync ? 0u : settings.Get().graphics.frameRateLimit);
 
     assets.Initialize();
+    audio.ApplySettings();
+
+    fpsText.emplace(assets.Fonts().Get(Config::Font::MenuRegular), "FPS: --", 24);
+    fpsText->setFillColor(sf::Color(130, 235, 245));
+    fpsText->setOutlineColor(sf::Color(2, 10, 18, 220));
+    fpsText->setOutlineThickness(2.f);
+    const sf::FloatRect initialFpsBounds{ fpsText->getLocalBounds() };
+    fpsText->setOrigin({
+        initialFpsBounds.position.x + initialFpsBounds.size.x,
+        initialFpsBounds.position.y
+    });
+    fpsText->setPosition({ LOGICAL_SIZE.x - 24.f, 18.f });
 
     stateStack.RegisterState<CompanySplashState>(StateId::CompanySplash);
     stateStack.RegisterState<MainMenuState>(StateId::MainMenu);
@@ -31,13 +50,51 @@ Application::Application()
     stateStack.ApplyPendingChanges();
 }
 
+sf::RenderWindow Application::CreateWindow(const GraphicsSettings& settings)
+{
+    sf::VideoMode mode(settings.resolution);
+    if (settings.windowMode == WindowMode::Fullscreen && !mode.isValid())
+        mode = sf::VideoMode::getDesktopMode();
+
+    switch (settings.windowMode)
+    {
+    case WindowMode::Fullscreen:
+        return sf::RenderWindow(
+            mode,
+            "Until last asteroid",
+            sf::Style::Default,
+            sf::State::Fullscreen);
+
+    case WindowMode::Windowed:
+        return sf::RenderWindow(
+            mode,
+            "Until last asteroid",
+            sf::Style::Default,
+            sf::State::Windowed);
+
+    case WindowMode::Borderless:
+        return sf::RenderWindow(
+            sf::VideoMode::getDesktopMode(),
+            "Until last asteroid",
+            sf::Style::None,
+            sf::State::Windowed);
+    }
+
+    return sf::RenderWindow(
+        sf::VideoMode::getDesktopMode(),
+        "Until last asteroid",
+        sf::Style::Default,
+        sf::State::Fullscreen);
+}
+
 void Application::Run()
 {
     sf::Clock clock;
 
     while (window.isOpen())
     {
-        const float deltaTime{ std::min(clock.restart().asSeconds(), MAX_FRAME_TIME) };
+        const float frameTime{ clock.restart().asSeconds() };
+        const float deltaTime{ std::min(frameTime, MAX_FRAME_TIME) };
 
         while (const std::optional<sf::Event> event{ window.pollEvent() })
         {
@@ -64,10 +121,34 @@ void Application::Run()
 
         stateStack.HandleRealtime();
         stateStack.Update(deltaTime);
+        audio.Update();
+        UpdateFpsCounter(frameTime);
 
         window.clear();
         stateStack.Render();
+        if (settings.Get().graphics.showFps && fpsText.has_value())
+            window.draw(*fpsText);
+        stateStack.RenderOverlay();
         window.display();
+    }
+}
+
+void Application::UpdateFpsCounter(float deltaTime)
+{
+    if (!fpsText.has_value())
+        return;
+
+    fpsElapsed += deltaTime;
+    ++fpsFrames;
+    if (fpsElapsed >= 1.f)
+    {
+        const auto fps{ static_cast<unsigned int>(
+            static_cast<float>(fpsFrames) / fpsElapsed + 0.5f) };
+        fpsText->setString("FPS: " + std::to_string(fps));
+        const sf::FloatRect bounds{ fpsText->getLocalBounds() };
+        fpsText->setOrigin({ bounds.position.x + bounds.size.x, bounds.position.y });
+        fpsElapsed = 0.f;
+        fpsFrames = 0u;
     }
 }
 

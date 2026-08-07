@@ -26,6 +26,8 @@ Quick start:
 
 ## 🕹 Controls
 
+Default controls (all bindings can be changed in Options):
+
 | Action        | Input              |
 |--------------|-------------------|
 | Move         | W A S D           |
@@ -47,7 +49,10 @@ Quick start:
 - Skippable company splash screen
 - Animated sci-fi main menu
 - Pause menu with Resume and Back to Main Menu
-- Custom menu cursor and gameplay crosshair
+- Persistent Graphics, Audio, and Controls settings
+- Fullscreen, Windowed, and Borderless display modes
+- Rebindable keyboard and mouse controls
+- Bloom-highlighted UI, menu cursor, and gameplay crosshair
 
 ---
 

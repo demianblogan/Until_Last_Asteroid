@@ -5,6 +5,9 @@
 #include "StateId.h"
 
 class AssetStore;
+class AudioManager;
+class DisplayManager;
+class SettingsManager;
 class StateStack;
 
 namespace sf
@@ -17,6 +20,9 @@ struct StateContext
 {
     sf::RenderWindow& window;
     AssetStore& assets;
+    SettingsManager& settings;
+    AudioManager& audio;
+    DisplayManager& display;
     sf::Vector2f logicalSize;
 };
 
@@ -35,6 +41,8 @@ public:
     virtual void HandleRealtime();
     virtual void Update(float deltaTime) = 0;
     virtual void Render() = 0;
+    virtual void RenderOverlay();
+    [[nodiscard]] virtual bool IsTransparent() const noexcept;
 
 protected:
     [[nodiscard]] const StateContext& GetContext() const noexcept;
