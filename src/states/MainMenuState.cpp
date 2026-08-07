@@ -36,16 +36,23 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     : State(stateStack, context)
     , background(context.assets, context.logicalSize)
     , introAnimation(MenuTitle, MenuLabels)
+    , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
     , version(context.assets.Fonts().Get(Config::Font::MenuRegular), std::string(GameVersion::Text), 20)
     , menuMusic(context.assets.Music().Get(Config::Music::MainMenuBackground))
 {
     context.window.setMouseCursorVisible(true);
-    context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::Arrow));
+    context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
 
-    title.setFillColor(sf::Color(130, 230, 245));
-    title.setOutlineColor(sf::Color(5, 18, 28, 210));
-    title.setOutlineThickness(3.f);
+    titleGlow.setFillColor(sf::Color(80, 215, 245, 24));
+    titleGlow.setOutlineColor(sf::Color(45, 205, 245, 78));
+    titleGlow.setOutlineThickness(9.f);
+    titleGlow.setLetterSpacing(1.08f);
+
+    title.setFillColor(sf::Color(215, 247, 252));
+    title.setOutlineColor(sf::Color(3, 18, 31, 235));
+    title.setOutlineThickness(3.5f);
+    title.setLetterSpacing(1.08f);
     title.setString(MenuTitle);
     const sf::FloatRect fullTitleBounds{ title.getLocalBounds() };
     titleLeftPosition = context.logicalSize.x * 0.5f
@@ -55,6 +62,7 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
         0.f,
         fullTitleBounds.position.y + fullTitleBounds.size.y * 0.5f
     });
+    titleGlow.setOrigin(title.getOrigin());
     title.setString("");
 
     version.setFillColor(sf::Color(145, 160, 175, 0));
@@ -179,6 +187,7 @@ void MainMenuState::Render()
 {
     sf::RenderWindow& window{ GetContext().window };
     background.Draw(window);
+    window.draw(titleGlow);
     window.draw(title);
 
     for (const MenuButton& button : buttons)
@@ -243,12 +252,16 @@ void MainMenuState::ActivateSelected()
 
 void MainMenuState::ApplyAnimationState()
 {
-    title.setString(std::string(introAnimation.GetVisibleTitle()));
+    const std::string visibleTitle{ introAnimation.GetVisibleTitle() };
+    titleGlow.setString(visibleTitle);
+    title.setString(visibleTitle);
 
     const float titleY{
         TitleStartY + (TitleEndY - TitleStartY) * introAnimation.GetTitleMoveProgress()
     };
-    title.setPosition({ titleLeftPosition, titleY });
+    const sf::Vector2f titlePosition{ titleLeftPosition, titleY };
+    titleGlow.setPosition(titlePosition);
+    title.setPosition(titlePosition);
 
     const float frameOpacity{ introAnimation.GetFrameOpacity() };
     for (std::size_t index{ 0 }; index < buttons.size(); ++index)

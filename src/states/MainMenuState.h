@@ -40,6 +40,7 @@ private:
 
     MenuBackground background;
     MenuIntroAnimation introAnimation;
+    sf::Text titleGlow;
     sf::Text title;
     sf::Text version;
     std::vector<MenuButton> buttons;

@@ -70,8 +70,8 @@ namespace Config
 
 	enum class Cursor
 	{
-		Arrow,
-		Crosshair
+		MenuPointer,
+		GameplayCrosshair
 	};
 
 	enum class PlayerAction

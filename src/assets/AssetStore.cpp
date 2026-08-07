@@ -3,7 +3,24 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <SFML/Graphics/Image.hpp>
+
+namespace
+{
+	sf::Cursor LoadCursor(const std::string& path, sf::Vector2u hotspot)
+	{
+		sf::Image image;
+		if (!image.loadFromFile(path))
+			throw std::runtime_error("Failed to load cursor image: " + path);
+
+		auto cursor{ sf::Cursor::createFromPixels(image.getPixelsPtr(), image.getSize(), hotspot) };
+		if (!cursor.has_value())
+			throw std::runtime_error("Failed to create cursor: " + path);
+
+		return std::move(cursor.value());
+	}
+}
 
 void AssetStore::Initialize()
 {
@@ -128,25 +145,11 @@ void AssetStore::InitializeMusic()
 
 void AssetStore::InitializeCursors()
 {
-	auto arrowCursor{ sf::Cursor::createFromSystem(sf::Cursor::Type::Arrow) };
-	if (!arrowCursor.has_value())
-		throw std::runtime_error("Failed to create system arrow cursor");
+	cursors.emplace(
+		Config::Cursor::MenuPointer,
+		LoadCursor("assets/cursors/menu_pointer.png", { 6u, 2u }));
 
-	cursors.emplace(Config::Cursor::Arrow, std::move(arrowCursor.value()));
-
-	sf::Image cursorImage;
-	std::string path{ "assets/sprites/crosshair.png" };
-
-	if (!cursorImage.loadFromFile(path))
-		throw std::runtime_error("Failed to load cursor image");
-
-	const auto cursorImageSize{ cursorImage.getSize() };
-	sf::Vector2u hotspot{ cursorImageSize.x / 2, cursorImageSize.y / 2 };
-
-	auto cursorOpt{ sf::Cursor::createFromPixels(cursorImage.getPixelsPtr(), cursorImageSize, hotspot) };
-
-	if (!cursorOpt.has_value())
-		throw std::runtime_error("Failed to create cursor");
-
-	cursors.emplace(Config::Cursor::Crosshair, std::move(cursorOpt.value()));
+	cursors.emplace(
+		Config::Cursor::GameplayCrosshair,
+		LoadCursor("assets/cursors/gameplay_crosshair.png", { 32u, 32u }));
 }

@@ -23,7 +23,7 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	, input(actions)
 {
 	world.SetWindow(context.window);
-	context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::Crosshair));
+	context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::GameplayCrosshair));
 
 	hud.emplace(context.assets, session);
 
