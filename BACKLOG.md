@@ -76,6 +76,27 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Completed the manual v1.1.0 regression checklist.
 - Prepared, extracted, smoke-tested, and approved the v1.1.0 release candidate.
 
+## In development — v1.2.0
+
+### Confirmed scope
+
+- Replace the Options placeholder with Graphics, Audio, and Controls pages.
+- Discover supported display resolutions and support Fullscreen, Windowed, and
+  Borderless modes.
+- Disable resolution selection in Borderless mode and explain why in the UI.
+- Add Show FPS, Vertical Synchronization, and Frame Rate Limit settings.
+- Apply settings immediately, with a timed safety rollback for display mode and
+  resolution changes.
+- Add Music and Sounds volume sliders backed by a centralized audio manager.
+- Add keyboard and mouse rebinding with conflict handling and defaults.
+- Store validated JSON settings under the current Windows user's LocalAppData.
+- Add reusable dropdown, slider, segmented toggle, and key-binding controls.
+- Add a focused UI glow pass for selected controls, the title, cursor, and
+  gameplay crosshair.
+- Defer Scores until the campaign and scoring rules are finalized.
+- Defer Gameplay options until the game has meaningful gameplay and
+  accessibility settings.
+
 ## Deferred / needs design
 
 - Add localization with externalized UI text and language selection in Options.

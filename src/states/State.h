@@ -5,6 +5,7 @@
 #include "StateId.h"
 
 class AssetStore;
+class SettingsManager;
 class StateStack;
 
 namespace sf
@@ -17,6 +18,7 @@ struct StateContext
 {
     sf::RenderWindow& window;
     AssetStore& assets;
+    SettingsManager& settings;
     sf::Vector2f logicalSize;
 };
 

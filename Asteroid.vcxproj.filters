@@ -33,6 +33,7 @@
     <ClCompile Include="src\ui\MenuBackground.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
+    <ClCompile Include="src\settings\SettingsManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\Random.h" />
@@ -65,8 +66,12 @@
     <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
+    <ClInclude Include="src\settings\GameSettings.h" />
+    <ClInclude Include="src\settings\SettingsManager.h" />
+    <ClInclude Include="libs\nlohmann\json.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\gaussian_blur.frag" />
+    <None Include="libs\nlohmann\LICENSE.MIT" />
   </ItemGroup>
 </Project>

@@ -111,7 +111,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)libs;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -130,7 +130,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)libs;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -159,6 +159,7 @@
     <ClCompile Include="src\ui\MenuButton.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
     <ClCompile Include="src\systems\InputAction.cpp" />
+    <ClCompile Include="src\settings\SettingsManager.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\entities\Meteor.cpp" />
     <ClCompile Include="src\entities\Player.cpp" />
@@ -175,6 +176,8 @@
     <ClInclude Include="src\systems\InputAction.h" />
     <ClInclude Include="src\systems\ActionMap.h" />
     <ClInclude Include="src\systems\InputHandler.h" />
+    <ClInclude Include="src\settings\GameSettings.h" />
+    <ClInclude Include="src\settings\SettingsManager.h" />
     <ClInclude Include="src\game\GameplaySession.h" />
     <ClInclude Include="src\states\CompanySplashState.h" />
     <ClInclude Include="src\states\GameplayState.h" />
@@ -198,9 +201,11 @@
     <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
+    <ClInclude Include="libs\nlohmann\json.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\gaussian_blur.frag" />
+    <None Include="libs\nlohmann\LICENSE.MIT" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

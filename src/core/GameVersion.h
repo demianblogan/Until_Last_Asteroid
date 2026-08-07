@@ -4,5 +4,5 @@
 
 namespace GameVersion
 {
-    inline constexpr std::string_view Text{ "v1.1.0" };
+    inline constexpr std::string_view Text{ "v1.2.0-dev" };
 }

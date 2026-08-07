@@ -5,6 +5,7 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "assets/AssetStore.h"
+#include "settings/SettingsManager.h"
 #include "states/StateStack.h"
 
 class Application
@@ -19,10 +20,12 @@ private:
         const sf::View& view,
         unsigned int windowWidth,
         unsigned int windowHeight);
+    [[nodiscard]] static sf::RenderWindow CreateWindow(const GraphicsSettings& settings);
 
     static constexpr sf::Vector2f LOGICAL_SIZE{ 1920.f, 1080.f };
     static constexpr float MAX_FRAME_TIME{ 0.1f };
 
+    SettingsManager settings;
     sf::RenderWindow window;
     AssetStore assets;
     StateStack stateStack;

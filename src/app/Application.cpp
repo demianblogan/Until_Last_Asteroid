@@ -12,12 +12,14 @@
 #include "states/PlaceholderStates.h"
 
 Application::Application()
-    : window(sf::VideoMode::getDesktopMode(), "Until last asteroid", sf::State::Fullscreen)
-    , stateStack(StateContext{ window, assets, LOGICAL_SIZE })
+    : window(CreateWindow(settings.Get().graphics))
+    , stateStack(StateContext{ window, assets, settings, LOGICAL_SIZE })
 {
     const sf::View logicalView(sf::FloatRect({ 0.f, 0.f }, LOGICAL_SIZE));
     window.setView(GetLetterboxView(logicalView, window.getSize().x, window.getSize().y));
-    window.setVerticalSyncEnabled(true);
+    window.setVerticalSyncEnabled(settings.Get().graphics.verticalSync);
+    window.setFramerateLimit(
+        settings.Get().graphics.verticalSync ? 0u : settings.Get().graphics.frameRateLimit);
 
     assets.Initialize();
 
@@ -29,6 +31,43 @@ Application::Application()
     stateStack.RegisterState<PauseState>(StateId::Pause);
     stateStack.PushState(StateId::CompanySplash);
     stateStack.ApplyPendingChanges();
+}
+
+sf::RenderWindow Application::CreateWindow(const GraphicsSettings& settings)
+{
+    sf::VideoMode mode(settings.resolution);
+    if (settings.windowMode == WindowMode::Fullscreen && !mode.isValid())
+        mode = sf::VideoMode::getDesktopMode();
+
+    switch (settings.windowMode)
+    {
+    case WindowMode::Fullscreen:
+        return sf::RenderWindow(
+            mode,
+            "Until last asteroid",
+            sf::Style::Default,
+            sf::State::Fullscreen);
+
+    case WindowMode::Windowed:
+        return sf::RenderWindow(
+            mode,
+            "Until last asteroid",
+            sf::Style::Default,
+            sf::State::Windowed);
+
+    case WindowMode::Borderless:
+        return sf::RenderWindow(
+            sf::VideoMode::getDesktopMode(),
+            "Until last asteroid",
+            sf::Style::None,
+            sf::State::Windowed);
+    }
+
+    return sf::RenderWindow(
+        sf::VideoMode::getDesktopMode(),
+        "Until last asteroid",
+        sf::Style::Default,
+        sf::State::Fullscreen);
 }
 
 void Application::Run()
