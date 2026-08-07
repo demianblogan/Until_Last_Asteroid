@@ -128,6 +128,7 @@ void Application::Run()
         stateStack.Render();
         if (settings.Get().graphics.showFps && fpsText.has_value())
             window.draw(*fpsText);
+        stateStack.RenderOverlay();
         window.display();
     }
 }

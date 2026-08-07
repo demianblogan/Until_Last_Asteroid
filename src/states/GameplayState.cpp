@@ -14,6 +14,11 @@
 #include "utils/Random.h"
 #include "settings/SettingsManager.h"
 
+namespace
+{
+	constexpr sf::Color CrosshairGlowColor{ 25, 220, 255 };
+}
+
 GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	: State(stateStack, context)
 	, input(actions)
@@ -23,9 +28,14 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 		context.assets,
 		context.audio,
 		session)
+	, crosshair(
+		context.assets,
+		Config::Texture::GameplayCrosshair,
+		{ 32.f, 32.f },
+		CrosshairGlowColor)
 {
 	world.SetWindow(context.window);
-	context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::GameplayCrosshair));
+	context.window.setMouseCursorVisible(false);
 
 	hud.emplace(context.assets, session);
 
@@ -230,6 +240,8 @@ void GameplayState::ResumeGameplaySounds()
 
 void GameplayState::Update(float dt)
 {
+	crosshair.Update(dt);
+
 	if (session.IsWin() && winTexts.size() >= 2)
 	{
 		winTexts[1].setString("Score: " + std::to_string(session.GetScore()));
@@ -345,6 +357,11 @@ void GameplayState::Render()
 
 	if (!session.IsPlaying() && exitHintText)
 		window.draw(*exitHintText);
+}
+
+void GameplayState::RenderOverlay()
+{
+	crosshair.Draw(GetContext().window);
 }
 
 void GameplayState::SpawnPlayerIfNeeded()

@@ -306,6 +306,12 @@ void OptionsState::SetPage(Page newPage)
     RebuildRows();
 }
 
+OptionsState::~OptionsState()
+{
+    if (GetContext().window.isOpen())
+        GetContext().window.setMouseCursorVisible(false);
+}
+
 void OptionsState::RefreshTitle()
 {
     std::string value;

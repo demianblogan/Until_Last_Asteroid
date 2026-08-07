@@ -29,6 +29,7 @@ namespace
     constexpr float TitleEndY{ 125.f };
     constexpr float ActivationDelay{ 0.12f };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
+    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
     constexpr std::size_t TypingSoundPoolSize{ 4 };
     constexpr std::array<float, TypingSoundPoolSize> TypingPitches{ 0.97f, 1.02f, 0.99f, 1.04f };
 }
@@ -37,18 +38,17 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     : State(stateStack, context)
     , background(context.assets, context.logicalSize)
     , neonGlow(context.assets)
+    , titleNeonGlow(context.assets)
+    , menuCursor(
+        context.assets,
+        Config::Texture::MenuPointer,
+        { 6.f, 2.f },
+        InterfaceGlowColor)
     , introAnimation(MenuTitle, MenuLabels)
-    , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
     , version(context.assets.Fonts().Get(Config::Font::MenuRegular), std::string(GameVersion::Text), 20)
 {
-    context.window.setMouseCursorVisible(true);
-    context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
-
-    titleGlow.setFillColor(sf::Color(80, 215, 245, 24));
-    titleGlow.setOutlineColor(sf::Color(45, 205, 245, 78));
-    titleGlow.setOutlineThickness(9.f);
-    titleGlow.setLetterSpacing(1.08f);
+    context.window.setMouseCursorVisible(false);
 
     title.setFillColor(sf::Color(215, 247, 252));
     title.setOutlineColor(sf::Color(3, 18, 31, 235));
@@ -63,7 +63,6 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
         0.f,
         fullTitleBounds.position.y + fullTitleBounds.size.y * 0.5f
     });
-    titleGlow.setOrigin(title.getOrigin());
     title.setString("");
 
     version.setFillColor(sf::Color(145, 160, 175, 0));
@@ -172,6 +171,8 @@ void MainMenuState::Update(float deltaTime)
 {
     background.Update(deltaTime);
     neonGlow.Update(deltaTime);
+    titleNeonGlow.Update(deltaTime);
+    menuCursor.Update(deltaTime);
     HandleAnimationEvents(introAnimation.Update(deltaTime));
     ApplyAnimationState();
 
@@ -191,8 +192,23 @@ void MainMenuState::Render()
 {
     sf::RenderWindow& window{ GetContext().window };
     background.Draw(window);
-    window.draw(titleGlow);
+
+    if (!title.getString().isEmpty())
+    {
+        const sf::FloatRect titleBounds{ title.getGlobalBounds() };
+        titleNeonGlow.DrawBloom(
+            window,
+            titleBounds,
+            [this](sf::RenderTarget& target, const sf::RenderStates& states)
+            {
+                target.draw(title, states);
+            },
+            InterfaceGlowColor);
+    }
+
     window.draw(title);
+    if (!title.getString().isEmpty())
+        titleNeonGlow.DrawHighlight(window, title.getGlobalBounds(), InterfaceGlowColor);
 
     if (introAnimation.IsInteractive() && !buttons.empty())
     {
@@ -214,6 +230,11 @@ void MainMenuState::Render()
         neonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), SelectionGlowColor);
 
     window.draw(version);
+}
+
+void MainMenuState::RenderOverlay()
+{
+    menuCursor.Draw(GetContext().window);
 }
 
 void MainMenuState::SelectPrevious()
@@ -298,14 +319,16 @@ void MainMenuState::CompleteActivation(std::size_t index)
 void MainMenuState::ApplyAnimationState()
 {
     const std::string visibleTitle{ introAnimation.GetVisibleTitle() };
-    titleGlow.setString(visibleTitle);
-    title.setString(visibleTitle);
+    if (title.getString().toAnsiString() != visibleTitle)
+    {
+        title.setString(visibleTitle);
+        titleNeonGlow.Invalidate();
+    }
 
     const float titleY{
         TitleStartY + (TitleEndY - TitleStartY) * introAnimation.GetTitleMoveProgress()
     };
     const sf::Vector2f titlePosition{ titleLeftPosition, titleY };
-    titleGlow.setPosition(titlePosition);
     title.setPosition(titlePosition);
 
     const float frameOpacity{ introAnimation.GetFrameOpacity() };

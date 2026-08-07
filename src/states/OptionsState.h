@@ -18,6 +18,7 @@ class OptionsState final : public State
 {
 public:
     OptionsState(StateStack& stateStack, StateContext context);
+    ~OptionsState() override;
 
     void HandleEvent(const sf::Event& event) override;
     void Update(float deltaTime) override;

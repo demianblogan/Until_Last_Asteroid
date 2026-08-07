@@ -12,6 +12,7 @@
 class PlaceholderState : public State
 {
 public:
+    ~PlaceholderState() override;
     void HandleEvent(const sf::Event& event) override;
     void Update(float deltaTime) override;
     void Render() override;

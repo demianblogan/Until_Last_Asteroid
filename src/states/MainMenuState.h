@@ -7,6 +7,7 @@
 #include <SFML/Graphics/Text.hpp>
 
 #include "states/State.h"
+#include "ui/GlowingCursor.h"
 #include "ui/MenuBackground.h"
 #include "ui/MenuButton.h"
 #include "ui/MenuIntroAnimation.h"
@@ -21,6 +22,7 @@ public:
     void HandleEvent(const sf::Event& event) override;
     void Update(float deltaTime) override;
     void Render() override;
+    void RenderOverlay() override;
 
 private:
     void SelectPrevious();
@@ -36,8 +38,9 @@ private:
 
     MenuBackground background;
     NeonGlow neonGlow;
+    NeonGlow titleNeonGlow;
+    GlowingCursor menuCursor;
     MenuIntroAnimation introAnimation;
-    sf::Text titleGlow;
     sf::Text title;
     sf::Text version;
     std::vector<MenuButton> buttons;

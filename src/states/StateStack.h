@@ -26,6 +26,7 @@ public:
     void HandleRealtime();
     void Update(float deltaTime);
     void Render();
+    void RenderOverlay();
 
     void PushState(StateId stateId);
     void PopState();

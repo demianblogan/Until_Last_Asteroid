@@ -96,6 +96,8 @@ void AssetStore::InitializeTextures()
 	textures.LoadFromFile(Config::Texture::MainMenuBackground, "assets/backgrounds/main_menu_background.png");
 	textures.LoadFromFile(Config::Texture::MenuButtonIdle, "assets/sprites/ui/menu_button_idle.png");
 	textures.LoadFromFile(Config::Texture::MenuButtonSelected, "assets/sprites/ui/menu_button_selected.png");
+	textures.LoadFromFile(Config::Texture::MenuPointer, "assets/cursors/menu_pointer.png");
+	textures.LoadFromFile(Config::Texture::GameplayCrosshair, "assets/cursors/gameplay_crosshair.png");
 
 	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship.png");
 	textures.LoadFromFile(Config::Texture::PlayerLife, "assets/sprites/player/life.png");

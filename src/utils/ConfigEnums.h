@@ -11,6 +11,8 @@ namespace Config
 		MainMenuBackground,
 		MenuButtonIdle,
 		MenuButtonSelected,
+		MenuPointer,
+		GameplayCrosshair,
 
 		PlayerShip,
 		PlayerLife,

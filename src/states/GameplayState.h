@@ -10,6 +10,7 @@
 #include "states/State.h"
 #include "systems/ActionMap.h"
 #include "systems/InputHandler.h"
+#include "ui/GlowingCursor.h"
 #include "ui/HUD.h"
 #include "utils/ConfigEnums.h"
 
@@ -23,6 +24,7 @@ public:
     void HandleRealtime() override;
     void Update(float deltaTime) override;
     void Render() override;
+    void RenderOverlay() override;
 
 private:
     struct SpawnWave
@@ -68,6 +70,7 @@ private:
     ActionMap<Config::PlayerAction> actions;
     InputHandler<Config::PlayerAction> input;
     World world;
+    GlowingCursor crosshair;
     std::optional<HUD> hud;
 
     std::vector<sf::Text> gameOverTexts;

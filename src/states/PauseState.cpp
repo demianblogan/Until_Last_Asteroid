@@ -116,10 +116,7 @@ PauseState::~PauseState()
         GetContext().audio.ResumeMusic(Config::Music::GameplayTheme);
 
     if (GetContext().window.isOpen())
-    {
-        GetContext().window.setMouseCursor(
-            GetContext().assets.GetCursor(Config::Cursor::GameplayCrosshair));
-    }
+        GetContext().window.setMouseCursorVisible(false);
 }
 
 void PauseState::HandleEvent(const sf::Event& event)

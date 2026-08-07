@@ -31,6 +31,9 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
         { 420.f, 82.f })
     , neonGlow(context.assets)
 {
+    context.window.setMouseCursorVisible(true);
+    context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
+
     background.setFillColor(sf::Color(3, 8, 16));
 
     title.setFillColor(sf::Color(110, 225, 240));
@@ -51,6 +54,12 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
 
     backButton.SetPosition({ 90.f, context.logicalSize.y - 140.f });
     backButton.SetSelected(true);
+}
+
+PlaceholderState::~PlaceholderState()
+{
+    if (GetContext().window.isOpen())
+        GetContext().window.setMouseCursorVisible(false);
 }
 
 void PlaceholderState::HandleEvent(const sf::Event& event)

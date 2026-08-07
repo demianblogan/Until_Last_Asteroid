@@ -45,6 +45,12 @@ void StateStack::Render()
         states[index]->Render();
 }
 
+void StateStack::RenderOverlay()
+{
+    if (!states.empty())
+        states.back()->RenderOverlay();
+}
+
 void StateStack::PushState(StateId stateId)
 {
     pendingChanges.push_back({ Action::Push, stateId });
