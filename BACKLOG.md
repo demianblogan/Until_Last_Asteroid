@@ -31,14 +31,14 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Avoid copying the input binding map during event and realtime processing.
 - Remove confirmed unused code.
 
-## In progress — v1.0.4
+### v1.0.4
 
-- Upgrade SFML from 3.0.2 to 3.1.0.
-- Build the x64 Debug and Release libraries with the Visual Studio `v145`
+- Upgraded SFML from 3.0.2 to 3.1.0.
+- Built the x64 Debug and Release libraries with the Visual Studio `v145`
   toolset.
-- Confirm source compatibility and package only the four runtime modules used
+- Confirmed source compatibility and packaged only the four runtime modules used
   by the game.
-- Keep the existing Visual Studio project setup; do not migrate to CMake or
+- Kept the existing Visual Studio project setup without migrating to CMake or
   vcpkg.
 
 ## Planned — v1.1.0
