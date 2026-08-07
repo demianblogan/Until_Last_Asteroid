@@ -37,6 +37,7 @@
     <ClCompile Include="src\ui\MenuBackground.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
+    <ClCompile Include="src\ui\NeonGlow.cpp" />
     <ClCompile Include="src\ui\RoundedRectangleShape.cpp" />
     <ClCompile Include="src\settings\SettingsManager.cpp" />
   </ItemGroup>
@@ -75,6 +76,7 @@
     <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
+    <ClInclude Include="src\ui\NeonGlow.h" />
     <ClInclude Include="src\ui\RoundedRectangleShape.h" />
     <ClInclude Include="src\settings\GameSettings.h" />
     <ClInclude Include="src\settings\SettingsManager.h" />

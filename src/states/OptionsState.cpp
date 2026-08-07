@@ -3,13 +3,9 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <format>
 
 #include <SFML/Graphics/RenderTarget.hpp>
-#include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/Shader.hpp>
-#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/ConvexShape.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
@@ -38,10 +34,10 @@ namespace
     constexpr float ValueBoxHeight{ 58.f };
     constexpr float DropdownItemHeight{ 56.f };
     constexpr std::size_t MaximumVisibleDropdownItems{ 6u };
-    constexpr sf::Vector2u GlowTextureSize{ 960u, 540u };
-    constexpr float GlowScale{ 0.5f };
-    constexpr float GlowRadius{ 9.f };
     constexpr std::array<unsigned int, 7> FrameLimits{ 0u, 30u, 60u, 120u, 144u, 240u, 360u };
+    const sf::FloatRect DialogConfirmBounds({ 690.f, 580.f }, { 250.f, 58.f });
+    const sf::FloatRect DialogCancelBounds({ 980.f, 580.f }, { 250.f, 58.f });
+    const sf::FloatRect BindingCancelBounds({ 835.f, 570.f }, { 250.f, 58.f });
 
     std::string WindowModeName(WindowMode mode)
     {
@@ -82,10 +78,10 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context)
     , shade(context.logicalSize)
     , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "OPTIONS", 76)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "OPTIONS", 76)
-    , glowMask(GlowTextureSize)
-    , glowHorizontal(GlowTextureSize)
-    , glowBlurred(GlowTextureSize)
-    , glowBlurShader(context.assets.GetShader(Config::Shader::GaussianBlur))
+    , neonGlow(context.assets)
+    , dialogGlow(context.assets)
+    , toggleOnText(context.assets.Fonts().Get(Config::Font::MenuRegular), "ON", 23)
+    , toggleOffText(context.assets.Fonts().Get(Config::Font::MenuRegular), "OFF", 23)
     , previousGraphics(context.settings.Get().graphics)
 {
     context.window.setMouseCursorVisible(true);
@@ -98,9 +94,6 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context)
     title.setFillColor(BrightCyan);
     title.setOutlineColor(sf::Color(2, 14, 25, 235));
     title.setOutlineThickness(3.f);
-    glowMask.setSmooth(true);
-    glowHorizontal.setSmooth(true);
-    glowBlurred.setSmooth(true);
     SetPage(Page::Root);
 }
 
@@ -108,18 +101,52 @@ void OptionsState::HandleEvent(const sf::Event& event)
 {
     if (displayConfirmationOpen)
     {
+        if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
+        {
+            const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
+            background.SetMousePosition(point);
+            if (DialogConfirmBounds.contains(point))
+                SelectDialogOption(0u);
+            else if (DialogCancelBounds.contains(point))
+                SelectDialogOption(1u);
+            return;
+        }
+
+        if (const auto* mouse{ event.getIf<sf::Event::MouseButtonPressed>() })
+        {
+            if (mouse->button == sf::Mouse::Button::Left)
+            {
+                const sf::Vector2f point{ GetContext().window.mapPixelToCoords(mouse->position) };
+                if (DialogConfirmBounds.contains(point))
+                    ActivateDialogOption(0u);
+                else if (DialogCancelBounds.contains(point))
+                    ActivateDialogOption(1u);
+            }
+            return;
+        }
+
         if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
         {
-            if (key->code == sf::Keyboard::Key::Enter)
-                ConfirmDisplayChange();
+            if (key->code == sf::Keyboard::Key::Left || key->code == sf::Keyboard::Key::A)
+                SelectDialogOption(0u);
+            else if (key->code == sf::Keyboard::Key::Right || key->code == sf::Keyboard::Key::D)
+                SelectDialogOption(1u);
+            else if (key->code == sf::Keyboard::Key::Enter || key->code == sf::Keyboard::Key::Space)
+                ActivateDialogOption(dialogSelectedIndex);
             else if (key->code == sf::Keyboard::Key::Escape)
-                RevertDisplayChange();
+                ActivateDialogOption(1u);
         }
         return;
     }
 
     if (pendingBinding.has_value())
     {
+        if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
+        {
+            background.SetMousePosition(GetContext().window.mapPixelToCoords(moved->position));
+            return;
+        }
+
         if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
         {
             if (key->code == sf::Keyboard::Key::Escape)
@@ -129,7 +156,16 @@ void OptionsState::HandleEvent(const sf::Event& event)
         }
         else if (const auto* mouse{ event.getIf<sf::Event::MouseButtonPressed>() })
         {
-            ApplyBinding({ InputDevice::Mouse, static_cast<int>(mouse->button) });
+            const sf::Vector2f point{ GetContext().window.mapPixelToCoords(mouse->position) };
+            if (mouse->button == sf::Mouse::Button::Left && BindingCancelBounds.contains(point))
+            {
+                GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI);
+                pendingBinding.reset();
+            }
+            else
+            {
+                ApplyBinding({ InputDevice::Mouse, static_cast<int>(mouse->button) });
+            }
         }
         return;
     }
@@ -234,6 +270,8 @@ void OptionsState::HandleEvent(const sf::Event& event)
 void OptionsState::Update(float deltaTime)
 {
     background.Update(deltaTime);
+    neonGlow.Update(deltaTime);
+    dialogGlow.Update(deltaTime);
     if (!displayConfirmationOpen)
         return;
 
@@ -258,10 +296,34 @@ void OptionsState::Render()
 void OptionsState::SetPage(Page newPage)
 {
     page = newPage;
+    RefreshTitle();
     selectedIndex = 0u;
     dropdownOpen = false;
     pendingBinding.reset();
     RebuildRows();
+}
+
+void OptionsState::RefreshTitle()
+{
+    std::string value;
+    switch (page)
+    {
+    case Page::Root: value = "OPTIONS"; break;
+    case Page::Graphics: value = "GRAPHICS"; break;
+    case Page::Audio: value = "AUDIO"; break;
+    case Page::Controls: value = "CONTROLS"; break;
+    }
+
+    const auto center{ [this, &value](sf::Text& text)
+        {
+            text.setString(value);
+            const sf::FloatRect bounds{ text.getLocalBounds() };
+            text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f,
+                bounds.position.y + bounds.size.y * 0.5f });
+            text.setPosition({ GetContext().logicalSize.x * 0.5f, 105.f });
+        } };
+    center(titleGlow);
+    center(title);
 }
 
 void OptionsState::RebuildRows()
@@ -313,6 +375,62 @@ void OptionsState::RebuildRows()
 
     if (!rows.empty() && !rows[selectedIndex].enabled)
         SelectNext();
+
+    RebuildRowTextCache();
+}
+
+void OptionsState::RebuildRowTextCache()
+{
+    const sf::Font& font{ GetContext().assets.Fonts().Get(Config::Font::MenuRegular) };
+    rowLabels.clear();
+    rowValues.clear();
+    rowHints.clear();
+    rowLabels.reserve(rows.size());
+    rowValues.reserve(rows.size());
+    rowHints.reserve(rows.size());
+
+    for (const Row& row : rows)
+    {
+        rowLabels.emplace_back(font, row.label, 30);
+        rowLabels.back().setPosition(row.bounds.position + sf::Vector2f{ 34.f, 20.f });
+
+        rowValues.emplace_back(font, GetRowValue(row), 28);
+        rowHints.emplace_back(font, "", 14);
+        if (row.kind == RowKind::Dropdown)
+        {
+            const sf::FloatRect bounds{ GetValueBoxBounds(row) };
+            rowValues.back().setCharacterSize(row.enabled ? 25u : 21u);
+            rowValues.back().setPosition(
+                bounds.position + sf::Vector2f{ 20.f, row.enabled ? 13.f : 5.f });
+            if (!row.enabled)
+            {
+                rowHints.back().setString("Controlled by desktop in Borderless mode");
+                rowHints.back().setPosition(bounds.position + sf::Vector2f{ 20.f, 33.f });
+                rowHints.back().setFillColor(Red);
+            }
+        }
+        else if (row.kind == RowKind::Slider)
+        {
+            rowValues.back().setCharacterSize(24u);
+            rowValues.back().setPosition({ 1565.f, row.bounds.position.y + 23.f });
+        }
+        else
+        {
+            rowValues.back().setPosition({ 1160.f, row.bounds.position.y + 20.f });
+        }
+    }
+}
+
+void OptionsState::RefreshRowTextValues()
+{
+    if (rowValues.size() != rows.size())
+    {
+        RebuildRowTextCache();
+        return;
+    }
+
+    for (std::size_t index{ 0u }; index < rows.size(); ++index)
+        rowValues[index].setString(GetRowValue(rows[index]));
 }
 
 void OptionsState::Select(std::size_t index, bool playSound)
@@ -321,8 +439,6 @@ void OptionsState::Select(std::size_t index, bool playSound)
         return;
     const bool changed{ selectedIndex != index };
     selectedIndex = index;
-    if (changed)
-        glowDirty = true;
     if (changed && playSound)
         GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f,
             SoundPlayback::Restart);
@@ -408,6 +524,8 @@ void OptionsState::AdjustSelected(int direction)
         settings.graphics.frameRateLimit = FrameLimits[index];
         SaveAndApplyLiveGraphics();
     }
+
+    RefreshRowTextValues();
 }
 
 void OptionsState::HandleMousePosition(sf::Vector2i pixelPosition)
@@ -465,6 +583,7 @@ void OptionsState::UpdateSliderFromMouse(sf::Vector2f position)
     else
         settings.audio.soundVolume = std::round(value);
     SaveAndApplyAudio();
+    RefreshRowTextValues();
 }
 
 void OptionsState::OpenDropdown(Action action)
@@ -698,10 +817,12 @@ void OptionsState::Execute(Action action)
     case Action::ResetAudio:
         GetContext().settings.Edit().audio = GetContext().settings.GetDefaults().audio;
         SaveAndApplyAudio();
+        RefreshRowTextValues();
         break;
     case Action::ResetControls:
         GetContext().settings.Edit().controls = GetContext().settings.GetDefaults().controls;
         SaveSettings();
+        RefreshRowTextValues();
         break;
     default:
         break;
@@ -733,7 +854,26 @@ void OptionsState::BeginDisplayChange(const GraphicsSettings& previous)
     GetContext().window.setMouseCursorVisible(true);
     GetContext().window.setMouseCursor(GetContext().assets.GetCursor(Config::Cursor::MenuPointer));
     displayConfirmationRemaining = DisplayConfirmationDuration;
+    dialogSelectedIndex = 0u;
     displayConfirmationOpen = true;
+}
+
+void OptionsState::SelectDialogOption(std::size_t index, bool playSound)
+{
+    index = std::min(index, std::size_t{ 1u });
+    const bool changed{ dialogSelectedIndex != index };
+    dialogSelectedIndex = index;
+    if (changed && playSound)
+        GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI);
+}
+
+void OptionsState::ActivateDialogOption(std::size_t index)
+{
+    GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI);
+    if (index == 0u)
+        ConfirmDisplayChange();
+    else
+        RevertDisplayChange();
 }
 
 void OptionsState::ConfirmDisplayChange()
@@ -829,6 +969,7 @@ void OptionsState::ApplyBinding(ControlBinding binding)
 
         *target = binding;
         SaveSettings();
+        RefreshRowTextValues();
     }
     pendingBinding.reset();
 }
@@ -869,7 +1010,8 @@ std::string OptionsState::GetRowValue(const Row& row) const
     case Action::Resolution:
         if (!row.enabled)
             return "Desktop resolution";
-        return std::format("{} x {}", settings.graphics.resolution.x, settings.graphics.resolution.y);
+        return std::to_string(settings.graphics.resolution.x) + " x " +
+            std::to_string(settings.graphics.resolution.y);
     case Action::WindowMode:
         return WindowModeName(settings.graphics.windowMode);
     case Action::ShowFps:
@@ -881,9 +1023,9 @@ std::string OptionsState::GetRowValue(const Row& row) const
             ? "Unlimited"
             : std::to_string(settings.graphics.frameRateLimit);
     case Action::MusicVolume:
-        return std::format("{}%", static_cast<int>(std::round(settings.audio.musicVolume)));
+        return std::to_string(static_cast<int>(std::round(settings.audio.musicVolume))) + "%";
     case Action::SoundVolume:
-        return std::format("{}%", static_cast<int>(std::round(settings.audio.soundVolume)));
+        return std::to_string(static_cast<int>(std::round(settings.audio.soundVolume))) + "%";
     default:
         if (const ControlBinding* binding{ GetBinding(row.action) })
             return GetBindingName(*binding);
@@ -925,7 +1067,8 @@ std::string OptionsState::GetDropdownItemLabel(std::size_t index) const
     {
         const auto& resolutions{ GetContext().display.GetSupportedResolutions() };
         if (index < resolutions.size())
-            return std::format("{} x {}", resolutions[index].x, resolutions[index].y);
+            return std::to_string(resolutions[index].x) + " x " +
+                std::to_string(resolutions[index].y);
     }
     else if (dropdownAction == Action::WindowMode && index < 3u)
     {
@@ -985,32 +1128,14 @@ bool OptionsState::IsSelectedRowEnabled() const
 
 void OptionsState::DrawTitle(sf::RenderTarget& target) const
 {
-    std::string value;
-    switch (page)
-    {
-    case Page::Root: value = "OPTIONS"; break;
-    case Page::Graphics: value = "GRAPHICS"; break;
-    case Page::Audio: value = "AUDIO"; break;
-    case Page::Controls: value = "CONTROLS"; break;
-    }
-
-    auto center{ [this, &value](sf::Text text)
-        {
-            text.setString(value);
-            const sf::FloatRect bounds{ text.getLocalBounds() };
-            text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f,
-                bounds.position.y + bounds.size.y * 0.5f });
-            text.setPosition({ GetContext().logicalSize.x * 0.5f, 105.f });
-            return text;
-        } };
-    target.draw(center(titleGlow));
-    target.draw(center(title));
+    target.draw(titleGlow);
+    target.draw(title);
 }
 
 void OptionsState::DrawRows(sf::RenderTarget& target)
 {
-    if (IsSelectedRowEnabled())
-        DrawSelectionGlow(target, rows[selectedIndex].bounds);
+    if (!displayConfirmationOpen && !pendingBinding.has_value() && IsSelectedRowEnabled())
+        neonGlow.Draw(target, rows[selectedIndex].bounds);
 
     for (std::size_t index{ 0u }; index < rows.size(); ++index)
         DrawRow(target, rows[index], index);
@@ -1022,7 +1147,7 @@ void OptionsState::DrawRows(sf::RenderTarget& target)
     }
 }
 
-void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t index) const
+void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t index)
 {
     const bool selected{ index == selectedIndex && row.enabled };
     RoundedRectangleShape panel(row.bounds.size, 15.f, 10u);
@@ -1033,7 +1158,8 @@ void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t
     target.draw(panel);
 
     const sf::Color textColor{ !row.enabled ? Disabled : (selected ? Orange : BrightCyan) };
-    DrawText(target, row.label, row.bounds.position + sf::Vector2f{ 34.f, 20.f }, 30, textColor);
+    rowLabels[index].setFillColor(textColor);
+    target.draw(rowLabels[index]);
 
     if (row.kind == RowKind::Slider)
     {
@@ -1041,6 +1167,8 @@ void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t
             ? GetContext().settings.Get().audio.musicVolume
             : GetContext().settings.Get().audio.soundVolume };
         DrawSlider(target, row, value);
+        rowValues[index].setFillColor(Cyan);
+        target.draw(rowValues[index]);
     }
     else if (row.kind == RowKind::Toggle)
     {
@@ -1071,13 +1199,10 @@ void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t
         arrowButton.setOutlineThickness(1.f);
         target.draw(arrowButton);
 
-        DrawText(target, GetRowValue(row), bounds.position + sf::Vector2f{ 20.f, row.enabled ? 13.f : 5.f },
-            row.enabled ? 25u : 21u, row.enabled ? Cyan : Disabled);
+        rowValues[index].setFillColor(row.enabled ? Cyan : Disabled);
+        target.draw(rowValues[index]);
         if (!row.enabled)
-        {
-            DrawText(target, "Controlled by desktop in Borderless mode",
-                bounds.position + sf::Vector2f{ 20.f, 33.f }, 14, Red);
-        }
+            target.draw(rowHints[index]);
 
         sf::ConvexShape arrow(3u);
         arrow.setPoint(0u, { 0.f, 0.f });
@@ -1089,10 +1214,11 @@ void OptionsState::DrawRow(sf::RenderTarget& target, const Row& row, std::size_t
     }
     else
     {
-        const std::string value{ GetRowValue(row) };
-        if (!value.empty())
-            DrawText(target, value, { 1160.f, row.bounds.position.y + 20.f }, 28,
-                row.enabled ? Cyan : Disabled);
+        if (!rowValues[index].getString().isEmpty())
+        {
+            rowValues[index].setFillColor(row.enabled ? Cyan : Disabled);
+            target.draw(rowValues[index]);
+        }
     }
 }
 
@@ -1115,10 +1241,9 @@ void OptionsState::DrawSlider(sf::RenderTarget& target, const Row& row, float va
     knob.setOutlineColor(sf::Color(40, 210, 245, 90));
     knob.setOutlineThickness(6.f);
     target.draw(knob);
-    DrawText(target, GetRowValue(row), { 1565.f, row.bounds.position.y + 23.f }, 24, Cyan);
 }
 
-void OptionsState::DrawToggle(sf::RenderTarget& target, const Row& row, bool value) const
+void OptionsState::DrawToggle(sf::RenderTarget& target, const Row& row, bool value)
 {
     const sf::Vector2f position{ 1280.f, row.bounds.position.y + 17.f };
     RoundedRectangleShape shell({ 270.f, 50.f }, 10.f, 8u);
@@ -1134,10 +1259,12 @@ void OptionsState::DrawToggle(sf::RenderTarget& target, const Row& row, bool val
     active.setOutlineColor(Cyan);
     active.setOutlineThickness(1.f);
     target.draw(active);
-    DrawText(target, "ON", position + sf::Vector2f{ 44.f, 10.f }, 23,
-        value ? BrightCyan : Muted);
-    DrawText(target, "OFF", position + sf::Vector2f{ 178.f, 10.f }, 23,
-        value ? Muted : BrightCyan);
+    toggleOnText.setPosition(position + sf::Vector2f{ 44.f, 10.f });
+    toggleOnText.setFillColor(value ? BrightCyan : Muted);
+    target.draw(toggleOnText);
+    toggleOffText.setPosition(position + sf::Vector2f{ 178.f, 10.f });
+    toggleOffText.setFillColor(value ? Muted : BrightCyan);
+    target.draw(toggleOffText);
 }
 
 void OptionsState::DrawDropdown(sf::RenderTarget& target) const
@@ -1186,7 +1313,7 @@ void OptionsState::DrawDropdown(sf::RenderTarget& target) const
     }
 }
 
-void OptionsState::DrawDialog(sf::RenderTarget& target) const
+void OptionsState::DrawDialog(sf::RenderTarget& target)
 {
     sf::RectangleShape veil(GetContext().logicalSize);
     veil.setFillColor(sf::Color(0, 2, 6, 190));
@@ -1201,58 +1328,48 @@ void OptionsState::DrawDialog(sf::RenderTarget& target) const
     if (displayConfirmationOpen)
     {
         DrawCenteredText(target, "Keep these display settings?", 960.f, 465.f, 36, BrightCyan);
-        DrawCenteredText(target, std::format("Reverting in {} seconds",
-            static_cast<int>(std::ceil(displayConfirmationRemaining))), 960.f, 530.f, 26, Orange);
-        DrawCenteredText(target, "ENTER  Keep     ESC  Revert", 960.f, 600.f, 24, Muted);
+        DrawCenteredText(target, "Reverting in " +
+            std::to_string(static_cast<int>(std::ceil(displayConfirmationRemaining))) + " seconds",
+            960.f, 520.f, 24, Orange);
+
+        const std::array<std::pair<sf::FloatRect, std::string>, 2> buttons{
+            std::pair{ DialogConfirmBounds, std::string{ "Confirm" } },
+            std::pair{ DialogCancelBounds, std::string{ "Cancel" } }
+        };
+        dialogGlow.Draw(target, buttons[dialogSelectedIndex].first);
+        for (std::size_t index{ 0u }; index < buttons.size(); ++index)
+        {
+            const auto& [bounds, label]{ buttons[index] };
+            const bool selected{ index == dialogSelectedIndex };
+            RoundedRectangleShape button(bounds.size, 12.f, 8u);
+            button.setPosition(bounds.position);
+            button.setFillColor(selected ? sf::Color(7, 39, 54, 245) : sf::Color(5, 20, 31, 245));
+            button.setOutlineColor(selected ? BrightCyan : sf::Color(54, 91, 108));
+            button.setOutlineThickness(selected ? 2.f : 1.f);
+            target.draw(button);
+            DrawCenteredText(target, label,
+                bounds.position.x + bounds.size.x * 0.5f,
+                bounds.position.y + 13.f,
+                25,
+                selected ? Orange : BrightCyan);
+        }
     }
     else
     {
         DrawCenteredText(target, "Press a key or mouse button", 960.f, 475.f, 34, BrightCyan);
-        DrawCenteredText(target, "ESC cancels rebinding", 960.f, 560.f, 24, Muted);
+        dialogGlow.Draw(target, BindingCancelBounds);
+        RoundedRectangleShape cancelButton(BindingCancelBounds.size, 12.f, 8u);
+        cancelButton.setPosition(BindingCancelBounds.position);
+        cancelButton.setFillColor(sf::Color(7, 39, 54, 245));
+        cancelButton.setOutlineColor(BrightCyan);
+        cancelButton.setOutlineThickness(2.f);
+        target.draw(cancelButton);
+        DrawCenteredText(target, "Cancel",
+            BindingCancelBounds.position.x + BindingCancelBounds.size.x * 0.5f,
+            BindingCancelBounds.position.y + 13.f,
+            25,
+            Orange);
     }
-}
-
-void OptionsState::DrawSelectionGlow(sf::RenderTarget& target, const sf::FloatRect& bounds)
-{
-    const bool boundsChanged{
-        cachedGlowBounds.position != bounds.position || cachedGlowBounds.size != bounds.size
-    };
-    if (glowDirty || boundsChanged)
-    {
-        cachedGlowBounds = bounds;
-        glowDirty = false;
-        glowMask.clear(sf::Color::Transparent);
-        RoundedRectangleShape mask(bounds.size * GlowScale, 15.f * GlowScale, 10u);
-        mask.setPosition(bounds.position * GlowScale);
-        mask.setFillColor(sf::Color(32, 220, 255, 210));
-        glowMask.draw(mask);
-        glowMask.display();
-
-        glowBlurShader.setUniform("source", sf::Shader::CurrentTexture);
-        glowBlurShader.setUniform("direction", sf::Glsl::Vec2(
-            GlowRadius / static_cast<float>(GlowTextureSize.x), 0.f));
-        sf::RenderStates blurStates;
-        blurStates.shader = &glowBlurShader;
-
-        glowHorizontal.clear(sf::Color::Transparent);
-        glowHorizontal.draw(sf::Sprite(glowMask.getTexture()), blurStates);
-        glowHorizontal.display();
-
-        glowBlurShader.setUniform("direction", sf::Glsl::Vec2(
-            0.f, GlowRadius / static_cast<float>(GlowTextureSize.y)));
-        glowBlurred.clear(sf::Color::Transparent);
-        glowBlurred.draw(sf::Sprite(glowHorizontal.getTexture()), blurStates);
-        glowBlurred.display();
-    }
-
-    sf::Sprite glow(glowBlurred.getTexture());
-    glow.setScale({ 1.f / GlowScale, 1.f / GlowScale });
-    glow.setColor(sf::Color(45, 220, 255, 220));
-    sf::RenderStates glowStates;
-    glowStates.blendMode = sf::BlendAdd;
-    target.draw(glow, glowStates);
-    glow.setColor(sf::Color(70, 225, 255, 145));
-    target.draw(glow, glowStates);
 }
 
 void OptionsState::DrawCenteredText(

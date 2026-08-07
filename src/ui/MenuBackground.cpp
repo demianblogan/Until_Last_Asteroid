@@ -7,6 +7,7 @@
 #include <random>
 
 #include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Angle.hpp>
@@ -97,22 +98,22 @@ void MenuBackground::Update(float deltaTime)
 
 void MenuBackground::Draw(sf::RenderTarget& target) const
 {
-    sf::Sprite backgroundCopy{ background };
-    backgroundCopy.move(currentParallax * 0.25f);
-    target.draw(backgroundCopy);
+    sf::RenderStates states;
+    states.transform.translate(currentParallax * 0.25f);
+    target.draw(background, states);
 
     for (const Star& star : stars)
     {
-        sf::CircleShape starCopy{ star.shape };
-        starCopy.move(currentParallax * star.depth);
-        target.draw(starCopy);
+        states.transform = sf::Transform::Identity;
+        states.transform.translate(currentParallax * star.depth);
+        target.draw(star.shape, states);
     }
 
     for (const DecorativeAsteroid& asteroid : asteroids)
     {
-        sf::Sprite asteroidCopy{ asteroid.sprite };
-        asteroidCopy.move(currentParallax * asteroid.depth);
-        target.draw(asteroidCopy);
+        states.transform = sf::Transform::Identity;
+        states.transform.translate(currentParallax * asteroid.depth);
+        target.draw(asteroid.sprite, states);
     }
 }
 

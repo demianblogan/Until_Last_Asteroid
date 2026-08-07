@@ -57,6 +57,7 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     , darkOverlay(context.logicalSize)
     , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "PAUSED", 92)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "PAUSED", 92)
+    , neonGlow(context.assets)
 {
     context.window.setMouseCursorVisible(true);
     context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
@@ -179,6 +180,8 @@ void PauseState::HandleEvent(const sf::Event& event)
 
 void PauseState::Update(float deltaTime)
 {
+    neonGlow.Update(deltaTime);
+
     if (!activationPending)
         return;
 
@@ -207,8 +210,16 @@ void PauseState::Render()
     window.draw(titleGlow);
     window.draw(title);
 
+    if (!buttons.empty())
+        neonGlow.Draw(window, buttons[selectedIndex].GetBounds());
+
     for (const MenuButton& button : buttons)
         button.Draw(window);
+}
+
+bool PauseState::IsTransparent() const noexcept
+{
+    return true;
 }
 
 void PauseState::CaptureBlurredFrame()

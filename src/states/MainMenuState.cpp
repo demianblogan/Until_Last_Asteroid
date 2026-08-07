@@ -35,6 +35,7 @@ namespace
 MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     : State(stateStack, context)
     , background(context.assets, context.logicalSize)
+    , neonGlow(context.assets)
     , introAnimation(MenuTitle, MenuLabels)
     , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
@@ -169,6 +170,7 @@ void MainMenuState::HandleEvent(const sf::Event& event)
 void MainMenuState::Update(float deltaTime)
 {
     background.Update(deltaTime);
+    neonGlow.Update(deltaTime);
     HandleAnimationEvents(introAnimation.Update(deltaTime));
     ApplyAnimationState();
 
@@ -190,6 +192,9 @@ void MainMenuState::Render()
     background.Draw(window);
     window.draw(titleGlow);
     window.draw(title);
+
+    if (introAnimation.IsInteractive() && !buttons.empty())
+        neonGlow.Draw(window, buttons[selectedIndex].GetBounds());
 
     for (const MenuButton& button : buttons)
         button.Draw(window);

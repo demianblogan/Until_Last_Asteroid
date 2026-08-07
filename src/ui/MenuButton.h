@@ -30,6 +30,7 @@ public:
     void SetFrameOpacity(float opacity);
 
     [[nodiscard]] bool Contains(sf::Vector2f point) const;
+    [[nodiscard]] sf::FloatRect GetBounds() const;
     void Draw(sf::RenderTarget& target) const;
 
 private:

@@ -34,8 +34,15 @@ void StateStack::Update(float deltaTime)
 
 void StateStack::Render()
 {
-    for (const auto& state : states)
-        state->Render();
+    if (states.empty())
+        return;
+
+    std::size_t firstVisibleState{ states.size() - 1u };
+    while (firstVisibleState > 0u && states[firstVisibleState]->IsTransparent())
+        --firstVisibleState;
+
+    for (std::size_t index{ firstVisibleState }; index < states.size(); ++index)
+        states[index]->Render();
 }
 
 void StateStack::PushState(StateId stateId)

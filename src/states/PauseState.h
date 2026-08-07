@@ -10,6 +10,7 @@
 
 #include "states/State.h"
 #include "ui/MenuButton.h"
+#include "ui/NeonGlow.h"
 
 namespace sf { class Shader; }
 
@@ -22,6 +23,7 @@ public:
     void HandleEvent(const sf::Event& event) override;
     void Update(float deltaTime) override;
     void Render() override;
+    [[nodiscard]] bool IsTransparent() const noexcept override;
 
 private:
     void CaptureBlurredFrame();
@@ -39,6 +41,7 @@ private:
     sf::RectangleShape darkOverlay;
     sf::Text titleGlow;
     sf::Text title;
+    NeonGlow neonGlow;
     std::vector<MenuButton> buttons;
     std::size_t selectedIndex{ 0 };
     std::size_t pendingActivation{ 0 };

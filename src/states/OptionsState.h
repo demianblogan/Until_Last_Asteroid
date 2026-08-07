@@ -6,18 +6,13 @@
 #include <vector>
 
 #include <SFML/Graphics/RectangleShape.hpp>
-#include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/Graphics/Text.hpp>
 
 #include "settings/GameSettings.h"
 #include "states/State.h"
 #include "ui/MenuBackground.h"
+#include "ui/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
-
-namespace sf
-{
-    class Shader;
-}
 
 class OptionsState final : public State
 {
@@ -81,7 +76,10 @@ private:
     };
 
     void SetPage(Page newPage);
+    void RefreshTitle();
     void RebuildRows();
+    void RebuildRowTextCache();
+    void RefreshRowTextValues();
     void Select(std::size_t index, bool playSound = true);
     void SelectPrevious();
     void SelectNext();
@@ -108,6 +106,8 @@ private:
     void BeginDisplayChange(const GraphicsSettings& previous);
     void ConfirmDisplayChange();
     void RevertDisplayChange();
+    void SelectDialogOption(std::size_t index, bool playSound = true);
+    void ActivateDialogOption(std::size_t index);
     void ApplyResolution(std::size_t resolutionIndex);
     void ApplyWindowMode(WindowMode mode);
     [[nodiscard]] bool RequiresWindowRecreation(
@@ -131,12 +131,11 @@ private:
 
     void DrawTitle(sf::RenderTarget& target) const;
     void DrawRows(sf::RenderTarget& target);
-    void DrawRow(sf::RenderTarget& target, const Row& row, std::size_t index) const;
+    void DrawRow(sf::RenderTarget& target, const Row& row, std::size_t index);
     void DrawSlider(sf::RenderTarget& target, const Row& row, float value) const;
-    void DrawToggle(sf::RenderTarget& target, const Row& row, bool value) const;
+    void DrawToggle(sf::RenderTarget& target, const Row& row, bool value);
     void DrawDropdown(sf::RenderTarget& target) const;
-    void DrawDialog(sf::RenderTarget& target) const;
-    void DrawSelectionGlow(sf::RenderTarget& target, const sf::FloatRect& bounds);
+    void DrawDialog(sf::RenderTarget& target);
     void DrawCenteredText(
         sf::RenderTarget& target,
         const std::string& value,
@@ -157,14 +156,15 @@ private:
     sf::RectangleShape shade;
     sf::Text titleGlow;
     sf::Text title;
-    sf::RenderTexture glowMask;
-    sf::RenderTexture glowHorizontal;
-    sf::RenderTexture glowBlurred;
-    sf::Shader& glowBlurShader;
-    sf::FloatRect cachedGlowBounds;
-    bool glowDirty{ true };
+    NeonGlow neonGlow;
+    NeonGlow dialogGlow;
     Page page{ Page::Root };
     std::vector<Row> rows;
+    std::vector<sf::Text> rowLabels;
+    std::vector<sf::Text> rowValues;
+    std::vector<sf::Text> rowHints;
+    sf::Text toggleOnText;
+    sf::Text toggleOffText;
     std::size_t selectedIndex{ 0u };
 
     bool dropdownOpen{ false };
@@ -176,6 +176,7 @@ private:
     std::optional<Action> pendingBinding;
 
     bool displayConfirmationOpen{ false };
+    std::size_t dialogSelectedIndex{ 0u };
     float displayConfirmationRemaining{ 0.f };
     GraphicsSettings previousGraphics;
     bool saveFailed{ false };

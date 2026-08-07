@@ -63,6 +63,11 @@ bool MenuButton::Contains(sf::Vector2f point) const
     return background.getGlobalBounds().contains(point);
 }
 
+sf::FloatRect MenuButton::GetBounds() const
+{
+    return background.getGlobalBounds();
+}
+
 void MenuButton::Draw(sf::RenderTarget& target) const
 {
     target.draw(background);

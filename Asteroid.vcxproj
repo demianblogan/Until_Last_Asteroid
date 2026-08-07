@@ -162,6 +162,7 @@
     <ClCompile Include="src\ui\MenuBackground.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
+    <ClCompile Include="src\ui\NeonGlow.cpp" />
     <ClCompile Include="src\ui\RoundedRectangleShape.cpp" />
     <ClCompile Include="src\systems\InputAction.cpp" />
     <ClCompile Include="src\settings\SettingsManager.cpp" />
@@ -210,6 +211,7 @@
     <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
+    <ClInclude Include="src\ui\NeonGlow.h" />
     <ClInclude Include="src\ui\RoundedRectangleShape.h" />
     <ClInclude Include="libs\nlohmann\json.hpp" />
   </ItemGroup>

@@ -41,6 +41,7 @@ public:
     virtual void HandleRealtime();
     virtual void Update(float deltaTime) = 0;
     virtual void Render() = 0;
+    [[nodiscard]] virtual bool IsTransparent() const noexcept;
 
 protected:
     [[nodiscard]] const StateContext& GetContext() const noexcept;

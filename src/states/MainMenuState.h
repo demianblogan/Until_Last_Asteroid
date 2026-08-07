@@ -10,6 +10,7 @@
 #include "ui/MenuBackground.h"
 #include "ui/MenuButton.h"
 #include "ui/MenuIntroAnimation.h"
+#include "ui/NeonGlow.h"
 
 class MainMenuState final : public State
 {
@@ -34,6 +35,7 @@ private:
     void StartMenuMusic();
 
     MenuBackground background;
+    NeonGlow neonGlow;
     MenuIntroAnimation introAnimation;
     sf::Text titleGlow;
     sf::Text title;

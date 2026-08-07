@@ -33,6 +33,12 @@ Application::Application()
     fpsText->setFillColor(sf::Color(130, 235, 245));
     fpsText->setOutlineColor(sf::Color(2, 10, 18, 220));
     fpsText->setOutlineThickness(2.f);
+    const sf::FloatRect initialFpsBounds{ fpsText->getLocalBounds() };
+    fpsText->setOrigin({
+        initialFpsBounds.position.x + initialFpsBounds.size.x,
+        initialFpsBounds.position.y
+    });
+    fpsText->setPosition({ LOGICAL_SIZE.x - 24.f, 18.f });
 
     stateStack.RegisterState<CompanySplashState>(StateId::CompanySplash);
     stateStack.RegisterState<MainMenuState>(StateId::MainMenu);
@@ -138,13 +144,11 @@ void Application::UpdateFpsCounter(float deltaTime)
         const auto fps{ static_cast<unsigned int>(
             static_cast<float>(fpsFrames) / fpsElapsed + 0.5f) };
         fpsText->setString("FPS: " + std::to_string(fps));
+        const sf::FloatRect bounds{ fpsText->getLocalBounds() };
+        fpsText->setOrigin({ bounds.position.x + bounds.size.x, bounds.position.y });
         fpsElapsed = 0.f;
         fpsFrames = 0u;
     }
-
-    const sf::FloatRect bounds{ fpsText->getLocalBounds() };
-    fpsText->setOrigin({ bounds.position.x + bounds.size.x, bounds.position.y });
-    fpsText->setPosition({ LOGICAL_SIZE.x - 24.f, 18.f });
 }
 
 sf::View Application::GetLetterboxView(

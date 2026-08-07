@@ -12,6 +12,11 @@ void State::HandleRealtime()
 {
 }
 
+bool State::IsTransparent() const noexcept
+{
+    return false;
+}
+
 const StateContext& State::GetContext() const noexcept
 {
     return context;
