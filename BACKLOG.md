@@ -41,7 +41,9 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Kept the existing Visual Studio project setup without migrating to CMake or
   vcpkg.
 
-## Planned — v1.1.0
+## In development — v1.1.0
+
+### Completed on the release branch
 
 - Introduce an explicit application state machine.
 - Add the skippable Alone Bull Company splash with fade-in, hold, fade-out,
@@ -55,9 +57,14 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Display the current game version in small text at the bottom-right.
 - Move music and sounds under `assets/audio/` and update all asset paths.
 - Standardize asset file names using `snake_case`.
-- Use the existing `trs_million` font until the later UI/UX art pass.
+- Use Orbitron for the title and menu controls.
 - Reserve the lower-left for menu controls and use a layered space-and-asteroid
   parallax background.
+- Add menu navigation and confirmation sounds.
+- Add custom sci-fi cursors for the menu and active gameplay.
+
+### Remaining
+
 - Add an explicit paused game state.
 - Pause and resume active gameplay with Escape.
 - Pause automatically when the window loses focus or is minimized.
@@ -75,3 +82,5 @@ deferred ideas. Update it whenever an item changes scope or release.
   pass; do not treat it as a committed feature yet.
 - Add object pooling only when profiling shows allocation pressure during
   chaotic scenes; do not migrate the game to ECS pre-emptively.
+- Consider adding subtle glow to the menu pointer and gameplay crosshair during
+  the later visual-effects pass.

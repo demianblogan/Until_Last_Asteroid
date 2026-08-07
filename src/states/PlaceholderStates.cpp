@@ -11,6 +11,11 @@
 
 #include "assets/AssetStore.h"
 
+namespace
+{
+    constexpr float BackDelay{ 0.12f };
+}
+
 PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context, std::string titleText)
     : State(stateStack, context)
     , background(context.logicalSize)
@@ -22,6 +27,7 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
         context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
         "Back",
         { 420.f, 82.f })
+    , backSound(context.assets.Sounds().Get(Config::Sound::ItemPress))
 {
     background.setFillColor(sf::Color(3, 8, 16));
 
@@ -43,10 +49,14 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
 
     backButton.SetPosition({ 90.f, context.logicalSize.y - 140.f });
     backButton.SetSelected(true);
+    backSound.setVolume(60.f);
 }
 
 void PlaceholderState::HandleEvent(const sf::Event& event)
 {
+    if (backRequested)
+        return;
+
     if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
     {
         if (key->code == sf::Keyboard::Key::Escape ||
@@ -67,8 +77,14 @@ void PlaceholderState::HandleEvent(const sf::Event& event)
     }
 }
 
-void PlaceholderState::Update(float)
+void PlaceholderState::Update(float deltaTime)
 {
+    if (!backRequested)
+        return;
+
+    backDelayRemaining -= deltaTime;
+    if (backDelayRemaining <= 0.f)
+        RequestPop();
 }
 
 void PlaceholderState::Render()
@@ -82,7 +98,10 @@ void PlaceholderState::Render()
 
 void PlaceholderState::GoBack()
 {
-    RequestPop();
+    backSound.stop();
+    backSound.play();
+    backRequested = true;
+    backDelayRemaining = BackDelay;
 }
 
 ScoresState::ScoresState(StateStack& stateStack, StateContext context)
