@@ -1,7 +1,6 @@
 #include "GameplayState.h"
 
 #include <algorithm>
-#include <SFML/Audio/Music.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -30,10 +29,6 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	SetupInput();
 	SetupUI();
 	Reset();
-
-	sf::Music& backgroundMusic = context.assets.Music().Get(Config::Music::BackgroundTheme);
-	backgroundMusic.setLooping(true);
-	backgroundMusic.play();
 }
 
 GameplayState::LevelData GameplayState::CreateLevel(int level)
@@ -92,30 +87,6 @@ void GameplayState::SetupUI()
 	exitHintText->setString("ESC - Exit");
 	exitHintText->setCharacterSize(25);
 	exitHintText->setPosition({ 20.f, 20.f });
-
-	// START
-	{
-		sf::Text title(font);
-		title.setString("UNTIL LAST ASTEROID");
-		title.setCharacterSize(100);
-		CenterText(title, GetContext().logicalSize.y * 0.10f);
-
-		sf::Text controls(font);
-		controls.setString(
-			"W A S D - Move\n"
-			"Mouse - Aim\n"
-			"LMB - Shoot"
-		);
-		controls.setCharacterSize(40);
-		CenterText(controls, GetContext().logicalSize.y * 0.4f);
-
-		sf::Text start(font);
-		start.setString("Press SPACE to start");
-		start.setCharacterSize(50);
-		CenterText(start, GetContext().logicalSize.y * 0.75f);
-
-		startScreenTexts = { title, controls, start };
-	}
 
 	// GAME OVER
 	{
@@ -180,27 +151,19 @@ void GameplayState::HandleEvent(const sf::Event& event)
 
 		if (key->code == sf::Keyboard::Key::Space)
 		{
-			if (session.IsStart())
-			{
-				session.StartGame();
-				return;
-			}
-			else if (session.IsGameOver())
+			if (session.IsGameOver())
 			{
 				Reset();
-				session.StartGame();
 				return;
 			}
 			else if (session.IsLevelComplete())
 			{
 				NextLevel();
-				session.StartGame();
 				return;
 			}
 			else if (session.IsWin())
 			{
 				Reset();
-				session.StartGame();
 				return;
 			}
 		}
@@ -308,12 +271,7 @@ void GameplayState::Render()
 {
 	auto& window{ GetContext().window };
 
-	if (session.IsStart())
-	{
-		for (sf::Text& text : startScreenTexts)
-			window.draw(text);
-	}
-	else if (session.IsGameOver())
+	if (session.IsGameOver())
 	{
 		for (sf::Text& text : gameOverTexts)
 			window.draw(text);

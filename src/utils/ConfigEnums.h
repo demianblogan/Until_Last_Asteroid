@@ -7,6 +7,8 @@ namespace Config
 {
 	enum class Texture
 	{
+		CompanyLogo,
+
 		PlayerShip,
 		PlayerLife,
 
@@ -53,11 +55,13 @@ namespace Config
 
 	enum class Music
 	{
+		CompanySplash,
 		BackgroundTheme
 	};
 
 	enum class Cursor
 	{
+		Arrow,
 		Crosshair
 	};
 

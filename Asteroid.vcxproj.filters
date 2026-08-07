@@ -15,7 +15,10 @@
     <ClCompile Include="src\core\Entity.cpp" />
     <ClCompile Include="src\app\Application.cpp" />
     <ClCompile Include="src\game\GameplaySession.cpp" />
+    <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
+    <ClCompile Include="src\states\MainMenuState.cpp" />
+    <ClCompile Include="src\states\PlaceholderStates.cpp" />
     <ClCompile Include="src\states\State.cpp" />
     <ClCompile Include="src\states\StateStack.cpp" />
     <ClCompile Include="src\systems\InputAction.cpp" />
@@ -26,6 +29,7 @@
     <ClCompile Include="src\entities\Saucer.cpp" />
     <ClCompile Include="src\entities\Shot.cpp" />
     <ClCompile Include="src\ui\HUD.cpp" />
+    <ClCompile Include="src\ui\MenuButton.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\Random.h" />
@@ -42,13 +46,18 @@
     <ClInclude Include="src\entities\Meteor.h" />
     <ClInclude Include="src\entities\Player.h" />
     <ClInclude Include="src\game\GameplaySession.h" />
+    <ClInclude Include="src\core\GameVersion.h" />
     <ClInclude Include="src\utils\ConfigEnums.h" />
     <ClInclude Include="src\assets\AssetStore.h" />
     <ClInclude Include="src\app\Application.h" />
     <ClInclude Include="src\states\GameplayState.h" />
+    <ClInclude Include="src\states\CompanySplashState.h" />
+    <ClInclude Include="src\states\MainMenuState.h" />
+    <ClInclude Include="src\states\PlaceholderStates.h" />
     <ClInclude Include="src\states\State.h" />
     <ClInclude Include="src\states\StateId.h" />
     <ClInclude Include="src\states\StateStack.h" />
     <ClInclude Include="src\ui\HUD.h" />
+    <ClInclude Include="src\ui\MenuButton.h" />
   </ItemGroup>
 </Project>

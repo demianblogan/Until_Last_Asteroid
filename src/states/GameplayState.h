@@ -68,7 +68,6 @@ private:
     ActionMap<Config::PlayerAction> actions;
     InputHandler<Config::PlayerAction> input;
 
-    std::vector<sf::Text> startScreenTexts;
     std::vector<sf::Text> gameOverTexts;
     std::vector<sf::Text> levelCompleteTexts;
     std::vector<sf::Text> winTexts;

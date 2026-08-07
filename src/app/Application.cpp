@@ -5,7 +5,10 @@
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Event.hpp>
 
+#include "states/CompanySplashState.h"
 #include "states/GameplayState.h"
+#include "states/MainMenuState.h"
+#include "states/PlaceholderStates.h"
 
 Application::Application()
     : window(sf::VideoMode::getDesktopMode(), "Until last asteroid", sf::State::Fullscreen)
@@ -17,8 +20,12 @@ Application::Application()
 
     assets.Initialize();
 
+    stateStack.RegisterState<CompanySplashState>(StateId::CompanySplash);
+    stateStack.RegisterState<MainMenuState>(StateId::MainMenu);
+    stateStack.RegisterState<ScoresState>(StateId::Scores);
+    stateStack.RegisterState<OptionsState>(StateId::Options);
     stateStack.RegisterState<GameplayState>(StateId::Gameplay);
-    stateStack.PushState(StateId::Gameplay);
+    stateStack.PushState(StateId::CompanySplash);
     stateStack.ApplyPendingChanges();
 }
 

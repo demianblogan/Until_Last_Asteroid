@@ -51,7 +51,8 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Animate the title letter by letter before moving it to the top of the menu.
 - Display the current game version in small text at the bottom-right.
 - Move music and sounds under `assets/audio/` and update all asset paths.
-- Use the existing `trs-million` font until the later UI/UX art pass.
+- Standardize asset file names using `snake_case`.
+- Use the existing `trs_million` font until the later UI/UX art pass.
 - Reserve the lower-left for menu controls and the rest of the screen for a
   future layered space-and-asteroid parallax background.
 - Add an explicit paused game state.
@@ -63,6 +64,8 @@ deferred ideas. Update it whenever an item changes scope or release.
 
 ## Deferred / needs design
 
+- Add localization with externalized UI text and language selection in Options.
+- Add controller support, including skipping the company splash with a gamepad.
 - Review collision behaviour across wrapped screen edges only if the current
   collision style becomes a gameplay problem.
 - Decide whether slow motion improves major explosions after the visual-effects
