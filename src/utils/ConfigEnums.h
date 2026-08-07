@@ -46,6 +46,8 @@ namespace Config
 	{
 		CharacterTyping,
 		InterfaceActivation,
+		ItemSelect,
+		ItemPress,
 
 		PlayerLaserShot,
 		EnemyLaserShot,

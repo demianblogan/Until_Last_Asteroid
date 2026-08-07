@@ -28,6 +28,7 @@ namespace
     constexpr float ButtonSpacing{ 112.f };
     constexpr float TitleStartY{ 540.f };
     constexpr float TitleEndY{ 125.f };
+    constexpr float ActivationDelay{ 0.12f };
     constexpr std::size_t TypingSoundPoolSize{ 4 };
     constexpr std::array<float, TypingSoundPoolSize> TypingPitches{ 0.97f, 1.02f, 0.99f, 1.04f };
 }
@@ -97,6 +98,12 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     activationSound.emplace(context.assets.Sounds().Get(Config::Sound::InterfaceActivation));
     activationSound->setVolume(58.f);
 
+    selectionSound.emplace(context.assets.Sounds().Get(Config::Sound::ItemSelect));
+    selectionSound->setVolume(45.f);
+
+    pressSound.emplace(context.assets.Sounds().Get(Config::Sound::ItemPress));
+    pressSound->setVolume(60.f);
+
     menuMusic.setLooping(true);
     ApplyAnimationState();
 }
@@ -108,6 +115,9 @@ MainMenuState::~MainMenuState()
 
 void MainMenuState::HandleEvent(const sf::Event& event)
 {
+    if (pendingActivation.has_value())
+        return;
+
     if (const auto* mouseMoved{ event.getIf<sf::Event::MouseMoved>() })
     {
         const sf::Vector2f mousePosition{ GetContext().window.mapPixelToCoords(mouseMoved->position) };
@@ -168,7 +178,7 @@ void MainMenuState::HandleEvent(const sf::Event& event)
         {
             if (buttons[index].Contains(mousePosition))
             {
-                Select(index);
+                Select(index, false);
                 ActivateSelected();
                 return;
             }
@@ -181,6 +191,17 @@ void MainMenuState::Update(float deltaTime)
     background.Update(deltaTime);
     HandleAnimationEvents(introAnimation.Update(deltaTime));
     ApplyAnimationState();
+
+    if (!pendingActivation.has_value())
+        return;
+
+    activationDelayRemaining -= deltaTime;
+    if (activationDelayRemaining > 0.f)
+        return;
+
+    const std::size_t activatedIndex{ pendingActivation.value() };
+    pendingActivation.reset();
+    CompleteActivation(activatedIndex);
 }
 
 void MainMenuState::Render()
@@ -206,11 +227,18 @@ void MainMenuState::SelectNext()
     Select((selectedIndex + 1) % buttons.size());
 }
 
-void MainMenuState::Select(std::size_t index)
+void MainMenuState::Select(std::size_t index, bool playSound)
 {
+    const bool selectionChanged{ selectedIndex != index };
     selectedIndex = index;
     for (std::size_t buttonIndex{ 0 }; buttonIndex < buttons.size(); ++buttonIndex)
         buttons[buttonIndex].SetSelected(buttonIndex == selectedIndex);
+
+    if (selectionChanged && playSound && selectionSound.has_value())
+    {
+        selectionSound->stop();
+        selectionSound->play();
+    }
 }
 
 void MainMenuState::UpdateMouseSelection(sf::Vector2i pixelPosition)
@@ -228,7 +256,19 @@ void MainMenuState::UpdateMouseSelection(sf::Vector2i pixelPosition)
 
 void MainMenuState::ActivateSelected()
 {
-    switch (selectedIndex)
+    if (pressSound.has_value())
+    {
+        pressSound->stop();
+        pressSound->play();
+    }
+
+    pendingActivation = selectedIndex;
+    activationDelayRemaining = ActivationDelay;
+}
+
+void MainMenuState::CompleteActivation(std::size_t index)
+{
+    switch (index)
     {
     case 0:
         menuMusic.stop();
