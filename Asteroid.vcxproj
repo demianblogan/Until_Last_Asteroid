@@ -142,6 +142,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\assets\AssetStore.cpp" />
+    <ClCompile Include="src\audio\AudioManager.cpp" />
     <ClCompile Include="src\systems\Collision.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
     <ClCompile Include="src\core\Entity.cpp" />
@@ -170,6 +171,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\ConfigEnums.h" />
+    <ClInclude Include="src\audio\AudioManager.h" />
     <ClInclude Include="src\app\Application.h" />
     <ClInclude Include="src\core\GameVersion.h" />
     <ClInclude Include="src\ui\HUD.h" />

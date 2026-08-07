@@ -3,14 +3,15 @@
 #include <algorithm>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 #include "entities/Enemy.h"
 #include "game/GameplaySession.h"
 #include "entities/Player.h"
 #include "entities/Shot.h"
 
 // --------------------------------------------------------
-World::World(unsigned int width, unsigned int height, AssetStore& assets, GameplaySession& session)
-	: width(width), height(height), assets(assets), session(session)
+World::World(unsigned int width, unsigned int height, AssetStore& assets, AudioManager& audio, GameplaySession& session)
+	: width(width), height(height), assets(assets), audio(audio), session(session)
 {
 	// No code
 }
@@ -43,14 +44,6 @@ void World::Update(float deltaTime)
 	HandleCollisions();
 	RemoveDeadEntities();
 
-	sounds.erase(
-		std::remove_if(sounds.begin(), sounds.end(),
-			[](const std::unique_ptr<sf::Sound>& sound)
-			{
-				return sound->getStatus() == sf::Sound::Status::Stopped;
-			}),
-		sounds.end()
-	);
 }
 
 void World::Spawn(std::unique_ptr<Entity> entity)
@@ -132,29 +125,17 @@ void World::SpawnSaucerShot(const sf::Vector2f& pos,
 
 void World::AddSound(Config::Sound id)
 {
-	auto sound = std::make_unique<sf::Sound>(assets.Sounds().Get(id));
-	sound->setAttenuation(0.f);
-	sound->play();
-
-	sounds.push_back(std::move(sound));
+	audio.PlaySound(id, SoundGroup::Gameplay);
 }
 
 void World::PauseActiveSounds()
 {
-	for (const auto& sound : sounds)
-	{
-		if (sound->getStatus() == sf::Sound::Status::Playing)
-			sound->pause();
-	}
+	audio.PauseSounds(SoundGroup::Gameplay);
 }
 
 void World::ResumePausedSounds()
 {
-	for (const auto& sound : sounds)
-	{
-		if (sound->getStatus() == sf::Sound::Status::Paused)
-			sound->play();
-	}
+	audio.ResumeSounds(SoundGroup::Gameplay);
 }
 
 sf::Vector2f World::GetPlayerPosition() const noexcept
@@ -176,8 +157,6 @@ void World::Clear()
 {
 	entities.clear();
 	pendingEntities.clear();
-	sounds.clear();
-
 	player = nullptr;
 }
 

@@ -13,7 +13,8 @@
 
 Application::Application()
     : window(CreateWindow(settings.Get().graphics))
-    , stateStack(StateContext{ window, assets, settings, LOGICAL_SIZE })
+    , audio(assets, settings)
+    , stateStack(StateContext{ window, assets, settings, audio, LOGICAL_SIZE })
 {
     const sf::View logicalView(sf::FloatRect({ 0.f, 0.f }, LOGICAL_SIZE));
     window.setView(GetLetterboxView(logicalView, window.getSize().x, window.getSize().y));
@@ -22,6 +23,7 @@ Application::Application()
         settings.Get().graphics.verticalSync ? 0u : settings.Get().graphics.frameRateLimit);
 
     assets.Initialize();
+    audio.ApplySettings();
 
     stateStack.RegisterState<CompanySplashState>(StateId::CompanySplash);
     stateStack.RegisterState<MainMenuState>(StateId::MainMenu);
@@ -103,6 +105,7 @@ void Application::Run()
 
         stateStack.HandleRealtime();
         stateStack.Update(deltaTime);
+        audio.Update();
 
         window.clear();
         stateStack.Render();

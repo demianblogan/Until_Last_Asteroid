@@ -3,19 +3,18 @@
 #include <algorithm>
 #include <cstdint>
 
-#include <SFML/Audio/Music.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Event.hpp>
 
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 #include "states/StateId.h"
 #include "utils/ConfigEnums.h"
 
 CompanySplashState::CompanySplashState(StateStack& stateStack, StateContext context)
     : State(stateStack, context)
     , logo(context.assets.Textures().Get(Config::Texture::CompanyLogo))
-    , splashMusic(context.assets.Music().Get(Config::Music::CompanySplash))
 {
     context.window.setMouseCursorVisible(false);
 
@@ -32,12 +31,12 @@ CompanySplashState::CompanySplashState(StateStack& stateStack, StateContext cont
     logo.setPosition(context.logicalSize * 0.5f);
     logo.setColor(sf::Color(255, 255, 255, 0));
 
-    splashMusic.play();
+    context.audio.PlayMusic(Config::Music::CompanySplash, false);
 }
 
 CompanySplashState::~CompanySplashState()
 {
-    splashMusic.stop();
+    GetContext().audio.StopMusic(Config::Music::CompanySplash);
 }
 
 void CompanySplashState::HandleEvent(const sf::Event& event)
@@ -75,7 +74,7 @@ void CompanySplashState::Finish()
         return;
 
     isFinishing = true;
-    splashMusic.stop();
+    GetContext().audio.StopMusic(Config::Music::CompanySplash);
     RequestClear();
     RequestPush(StateId::MainMenu);
 }

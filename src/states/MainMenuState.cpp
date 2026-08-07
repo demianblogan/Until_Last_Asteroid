@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <string>
 
-#include <SFML/Audio/Music.hpp>
-#include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -14,6 +12,7 @@
 #include <SFML/Window/Mouse.hpp>
 
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 #include "core/GameVersion.h"
 #include "states/StateId.h"
 #include "utils/ConfigEnums.h"
@@ -40,7 +39,6 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
     , version(context.assets.Fonts().Get(Config::Font::MenuRegular), std::string(GameVersion::Text), 20)
-    , menuMusic(context.assets.Music().Get(Config::Music::MainMenuBackground))
 {
     context.window.setMouseCursorVisible(true);
     context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
@@ -87,30 +85,12 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
         buttons.back().SetFrameOpacity(0.f);
     }
 
-    const sf::SoundBuffer& typingBuffer{ context.assets.Sounds().Get(Config::Sound::CharacterTyping) };
-    typingSounds.reserve(TypingSoundPoolSize);
-    for (std::size_t index{ 0 }; index < TypingSoundPoolSize; ++index)
-    {
-        typingSounds.emplace_back(typingBuffer);
-        typingSounds.back().setVolume(34.f);
-    }
-
-    activationSound.emplace(context.assets.Sounds().Get(Config::Sound::InterfaceActivation));
-    activationSound->setVolume(58.f);
-
-    selectionSound.emplace(context.assets.Sounds().Get(Config::Sound::ItemSelect));
-    selectionSound->setVolume(45.f);
-
-    pressSound.emplace(context.assets.Sounds().Get(Config::Sound::ItemPress));
-    pressSound->setVolume(60.f);
-
-    menuMusic.setLooping(true);
     ApplyAnimationState();
 }
 
 MainMenuState::~MainMenuState()
 {
-    menuMusic.stop();
+    GetContext().audio.StopMusic(Config::Music::MainMenuBackground);
 }
 
 void MainMenuState::HandleEvent(const sf::Event& event)
@@ -234,11 +214,13 @@ void MainMenuState::Select(std::size_t index, bool playSound)
     for (std::size_t buttonIndex{ 0 }; buttonIndex < buttons.size(); ++buttonIndex)
         buttons[buttonIndex].SetSelected(buttonIndex == selectedIndex);
 
-    if (selectionChanged && playSound && selectionSound.has_value())
-    {
-        selectionSound->stop();
-        selectionSound->play();
-    }
+    if (selectionChanged && playSound)
+        GetContext().audio.PlaySound(
+            Config::Sound::ItemSelect,
+            SoundGroup::UI,
+            45.f,
+            1.f,
+            SoundPlayback::Restart);
 }
 
 void MainMenuState::UpdateMouseSelection(sf::Vector2i pixelPosition)
@@ -256,11 +238,12 @@ void MainMenuState::UpdateMouseSelection(sf::Vector2i pixelPosition)
 
 void MainMenuState::ActivateSelected()
 {
-    if (pressSound.has_value())
-    {
-        pressSound->stop();
-        pressSound->play();
-    }
+    GetContext().audio.PlaySound(
+        Config::Sound::ItemPress,
+        SoundGroup::UI,
+        60.f,
+        1.f,
+        SoundPlayback::Restart);
 
     pendingActivation = selectedIndex;
     activationDelayRemaining = ActivationDelay;
@@ -271,7 +254,7 @@ void MainMenuState::CompleteActivation(std::size_t index)
     switch (index)
     {
     case 0:
-        menuMusic.stop();
+        GetContext().audio.StopMusic(Config::Music::MainMenuBackground);
         RequestClear();
         RequestPush(StateId::Gameplay);
         break;
@@ -318,11 +301,13 @@ void MainMenuState::HandleAnimationEvents(const MenuIntroAnimation::Events& even
 {
     PlayTypingSounds(events.typedCharacters);
 
-    if (events.activationStarted && activationSound.has_value())
-    {
-        activationSound->stop();
-        activationSound->play();
-    }
+    if (events.activationStarted)
+        GetContext().audio.PlaySound(
+            Config::Sound::InterfaceActivation,
+            SoundGroup::UI,
+            58.f,
+            1.f,
+            SoundPlayback::Restart);
 
     if (events.becameInteractive)
     {
@@ -335,16 +320,16 @@ void MainMenuState::PlayTypingSounds(std::size_t count)
 {
     for (std::size_t index{ 0 }; index < count; ++index)
     {
-        sf::Sound& sound{ typingSounds[typingSoundIndex % typingSounds.size()] };
-        sound.stop();
-        sound.setPitch(TypingPitches[typingSoundIndex % TypingPitches.size()]);
-        sound.play();
+        GetContext().audio.PlaySound(
+            Config::Sound::CharacterTyping,
+            SoundGroup::UI,
+            34.f,
+            TypingPitches[typingSoundIndex % TypingPitches.size()]);
         ++typingSoundIndex;
     }
 }
 
 void MainMenuState::StartMenuMusic()
 {
-    if (menuMusic.getStatus() != sf::SoundSource::Status::Playing)
-        menuMusic.play();
+    GetContext().audio.PlayMusic(Config::Music::MainMenuBackground);
 }

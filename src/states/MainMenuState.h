@@ -4,18 +4,12 @@
 #include <optional>
 #include <vector>
 
-#include <SFML/Audio/Sound.hpp>
 #include <SFML/Graphics/Text.hpp>
 
 #include "states/State.h"
 #include "ui/MenuBackground.h"
 #include "ui/MenuButton.h"
 #include "ui/MenuIntroAnimation.h"
-
-namespace sf
-{
-    class Music;
-}
 
 class MainMenuState final : public State
 {
@@ -45,11 +39,6 @@ private:
     sf::Text title;
     sf::Text version;
     std::vector<MenuButton> buttons;
-    std::vector<sf::Sound> typingSounds;
-    std::optional<sf::Sound> activationSound;
-    std::optional<sf::Sound> selectionSound;
-    std::optional<sf::Sound> pressSound;
-    sf::Music& menuMusic;
     std::optional<std::size_t> pendingActivation;
     std::size_t selectedIndex{ 0 };
     std::size_t typingSoundIndex{ 0 };

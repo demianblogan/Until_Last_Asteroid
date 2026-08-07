@@ -4,7 +4,6 @@
 #include <array>
 #include <string>
 
-#include <SFML/Audio/Music.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderStates.hpp>
@@ -16,6 +15,7 @@
 #include <SFML/Window/Mouse.hpp>
 
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 #include "states/StateId.h"
 #include "utils/ConfigEnums.h"
 
@@ -57,9 +57,6 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     , darkOverlay(context.logicalSize)
     , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "PAUSED", 92)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "PAUSED", 92)
-    , selectionSound(context.assets.Sounds().Get(Config::Sound::ItemSelect))
-    , pressSound(context.assets.Sounds().Get(Config::Sound::ItemPress))
-    , gameplayMusic(context.assets.Music().Get(Config::Music::GameplayTheme))
 {
     context.window.setMouseCursorVisible(true);
     context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::MenuPointer));
@@ -107,17 +104,14 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     }
     Select(0, false);
 
-    selectionSound.setVolume(45.f);
-    pressSound.setVolume(60.f);
-
-    musicWasPlaying = gameplayMusic.getStatus() == sf::SoundSource::Status::Playing;
-    gameplayMusic.pause();
+    musicWasPlaying = context.audio.IsMusicPlaying(Config::Music::GameplayTheme);
+    context.audio.PauseMusic(Config::Music::GameplayTheme);
 }
 
 PauseState::~PauseState()
 {
     if (musicWasPlaying && !returningToMainMenu)
-        gameplayMusic.play();
+        GetContext().audio.ResumeMusic(Config::Music::GameplayTheme);
 
     if (GetContext().window.isOpen())
     {
@@ -288,8 +282,12 @@ void PauseState::Select(std::size_t index, bool playSound)
 
     if (selectionChanged && playSound)
     {
-        selectionSound.stop();
-        selectionSound.play();
+        GetContext().audio.PlaySound(
+            Config::Sound::ItemSelect,
+            SoundGroup::UI,
+            45.f,
+            1.f,
+            SoundPlayback::Restart);
     }
 }
 
@@ -308,8 +306,12 @@ void PauseState::UpdateMouseSelection(sf::Vector2i pixelPosition)
 
 void PauseState::BeginActivation(std::size_t index)
 {
-    pressSound.stop();
-    pressSound.play();
+    GetContext().audio.PlaySound(
+        Config::Sound::ItemPress,
+        SoundGroup::UI,
+        60.f,
+        1.f,
+        SoundPlayback::Restart);
 
     pendingActivation = index;
     activationDelayRemaining = ActivationDelay;
@@ -326,7 +328,7 @@ void PauseState::CompleteActivation(std::size_t index)
 
     case 1:
         returningToMainMenu = true;
-        gameplayMusic.stop();
+        GetContext().audio.StopMusic(Config::Music::GameplayTheme);
         RequestClear();
         RequestPush(StateId::MainMenu);
         break;

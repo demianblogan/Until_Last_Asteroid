@@ -5,6 +5,7 @@
 #include "StateId.h"
 
 class AssetStore;
+class AudioManager;
 class SettingsManager;
 class StateStack;
 
@@ -19,6 +20,7 @@ struct StateContext
     sf::RenderWindow& window;
     AssetStore& assets;
     SettingsManager& settings;
+    AudioManager& audio;
     sf::Vector2f logicalSize;
 };
 

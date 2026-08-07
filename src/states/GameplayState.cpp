@@ -1,13 +1,13 @@
 #include "GameplayState.h"
 
 #include <algorithm>
-#include <SFML/Audio/Music.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 #include "entities/Meteor.h"
 #include "entities/Saucer.h"
 #include "ui/HUD.h"
@@ -20,6 +20,7 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 		static_cast<unsigned int>(context.logicalSize.x),
 		static_cast<unsigned int>(context.logicalSize.y),
 		context.assets,
+		context.audio,
 		session)
 {
 	world.SetWindow(context.window);
@@ -31,15 +32,12 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	SetupUI();
 	Reset();
 
-	sf::Music& gameplayMusic{ context.assets.Music().Get(Config::Music::GameplayTheme) };
-	gameplayMusic.setLooping(true);
-	if (gameplayMusic.getStatus() != sf::SoundSource::Status::Playing)
-		gameplayMusic.play();
+	context.audio.PlayMusic(Config::Music::GameplayTheme);
 }
 
 GameplayState::~GameplayState()
 {
-	GetContext().assets.Music().Get(Config::Music::GameplayTheme).stop();
+	GetContext().audio.StopMusic(Config::Music::GameplayTheme);
 }
 
 GameplayState::LevelData GameplayState::CreateLevel(int level)

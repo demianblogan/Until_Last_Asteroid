@@ -10,6 +10,7 @@
       <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="src\assets\AssetStore.cpp" />
+    <ClCompile Include="src\audio\AudioManager.cpp" />
     <ClCompile Include="src\systems\Collision.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
     <ClCompile Include="src\core\Entity.cpp" />
@@ -37,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\Random.h" />
+    <ClInclude Include="src\audio\AudioManager.h" />
     <ClInclude Include="src\assets\AssetStorage.h" />
     <ClInclude Include="src\systems\Collision.h" />
     <ClInclude Include="src\systems\InputAction.h" />

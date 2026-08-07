@@ -10,6 +10,7 @@
 #include <SFML/Window/Mouse.hpp>
 
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 
 namespace
 {
@@ -27,7 +28,6 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
         context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
         "Back",
         { 420.f, 82.f })
-    , backSound(context.assets.Sounds().Get(Config::Sound::ItemPress))
 {
     background.setFillColor(sf::Color(3, 8, 16));
 
@@ -49,7 +49,6 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
 
     backButton.SetPosition({ 90.f, context.logicalSize.y - 140.f });
     backButton.SetSelected(true);
-    backSound.setVolume(60.f);
 }
 
 void PlaceholderState::HandleEvent(const sf::Event& event)
@@ -98,8 +97,12 @@ void PlaceholderState::Render()
 
 void PlaceholderState::GoBack()
 {
-    backSound.stop();
-    backSound.play();
+    GetContext().audio.PlaySound(
+        Config::Sound::ItemPress,
+        SoundGroup::UI,
+        60.f,
+        1.f,
+        SoundPlayback::Restart);
     backRequested = true;
     backDelayRemaining = BackDelay;
 }

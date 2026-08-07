@@ -2,7 +2,6 @@
 
 #include <string>
 
-#include <SFML/Audio/Sound.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
 
@@ -26,7 +25,6 @@ private:
     sf::Text title;
     sf::Text message;
     MenuButton backButton;
-    sf::Sound backSound;
     bool backRequested{ false };
     float backDelayRemaining{ 0.f };
 };

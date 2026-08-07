@@ -5,6 +5,7 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "assets/AssetStore.h"
+#include "audio/AudioManager.h"
 #include "settings/SettingsManager.h"
 #include "states/StateStack.h"
 
@@ -28,5 +29,6 @@ private:
     SettingsManager settings;
     sf::RenderWindow window;
     AssetStore assets;
+    AudioManager audio;
     StateStack stateStack;
 };

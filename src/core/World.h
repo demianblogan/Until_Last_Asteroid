@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <memory>
-#include <SFML/Audio/Sound.hpp>
 #include <SFML/System/Vector2.hpp>
 
 #include "Entity.h"
@@ -10,6 +9,7 @@
 #include "systems/InputHandler.h"
 
 class AssetStore;
+class AudioManager;
 class GameplaySession;
 class Player;
 
@@ -19,7 +19,6 @@ namespace sf
 	struct RenderStates;
 	class RenderWindow;
 	class Event;
-	class Sound;
 }
 
 class Player;
@@ -29,7 +28,7 @@ class SaucerShot;
 class World : public sf::Drawable
 {
 public:
-	World(unsigned int width, unsigned int height, AssetStore& assets, GameplaySession& session);
+	World(unsigned int width, unsigned int height, AssetStore& assets, AudioManager& audio, GameplaySession& session);
 
 	void Update(float deltaTime);
 
@@ -66,9 +65,8 @@ private:
 
 	std::vector<std::unique_ptr<Entity>> entities;
 	std::vector<std::unique_ptr<Entity>> pendingEntities;
-	std::vector<std::unique_ptr<sf::Sound>> sounds;
-
 	AssetStore& assets;
+	AudioManager& audio;
 	GameplaySession& session;
 
 	Player* player{ nullptr };
