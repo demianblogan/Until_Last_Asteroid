@@ -1,8 +1,11 @@
 #include "MainMenuState.h"
 
+#include <array>
+#include <cstdint>
 #include <string>
 
 #include <SFML/Audio/Music.hpp>
+#include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -17,31 +20,44 @@
 
 namespace
 {
-    constexpr sf::Vector2f ButtonSize{ 440.f, 72.f };
-    constexpr sf::Vector2f FirstButtonPosition{ 120.f, 650.f };
-    constexpr float ButtonSpacing{ 88.f };
+    const std::string MenuTitle{ "Until Last Asteroid" };
+    const std::vector<std::string> MenuLabels{ "Start Game", "Scores", "Options", "Quit" };
+
+    constexpr sf::Vector2f ButtonSize{ 540.f, 104.f };
+    constexpr sf::Vector2f FirstButtonPosition{ 90.f, 540.f };
+    constexpr float ButtonSpacing{ 112.f };
+    constexpr float TitleStartY{ 540.f };
+    constexpr float TitleEndY{ 125.f };
+    constexpr std::size_t TypingSoundPoolSize{ 4 };
+    constexpr std::array<float, TypingSoundPoolSize> TypingPitches{ 0.97f, 1.02f, 0.99f, 1.04f };
 }
 
 MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     : State(stateStack, context)
-    , background(context.logicalSize)
-    , title(context.assets.Fonts().Get(Config::Font::GUI), "UNTIL LAST ASTEROID", 94)
-    , version(context.assets.Fonts().Get(Config::Font::GUI), std::string(GameVersion::Text), 24)
+    , background(context.assets, context.logicalSize)
+    , introAnimation(MenuTitle, MenuLabels)
+    , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
+    , version(context.assets.Fonts().Get(Config::Font::MenuRegular), std::string(GameVersion::Text), 20)
+    , menuMusic(context.assets.Music().Get(Config::Music::MainMenuBackground))
 {
     context.window.setMouseCursorVisible(true);
     context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::Arrow));
 
-    background.setFillColor(sf::Color(3, 8, 16));
-
-    title.setFillColor(sf::Color(110, 225, 240));
-    const sf::FloatRect titleBounds{ title.getLocalBounds() };
+    title.setFillColor(sf::Color(130, 230, 245));
+    title.setOutlineColor(sf::Color(5, 18, 28, 210));
+    title.setOutlineThickness(3.f);
+    title.setString(MenuTitle);
+    const sf::FloatRect fullTitleBounds{ title.getLocalBounds() };
+    titleLeftPosition = context.logicalSize.x * 0.5f
+        - fullTitleBounds.size.x * 0.5f
+        - fullTitleBounds.position.x;
     title.setOrigin({
-        titleBounds.position.x + titleBounds.size.x * 0.5f,
-        titleBounds.position.y + titleBounds.size.y * 0.5f
+        0.f,
+        fullTitleBounds.position.y + fullTitleBounds.size.y * 0.5f
     });
-    title.setPosition({ context.logicalSize.x * 0.5f, 145.f });
+    title.setString("");
 
-    version.setFillColor(sf::Color(145, 160, 175));
+    version.setFillColor(sf::Color(145, 160, 175, 0));
     const sf::FloatRect versionBounds{ version.getLocalBounds() };
     version.setOrigin({
         versionBounds.position.x + versionBounds.size.x,
@@ -49,25 +65,63 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     });
     version.setPosition(context.logicalSize - sf::Vector2f{ 24.f, 20.f });
 
-    const sf::Font& font{ context.assets.Fonts().Get(Config::Font::GUI) };
-    buttons.emplace_back(font, "START GAME", ButtonSize);
-    buttons.emplace_back(font, "SCORES", ButtonSize);
-    buttons.emplace_back(font, "OPTIONS", ButtonSize);
-    buttons.emplace_back(font, "QUIT", ButtonSize);
+    const sf::Font& menuFont{ context.assets.Fonts().Get(Config::Font::MenuRegular) };
+    const sf::Texture& idleTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
+    const sf::Texture& selectedTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 
-    for (std::size_t index{ 0 }; index < buttons.size(); ++index)
-        buttons[index].SetPosition(FirstButtonPosition + sf::Vector2f{ 0.f, ButtonSpacing * static_cast<float>(index) });
+    buttons.reserve(MenuLabels.size());
+    for (std::size_t index{ 0 }; index < MenuLabels.size(); ++index)
+    {
+        buttons.emplace_back(menuFont, idleTexture, selectedTexture, MenuLabels[index], ButtonSize);
+        buttons.back().SetPosition(
+            FirstButtonPosition + sf::Vector2f{ 0.f, ButtonSpacing * static_cast<float>(index) });
+        buttons.back().SetFrameOpacity(0.f);
+    }
 
-    Select(0);
+    const sf::SoundBuffer& typingBuffer{ context.assets.Sounds().Get(Config::Sound::CharacterTyping) };
+    typingSounds.reserve(TypingSoundPoolSize);
+    for (std::size_t index{ 0 }; index < TypingSoundPoolSize; ++index)
+    {
+        typingSounds.emplace_back(typingBuffer);
+        typingSounds.back().setVolume(34.f);
+    }
 
-    sf::Music& backgroundMusic{ context.assets.Music().Get(Config::Music::BackgroundTheme) };
-    backgroundMusic.setLooping(true);
-    if (backgroundMusic.getStatus() != sf::SoundSource::Status::Playing)
-        backgroundMusic.play();
+    activationSound.emplace(context.assets.Sounds().Get(Config::Sound::InterfaceActivation));
+    activationSound->setVolume(58.f);
+
+    menuMusic.setLooping(true);
+    ApplyAnimationState();
+}
+
+MainMenuState::~MainMenuState()
+{
+    menuMusic.stop();
 }
 
 void MainMenuState::HandleEvent(const sf::Event& event)
 {
+    if (const auto* mouseMoved{ event.getIf<sf::Event::MouseMoved>() })
+    {
+        const sf::Vector2f mousePosition{ GetContext().window.mapPixelToCoords(mouseMoved->position) };
+        background.SetMousePosition(mousePosition);
+
+        if (introAnimation.IsInteractive())
+            UpdateMouseSelection(mouseMoved->position);
+
+        return;
+    }
+
+    if (!introAnimation.IsInteractive())
+    {
+        if (event.is<sf::Event::KeyPressed>() || event.is<sf::Event::MouseButtonPressed>())
+        {
+            HandleAnimationEvents(introAnimation.Skip());
+            ApplyAnimationState();
+        }
+
+        return;
+    }
+
     if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
     {
         switch (key->code)
@@ -96,12 +150,6 @@ void MainMenuState::HandleEvent(const sf::Event& event)
         }
     }
 
-    if (const auto* mouseMoved{ event.getIf<sf::Event::MouseMoved>() })
-    {
-        UpdateMouseSelection(mouseMoved->position);
-        return;
-    }
-
     if (const auto* mousePressed{ event.getIf<sf::Event::MouseButtonPressed>() })
     {
         if (mousePressed->button != sf::Mouse::Button::Left)
@@ -120,14 +168,17 @@ void MainMenuState::HandleEvent(const sf::Event& event)
     }
 }
 
-void MainMenuState::Update(float)
+void MainMenuState::Update(float deltaTime)
 {
+    background.Update(deltaTime);
+    HandleAnimationEvents(introAnimation.Update(deltaTime));
+    ApplyAnimationState();
 }
 
 void MainMenuState::Render()
 {
     sf::RenderWindow& window{ GetContext().window };
-    window.draw(background);
+    background.Draw(window);
     window.draw(title);
 
     for (const MenuButton& button : buttons)
@@ -171,6 +222,7 @@ void MainMenuState::ActivateSelected()
     switch (selectedIndex)
     {
     case 0:
+        menuMusic.stop();
         RequestClear();
         RequestPush(StateId::Gameplay);
         break;
@@ -187,4 +239,59 @@ void MainMenuState::ActivateSelected()
         GetContext().window.close();
         break;
     }
+}
+
+void MainMenuState::ApplyAnimationState()
+{
+    title.setString(std::string(introAnimation.GetVisibleTitle()));
+
+    const float titleY{
+        TitleStartY + (TitleEndY - TitleStartY) * introAnimation.GetTitleMoveProgress()
+    };
+    title.setPosition({ titleLeftPosition, titleY });
+
+    const float frameOpacity{ introAnimation.GetFrameOpacity() };
+    for (std::size_t index{ 0 }; index < buttons.size(); ++index)
+    {
+        buttons[index].SetLabel(introAnimation.GetVisibleMenuItem(index));
+        buttons[index].SetFrameOpacity(frameOpacity);
+    }
+
+    const auto versionAlpha{ static_cast<std::uint8_t>(frameOpacity * 175.f) };
+    version.setFillColor(sf::Color(145, 160, 175, versionAlpha));
+}
+
+void MainMenuState::HandleAnimationEvents(const MenuIntroAnimation::Events& events)
+{
+    PlayTypingSounds(events.typedCharacters);
+
+    if (events.activationStarted && activationSound.has_value())
+    {
+        activationSound->stop();
+        activationSound->play();
+    }
+
+    if (events.becameInteractive)
+    {
+        Select(0);
+        StartMenuMusic();
+    }
+}
+
+void MainMenuState::PlayTypingSounds(std::size_t count)
+{
+    for (std::size_t index{ 0 }; index < count; ++index)
+    {
+        sf::Sound& sound{ typingSounds[typingSoundIndex % typingSounds.size()] };
+        sound.stop();
+        sound.setPitch(TypingPitches[typingSoundIndex % TypingPitches.size()]);
+        sound.play();
+        ++typingSoundIndex;
+    }
+}
+
+void MainMenuState::StartMenuMusic()
+{
+    if (menuMusic.getStatus() != sf::SoundSource::Status::Playing)
+        menuMusic.play();
 }

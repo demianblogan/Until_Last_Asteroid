@@ -66,6 +66,9 @@ sf::Cursor& AssetStore::GetCursor(Config::Cursor id)
 void AssetStore::InitializeTextures()
 {
 	textures.LoadFromFile(Config::Texture::CompanyLogo, "assets/other/alone_bull_company.png");
+	textures.LoadFromFile(Config::Texture::MainMenuBackground, "assets/backgrounds/main_menu_background.png");
+	textures.LoadFromFile(Config::Texture::MenuButtonIdle, "assets/sprites/ui/menu_button_idle.png");
+	textures.LoadFromFile(Config::Texture::MenuButtonSelected, "assets/sprites/ui/menu_button_selected.png");
 
 	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship.png");
 	textures.LoadFromFile(Config::Texture::PlayerLife, "assets/sprites/player/life.png");
@@ -93,10 +96,15 @@ void AssetStore::InitializeTextures()
 void AssetStore::InitializeFonts()
 {
 	fonts.LoadFromFile(Config::Font::GUI, "assets/fonts/trs_million.ttf");
+	fonts.LoadFromFile(Config::Font::MenuRegular, "assets/fonts/orbitron_regular.ttf");
+	fonts.LoadFromFile(Config::Font::MenuSemibold, "assets/fonts/orbitron_semibold.ttf");
 }
 
 void AssetStore::InitializeSounds()
 {
+	sounds.LoadFromFile(Config::Sound::CharacterTyping, "assets/audio/sounds/character_typing.ogg");
+	sounds.LoadFromFile(Config::Sound::InterfaceActivation, "assets/audio/sounds/interface_activation.ogg");
+
 	sounds.LoadFromFile(Config::Sound::PlayerLaserShot, "assets/audio/sounds/player_laser_shot.ogg");
 	sounds.LoadFromFile(Config::Sound::EnemyLaserShot, "assets/audio/sounds/enemy_laser_shot.ogg");
 
@@ -114,7 +122,8 @@ void AssetStore::InitializeSounds()
 void AssetStore::InitializeMusic()
 {
 	music.LoadFromFile(Config::Music::CompanySplash, "assets/audio/music/company_splash.ogg");
-	music.LoadFromFile(Config::Music::BackgroundTheme, "assets/audio/music/background_theme.ogg");
+	music.LoadFromFile(Config::Music::MainMenuBackground, "assets/audio/music/main_menu_background.ogg");
+	music.LoadFromFile(Config::Music::GameplayTheme, "assets/audio/music/gameplay_theme.ogg");
 }
 
 void AssetStore::InitializeCursors()

@@ -1,6 +1,7 @@
 #include "GameplayState.h"
 
 #include <algorithm>
+#include <SFML/Audio/Music.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -29,6 +30,16 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	SetupInput();
 	SetupUI();
 	Reset();
+
+	sf::Music& gameplayMusic{ context.assets.Music().Get(Config::Music::GameplayTheme) };
+	gameplayMusic.setLooping(true);
+	if (gameplayMusic.getStatus() != sf::SoundSource::Status::Playing)
+		gameplayMusic.play();
+}
+
+GameplayState::~GameplayState()
+{
+	GetContext().assets.Music().Get(Config::Music::GameplayTheme).stop();
 }
 
 GameplayState::LevelData GameplayState::CreateLevel(int level)

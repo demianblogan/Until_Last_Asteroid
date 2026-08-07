@@ -1,25 +1,36 @@
 #include "MenuButton.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <utility>
 
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/Texture.hpp>
 
 namespace
 {
-    constexpr sf::Color NormalFill{ 10, 24, 38, 220 };
-    constexpr sf::Color NormalOutline{ 72, 210, 230 };
-    constexpr sf::Color SelectedFill{ 32, 42, 52, 240 };
-    constexpr sf::Color SelectedOutline{ 255, 184, 72 };
+    constexpr sf::Color SelectedTextColor{ 255, 190, 72 };
 }
 
-MenuButton::MenuButton(const sf::Font& font, std::string labelText, sf::Vector2f size)
-    : background(size)
+MenuButton::MenuButton(
+    const sf::Font& font,
+    const sf::Texture& idleTexture,
+    const sf::Texture& selectedTexture,
+    std::string labelText,
+    sf::Vector2f buttonSize)
+    : idleTexture(idleTexture)
+    , selectedTexture(selectedTexture)
+    , background(idleTexture)
     , label(font, std::move(labelText), 38)
+    , size(buttonSize)
 {
-    background.setFillColor(NormalFill);
-    background.setOutlineColor(NormalOutline);
-    background.setOutlineThickness(2.f);
+    const sf::Vector2u textureSize{ idleTexture.getSize() };
+    background.setScale({
+        size.x / static_cast<float>(textureSize.x),
+        size.y / static_cast<float>(textureSize.y)
+    });
+
     label.setFillColor(sf::Color::White);
     CenterLabel();
 }
@@ -32,9 +43,19 @@ void MenuButton::SetPosition(sf::Vector2f position)
 
 void MenuButton::SetSelected(bool isSelected)
 {
-    background.setFillColor(isSelected ? SelectedFill : NormalFill);
-    background.setOutlineColor(isSelected ? SelectedOutline : NormalOutline);
-    label.setFillColor(isSelected ? SelectedOutline : sf::Color::White);
+    background.setTexture(isSelected ? selectedTexture : idleTexture, true);
+    label.setFillColor(isSelected ? SelectedTextColor : sf::Color::White);
+}
+
+void MenuButton::SetLabel(std::string_view text)
+{
+    label.setString(std::string(text));
+}
+
+void MenuButton::SetFrameOpacity(float opacity)
+{
+    const auto alpha{ static_cast<std::uint8_t>(std::clamp(opacity, 0.f, 1.f) * 255.f) };
+    background.setColor(sf::Color(255, 255, 255, alpha));
 }
 
 bool MenuButton::Contains(sf::Vector2f point) const
@@ -56,5 +77,5 @@ void MenuButton::CenterLabel()
         bounds.position.y + bounds.size.y * 0.5f
     });
 
-    label.setPosition(background.getPosition() + background.getSize() * 0.5f);
+    label.setPosition(background.getPosition() + size * 0.5f);
 }

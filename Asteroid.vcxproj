@@ -154,7 +154,9 @@
     <ClCompile Include="src\states\State.cpp" />
     <ClCompile Include="src\states\StateStack.cpp" />
     <ClCompile Include="src\ui\HUD.cpp" />
+    <ClCompile Include="src\ui\MenuBackground.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
+    <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
     <ClCompile Include="src\systems\InputAction.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\entities\Meteor.cpp" />
@@ -191,7 +193,9 @@
     <ClInclude Include="src\entities\Saucer.h" />
     <ClInclude Include="src\entities\Shot.h" />
     <ClInclude Include="src\core\World.h" />
+    <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
+    <ClInclude Include="src\ui\MenuIntroAnimation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

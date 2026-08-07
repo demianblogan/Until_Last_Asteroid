@@ -14,9 +14,14 @@
 PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context, std::string titleText)
     : State(stateStack, context)
     , background(context.logicalSize)
-    , title(context.assets.Fonts().Get(Config::Font::GUI), std::move(titleText), 90)
-    , message(context.assets.Fonts().Get(Config::Font::GUI), "COMING IN A FUTURE UPDATE", 38)
-    , backButton(context.assets.Fonts().Get(Config::Font::GUI), "BACK", { 360.f, 72.f })
+    , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), std::move(titleText), 82)
+    , message(context.assets.Fonts().Get(Config::Font::MenuRegular), "Coming in a future update", 32)
+    , backButton(
+        context.assets.Fonts().Get(Config::Font::MenuRegular),
+        context.assets.Textures().Get(Config::Texture::MenuButtonIdle),
+        context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
+        "Back",
+        { 420.f, 82.f })
 {
     background.setFillColor(sf::Color(3, 8, 16));
 
@@ -36,7 +41,7 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
     });
     message.setPosition(context.logicalSize * 0.5f);
 
-    backButton.SetPosition({ 120.f, context.logicalSize.y - 150.f });
+    backButton.SetPosition({ 90.f, context.logicalSize.y - 140.f });
     backButton.SetSelected(true);
 }
 

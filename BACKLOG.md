@@ -48,13 +48,16 @@ deferred ideas. Update it whenever an item changes scope or release.
   and its accompanying sound.
 - Add the first functional main menu with Start Game, Scores, Options, and
   Quit.
-- Animate the title letter by letter before moving it to the top of the menu.
+- Animate the title letter by letter with typing sounds before moving it to the
+  top of the menu.
+- Type menu labels sequentially, reveal their interface frames, and start the
+  menu ambience after the interface activation sound.
 - Display the current game version in small text at the bottom-right.
 - Move music and sounds under `assets/audio/` and update all asset paths.
 - Standardize asset file names using `snake_case`.
 - Use the existing `trs_million` font until the later UI/UX art pass.
-- Reserve the lower-left for menu controls and the rest of the screen for a
-  future layered space-and-asteroid parallax background.
+- Reserve the lower-left for menu controls and use a layered space-and-asteroid
+  parallax background.
 - Add an explicit paused game state.
 - Pause and resume active gameplay with Escape.
 - Pause automatically when the window loses focus or is minimized.

@@ -17,6 +17,7 @@ class GameplayState final : public State
 {
 public:
     GameplayState(StateStack& stateStack, StateContext context);
+    ~GameplayState() override;
 
     void HandleEvent(const sf::Event& event) override;
     void HandleRealtime() override;
