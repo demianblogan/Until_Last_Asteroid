@@ -28,6 +28,7 @@ void AssetStore::Initialize()
 	InitializeFonts();
 	InitializeSounds();
 	InitializeMusic();
+	InitializeShaders();
 	InitializeCursors();
 }
 
@@ -69,6 +70,15 @@ AssetStorage<sf::Music, Config::Music>& AssetStore::Music() noexcept
 const AssetStorage<sf::Music, Config::Music>& AssetStore::Music() const noexcept
 {
 	return music;
+}
+
+sf::Shader& AssetStore::GetShader(Config::Shader id)
+{
+	auto iterator{ shaders.find(id) };
+	if (iterator == shaders.end())
+		throw std::runtime_error("Shader not found");
+
+	return iterator->second;
 }
 
 sf::Cursor& AssetStore::GetCursor(Config::Cursor id)
@@ -143,6 +153,16 @@ void AssetStore::InitializeMusic()
 	music.LoadFromFile(Config::Music::CompanySplash, "assets/audio/music/company_splash.ogg");
 	music.LoadFromFile(Config::Music::MainMenuBackground, "assets/audio/music/main_menu_background.ogg");
 	music.LoadFromFile(Config::Music::GameplayTheme, "assets/audio/music/gameplay_theme.ogg");
+}
+
+void AssetStore::InitializeShaders()
+{
+	sf::Shader blurShader;
+	const std::string path{ "assets/shaders/gaussian_blur.frag" };
+	if (!blurShader.loadFromFile(path, sf::Shader::Type::Fragment))
+		throw std::runtime_error("Failed to load shader: " + path);
+
+	shaders.emplace(Config::Shader::GaussianBlur, std::move(blurShader));
 }
 
 void AssetStore::InitializeCursors()

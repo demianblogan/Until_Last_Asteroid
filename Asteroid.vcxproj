@@ -150,6 +150,7 @@
     <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
     <ClCompile Include="src\states\MainMenuState.cpp" />
+    <ClCompile Include="src\states\PauseState.cpp" />
     <ClCompile Include="src\states\PlaceholderStates.cpp" />
     <ClCompile Include="src\states\State.cpp" />
     <ClCompile Include="src\states\StateStack.cpp" />
@@ -178,6 +179,7 @@
     <ClInclude Include="src\states\CompanySplashState.h" />
     <ClInclude Include="src\states\GameplayState.h" />
     <ClInclude Include="src\states\MainMenuState.h" />
+    <ClInclude Include="src\states\PauseState.h" />
     <ClInclude Include="src\states\PlaceholderStates.h" />
     <ClInclude Include="src\states\State.h" />
     <ClInclude Include="src\states\StateId.h" />
@@ -196,6 +198,9 @@
     <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="assets\shaders\gaussian_blur.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

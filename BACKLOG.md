@@ -62,15 +62,20 @@ deferred ideas. Update it whenever an item changes scope or release.
   parallax background.
 - Add menu navigation and confirmation sounds.
 - Add custom sci-fi cursors for the menu and active gameplay.
-
-### Remaining
-
 - Add an explicit paused game state.
 - Pause and resume active gameplay with Escape.
 - Pause automatically when the window loses focus or is minimized.
 - Disable movement and shooting while paused.
-- Add a pause overlay or menu.
+- Add a lower-left pause menu with Resume and Back to Main Menu.
+- Blur the captured gameplay frame with a cached two-pass shader and darken it
+  behind the pause interface.
+- Pause gameplay music and restore the gameplay cursor and music on resume.
 - Resume without a large frame-time jump.
+
+### Remaining before release
+
+- Complete the manual v1.1.0 regression checklist.
+- Prepare and verify the v1.1.0 release candidate.
 
 ## Deferred / needs design
 

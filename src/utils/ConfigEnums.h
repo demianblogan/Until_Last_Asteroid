@@ -70,6 +70,11 @@ namespace Config
 		GameplayTheme
 	};
 
+	enum class Shader
+	{
+		GaussianBlur
+	};
+
 	enum class Cursor
 	{
 		MenuPointer,

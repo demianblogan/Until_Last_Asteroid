@@ -8,6 +8,7 @@
 #include "states/CompanySplashState.h"
 #include "states/GameplayState.h"
 #include "states/MainMenuState.h"
+#include "states/PauseState.h"
 #include "states/PlaceholderStates.h"
 
 Application::Application()
@@ -25,6 +26,7 @@ Application::Application()
     stateStack.RegisterState<ScoresState>(StateId::Scores);
     stateStack.RegisterState<OptionsState>(StateId::Options);
     stateStack.RegisterState<GameplayState>(StateId::Gameplay);
+    stateStack.RegisterState<PauseState>(StateId::Pause);
     stateStack.PushState(StateId::CompanySplash);
     stateStack.ApplyPendingChanges();
 }

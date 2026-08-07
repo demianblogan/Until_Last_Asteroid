@@ -95,7 +95,7 @@ void GameplayState::SetupUI()
 
 	// EXIT
 	exitHintText.emplace(font);
-	exitHintText->setString("ESC - Exit");
+	exitHintText->setString("ESC - Pause Menu");
 	exitHintText->setCharacterSize(25);
 	exitHintText->setPosition({ 20.f, 20.f });
 
@@ -152,11 +152,17 @@ void GameplayState::SetupUI()
 
 void GameplayState::HandleEvent(const sf::Event& event)
 {
+	if (event.is<sf::Event::FocusLost>() && session.IsPlaying())
+	{
+		RequestPush(StateId::Pause);
+		return;
+	}
+
 	if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
 	{
 		if (key->code == sf::Keyboard::Key::Escape)
 		{
-			GetContext().window.close();
+			RequestPush(StateId::Pause);
 			return;
 		}
 
