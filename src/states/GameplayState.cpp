@@ -15,12 +15,12 @@
 
 GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	: State(stateStack, context)
+	, input(actions)
 	, world(
 		static_cast<unsigned int>(context.logicalSize.x),
 		static_cast<unsigned int>(context.logicalSize.y),
 		context.assets,
 		session)
-	, input(actions)
 {
 	world.SetWindow(context.window);
 	context.window.setMouseCursor(context.assets.GetCursor(Config::Cursor::GameplayCrosshair));
@@ -154,7 +154,7 @@ void GameplayState::HandleEvent(const sf::Event& event)
 {
 	if (event.is<sf::Event::FocusLost>() && session.IsPlaying())
 	{
-		RequestPush(StateId::Pause);
+		OpenPauseMenu();
 		return;
 	}
 
@@ -162,7 +162,7 @@ void GameplayState::HandleEvent(const sf::Event& event)
 	{
 		if (key->code == sf::Keyboard::Key::Escape)
 		{
-			RequestPush(StateId::Pause);
+			OpenPauseMenu();
 			return;
 		}
 
@@ -192,8 +192,30 @@ void GameplayState::HandleEvent(const sf::Event& event)
 
 void GameplayState::HandleRealtime()
 {
+	ResumeGameplaySounds();
+
 	if (session.IsPlaying())
 		world.HandlePlayerRealtime();
+}
+
+void GameplayState::OpenPauseMenu()
+{
+	if (!gameplaySoundsPaused)
+	{
+		world.PauseActiveSounds();
+		gameplaySoundsPaused = true;
+	}
+
+	RequestPush(StateId::Pause);
+}
+
+void GameplayState::ResumeGameplaySounds()
+{
+	if (!gameplaySoundsPaused)
+		return;
+
+	world.ResumePausedSounds();
+	gameplaySoundsPaused = false;
 }
 
 void GameplayState::Update(float dt)

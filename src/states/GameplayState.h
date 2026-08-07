@@ -46,6 +46,8 @@ private:
 
     void SetupInput();
     void SetupUI();
+    void OpenPauseMenu();
+    void ResumeGameplaySounds();
 
     void SpawnPlayerIfNeeded();
 
@@ -63,11 +65,10 @@ private:
     static constexpr float SPAWN_SAFE_RADIUS{ 250.f };
 
     GameplaySession session;
-    World world;
-    std::optional<HUD> hud;
-
     ActionMap<Config::PlayerAction> actions;
     InputHandler<Config::PlayerAction> input;
+    World world;
+    std::optional<HUD> hud;
 
     std::vector<sf::Text> gameOverTexts;
     std::vector<sf::Text> levelCompleteTexts;
@@ -75,4 +76,5 @@ private:
     std::optional<sf::Text> exitHintText;
 
     LevelData currentLevel;
+    bool gameplaySoundsPaused{ false };
 };

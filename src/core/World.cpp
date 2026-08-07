@@ -47,7 +47,7 @@ void World::Update(float deltaTime)
 		std::remove_if(sounds.begin(), sounds.end(),
 			[](const std::unique_ptr<sf::Sound>& sound)
 			{
-				return sound->getStatus() != sf::Sound::Status::Playing;
+				return sound->getStatus() == sf::Sound::Status::Stopped;
 			}),
 		sounds.end()
 	);
@@ -137,6 +137,24 @@ void World::AddSound(Config::Sound id)
 	sound->play();
 
 	sounds.push_back(std::move(sound));
+}
+
+void World::PauseActiveSounds()
+{
+	for (const auto& sound : sounds)
+	{
+		if (sound->getStatus() == sf::Sound::Status::Playing)
+			sound->pause();
+	}
+}
+
+void World::ResumePausedSounds()
+{
+	for (const auto& sound : sounds)
+	{
+		if (sound->getStatus() == sf::Sound::Status::Paused)
+			sound->play();
+	}
 }
 
 sf::Vector2f World::GetPlayerPosition() const noexcept

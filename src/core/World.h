@@ -38,6 +38,8 @@ public:
 	void SpawnSaucerShot(const sf::Vector2f& pos, const sf::Vector2f& target);
 
 	void AddSound(Config::Sound id);
+	void PauseActiveSounds();
+	void ResumePausedSounds();
 
 	[[nodiscard]] sf::Vector2f GetPlayerPosition() const noexcept;
 	[[nodiscard]] unsigned int GetWidth() const noexcept;

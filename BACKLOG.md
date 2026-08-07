@@ -67,9 +67,10 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Pause automatically when the window loses focus or is minimized.
 - Disable movement and shooting while paused.
 - Add a lower-left pause menu with Resume and Back to Main Menu.
-- Blur the captured gameplay frame with a cached two-pass shader and darken it
-  behind the pause interface.
-- Pause gameplay music and restore the gameplay cursor and music on resume.
+- Blur the captured gameplay frame at the native viewport resolution with a
+  cached two-pass shader, then darken it behind the pause interface.
+- Pause gameplay music and active sound effects, then restore the gameplay
+  cursor and audio on resume.
 - Resume without a large frame-time jump.
 
 ### Remaining before release

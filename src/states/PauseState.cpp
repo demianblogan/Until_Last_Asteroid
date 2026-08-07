@@ -30,25 +30,29 @@ namespace
     constexpr float ActivationDelay{ 0.12f };
     constexpr float BlurRadius{ 4.f };
 
-    sf::Vector2u ToTextureSize(sf::Vector2f size)
-    {
-        return {
-            std::max(1u, static_cast<unsigned int>(size.x)),
-            std::max(1u, static_cast<unsigned int>(size.y))
-        };
-    }
-
     sf::Vector2u EnsureNonZero(sf::Vector2u size)
     {
         return { std::max(1u, size.x), std::max(1u, size.y) };
+    }
+
+    sf::Vector2u GetViewportSize(sf::RenderWindow& window)
+    {
+        const sf::IntRect viewport{ window.getViewport(window.getView()) };
+        if (viewport.size.x <= 0 || viewport.size.y <= 0)
+            return EnsureNonZero(window.getSize());
+
+        return {
+            static_cast<unsigned int>(viewport.size.x),
+            static_cast<unsigned int>(viewport.size.y)
+        };
     }
 }
 
 PauseState::PauseState(StateStack& stateStack, StateContext context)
     : State(stateStack, context)
     , windowSnapshot(EnsureNonZero(context.window.getSize()))
-    , horizontalBlur(ToTextureSize(context.logicalSize))
-    , blurredFrame(ToTextureSize(context.logicalSize))
+    , horizontalBlur(GetViewportSize(context.window))
+    , blurredFrame(GetViewportSize(context.window))
     , blurShader(context.assets.GetShader(Config::Shader::GaussianBlur))
     , darkOverlay(context.logicalSize)
     , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "PAUSED", 92)
@@ -198,7 +202,13 @@ void PauseState::Render()
         CaptureBlurredFrame();
 
     sf::RenderWindow& window{ GetContext().window };
-    window.draw(sf::Sprite(blurredFrame.getTexture()));
+    sf::Sprite blurredBackground(blurredFrame.getTexture());
+    const sf::Vector2u blurredSize{ blurredFrame.getSize() };
+    blurredBackground.setScale({
+        GetContext().logicalSize.x / static_cast<float>(blurredSize.x),
+        GetContext().logicalSize.y / static_cast<float>(blurredSize.y)
+    });
+    window.draw(blurredBackground);
     window.draw(darkOverlay);
     window.draw(titleGlow);
     window.draw(title);
@@ -220,11 +230,19 @@ void PauseState::CaptureBlurredFrame()
     if (viewport.size.x <= 0 || viewport.size.y <= 0)
         viewport = sf::IntRect({ 0, 0 }, sf::Vector2i(windowSize));
 
+    const sf::Vector2u blurSize{
+        static_cast<unsigned int>(viewport.size.x),
+        static_cast<unsigned int>(viewport.size.y)
+    };
+    if (horizontalBlur.getSize() != blurSize && !horizontalBlur.resize(blurSize))
+        return;
+    if (blurredFrame.getSize() != blurSize && !blurredFrame.resize(blurSize))
+        return;
+
+    horizontalBlur.setSmooth(true);
+    blurredFrame.setSmooth(true);
+
     sf::Sprite source(windowSnapshot, viewport);
-    source.setScale({
-        GetContext().logicalSize.x / static_cast<float>(viewport.size.x),
-        GetContext().logicalSize.y / static_cast<float>(viewport.size.y)
-    });
 
     blurShader.setUniform("source", sf::Shader::CurrentTexture);
     blurShader.setUniform(
