@@ -31,7 +31,7 @@ Quick start:
 | Move         | W A S D           |
 | Aim          | Mouse             |
 | Shoot        | Left Mouse Button |
-| Exit         | ESC               |
+| Pause        | ESC               |
 
 ---
 
@@ -44,6 +44,10 @@ Quick start:
 - Screen wrapping (Asteroids-style world)
 - Sound effects and background music
 - HUD (score + lives)
+- Skippable company splash screen
+- Animated sci-fi main menu
+- Pause menu with Resume and Back to Main Menu
+- Custom menu cursor and gameplay crosshair
 
 ---
 

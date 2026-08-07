@@ -73,10 +73,10 @@ deferred ideas. Update it whenever an item changes scope or release.
   cursor and audio on resume.
 - Resume without a large frame-time jump.
 
-### Remaining before release
+### Release verification
 
-- Complete the manual v1.1.0 regression checklist.
-- Prepare and verify the v1.1.0 release candidate.
+- Completed the manual v1.1.0 regression checklist.
+- Prepared, extracted, smoke-tested, and approved the v1.1.0 release candidate.
 
 ## Deferred / needs design
 
