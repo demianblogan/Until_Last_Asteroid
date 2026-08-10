@@ -90,7 +90,6 @@ sf::RenderWindow Application::CreateWindow(const GraphicsSettings& settings)
 void Application::Run()
 {
     sf::Clock clock;
-
     while (window.isOpen())
     {
         const float frameTime{ clock.restart().asSeconds() };

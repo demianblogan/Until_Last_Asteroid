@@ -19,16 +19,11 @@ CompanySplashState::CompanySplashState(StateStack& stateStack, StateContext cont
     context.window.setMouseCursorVisible(false);
 
     const sf::Vector2u textureSize{ logo.getTexture().getSize() };
-    const float scale{ std::min(
-        context.logicalSize.x * 0.8f / static_cast<float>(textureSize.x),
-        context.logicalSize.y * 0.8f / static_cast<float>(textureSize.y)) };
-
     logo.setOrigin({
         static_cast<float>(textureSize.x) * 0.5f,
         static_cast<float>(textureSize.y) * 0.5f
     });
-    logo.setScale({ scale, scale });
-    logo.setPosition(context.logicalSize * 0.5f);
+    UpdateLayout();
     logo.setColor(sf::Color(255, 255, 255, 0));
 
     context.audio.PlayMusic(Config::Music::CompanySplash, false);
@@ -59,7 +54,30 @@ void CompanySplashState::Update(float deltaTime)
 
 void CompanySplashState::Render()
 {
-    GetContext().window.draw(logo);
+    sf::RenderWindow& window{ GetContext().window };
+    const sf::View previousView{ window.getView() };
+    window.setView(window.getDefaultView());
+    UpdateLayout();
+    window.draw(logo);
+    window.setView(previousView);
+}
+
+void CompanySplashState::UpdateLayout()
+{
+    const sf::Vector2u windowSize{ GetContext().window.getSize() };
+    const sf::Vector2u textureSize{ logo.getTexture().getSize() };
+    if (windowSize.x == 0u || windowSize.y == 0u ||
+        textureSize.x == 0u || textureSize.y == 0u)
+        return;
+
+    logo.setScale({
+        static_cast<float>(windowSize.x) / static_cast<float>(textureSize.x),
+        static_cast<float>(windowSize.y) / static_cast<float>(textureSize.y)
+    });
+    logo.setPosition({
+        static_cast<float>(windowSize.x) * 0.5f,
+        static_cast<float>(windowSize.y) * 0.5f
+    });
 }
 
 bool CompanySplashState::IsSkipEvent(const sf::Event& event)

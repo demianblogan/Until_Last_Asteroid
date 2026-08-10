@@ -1,0 +1,52 @@
+{
+  "big_meteor": {
+    "maximum_health": 50,
+    "contact_damage": 30,
+    "score": 100,
+    "speed": 100.0,
+    "collision_impulse": 560.0,
+    "action_interval": 0.0,
+    "fragment_speed": 150.0,
+    "sound_pitch": 0.82
+  },
+  "medium_meteor": {
+    "maximum_health": 30,
+    "contact_damage": 15,
+    "score": 50,
+    "speed": 200.0,
+    "collision_impulse": 460.0,
+    "action_interval": 0.0,
+    "fragment_speed": 150.0,
+    "sound_pitch": 1.0
+  },
+  "small_meteor": {
+    "maximum_health": 10,
+    "contact_damage": 10,
+    "score": 10,
+    "speed": 300.0,
+    "collision_impulse": 360.0,
+    "action_interval": 0.0,
+    "fragment_speed": 0.0,
+    "sound_pitch": 1.22
+  },
+  "kamikaze": {
+    "maximum_health": 20,
+    "contact_damage": 40,
+    "score": 200,
+    "speed": 500.0,
+    "collision_impulse": 650.0,
+    "action_interval": 0.0,
+    "fragment_speed": 0.0,
+    "sound_pitch": 1.0
+  },
+  "shooter": {
+    "maximum_health": 30,
+    "contact_damage": 20,
+    "score": 250,
+    "speed": 200.0,
+    "collision_impulse": 440.0,
+    "action_interval": 1.5,
+    "fragment_speed": 0.0,
+    "sound_pitch": 1.0
+  }
+}

@@ -36,13 +36,14 @@ public:
 	void SpawnPlayerShot(const sf::Vector2f& pos, float rotation);
 	void SpawnSaucerShot(const sf::Vector2f& pos, const sf::Vector2f& target);
 
-	void AddSound(Config::Sound id);
+	void AddSound(Config::Sound id, float pitch = 1.f);
 	void PauseActiveSounds();
 	void ResumePausedSounds();
 
 	[[nodiscard]] sf::Vector2f GetPlayerPosition() const noexcept;
 	[[nodiscard]] unsigned int GetWidth() const noexcept;
 	[[nodiscard]] unsigned int GetHeight() const noexcept;
+	[[nodiscard]] GameplaySession& GetSession() noexcept;
 
 	sf::RenderWindow& GetWindow() noexcept;
 	void SetWindow(sf::RenderWindow& window);
@@ -59,7 +60,9 @@ public:
 private:
 	void Wrap(Entity& e) const;
 	void HandleCollisions();
-	void OnCollision(Entity& entity, const Entity& other);
+	void ResolveCollision(Entity& first, Entity& second,
+		const sf::Vector2f& normal, float penetration) const;
+	void HandleCollisionPair(Entity& first, Entity& second);
 	void RemoveDeadEntities();
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 

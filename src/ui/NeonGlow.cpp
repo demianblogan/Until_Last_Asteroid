@@ -69,7 +69,8 @@ void NeonGlow::DrawBloom(
     sf::RenderTarget& target,
     const sf::FloatRect& bounds,
     const SourceRenderer& renderSource,
-    sf::Color color)
+    sf::Color color,
+    bool pulsing)
 {
     if (dirty || cachedContentSize != bounds.size)
         Rebuild(bounds, renderSource);
@@ -77,7 +78,7 @@ void NeonGlow::DrawBloom(
     if (dirty || outerBlur.getSize().x == 0u || outerBlur.getSize().y == 0u)
         return;
 
-    const float pulse{ GetPulse() };
+    const float pulse{ pulsing ? GetPulse() : 1.f };
     const sf::Vector2f position{ bounds.position - sf::Vector2f{ Padding, Padding } };
     sf::RenderStates additive;
     additive.blendMode = PureAdditive;

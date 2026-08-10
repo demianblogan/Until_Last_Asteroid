@@ -16,6 +16,8 @@ namespace Config
 
 		PlayerShip,
 		PlayerLife,
+		HealthBarFrame,
+		HealthBarFill,
 
 		BigEnemySaucer,
 		SmallEnemySaucer,
@@ -51,18 +53,16 @@ namespace Config
 		ItemSelect,
 		ItemPress,
 
-		PlayerLaserShot,
-		EnemyLaserShot,
+		PlayerShot,
+		EnemyShot,
 
 		SaucerKamikazeSpawn,
 		SaucerShooterSpawn,
 
-		PlayerShipExplosion,
-		EnemySaucerExplosion,
-
-		SmallMeteorExplosion,
-		MediumMeteorExplosion,
-		BigMeteorExplosion,
+		ShipExplosion,
+		AsteroidExplosion,
+		HitAsteroid,
+		HitEnemySaucer,
 
 		Count
 	};
@@ -71,7 +71,7 @@ namespace Config
 	{
 		CompanySplash,
 		MainMenuBackground,
-		GameplayTheme,
+		GameplayBackground1,
 
 		Count
 	};
@@ -79,7 +79,8 @@ namespace Config
 	enum class Shader
 	{
 		GaussianBlur,
-		BrightPass
+		BrightPass,
+		HitFlash
 	};
 
 	enum class Cursor

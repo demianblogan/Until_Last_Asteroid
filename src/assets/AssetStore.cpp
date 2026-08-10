@@ -24,6 +24,7 @@ namespace
 
 void AssetStore::Initialize()
 {
+	InitializeGameplayData();
 	InitializeTextures();
 	InitializeFonts();
 	InitializeSounds();
@@ -101,6 +102,8 @@ void AssetStore::InitializeTextures()
 
 	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship.png");
 	textures.LoadFromFile(Config::Texture::PlayerLife, "assets/sprites/player/life.png");
+	textures.LoadFromFile(Config::Texture::HealthBarFrame, "assets/sprites/ui/hud/health_bar_frame.png");
+	textures.LoadFromFile(Config::Texture::HealthBarFill, "assets/sprites/ui/hud/health_bar_fill.png");
 
 	textures.LoadFromFile(Config::Texture::BigEnemySaucer, "assets/sprites/enemies/big_enemy_saucer.png");
 	textures.LoadFromFile(Config::Texture::SmallEnemySaucer, "assets/sprites/enemies/small_enemy_saucer.png");
@@ -122,6 +125,19 @@ void AssetStore::InitializeTextures()
 	textures.LoadFromFile(Config::Texture::EnemySaucerShot, "assets/sprites/shots/enemy_saucer_shot.png");
 }
 
+const GameplayData& AssetStore::GetGameplayData() const
+{
+	if (!gameplayData.has_value())
+		throw std::runtime_error("Gameplay data is not initialized");
+
+	return gameplayData.value();
+}
+
+void AssetStore::InitializeGameplayData()
+{
+	gameplayData.emplace("assets/data/gameplay");
+}
+
 void AssetStore::InitializeFonts()
 {
 	fonts.LoadFromFile(Config::Font::GUI, "assets/fonts/trs_million.ttf");
@@ -136,25 +152,23 @@ void AssetStore::InitializeSounds()
 	sounds.LoadFromFile(Config::Sound::ItemSelect, "assets/audio/sounds/item_select.ogg");
 	sounds.LoadFromFile(Config::Sound::ItemPress, "assets/audio/sounds/item_press.ogg");
 
-	sounds.LoadFromFile(Config::Sound::PlayerLaserShot, "assets/audio/sounds/player_laser_shot.ogg");
-	sounds.LoadFromFile(Config::Sound::EnemyLaserShot, "assets/audio/sounds/enemy_laser_shot.ogg");
+	sounds.LoadFromFile(Config::Sound::PlayerShot, "assets/audio/sounds/player_normal_shot.ogg");
+	sounds.LoadFromFile(Config::Sound::EnemyShot, "assets/audio/sounds/enemy_shot.ogg");
 
 	sounds.LoadFromFile(Config::Sound::SaucerKamikazeSpawn, "assets/audio/sounds/saucer_kamikaze_spawn.flac");
 	sounds.LoadFromFile(Config::Sound::SaucerShooterSpawn, "assets/audio/sounds/saucer_shooter_spawn.flac");
 
-	sounds.LoadFromFile(Config::Sound::PlayerShipExplosion, "assets/audio/sounds/player_ship_explosion.flac");
-	sounds.LoadFromFile(Config::Sound::EnemySaucerExplosion, "assets/audio/sounds/enemy_saucer_explosion.flac");
-
-	sounds.LoadFromFile(Config::Sound::BigMeteorExplosion, "assets/audio/sounds/big_meteor_explosion.flac");
-	sounds.LoadFromFile(Config::Sound::MediumMeteorExplosion, "assets/audio/sounds/medium_meteor_explosion.flac");
-	sounds.LoadFromFile(Config::Sound::SmallMeteorExplosion, "assets/audio/sounds/small_meteor_explosion.flac");
+	sounds.LoadFromFile(Config::Sound::ShipExplosion, "assets/audio/sounds/enemy_saucer_explosion.ogg");
+	sounds.LoadFromFile(Config::Sound::AsteroidExplosion, "assets/audio/sounds/asteroid_explosion.ogg");
+	sounds.LoadFromFile(Config::Sound::HitAsteroid, "assets/audio/sounds/hit_asteroid.ogg");
+	sounds.LoadFromFile(Config::Sound::HitEnemySaucer, "assets/audio/sounds/hit_enemy_saucer.ogg");
 }
 
 void AssetStore::InitializeMusic()
 {
 	music.LoadFromFile(Config::Music::CompanySplash, "assets/audio/music/company_splash.ogg");
 	music.LoadFromFile(Config::Music::MainMenuBackground, "assets/audio/music/main_menu_background.ogg");
-	music.LoadFromFile(Config::Music::GameplayTheme, "assets/audio/music/gameplay_theme.ogg");
+	music.LoadFromFile(Config::Music::GameplayBackground1, "assets/audio/music/gameplay_background_1.ogg");
 }
 
 void AssetStore::InitializeShaders()
@@ -172,6 +186,13 @@ void AssetStore::InitializeShaders()
 		throw std::runtime_error("Failed to load shader: " + brightPassPath);
 
 	shaders.emplace(Config::Shader::BrightPass, std::move(brightPassShader));
+
+	sf::Shader hitFlashShader;
+	const std::string hitFlashPath{ "assets/shaders/hit_flash.frag" };
+	if (!hitFlashShader.loadFromFile(hitFlashPath, sf::Shader::Type::Fragment))
+		throw std::runtime_error("Failed to load shader: " + hitFlashPath);
+
+	shaders.emplace(Config::Shader::HitFlash, std::move(hitFlashShader));
 }
 
 void AssetStore::InitializeCursors()

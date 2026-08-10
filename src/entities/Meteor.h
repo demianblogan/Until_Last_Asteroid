@@ -28,8 +28,7 @@ public:
 	void OnDestroy() override;
 
 private:
-	static float GetSpeed(Size size) noexcept;
-	static int GetScore(Size size) noexcept;
+	static const GameplayData::EnemyConfig& GetConfig(AssetStore& assets, Size size);
 	static sf::Texture& GetRandomTexture(AssetStore& assets, Size size);
 
 	Size size;

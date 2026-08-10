@@ -1,0 +1,11 @@
+{
+  "maximum_health": 100,
+  "collision_damage": 20,
+  "damage_invulnerability": 1.0,
+  "collision_impulse": 520.0,
+  "acceleration": 1200.0,
+  "damping": 0.98,
+  "maximum_speed": 600.0,
+  "shoot_cooldown": 0.2,
+  "hit_flash_duration": 0.1
+}

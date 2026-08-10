@@ -2,7 +2,7 @@
 
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
-#include <SFML/System/Vector2.hpp>
+#include "ui/NeonGlow.h"
 
 class AssetStore;
 class GameplaySession;
@@ -17,16 +17,24 @@ class HUD
 public:
 	HUD(AssetStore& assets, const GameplaySession& session);
 
-	void Update();
-	void Draw(sf::RenderTarget& target) const;
+	void Update(float deltaTime);
+	void Draw(sf::RenderTarget& target);
 
 private:
-	AssetStore& assets;
+	void UpdateHealthBar(float deltaTime);
+	void CenterHealthText();
+
 	const GameplaySession& session;
-
 	sf::Text scoreText;
-	sf::Sprite lifeSprite;
+	sf::Text healthText;
+	sf::Sprite healthFrame;
+	sf::Sprite healthFill;
+	NeonGlow healthGlow;
+	float criticalWarningRemaining{ 0.f };
+	float blinkTimer{ 0.f };
+	bool criticalWarningArmed{ true };
 
-	static constexpr int SCORE_FONT_SIZE = 50;
-	static constexpr sf::Vector2f LIFE_OFFSET{ 80.f, 90.0f };
+	static constexpr float CriticalThreshold{ 0.3f };
+	static constexpr float CriticalWarningDuration{ 3.f };
+	static constexpr float BlinkInterval{ 0.16f };
 };

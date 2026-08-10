@@ -1,8 +1,13 @@
 #include "GameplaySession.h"
 
-int GameplaySession::GetLives() const noexcept
+const Health& GameplaySession::GetPlayerHealth() const noexcept
 {
-	return lives;
+	return playerHealth;
+}
+
+Health& GameplaySession::GetPlayerHealth() noexcept
+{
+	return playerHealth;
 }
 
 int GameplaySession::GetLevel() const noexcept
@@ -50,9 +55,14 @@ void GameplaySession::SetGameOver() noexcept
 	state = State::GameOver;
 }
 
+void GameplaySession::ConfigurePlayerHealth(int maximumHealth) noexcept
+{
+	playerHealth.SetMaximum(maximumHealth);
+}
+
 void GameplaySession::Reset() noexcept
 {
-	lives = 3;
+	playerHealth.Reset();
 	level = 1;
 	score = 0;
 	state = State::Playing;
@@ -60,14 +70,7 @@ void GameplaySession::Reset() noexcept
 
 void GameplaySession::AddScore(int points) noexcept
 {
-	score += points * level;
-}
-
-void GameplaySession::LoseLife() noexcept
-{
-	// Does not change state to GameOver automatically
-	if (lives > 0)
-		lives--;
+	score += points;
 }
 
 void GameplaySession::NextLevel() noexcept

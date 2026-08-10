@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <unordered_map>
 #include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/Graphics/Texture.hpp>
@@ -8,6 +10,7 @@
 #include <SFML/Audio/Music.hpp>
 #include <SFML/Window/Cursor.hpp>
 #include "AssetStorage.h"
+#include "game/GameplayData.h"
 #include "utils/ConfigEnums.h"
 
 class AssetStore
@@ -34,6 +37,7 @@ public:
 	[[nodiscard]] const AssetStorage<sf::Music, Config::Music>& Music() const noexcept;
 	[[nodiscard]] sf::Shader& GetShader(Config::Shader id);
 	[[nodiscard]] sf::Cursor& GetCursor(Config::Cursor id);
+	[[nodiscard]] const GameplayData& GetGameplayData() const;
 
 private:
 	AssetStorage<sf::Texture, Config::Texture> textures;
@@ -41,6 +45,7 @@ private:
 	AssetStorage<sf::SoundBuffer, Config::Sound> sounds;
 	AssetStorage<sf::Music, Config::Music> music;
 	std::unordered_map<Config::Shader, sf::Shader> shaders;
+	std::optional<GameplayData> gameplayData;
 
 	// Cursors are not stored in AssetStorage because they require custom creation
 	// (sf::Cursor::createFromPixels) instead of standard loadFromFile/openFromFile.
@@ -53,4 +58,5 @@ private:
 	void InitializeMusic();
 	void InitializeShaders();
 	void InitializeCursors();
+	void InitializeGameplayData();
 };
