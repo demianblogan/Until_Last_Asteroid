@@ -1,0 +1,48 @@
+{
+  "levels": [
+    {
+      "number": 1,
+      "initial_spawns": [
+        { "type": "big_meteor", "count": 3 }
+      ],
+      "waves": []
+    },
+    {
+      "number": 2,
+      "initial_spawns": [
+        { "type": "big_meteor", "count": 2 }
+      ],
+      "waves": [
+        { "interval": 2.0, "repetitions": 2, "spawns": ["kamikaze"] }
+      ]
+    },
+    {
+      "number": 3,
+      "initial_spawns": [
+        { "type": "big_meteor", "count": 3 }
+      ],
+      "waves": [
+        { "interval": 2.0, "repetitions": 3, "spawns": ["shooter"] }
+      ]
+    },
+    {
+      "number": 4,
+      "initial_spawns": [
+        { "type": "big_meteor", "count": 4 }
+      ],
+      "waves": [
+        { "interval": 2.0, "repetitions": 3, "spawns": ["kamikaze", "shooter"] }
+      ]
+    },
+    {
+      "number": 5,
+      "initial_spawns": [
+        { "type": "big_meteor", "count": 5 },
+        { "type": "shooter", "count": 3 }
+      ],
+      "waves": [
+        { "interval": 1.0, "repetitions": 3, "spawns": ["kamikaze", "shooter"] }
+      ]
+    }
+  ]
+}

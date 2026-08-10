@@ -14,22 +14,21 @@ namespace
     constexpr std::array<const char*, static_cast<std::size_t>(Config::Music::Count)> MusicNames{
         "company_splash",
         "main_menu_background",
-        "gameplay_theme"
+        "gameplay_background_1"
     };
     constexpr std::array<const char*, static_cast<std::size_t>(Config::Sound::Count)> SoundNames{
         "character_typing",
         "interface_activation",
         "item_select",
         "item_press",
-        "player_laser_shot",
-        "enemy_laser_shot",
+        "player_normal_shot",
+        "enemy_shot",
         "saucer_kamikaze_spawn",
         "saucer_shooter_spawn",
-        "player_ship_explosion",
-        "enemy_saucer_explosion",
-        "small_meteor_explosion",
-        "medium_meteor_explosion",
-        "big_meteor_explosion"
+        "ship_explosion",
+        "asteroid_explosion",
+        "hit_asteroid",
+        "hit_enemy_saucer"
     };
 
     template <std::size_t Size>

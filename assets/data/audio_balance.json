@@ -2,21 +2,20 @@
     "music": {
         "company_splash": 100.0,
         "main_menu_background": 100.0,
-        "gameplay_theme": 100.0
+        "gameplay_background_1": 100.0
     },
     "sounds": {
         "character_typing": 34.0,
         "interface_activation": 58.0,
         "item_select": 45.0,
         "item_press": 60.0,
-        "player_laser_shot": 100.0,
-        "enemy_laser_shot": 100.0,
+        "player_normal_shot": 50.0,
+        "enemy_shot": 100.0,
         "saucer_kamikaze_spawn": 100.0,
         "saucer_shooter_spawn": 100.0,
-        "player_ship_explosion": 100.0,
-        "enemy_saucer_explosion": 100.0,
-        "small_meteor_explosion": 100.0,
-        "medium_meteor_explosion": 100.0,
-        "big_meteor_explosion": 100.0
+        "ship_explosion": 100.0,
+        "asteroid_explosion": 100.0,
+        "hit_asteroid": 100.0,
+        "hit_enemy_saucer": 100.0
     }
 }

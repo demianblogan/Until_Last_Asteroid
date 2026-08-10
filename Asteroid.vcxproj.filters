@@ -18,6 +18,8 @@
     <ClCompile Include="src\core\Entity.cpp" />
     <ClCompile Include="src\app\Application.cpp" />
     <ClCompile Include="src\game\GameplaySession.cpp" />
+    <ClCompile Include="src\game\GameplayData.cpp" />
+    <ClCompile Include="src\game\Health.cpp" />
     <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
     <ClCompile Include="src\states\MainMenuState.cpp" />
@@ -60,6 +62,8 @@
     <ClInclude Include="src\entities\Meteor.h" />
     <ClInclude Include="src\entities\Player.h" />
     <ClInclude Include="src\game\GameplaySession.h" />
+    <ClInclude Include="src\game\GameplayData.h" />
+    <ClInclude Include="src\game\Health.h" />
     <ClInclude Include="src\core\GameVersion.h" />
     <ClInclude Include="src\utils\ConfigEnums.h" />
     <ClInclude Include="src\assets\AssetStore.h" />
@@ -87,7 +91,14 @@
   <ItemGroup>
     <None Include="assets\shaders\bright_pass.frag" />
     <None Include="assets\shaders\gaussian_blur.frag" />
+    <None Include="assets\shaders\hit_flash.frag" />
     <None Include="assets\data\audio_balance.json" />
+    <None Include="assets\data\gameplay\player.json" />
+    <None Include="assets\data\gameplay\weapons.json" />
+    <None Include="assets\data\gameplay\enemies.json" />
+    <None Include="assets\data\gameplay\levels.json" />
+    <None Include="assets\sprites\ui\hud\health_bar_frame.png" />
+    <None Include="assets\sprites\ui\hud\health_bar_fill.png" />
     <None Include="libs\nlohmann\LICENSE.MIT" />
   </ItemGroup>
 </Project>

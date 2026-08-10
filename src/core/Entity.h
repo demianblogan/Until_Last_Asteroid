@@ -11,6 +11,7 @@ namespace sf
 {
 	class Texture;
 	class RenderTarget;
+	class Shader;
 }
 
 class World;
@@ -28,7 +29,7 @@ public:
 		Asteroid
 	};
 
-	Entity(AssetStore& assets, World& world, sf::Texture& texture) noexcept;
+	Entity(AssetStore& assets, World& world, sf::Texture& texture);
 
 	Entity(const Entity&) = delete;
 	Entity& operator=(const Entity&) = delete;
@@ -43,6 +44,8 @@ public:
 
 	void SetVelocity(const sf::Vector2f& velocity) noexcept;
 	[[nodiscard]] const sf::Vector2f& GetVelocity() const noexcept;
+	void ApplyImpulse(const sf::Vector2f& impulse) noexcept;
+	void Translate(const sf::Vector2f& offset) noexcept;
 
 	[[nodiscard]] bool IsAlive() const noexcept;
 	void Destroy() noexcept;
@@ -64,21 +67,27 @@ protected:
 	void Move(float deltaTime) noexcept;
 	void Accelerate(const sf::Vector2f& delta) noexcept;
 	void SetVisible(bool visible) noexcept;
+	void FlashOnHit(float duration) noexcept;
 
 	virtual void OnDestroy();
 
 private:
 	sf::Sprite sprite;
 	sf::Vector2f velocity{ 0.f, 0.f };
+	sf::Vector2f impulseVelocity{ 0.f, 0.f };
 
 	AssetStore& assets;
 	World& world;
+	sf::Shader& hitFlashShader;
 
 	bool isAlive{ true };
 	bool isVisible{ true };
+	float hitFlashRemaining{ 0.f };
+	float hitFlashDuration{ 0.f };
 
 private:
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
+	void UpdateEffects(float deltaTime) noexcept;
 
 	friend class World;
 };

@@ -27,8 +27,7 @@ public:
 	void OnDestroy() override;
 
 private:
-	static float GetSpeed(Mode mode) noexcept;
-	static int GetScore(Mode mode) noexcept;
+	static const GameplayData::EnemyConfig& GetConfig(AssetStore& assets, Mode mode);
 	static sf::Texture& GetTexture(AssetStore& assets, Mode mode);
 
 	void UpdateMovement(float deltaTime, const sf::Vector2f& target);

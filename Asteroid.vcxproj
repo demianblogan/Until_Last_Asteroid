@@ -70,6 +70,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <TargetName>UntilLastAsteroid</TargetName>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)build\$(Configuration)\</OutDir>
   </PropertyGroup>
@@ -150,6 +153,8 @@
     <ClCompile Include="src\core\Entity.cpp" />
     <ClCompile Include="src\app\Application.cpp" />
     <ClCompile Include="src\game\GameplaySession.cpp" />
+    <ClCompile Include="src\game\GameplayData.cpp" />
+    <ClCompile Include="src\game\Health.cpp" />
     <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
     <ClCompile Include="src\states\MainMenuState.cpp" />
@@ -190,6 +195,8 @@
     <ClInclude Include="src\settings\GameSettings.h" />
     <ClInclude Include="src\settings\SettingsManager.h" />
     <ClInclude Include="src\game\GameplaySession.h" />
+    <ClInclude Include="src\game\GameplayData.h" />
+    <ClInclude Include="src\game\Health.h" />
     <ClInclude Include="src\states\CompanySplashState.h" />
     <ClInclude Include="src\states\GameplayState.h" />
     <ClInclude Include="src\states\MainMenuState.h" />
@@ -220,7 +227,14 @@
   <ItemGroup>
     <None Include="assets\shaders\bright_pass.frag" />
     <None Include="assets\shaders\gaussian_blur.frag" />
+    <None Include="assets\shaders\hit_flash.frag" />
     <None Include="assets\data\audio_balance.json" />
+    <None Include="assets\data\gameplay\player.json" />
+    <None Include="assets\data\gameplay\weapons.json" />
+    <None Include="assets\data\gameplay\enemies.json" />
+    <None Include="assets\data\gameplay\levels.json" />
+    <None Include="assets\sprites\ui\hud\health_bar_frame.png" />
+    <None Include="assets\sprites\ui\hud\health_bar_fill.png" />
     <None Include="libs\nlohmann\LICENSE.MIT" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

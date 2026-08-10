@@ -20,6 +20,7 @@ private:
     [[nodiscard]] static bool IsSkipEvent(const sf::Event& event);
     void Finish();
     void UpdateOpacity();
+    void UpdateLayout();
 
     static constexpr float FADE_IN_DURATION{ 0.5f };
     static constexpr float HOLD_DURATION{ 2.f };

@@ -8,7 +8,7 @@
 #include "core/World.h"
 
 Saucer::Saucer(AssetStore& assets, World& world, Mode mode)
-	: Enemy(assets, world, GetTexture(assets, mode), GetScore(mode), GetSpeed(mode))
+	: Enemy(assets, world, GetTexture(assets, mode), GetConfig(assets, mode))
 	, mode(mode)
 {
 	// No code
@@ -48,7 +48,7 @@ void Saucer::Update(float deltaTime)
 		{
 			float angle{ Random::Float(0.f, 2.f * std::numbers::pi_v<float>) };
 			sf::Vector2f direction{ std::cos(angle), std::sin(angle) };
-			SetVelocity(direction * GetSpeed(mode));
+			SetVelocity(direction * GetMovementSpeed());
 		}
 
 		Move(deltaTime);
@@ -56,18 +56,16 @@ void Saucer::Update(float deltaTime)
 
 	if (mode == Mode::Shooter)
 	{
-		static constexpr float SHOOT_INTERVAL = 1.5f;
-
 		shootTimer += deltaTime;
 
-		if (shootTimer > SHOOT_INTERVAL)
+		if (shootTimer > GetActionInterval())
 			Shoot(playerPos);
 	}
 }
 
 void Saucer::OnDestroy()
 {
-	GetWorld().AddSound(Config::Sound::EnemySaucerExplosion);
+	GetWorld().AddSound(Config::Sound::ShipExplosion);
 }
 
 void Saucer::UpdateMovement(float deltaTime, const sf::Vector2f& target)
@@ -76,7 +74,7 @@ void Saucer::UpdateMovement(float deltaTime, const sf::Vector2f& target)
 	const float angle{ std::atan2(toTarget.y, toTarget.x) };
 	const sf::Vector2f direction{ std::cos(angle),std::sin(angle) };
 
-	SetVelocity(direction * GetSpeed(mode));
+	SetVelocity(direction * GetMovementSpeed());
 	Move(deltaTime);
 }
 
@@ -87,29 +85,17 @@ void Saucer::Shoot(const sf::Vector2f& playerPosition)
 	GetWorld().SpawnSaucerShot(GetPosition(), playerPosition);
 }
 
-float Saucer::GetSpeed(Mode mode) noexcept
+const GameplayData::EnemyConfig& Saucer::GetConfig(AssetStore& assets, Mode mode)
 {
+	using Kind = GameplayData::EnemyKind;
 	switch (mode)
 	{
 	case Mode::Kamikaze:
-		return 500.f;
+		return assets.GetGameplayData().GetEnemy(Kind::Kamikaze);
 	case Mode::Shooter:
-		return 200.f;
+		return assets.GetGameplayData().GetEnemy(Kind::Shooter);
 	default:
-		return 0.f;
-	}
-}
-
-int Saucer::GetScore(Mode mode) noexcept
-{
-	switch (mode)
-	{
-	case Mode::Kamikaze:
-		return 50;
-	case Mode::Shooter:
-		return 200;
-	default:
-		return 0;
+		std::unreachable();
 	}
 }
 

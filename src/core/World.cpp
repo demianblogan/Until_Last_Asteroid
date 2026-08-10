@@ -1,39 +1,47 @@
 #include "World.h"
 
 #include <algorithm>
+#include <cmath>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
 #include "entities/Enemy.h"
-#include "game/GameplaySession.h"
 #include "entities/Player.h"
 #include "entities/Shot.h"
+#include "game/GameplaySession.h"
+#include "systems/Collision.h"
 
-// --------------------------------------------------------
-World::World(unsigned int width, unsigned int height, AssetStore& assets, AudioManager& audio, GameplaySession& session)
-	: width(width), height(height), assets(assets), audio(audio), session(session)
+namespace
 {
-	// No code
+	sf::Vector2f Normalize(const sf::Vector2f& vector)
+	{
+		const float lengthSquared{ vector.x * vector.x + vector.y * vector.y };
+		if (lengthSquared <= 0.0001f)
+			return { 1.f, 0.f };
+		return vector / std::sqrt(lengthSquared);
+	}
 }
 
-// --------------------------------------------------------
+World::World(unsigned int width, unsigned int height, AssetStore& assets,
+	AudioManager& audio, GameplaySession& session)
+	: assets(assets), audio(audio), session(session), width(width), height(height)
+{
+}
+
 void World::Update(float deltaTime)
 {
 	if (!pendingEntities.empty())
 	{
-		entities.insert(
-			entities.end(),	
+		entities.insert(entities.end(),
 			std::make_move_iterator(pendingEntities.begin()),
-			std::make_move_iterator(pendingEntities.end())
-		);
-
+			std::make_move_iterator(pendingEntities.end()));
 		pendingEntities.clear();
 	}
 
 	for (auto& entity : entities)
 	{
+		entity->UpdateEffects(deltaTime);
 		entity->Update(deltaTime);
-
 		if (entity->GetType() != Entity::Type::Projectile_Player &&
 			entity->GetType() != Entity::Type::Projectile_Enemy)
 		{
@@ -43,7 +51,6 @@ void World::Update(float deltaTime)
 
 	HandleCollisions();
 	RemoveDeadEntities();
-
 }
 
 void World::Spawn(std::unique_ptr<Entity> entity)
@@ -51,54 +58,36 @@ void World::Spawn(std::unique_ptr<Entity> entity)
 	pendingEntities.push_back(std::move(entity));
 }
 
-void World::SpawnPlayer(AssetStore& assets, InputHandler<Config::PlayerAction>& input)
+void World::SpawnPlayer(AssetStore& playerAssets, InputHandler<Config::PlayerAction>& input)
 {
 	if (player != nullptr)
 		return;
 
-	auto playerPtr{ std::make_unique<Player>(assets, *this, input) };
-	playerPtr->SetPosition({ GetWidth() * 0.5f,	GetHeight() * 0.5f });
-
+	auto playerPtr{ std::make_unique<Player>(playerAssets, *this, input) };
+	playerPtr->SetPosition({ GetWidth() * 0.5f, GetHeight() * 0.5f });
 	player = playerPtr.get();
 	Spawn(std::move(playerPtr));
 }
 
-sf::RenderWindow& World::GetWindow() noexcept
-{
-	return *window;
-}
-
-void World::SetWindow(sf::RenderWindow& window)
-{
-	this->window = &window;
-}
+sf::RenderWindow& World::GetWindow() noexcept { return *window; }
+void World::SetWindow(sf::RenderWindow& newWindow) { window = &newWindow; }
 
 bool World::IsCleared() const noexcept
 {
-	auto containsAliveEnemy = [](const auto& entityList)
+	const auto containsAliveEnemy = [](const auto& list)
 	{
-		for (const auto& entity : entityList)
+		return std::ranges::any_of(list, [](const auto& entity)
 		{
-			if (!entity->IsAlive())
-				continue;
-
-			if (entity->GetType() == Entity::Type::Enemy ||
-				entity->GetType() == Entity::Type::Asteroid)
-			{
-				return true;
-			}
-		}
-
-		return false;
+			return entity->IsAlive() &&
+				(entity->GetType() == Entity::Type::Enemy ||
+				 entity->GetType() == Entity::Type::Asteroid);
+		});
 	};
 
 	return !containsAliveEnemy(entities) && !containsAliveEnemy(pendingEntities);
 }
 
-bool World::HasPlayer() const noexcept
-{
-	return player != nullptr;
-}
+bool World::HasPlayer() const noexcept { return player != nullptr; }
 
 void World::HandlePlayerEvent(const sf::Event& event)
 {
@@ -117,41 +106,26 @@ void World::SpawnPlayerShot(const sf::Vector2f& pos, float rotation)
 	Spawn(std::make_unique<PlayerShot>(assets, *this, pos, rotation));
 }
 
-void World::SpawnSaucerShot(const sf::Vector2f& pos,
-	const sf::Vector2f& target)
+void World::SpawnSaucerShot(const sf::Vector2f& pos, const sf::Vector2f& target)
 {
 	Spawn(std::make_unique<SaucerShot>(assets, *this, pos, target, session.GetScore()));
 }
 
-void World::AddSound(Config::Sound id)
+void World::AddSound(Config::Sound id, float pitch)
 {
-	audio.PlaySound(id, SoundGroup::Gameplay);
+	audio.PlaySound(id, SoundGroup::Gameplay, 100.f, pitch);
 }
-
-void World::PauseActiveSounds()
-{
-	audio.PauseSounds(SoundGroup::Gameplay);
-}
-
-void World::ResumePausedSounds()
-{
-	audio.ResumeSounds(SoundGroup::Gameplay);
-}
+void World::PauseActiveSounds() { audio.PauseSounds(SoundGroup::Gameplay); }
+void World::ResumePausedSounds() { audio.ResumeSounds(SoundGroup::Gameplay); }
 
 sf::Vector2f World::GetPlayerPosition() const noexcept
 {
 	return player != nullptr ? player->GetPosition() : sf::Vector2f{};
 }
 
-unsigned int World::GetWidth() const noexcept
-{
-	return width;
-}
-
-unsigned int World::GetHeight() const noexcept
-{
-	return height;
-}
+unsigned int World::GetWidth() const noexcept { return width; }
+unsigned int World::GetHeight() const noexcept { return height; }
+GameplaySession& World::GetSession() noexcept { return session; }
 
 void World::Clear()
 {
@@ -160,89 +134,165 @@ void World::Clear()
 	player = nullptr;
 }
 
-void World::Wrap(Entity& e) const
+void World::Wrap(Entity& entity) const
 {
-	auto position = e.GetPosition();
-
-	if (position.x < 0)
-		position.x = static_cast<float>(width);
-	else if (position.x > width)
-		position.x = 0.f;
-
-	if (position.y < 0)
-		position.y = static_cast<float>(height);
-	else if (position.y > height)
-		position.y = 0.f;
-
-	e.SetPosition(position);
+	auto position{ entity.GetPosition() };
+	if (position.x < 0.f) position.x = static_cast<float>(width);
+	else if (position.x > width) position.x = 0.f;
+	if (position.y < 0.f) position.y = static_cast<float>(height);
+	else if (position.y > height) position.y = 0.f;
+	entity.SetPosition(position);
 }
 
 void World::HandleCollisions()
 {
-	for (size_t i{ 0 }; i < entities.size(); i++)
+	for (std::size_t i{ 0 }; i < entities.size(); ++i)
 	{
-		for (size_t j = { i + 1 }; j < entities.size(); j++)
+		for (std::size_t j{ i + 1 }; j < entities.size(); ++j)
 		{
-			Entity& a = *entities[i];
-			Entity& b = *entities[j];
-
-			if (!a.IsAlive() || !b.IsAlive())
-				continue;
-
-			if (a.IsCollideWith(b) && b.IsCollideWith(a))
+			Entity& first{ *entities[i] };
+			Entity& second{ *entities[j] };
+			if (first.IsAlive() && second.IsAlive() &&
+				first.IsCollideWith(second) && second.IsCollideWith(first))
 			{
-				OnCollision(a, b);
-				OnCollision(b, a);
+				HandleCollisionPair(first, second);
 			}
 		}
 	}
 }
 
-void World::OnCollision(Entity& entity, const Entity& other)
+void World::HandleCollisionPair(Entity& first, Entity& second)
 {
-	if (entity.GetType() == Entity::Type::Player)
+	auto handlePlayerShot = [this](Shot& shot, Enemy& enemy)
 	{
-		session.LoseLife();
+		shot.Destroy();
+		const bool killed{ enemy.TakeDamage(shot.GetDamage()) };
+		enemy.ApplyImpulse(Normalize(shot.GetVelocity()) * shot.GetKnockback());
+		if (killed)
+			session.AddScore(enemy.GetScoreValue());
+	};
 
-		if (session.GetLives() <= 0)
-			session.SetGameOver();
+	if (first.GetType() == Entity::Type::Projectile_Player)
+	{
+		handlePlayerShot(static_cast<Shot&>(first), static_cast<Enemy&>(second));
+		return;
+	}
+	if (second.GetType() == Entity::Type::Projectile_Player)
+	{
+		handlePlayerShot(static_cast<Shot&>(second), static_cast<Enemy&>(first));
+		return;
 	}
 
-	entity.Destroy();
-
-	if (other.GetType() == Entity::Type::Projectile_Player &&
-		(entity.GetType() == Entity::Type::Enemy ||
-			entity.GetType() == Entity::Type::Asteroid))
+	auto handleEnemyShot = [this](Shot& shot, Entity& target)
 	{
-		Enemy* enemy = dynamic_cast<Enemy*>(&entity);
-		if (enemy != nullptr)
+		shot.Destroy();
+		if (target.GetType() == Entity::Type::Player)
 		{
-			session.AddScore(enemy->GetScoreValue());
+			auto& targetPlayer{ static_cast<Player&>(target) };
+			if (targetPlayer.TakeDamage(shot.GetDamage()))
+				targetPlayer.ApplyImpulse(Normalize(shot.GetVelocity()) * shot.GetKnockback());
+			if (!targetPlayer.IsAlive())
+				session.SetGameOver();
 		}
+		else
+		{
+			auto& enemy{ static_cast<Enemy&>(target) };
+			const bool destroyed{ enemy.TakeDamage(shot.GetDamage()) };
+			(void)destroyed;
+			enemy.ApplyImpulse(Normalize(shot.GetVelocity()) * shot.GetKnockback());
+		}
+	};
+
+	if (first.GetType() == Entity::Type::Projectile_Enemy)
+	{
+		handleEnemyShot(static_cast<Shot&>(first), second);
+		return;
 	}
+	if (second.GetType() == Entity::Type::Projectile_Enemy)
+	{
+		handleEnemyShot(static_cast<Shot&>(second), first);
+		return;
+	}
+
+	Player* collidedPlayer{ nullptr };
+	Enemy* collidedEnemy{ nullptr };
+	if (first.GetType() == Entity::Type::Player)
+	{
+		collidedPlayer = static_cast<Player*>(&first);
+		collidedEnemy = static_cast<Enemy*>(&second);
+	}
+	else if (second.GetType() == Entity::Type::Player)
+	{
+		collidedPlayer = static_cast<Player*>(&second);
+		collidedEnemy = static_cast<Enemy*>(&first);
+	}
+	else
+	{
+		return;
+	}
+
+	const bool damageAccepted{ collidedPlayer->TakeDamage(collidedEnemy->GetContactDamage()) };
+	if (damageAccepted)
+	{
+		const Config::Sound impactSound{ collidedEnemy->GetType() == Entity::Type::Asteroid
+			? Config::Sound::HitAsteroid
+			: Config::Sound::HitEnemySaucer };
+		AddSound(impactSound, collidedEnemy->GetSoundPitch());
+
+		const bool enemyKilled{ collidedEnemy->TakeDamage(
+			assets.GetGameplayData().GetPlayer().collisionDamage) };
+		if (enemyKilled)
+			session.AddScore(collidedEnemy->GetScoreValue());
+	}
+
+	if (!collidedPlayer->IsAlive())
+		session.SetGameOver();
+
+	if (!collidedPlayer->IsAlive() || !collidedEnemy->IsAlive())
+		return;
+
+	const auto manifold{ Collision::GetCircleManifold(
+		collidedPlayer->GetSprite(), collidedEnemy->GetSprite()) };
+	if (!manifold)
+		return;
+
+	ResolveCollision(*collidedPlayer, *collidedEnemy,
+		manifold->normal, manifold->penetration);
+	if (damageAccepted)
+	{
+		collidedPlayer->ApplyImpulse(-manifold->normal * collidedEnemy->GetCollisionImpulse());
+		collidedEnemy->ApplyImpulse(manifold->normal *
+			assets.GetGameplayData().GetPlayer().collisionImpulse);
+	}
+}
+
+void World::ResolveCollision(Entity& first, Entity& second,
+	const sf::Vector2f& normal, float penetration) const
+{
+	const sf::Vector2f correction{ normal * ((penetration + 0.5f) * 0.5f) };
+	first.Translate(-correction);
+	second.Translate(correction);
 }
 
 void World::RemoveDeadEntities()
 {
-	for (size_t i{ 0 }; i < entities.size();)
+	for (std::size_t i{ 0 }; i < entities.size();)
 	{
 		if (!entities[i]->IsAlive())
 		{
 			if (entities[i].get() == player)
 				player = nullptr;
-
 			entities[i] = std::move(entities.back());
 			entities.pop_back();
 		}
 		else
 		{
-			i++;
+			++i;
 		}
 	}
 }
 
-void World::draw(sf::RenderTarget& target,
-	sf::RenderStates states) const
+void World::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
 	for (const auto& entity : entities)
 		target.draw(*entity, states);

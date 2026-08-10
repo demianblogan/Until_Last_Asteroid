@@ -30,7 +30,8 @@ public:
         sf::RenderTarget& target,
         const sf::FloatRect& bounds,
         const SourceRenderer& renderSource,
-        sf::Color color);
+        sf::Color color,
+        bool pulsing = true);
     void DrawHighlight(
         sf::RenderTarget& target,
         const sf::FloatRect& bounds,

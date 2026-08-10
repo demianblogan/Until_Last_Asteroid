@@ -111,14 +111,14 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     }
     Select(0, false);
 
-    musicWasPlaying = context.audio.IsMusicPlaying(Config::Music::GameplayTheme);
-    context.audio.PauseMusic(Config::Music::GameplayTheme);
+    musicWasPlaying = context.audio.IsMusicPlaying(Config::Music::GameplayBackground1);
+    context.audio.PauseMusic(Config::Music::GameplayBackground1);
 }
 
 PauseState::~PauseState()
 {
     if (musicWasPlaying && !returningToMainMenu)
-        GetContext().audio.ResumeMusic(Config::Music::GameplayTheme);
+        GetContext().audio.ResumeMusic(Config::Music::GameplayBackground1);
 
     if (GetContext().window.isOpen())
         GetContext().window.setMouseCursorVisible(false);
@@ -364,7 +364,7 @@ void PauseState::CompleteActivation(std::size_t index)
 
     case 1:
         returningToMainMenu = true;
-        GetContext().audio.StopMusic(Config::Music::GameplayTheme);
+        GetContext().audio.StopMusic(Config::Music::GameplayBackground1);
         RequestClear();
         RequestPush(StateId::MainMenu);
         break;

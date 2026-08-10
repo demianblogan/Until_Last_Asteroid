@@ -102,6 +102,40 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Built and verified the x64 Debug and Release configurations.
 - Prepared and verified the standalone Windows release package.
 
+### v1.3.0
+
+- Replace the player's three lives with 100 health and a lower-left health bar.
+- Color the health fill from green through yellow to red and show its percentage.
+- Flash the health fill for three seconds when health reaches the critical range.
+- Give the player one second of blinking invulnerability after taking damage.
+- Give every asteroid and enemy type its own health, contact damage, and score value.
+- Make player and enemy projectiles deal configured damage and knock targets back.
+- Flash surviving enemies briefly when a hit is registered.
+- Separate and knock back the player and enemy when both survive a collision.
+- End the run at zero health without respawning the player in the center.
+- Move player, weapon, enemy, and level balance into validated JSON data files.
+- Replace the player and enemy shot sounds with the new combat audio set.
+- Use one ship explosion sound for the player and enemy saucers.
+- Use one asteroid explosion sound with a higher pitch for smaller asteroids.
+- Add separate hull-impact sounds for asteroids and enemy saucers, played only
+  when collision damage is accepted.
+- Trim the leading silence from the asteroid explosion and lower the player-shot
+  resource volume.
+- Replace the temporary gameplay theme with `gameplay_background_1.ogg` on all
+  current levels; reserve the other tracks for the future campaign design.
+- Scale the company splash to the complete physical window at every resolution.
+- Rename the executable to `UntilLastAsteroid.exe` to avoid a stale Windows/Intel
+  presentation profile that forced the old `Asteroid.exe` to the monitor's 60 Hz
+  refresh rate in Fullscreen and Borderless modes.
+
+#### Release verification
+
+- Completed the full manual gameplay and regression checklist for
+  `v1.3.0-rc.1` without finding release-blocking issues.
+- Built and verified the x64 Debug and Release configurations.
+- Prepared, extracted, file-verified, and smoke-tested the standalone Windows
+  release candidate.
+
 ## Deferred / needs design
 
 - Add localization with externalized UI text and language selection in Options.
@@ -112,3 +146,6 @@ deferred ideas. Update it whenever an item changes scope or release.
   pass; do not treat it as a committed feature yet.
 - Add object pooling only when profiling shows allocation pressure during
   chaotic scenes; do not migrate the game to ECS pre-emptively.
+- Add distinct non-lethal projectile-hit sounds when a player shot damages an
+  asteroid or enemy without destroying it, and when an enemy shot damages the
+  player. Keep these separate from the existing hull-collision sounds.

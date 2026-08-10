@@ -9,7 +9,7 @@
 #include "core/World.h"
 
 Meteor::Meteor(AssetStore& assets, World& world, Size size)
-	: Enemy(assets, world, GetRandomTexture(assets, size), GetScore(size), GetSpeed(size)), size(size)
+	: Enemy(assets, world, GetRandomTexture(assets, size), GetConfig(assets, size)), size(size)
 {
 	// No code
 }
@@ -29,20 +29,7 @@ bool Meteor::IsCollideWith(const Entity& other) const
 
 void Meteor::OnDestroy()
 {
-	switch (size)
-	{
-	case Size::Small:
-		GetWorld().AddSound(Config::Sound::SmallMeteorExplosion);
-		break;
-
-	case Size::Medium:
-		GetWorld().AddSound(Config::Sound::MediumMeteorExplosion);
-		break;
-
-	case Size::Big:
-		GetWorld().AddSound(Config::Sound::BigMeteorExplosion);
-		break;
-	}
+	GetWorld().AddSound(Config::Sound::AsteroidExplosion, GetSoundPitch());
 
 	Size newSize;
 
@@ -68,39 +55,23 @@ void Meteor::OnDestroy()
 		const float angle{ Random::Float(0.f, 2.f * std::numbers::pi_v<float>) };
 		sf::Vector2f direction{ std::cos(angle), std::sin(angle) };
 
-		static constexpr float FRAGMENT_SPEED{ 150.f };
-		meteor->SetVelocity(direction * FRAGMENT_SPEED);
+		meteor->SetVelocity(direction * GetFragmentSpeed());
 
 		GetWorld().Spawn(std::move(meteor));
 	}
 }
 
-float Meteor::GetSpeed(Meteor::Size size) noexcept
+const GameplayData::EnemyConfig& Meteor::GetConfig(AssetStore& assets, Meteor::Size size)
 {
+	using Kind = GameplayData::EnemyKind;
 	switch (size)
 	{
 	case Size::Small:
-		return 300.f;
+		return assets.GetGameplayData().GetEnemy(Kind::SmallMeteor);
 	case Size::Medium:
-		return 200.f;
+		return assets.GetGameplayData().GetEnemy(Kind::MediumMeteor);
 	case Size::Big:
-		return 100.f;
-
-	default:
-		std::unreachable();
-	}
-}
-
-int Meteor::GetScore(Meteor::Size size) noexcept
-{
-	switch (size)
-	{
-	case Size::Small:
-		return 100;
-	case Size::Medium:
-		return 60;
-	case Size::Big:
-		return 20;
+		return assets.GetGameplayData().GetEnemy(Kind::BigMeteor);
 
 	default:
 		std::unreachable();
