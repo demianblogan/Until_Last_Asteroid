@@ -21,6 +21,8 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	: State(stateStack, context)
 	, gameplayData(context.assets.GetGameplayData())
 	, input(actions)
+	, background(context.assets, context.logicalSize)
+	, effects(gameplayData.GetEffects())
 	, world(static_cast<unsigned int>(context.logicalSize.x),
 		static_cast<unsigned int>(context.logicalSize.y),
 		context.assets, context.audio, session)
@@ -155,6 +157,7 @@ void GameplayState::ResumeGameplaySounds()
 
 void GameplayState::Update(float dt)
 {
+	background.Update(dt);
 	crosshair.Update(dt);
 	if (session.IsWin() && winTexts.size() >= 2)
 	{
@@ -163,9 +166,13 @@ void GameplayState::Update(float dt)
 	}
 
 	if (!session.IsPlaying())
+	{
+		effects.Update(dt, world);
 		return;
+	}
 
 	world.Update(dt);
+	effects.Update(dt, world);
 	if (hud)
 		hud->Update(dt);
 	if (!session.IsPlaying())
@@ -209,17 +216,24 @@ void GameplayState::Update(float dt)
 void GameplayState::Render()
 {
 	auto& window{ GetContext().window };
-	if (session.IsGameOver())
+	window.draw(background);
+
+	sf::RenderStates worldStates;
+	worldStates.transform.translate(effects.GetCameraOffset());
+	effects.DrawBehindEntities(window, worldStates);
+	window.draw(world, worldStates);
+	effects.DrawAboveEntities(window, worldStates);
+
+	if (session.IsPlaying())
+	{
+		if (hud) hud->Draw(window);
+	}
+	else if (session.IsGameOver())
 		for (const sf::Text& text : gameOverTexts) window.draw(text);
 	else if (session.IsLevelComplete())
 		for (const sf::Text& text : levelCompleteTexts) window.draw(text);
 	else if (session.IsWin())
 		for (const sf::Text& text : winTexts) window.draw(text);
-	else
-	{
-		window.draw(world);
-		if (hud) hud->Draw(window);
-	}
 
 	if (!session.IsPlaying() && exitHintText)
 		window.draw(*exitHintText);
@@ -241,16 +255,11 @@ void GameplayState::SpawnConfiguredEnemy(GameplayData::EnemyKind kind)
 	using Kind = GameplayData::EnemyKind;
 	std::unique_ptr<Entity> entity;
 	bool edgeSpawn{ false };
-	Config::Sound spawnSound{};
-	bool playSpawnSound{ false };
 
 	switch (kind)
 	{
 	case Kind::BigMeteor:
 		entity = std::make_unique<Meteor>(GetContext().assets, world, Meteor::Size::Big);
-		break;
-	case Kind::MediumMeteor:
-		entity = std::make_unique<Meteor>(GetContext().assets, world, Meteor::Size::Medium);
 		break;
 	case Kind::SmallMeteor:
 		entity = std::make_unique<Meteor>(GetContext().assets, world, Meteor::Size::Small);
@@ -258,14 +267,10 @@ void GameplayState::SpawnConfiguredEnemy(GameplayData::EnemyKind kind)
 	case Kind::Kamikaze:
 		entity = std::make_unique<Saucer>(GetContext().assets, world, Saucer::Mode::Kamikaze);
 		edgeSpawn = true;
-		spawnSound = Config::Sound::SaucerKamikazeSpawn;
-		playSpawnSound = true;
 		break;
 	case Kind::Shooter:
 		entity = std::make_unique<Saucer>(GetContext().assets, world, Saucer::Mode::Shooter);
 		edgeSpawn = true;
-		spawnSound = Config::Sound::SaucerShooterSpawn;
-		playSpawnSound = true;
 		break;
 	default:
 		std::unreachable();
@@ -273,13 +278,12 @@ void GameplayState::SpawnConfiguredEnemy(GameplayData::EnemyKind kind)
 
 	entity->SetPosition(edgeSpawn ? GetSafeEdgeSpawnPosition() : GetSafeSpawnPosition());
 	world.Spawn(std::move(entity));
-	if (playSpawnSound)
-		world.AddSound(spawnSound);
 }
 
 void GameplayState::Reset()
 {
 	world.Clear();
+	effects.Clear();
 	session.Reset();
 	SpawnLevel();
 	if (hud) hud->Update(0.f);
@@ -293,6 +297,7 @@ void GameplayState::NextLevel()
 		return;
 	}
 	world.Clear();
+	effects.Clear();
 	session.NextLevel();
 	SpawnLevel();
 }
@@ -302,6 +307,7 @@ void GameplayState::SpawnLevel()
 	SpawnPlayerIfNeeded();
 	currentWaves.clear();
 	const auto& level{ gameplayData.GetLevel(session.GetLevel()) };
+	background.SetTheme(level.background);
 	for (const auto& group : level.initialSpawns)
 		for (int i{ 0 }; i < group.count; ++i)
 			SpawnConfiguredEnemy(group.kind);

@@ -10,7 +10,10 @@
 #include "game/GameplaySession.h"
 
 Player::Player(AssetStore& assets, World& world, InputHandler<Config::PlayerAction>& input)
-	: Entity(assets, world, assets.Textures().Get(Config::Texture::PlayerShip))
+	: Entity(assets, world, assets.Textures().Get(Config::Texture::PlayerShip),
+		assets.GetGameplayData().GetPlayer().visualScale,
+		assets.GetGameplayData().GetPlayer().collisionRadius,
+		assets.GetGameplayData().GetPlayer().collisionCircles)
 	, input(input)
 {
 	BindInput();
@@ -47,6 +50,9 @@ void Player::OnDestroy()
 {
 	SetVisible(true);
 	GetWorld().AddSound(Config::Sound::ShipExplosion);
+	GetWorld().AddEffectEvent({
+		World::EffectEventType::ShipExplosion,
+		GetPosition(), GetVelocity(), 1.35f });
 }
 
 bool Player::TakeDamage(int damage)
@@ -73,6 +79,48 @@ bool Player::IsInvulnerable() const noexcept
 	return invulnerabilityTimer > 0.f;
 }
 
+bool Player::IsThrusting() const noexcept
+{
+	return isThrusting;
+}
+
+std::array<sf::Vector2f, 2> Player::GetEngineEmitterPositions() const
+{
+	const sf::Sprite& sprite{ GetSprite() };
+	const sf::IntRect textureRect{ sprite.getTextureRect() };
+	const auto& emitterConfig{ GetAssets().GetGameplayData().GetPlayer().engineEmitters };
+	std::array<sf::Vector2f, 2> result;
+	for (std::size_t i{ 0 }; i < result.size(); ++i)
+	{
+		const sf::Vector2f localPosition{
+			static_cast<float>(textureRect.position.x) +
+				static_cast<float>(textureRect.size.x) * emitterConfig[i].x,
+			static_cast<float>(textureRect.position.y) +
+				static_cast<float>(textureRect.size.y) * emitterConfig[i].y };
+		result[i] = sprite.getTransform().transformPoint(localPosition);
+	}
+	return result;
+}
+
+sf::Vector2f Player::GetMuzzlePosition() const
+{
+	const sf::Sprite& sprite{ GetSprite() };
+	const sf::IntRect textureRect{ sprite.getTextureRect() };
+	const auto& emitter{ GetAssets().GetGameplayData().GetPlayer().muzzleEmitter };
+	const sf::Vector2f localPosition{
+		static_cast<float>(textureRect.position.x) +
+			static_cast<float>(textureRect.size.x) * emitter.x,
+		static_cast<float>(textureRect.position.y) +
+			static_cast<float>(textureRect.size.y) * emitter.y };
+	return sprite.getTransform().transformPoint(localPosition);
+}
+
+sf::Vector2f Player::GetExhaustDirection() const noexcept
+{
+	const float angle{ GetRotation().asRadians() + std::numbers::pi_v<float> * 0.5f };
+	return { std::cos(angle), std::sin(angle) };
+}
+
 void Player::BindInput()
 {
 	using enum Config::PlayerAction;
@@ -88,7 +136,8 @@ void Player::UpdateMovement(float dt)
 	const auto& config{ GetAssets().GetGameplayData().GetPlayer() };
 	sf::Vector2f velocity{ GetVelocity() };
 
-	if (moveInput.x != 0.f || moveInput.y != 0.f)
+	isThrusting = moveInput.x != 0.f || moveInput.y != 0.f;
+	if (isThrusting)
 	{
 		const float length{ std::sqrt(moveInput.x * moveInput.x + moveInput.y * moveInput.y) };
 		velocity += moveInput / length * config.acceleration * dt;
@@ -139,6 +188,6 @@ void Player::Shoot()
 	if (shootTimer < cooldown)
 		return;
 
-	GetWorld().SpawnPlayerShot(GetPosition(), GetRotation().asDegrees());
+	GetWorld().SpawnPlayerShot(GetMuzzlePosition(), GetRotation().asDegrees());
 	shootTimer = 0.f;
 }

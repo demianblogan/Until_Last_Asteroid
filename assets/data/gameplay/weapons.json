@@ -2,11 +2,15 @@
   "player_shot": {
     "damage": 10,
     "speed": 1000.0,
-    "knockback": 180.0
+    "knockback": 180.0,
+    "visual_scale": 0.5,
+    "collision_radius": 6.5
   },
   "enemy_shot": {
     "damage": 25,
     "speed": 750.0,
-    "knockback": 300.0
+    "knockback": 300.0,
+    "visual_scale": 0.5,
+    "collision_radius": 6.5
   }
 }

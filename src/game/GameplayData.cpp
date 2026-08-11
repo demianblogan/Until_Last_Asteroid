@@ -1,6 +1,7 @@
 #include "GameplayData.h"
 
 #include <fstream>
+#include <cmath>
 #include <stdexcept>
 #include <string>
 
@@ -62,8 +63,6 @@ namespace
     {
         if (value == "big_meteor")
             return GameplayData::EnemyKind::BigMeteor;
-        if (value == "medium_meteor")
-            return GameplayData::EnemyKind::MediumMeteor;
         if (value == "small_meteor")
             return GameplayData::EnemyKind::SmallMeteor;
         if (value == "kamikaze")
@@ -73,6 +72,38 @@ namespace
 
         throw std::runtime_error(
             "Unknown gameplay enemy type '" + value + "' in " + path.string());
+    }
+
+    std::vector<Collision::LocalCircle> ReadCollisionCircles(
+        const Json& object,
+        const std::filesystem::path& path)
+    {
+        if (!object.contains("collision_circles"))
+            return {};
+
+        const Json& circles{ object.at("collision_circles") };
+        if (!circles.is_array() || circles.empty() || circles.size() > 8)
+        {
+            throw std::runtime_error(
+                "Gameplay value 'collision_circles' must contain between one and eight circles in " +
+                path.string());
+        }
+
+        std::vector<Collision::LocalCircle> result;
+        result.reserve(circles.size());
+        for (const Json& circle : circles)
+        {
+            Collision::LocalCircle value;
+            value.offset.x = Require<float>(circle, "x", path);
+            value.offset.y = Require<float>(circle, "y", path);
+            value.radius = Require<float>(circle, "radius", path);
+            if (!std::isfinite(value.offset.x) || !std::isfinite(value.offset.y))
+                throw std::runtime_error(
+                    "Collision-circle offsets must be finite in " + path.string());
+            RequirePositive(value.radius, "radius", path);
+            result.push_back(value);
+        }
+        return result;
     }
 
     GameplayData::EnemyConfig ReadEnemy(
@@ -88,6 +119,32 @@ namespace
         result.actionInterval = Require<float>(object, "action_interval", path);
         result.fragmentSpeed = Require<float>(object, "fragment_speed", path);
         result.soundPitch = Require<float>(object, "sound_pitch", path);
+        result.visualScale = Require<float>(object, "visual_scale", path);
+        result.collisionRadius = Require<float>(object, "collision_radius", path);
+		result.collisionCircles = ReadCollisionCircles(object, path);
+		if (object.contains("rotation_speed"))
+			result.rotationSpeed = Require<float>(object, "rotation_speed", path);
+		if (object.contains("weapon_emitters"))
+		{
+			const Json& emitters{ object.at("weapon_emitters") };
+			if (!emitters.is_array() || emitters.size() != result.weaponEmitters.size())
+				throw std::runtime_error(
+					"Gameplay value 'weapon_emitters' must contain exactly two points in " +
+					path.string());
+
+			for (std::size_t i{ 0 }; i < result.weaponEmitters.size(); ++i)
+			{
+				result.weaponEmitters[i].x = Require<float>(emitters.at(i), "x", path);
+				result.weaponEmitters[i].y = Require<float>(emitters.at(i), "y", path);
+				if (result.weaponEmitters[i].x < 0.f || result.weaponEmitters[i].x > 1.f ||
+					result.weaponEmitters[i].y < 0.f || result.weaponEmitters[i].y > 1.f)
+				{
+					throw std::runtime_error(
+						"Weapon emitter coordinates must be normalized to [0, 1] in " +
+						path.string());
+				}
+			}
+		}
 
         RequirePositive(static_cast<float>(result.maximumHealth), "maximum_health", path);
         RequireNonNegative(static_cast<float>(result.contactDamage), "contact_damage", path);
@@ -97,6 +154,9 @@ namespace
         RequireNonNegative(result.actionInterval, "action_interval", path);
         RequireNonNegative(result.fragmentSpeed, "fragment_speed", path);
         RequirePositive(result.soundPitch, "sound_pitch", path);
+        RequirePositive(result.visualScale, "visual_scale", path);
+        RequirePositive(result.collisionRadius, "collision_radius", path);
+		RequireNonNegative(result.rotationSpeed, "rotation_speed", path);
         return result;
     }
 
@@ -108,9 +168,56 @@ namespace
         result.damage = Require<int>(object, "damage", path);
         result.speed = Require<float>(object, "speed", path);
         result.knockback = Require<float>(object, "knockback", path);
+        result.visualScale = Require<float>(object, "visual_scale", path);
+        result.collisionRadius = Require<float>(object, "collision_radius", path);
         RequirePositive(static_cast<float>(result.damage), "damage", path);
         RequirePositive(result.speed, "speed", path);
         RequireNonNegative(result.knockback, "knockback", path);
+        RequirePositive(result.visualScale, "visual_scale", path);
+        RequirePositive(result.collisionRadius, "collision_radius", path);
+        return result;
+    }
+
+    GameplayData::BurstConfig ReadBurst(
+        const Json& object,
+        const std::filesystem::path& path)
+    {
+        GameplayData::BurstConfig result;
+        result.count = Require<int>(object, "count", path);
+        result.minimumSpeed = Require<float>(object, "minimum_speed", path);
+        result.maximumSpeed = Require<float>(object, "maximum_speed", path);
+        result.minimumLifetime = Require<float>(object, "minimum_lifetime", path);
+        result.maximumLifetime = Require<float>(object, "maximum_lifetime", path);
+        result.minimumSize = Require<float>(object, "minimum_size", path);
+        result.maximumSize = Require<float>(object, "maximum_size", path);
+
+        RequirePositive(static_cast<float>(result.count), "count", path);
+        RequireNonNegative(result.minimumSpeed, "minimum_speed", path);
+        RequirePositive(result.maximumSpeed, "maximum_speed", path);
+        RequirePositive(result.minimumLifetime, "minimum_lifetime", path);
+        RequirePositive(result.maximumLifetime, "maximum_lifetime", path);
+        RequirePositive(result.minimumSize, "minimum_size", path);
+        RequirePositive(result.maximumSize, "maximum_size", path);
+        if (result.maximumSpeed < result.minimumSpeed ||
+            result.maximumLifetime < result.minimumLifetime ||
+            result.maximumSize < result.minimumSize)
+        {
+            throw std::runtime_error(
+                "Gameplay effect maximum values must not be below their minimums in " +
+                path.string());
+        }
+        return result;
+    }
+
+    GameplayData::CameraShakeConfig ReadCameraShake(
+        const Json& object,
+        const std::filesystem::path& path)
+    {
+        GameplayData::CameraShakeConfig result;
+        result.duration = Require<float>(object, "duration", path);
+        result.amplitude = Require<float>(object, "amplitude", path);
+        RequirePositive(result.duration, "duration", path);
+        RequireNonNegative(result.amplitude, "amplitude", path);
         return result;
     }
 }
@@ -127,6 +234,53 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
     player.damping = Require<float>(playerJson, "damping", playerPath);
     player.maximumSpeed = Require<float>(playerJson, "maximum_speed", playerPath);
     player.shootCooldown = Require<float>(playerJson, "shoot_cooldown", playerPath);
+    player.visualScale = Require<float>(playerJson, "visual_scale", playerPath);
+    player.collisionRadius = Require<float>(playerJson, "collision_radius", playerPath);
+	player.collisionCircles = ReadCollisionCircles(playerJson, playerPath);
+    try
+    {
+        const Json& emitters{ playerJson.at("engine_emitters") };
+        if (!emitters.is_array() || emitters.size() != player.engineEmitters.size())
+            throw std::runtime_error(
+                "Gameplay value 'engine_emitters' must contain exactly two points in " +
+                playerPath.string());
+
+        for (std::size_t i{ 0 }; i < player.engineEmitters.size(); ++i)
+        {
+            player.engineEmitters[i].x = Require<float>(emitters.at(i), "x", playerPath);
+            player.engineEmitters[i].y = Require<float>(emitters.at(i), "y", playerPath);
+            if (player.engineEmitters[i].x < 0.f || player.engineEmitters[i].x > 1.f ||
+                player.engineEmitters[i].y < 0.f || player.engineEmitters[i].y > 1.f)
+            {
+                throw std::runtime_error(
+                    "Engine emitter coordinates must be normalized to [0, 1] in " +
+                    playerPath.string());
+            }
+        }
+    }
+    catch (const Json::exception& exception)
+    {
+        throw std::runtime_error(
+            "Invalid engine emitters in " + playerPath.string() + ": " + exception.what());
+    }
+    try
+    {
+        const Json& muzzle{ playerJson.at("muzzle_emitter") };
+        player.muzzleEmitter.x = Require<float>(muzzle, "x", playerPath);
+        player.muzzleEmitter.y = Require<float>(muzzle, "y", playerPath);
+        if (player.muzzleEmitter.x < 0.f || player.muzzleEmitter.x > 1.f ||
+            player.muzzleEmitter.y < 0.f || player.muzzleEmitter.y > 1.f)
+        {
+            throw std::runtime_error(
+                "Muzzle emitter coordinates must be normalized to [0, 1] in " +
+                playerPath.string());
+        }
+    }
+    catch (const Json::exception& exception)
+    {
+        throw std::runtime_error(
+            "Invalid muzzle emitter in " + playerPath.string() + ": " + exception.what());
+    }
     hitFlashDuration = Require<float>(playerJson, "hit_flash_duration", playerPath);
 
     RequirePositive(static_cast<float>(player.maximumHealth), "maximum_health", playerPath);
@@ -138,13 +292,14 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
         throw std::runtime_error("Gameplay value 'damping' must be in (0, 1] in " + playerPath.string());
     RequirePositive(player.maximumSpeed, "maximum_speed", playerPath);
     RequirePositive(player.shootCooldown, "shoot_cooldown", playerPath);
+    RequirePositive(player.visualScale, "visual_scale", playerPath);
+    RequirePositive(player.collisionRadius, "collision_radius", playerPath);
     RequirePositive(hitFlashDuration, "hit_flash_duration", playerPath);
 
     const std::filesystem::path enemiesPath{ directory / "enemies.json" };
     const Json enemiesJson{ LoadJson(enemiesPath) };
-    const std::array<std::pair<const char*, EnemyKind>, 5> enemyNames{
+    const std::array<std::pair<const char*, EnemyKind>, 4> enemyNames{
         std::pair{ "big_meteor", EnemyKind::BigMeteor },
-        std::pair{ "medium_meteor", EnemyKind::MediumMeteor },
         std::pair{ "small_meteor", EnemyKind::SmallMeteor },
         std::pair{ "kamikaze", EnemyKind::Kamikaze },
         std::pair{ "shooter", EnemyKind::Shooter }
@@ -153,7 +308,19 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
     {
         try
         {
-            enemies[static_cast<std::size_t>(kind)] = ReadEnemy(enemiesJson.at(name), enemiesPath);
+			const Json& enemyJson{ enemiesJson.at(name) };
+			if (kind == EnemyKind::Kamikaze && !enemyJson.contains("rotation_speed"))
+				throw std::runtime_error(
+					"Enemy 'kamikaze' requires 'rotation_speed' in " + enemiesPath.string());
+			if (kind == EnemyKind::Shooter && !enemyJson.contains("weapon_emitters"))
+				throw std::runtime_error(
+					"Enemy 'shooter' requires 'weapon_emitters' in " + enemiesPath.string());
+			EnemyConfig config{ ReadEnemy(enemyJson, enemiesPath) };
+			if (kind == EnemyKind::Kamikaze)
+				RequirePositive(config.rotationSpeed, "rotation_speed", enemiesPath);
+			if (kind == EnemyKind::Shooter)
+				RequirePositive(config.actionInterval, "action_interval", enemiesPath);
+			enemies[static_cast<std::size_t>(kind)] = config;
         }
         catch (const Json::exception& exception)
         {
@@ -178,6 +345,27 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
             "Invalid projectile data in " + weaponsPath.string() + ": " + exception.what());
     }
 
+    const std::filesystem::path effectsPath{ directory / "effects.json" };
+    const Json effectsJson{ LoadJson(effectsPath) };
+    try
+    {
+        effects.stoneHit = ReadBurst(effectsJson.at("stone_hit"), effectsPath);
+        effects.metalHit = ReadBurst(effectsJson.at("metal_hit"), effectsPath);
+        effects.smallAsteroidExplosion = ReadBurst(
+            effectsJson.at("small_asteroid_explosion"), effectsPath);
+        effects.largeAsteroidExplosion = ReadBurst(
+            effectsJson.at("large_asteroid_explosion"), effectsPath);
+        effects.shipExplosion = ReadBurst(effectsJson.at("ship_explosion"), effectsPath);
+        effects.damageShake = ReadCameraShake(effectsJson.at("damage_shake"), effectsPath);
+        effects.largeExplosionShake = ReadCameraShake(
+            effectsJson.at("large_explosion_shake"), effectsPath);
+    }
+    catch (const Json::exception& exception)
+    {
+        throw std::runtime_error(
+            "Invalid visual effect data in " + effectsPath.string() + ": " + exception.what());
+    }
+
     const std::filesystem::path levelsPath{ directory / "levels.json" };
     const Json levelsJson{ LoadJson(levelsPath) };
     const Json* levelArray{ nullptr };
@@ -197,8 +385,11 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
     {
         LevelConfig level;
         level.number = Require<int>(levelJson, "number", levelsPath);
+        level.background = Require<std::string>(levelJson, "background", levelsPath);
         if (level.number != static_cast<int>(levels.size()) + 1)
             throw std::runtime_error("Gameplay levels must be sequential in " + levelsPath.string());
+        if (level.background.empty())
+            throw std::runtime_error("Level background cannot be empty in " + levelsPath.string());
 
         try
         {
@@ -269,4 +460,9 @@ int GameplayData::GetLevelCount() const noexcept
 float GameplayData::GetHitFlashDuration() const noexcept
 {
     return hitFlashDuration;
+}
+
+const GameplayData::EffectsConfig& GameplayData::GetEffects() const noexcept
+{
+    return effects;
 }

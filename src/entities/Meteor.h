@@ -16,7 +16,6 @@ public:
 	enum class Size
 	{
 		Small,
-		Medium,
 		Big
 	};
 

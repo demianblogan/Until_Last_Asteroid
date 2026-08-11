@@ -1,38 +1,16 @@
 #include "Collision.h"
 
-#include <algorithm>
 #include <cmath>
-#include <SFML/Graphics/Sprite.hpp>
-
-namespace
-{
-	struct CircleGeometry
-	{
-		sf::Vector2f center;
-		float radius;
-	};
-
-	CircleGeometry GetGeometry(const sf::Sprite& sprite)
-	{
-		const sf::Vector2f size(sprite.getTextureRect().size);
-		const sf::Vector2f scale{ sprite.getScale() };
-		return {
-			sprite.getTransform().transformPoint({ size.x * 0.5f, size.y * 0.5f }),
-			std::min(size.x * std::abs(scale.x), size.y * std::abs(scale.y)) * 0.5f
-		};
-	}
-}
 
 namespace Collision
 {
 	std::optional<CircleManifold> GetCircleManifold(
-		const sf::Sprite& first, const sf::Sprite& second)
+		const sf::Vector2f& firstCenter, float firstRadius,
+		const sf::Vector2f& secondCenter, float secondRadius)
 	{
-		const CircleGeometry a{ GetGeometry(first) };
-		const CircleGeometry b{ GetGeometry(second) };
-		const sf::Vector2f delta{ b.center - a.center };
+		const sf::Vector2f delta{ secondCenter - firstCenter };
 		const float distanceSquared{ delta.x * delta.x + delta.y * delta.y };
-		const float radiusSum{ a.radius + b.radius };
+		const float radiusSum{ firstRadius + secondRadius };
 		if (distanceSquared > radiusSum * radiusSum)
 			return std::nullopt;
 
@@ -43,8 +21,11 @@ namespace Collision
 		return CircleManifold{ delta / distance, radiusSum - distance };
 	}
 
-	bool Circle(const sf::Sprite& first, const sf::Sprite& second)
+	bool Circle(
+		const sf::Vector2f& firstCenter, float firstRadius,
+		const sf::Vector2f& secondCenter, float secondRadius)
 	{
-		return GetCircleManifold(first, second).has_value();
+		return GetCircleManifold(
+			firstCenter, firstRadius, secondCenter, secondRadius).has_value();
 	}
 }

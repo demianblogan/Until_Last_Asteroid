@@ -8,6 +8,8 @@
 #include "core/World.h"
 #include "game/GameplayData.h"
 #include "game/GameplaySession.h"
+#include "rendering/GameplayBackground.h"
+#include "rendering/GameplayEffects.h"
 #include "states/State.h"
 #include "systems/ActionMap.h"
 #include "systems/InputHandler.h"
@@ -55,6 +57,8 @@ private:
 	GameplaySession session;
 	ActionMap<Config::PlayerAction> actions;
 	InputHandler<Config::PlayerAction> input;
+	GameplayBackground background;
+	GameplayEffects effects;
 	World world;
 	GlowingCursor crosshair;
 	std::optional<HUD> hud;

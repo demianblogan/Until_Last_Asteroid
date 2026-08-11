@@ -3,15 +3,23 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <string>
 #include <vector>
+
+#include "systems/Collision.h"
 
 class GameplayData
 {
 public:
+	struct NormalizedPoint
+	{
+		float x{ 0.f };
+		float y{ 0.f };
+	};
+
     enum class EnemyKind
     {
         BigMeteor,
-        MediumMeteor,
         SmallMeteor,
         Kamikaze,
         Shooter,
@@ -35,6 +43,11 @@ public:
         float damping{ 0.98f };
         float maximumSpeed{ 600.f };
         float shootCooldown{ 0.2f };
+        float visualScale{ 1.f };
+		float collisionRadius{ 37.5f };
+		std::vector<Collision::LocalCircle> collisionCircles;
+		std::array<NormalizedPoint, 2> engineEmitters{};
+		NormalizedPoint muzzleEmitter{};
     };
 
     struct EnemyConfig
@@ -47,6 +60,11 @@ public:
         float actionInterval{ 0.f };
         float fragmentSpeed{ 0.f };
         float soundPitch{ 1.f };
+        float visualScale{ 1.f };
+        float collisionRadius{ 1.f };
+		std::vector<Collision::LocalCircle> collisionCircles;
+		float rotationSpeed{ 0.f };
+		std::array<NormalizedPoint, 2> weaponEmitters{};
     };
 
     struct ProjectileConfig
@@ -54,6 +72,8 @@ public:
         int damage{ 1 };
         float speed{ 0.f };
         float knockback{ 0.f };
+        float visualScale{ 1.f };
+        float collisionRadius{ 1.f };
     };
 
     struct SpawnGroup
@@ -72,8 +92,37 @@ public:
     struct LevelConfig
     {
         int number{ 1 };
+        std::string background;
         std::vector<SpawnGroup> initialSpawns;
         std::vector<WaveConfig> waves;
+    };
+
+    struct BurstConfig
+    {
+        int count{ 1 };
+        float minimumSpeed{ 0.f };
+        float maximumSpeed{ 1.f };
+        float minimumLifetime{ 0.1f };
+        float maximumLifetime{ 0.2f };
+        float minimumSize{ 1.f };
+        float maximumSize{ 2.f };
+    };
+
+    struct CameraShakeConfig
+    {
+        float duration{ 0.1f };
+        float amplitude{ 1.f };
+    };
+
+    struct EffectsConfig
+    {
+        BurstConfig stoneHit;
+        BurstConfig metalHit;
+        BurstConfig smallAsteroidExplosion;
+        BurstConfig largeAsteroidExplosion;
+        BurstConfig shipExplosion;
+        CameraShakeConfig damageShake;
+        CameraShakeConfig largeExplosionShake;
     };
 
     explicit GameplayData(const std::filesystem::path& directory);
@@ -84,6 +133,7 @@ public:
     [[nodiscard]] const LevelConfig& GetLevel(int number) const;
     [[nodiscard]] int GetLevelCount() const noexcept;
     [[nodiscard]] float GetHitFlashDuration() const noexcept;
+    [[nodiscard]] const EffectsConfig& GetEffects() const noexcept;
 
 private:
     PlayerConfig player;
@@ -91,4 +141,5 @@ private:
     std::array<ProjectileConfig, static_cast<std::size_t>(ProjectileKind::Count)> projectiles;
     std::vector<LevelConfig> levels;
     float hitFlashDuration{ 0.1f };
+    EffectsConfig effects;
 };

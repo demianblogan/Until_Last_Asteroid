@@ -5,6 +5,8 @@
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <span>
+#include <vector>
 #include "systems/Collision.h"
 
 namespace sf
@@ -29,7 +31,9 @@ public:
 		Asteroid
 	};
 
-	Entity(AssetStore& assets, World& world, sf::Texture& texture);
+	Entity(AssetStore& assets, World& world, sf::Texture& texture,
+		float visualScale, float collisionRadius,
+		std::span<const Collision::LocalCircle> collisionCircles = {});
 
 	Entity(const Entity&) = delete;
 	Entity& operator=(const Entity&) = delete;
@@ -51,11 +55,13 @@ public:
 	void Destroy() noexcept;
 
 	[[nodiscard]] const sf::Sprite& GetSprite() const noexcept;
+	[[nodiscard]] float GetCollisionRadius() const noexcept;
 	virtual Type GetType() const noexcept = 0;
 
 protected:
 	[[nodiscard]] World& GetWorld() noexcept;
 	[[nodiscard]] AssetStore& GetAssets() noexcept;
+	[[nodiscard]] const AssetStore& GetAssets() const noexcept;
 
 	void SetRotation(sf::Angle angle) noexcept;
 	[[nodiscard]] sf::Angle GetRotation() const noexcept;
@@ -84,8 +90,14 @@ private:
 	bool isVisible{ true };
 	float hitFlashRemaining{ 0.f };
 	float hitFlashDuration{ 0.f };
+	float collisionRadius{ 0.f };
+	std::vector<Collision::LocalCircle> collisionCircles;
 
 private:
+	[[nodiscard]] sf::Vector2f GetCollisionCircleCenter(
+		const Collision::LocalCircle& circle) const noexcept;
+	[[nodiscard]] std::optional<Collision::CircleManifold> GetCollisionManifold(
+		const Entity& other) const noexcept;
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 	void UpdateEffects(float deltaTime) noexcept;
 

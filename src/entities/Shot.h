@@ -14,8 +14,10 @@ namespace sf
 class Shot : public Entity
 {
 public:
+	enum class VisualKind { Player, Enemy };
+
 	Shot(AssetStore& assets, World& world, sf::Texture& texture,
-		const GameplayData::ProjectileConfig& config);
+		const GameplayData::ProjectileConfig& config, VisualKind visualKind);
 
 	void Update(float deltaTime) override;
 	[[nodiscard]] int GetDamage() const noexcept;
@@ -28,6 +30,7 @@ private:
 	float speed{ 0.f };
 	int damage{ 0 };
 	float knockback{ 0.f };
+	VisualKind visualKind;
 };
 
 class PlayerShot final : public Shot
@@ -42,7 +45,7 @@ class SaucerShot final : public Shot
 {
 public:
 	SaucerShot(AssetStore& assets, World& world, const sf::Vector2f& position,
-		const sf::Vector2f& targetPosition, int currentScore);
+		const sf::Vector2f& targetPosition);
 	Type GetType() const noexcept override;
 	bool IsCollideWith(const Entity& other) const override;
 };

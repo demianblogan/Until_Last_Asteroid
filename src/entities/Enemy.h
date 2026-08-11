@@ -31,6 +31,9 @@ protected:
 	[[nodiscard]] float GetMovementSpeed() const noexcept;
 	[[nodiscard]] float GetActionInterval() const noexcept;
 	[[nodiscard]] float GetFragmentSpeed() const noexcept;
+	[[nodiscard]] float GetRotationSpeed() const noexcept;
+	[[nodiscard]] const std::array<GameplayData::NormalizedPoint, 2>&
+		GetWeaponEmitters() const noexcept;
 
 private:
 	Health health;
@@ -41,4 +44,6 @@ private:
 	float actionInterval{ 0.f };
 	float fragmentSpeed{ 0.f };
 	float soundPitch{ 1.f };
+	float rotationSpeed{ 0.f };
+	std::array<GameplayData::NormalizedPoint, 2> weaponEmitters{};
 };

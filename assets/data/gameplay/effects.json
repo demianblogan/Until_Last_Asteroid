@@ -1,0 +1,55 @@
+{
+  "stone_hit": {
+    "count": 12,
+    "minimum_speed": 70.0,
+    "maximum_speed": 220.0,
+    "minimum_lifetime": 0.18,
+    "maximum_lifetime": 0.42,
+    "minimum_size": 3.0,
+    "maximum_size": 7.0
+  },
+  "metal_hit": {
+    "count": 16,
+    "minimum_speed": 110.0,
+    "maximum_speed": 330.0,
+    "minimum_lifetime": 0.12,
+    "maximum_lifetime": 0.32,
+    "minimum_size": 2.0,
+    "maximum_size": 5.0
+  },
+  "small_asteroid_explosion": {
+    "count": 20,
+    "minimum_speed": 80.0,
+    "maximum_speed": 260.0,
+    "minimum_lifetime": 0.35,
+    "maximum_lifetime": 0.75,
+    "minimum_size": 5.0,
+    "maximum_size": 13.0
+  },
+  "large_asteroid_explosion": {
+    "count": 38,
+    "minimum_speed": 100.0,
+    "maximum_speed": 390.0,
+    "minimum_lifetime": 0.45,
+    "maximum_lifetime": 1.05,
+    "minimum_size": 7.0,
+    "maximum_size": 20.0
+  },
+  "ship_explosion": {
+    "count": 42,
+    "minimum_speed": 120.0,
+    "maximum_speed": 460.0,
+    "minimum_lifetime": 0.28,
+    "maximum_lifetime": 0.9,
+    "minimum_size": 4.0,
+    "maximum_size": 15.0
+  },
+  "damage_shake": {
+    "duration": 0.16,
+    "amplitude": 4.0
+  },
+  "large_explosion_shake": {
+    "duration": 0.32,
+    "amplitude": 8.0
+  }
+}

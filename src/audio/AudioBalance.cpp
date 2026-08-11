@@ -23,12 +23,12 @@ namespace
         "item_press",
         "player_normal_shot",
         "enemy_shot",
-        "saucer_kamikaze_spawn",
-        "saucer_shooter_spawn",
         "ship_explosion",
         "asteroid_explosion",
+        "bullet_hit_asteroid",
         "hit_asteroid",
-        "hit_enemy_saucer"
+        "hit_enemy_saucer",
+        "metal_hit"
     };
 
     template <std::size_t Size>

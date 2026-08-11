@@ -7,27 +7,21 @@
     "collision_impulse": 560.0,
     "action_interval": 0.0,
     "fragment_speed": 150.0,
-    "sound_pitch": 0.82
+    "sound_pitch": 0.82,
+    "visual_scale": 0.46,
+    "collision_radius": 45.0
   },
-  "medium_meteor": {
+  "small_meteor": {
     "maximum_health": 30,
     "contact_damage": 15,
     "score": 50,
     "speed": 200.0,
     "collision_impulse": 460.0,
     "action_interval": 0.0,
-    "fragment_speed": 150.0,
-    "sound_pitch": 1.0
-  },
-  "small_meteor": {
-    "maximum_health": 10,
-    "contact_damage": 10,
-    "score": 10,
-    "speed": 300.0,
-    "collision_impulse": 360.0,
-    "action_interval": 0.0,
     "fragment_speed": 0.0,
-    "sound_pitch": 1.22
+    "sound_pitch": 1.0,
+    "visual_scale": 0.38,
+    "collision_radius": 20.0
   },
   "kamikaze": {
     "maximum_health": 20,
@@ -37,7 +31,10 @@
     "collision_impulse": 650.0,
     "action_interval": 0.0,
     "fragment_speed": 0.0,
-    "sound_pitch": 1.0
+    "sound_pitch": 1.0,
+    "visual_scale": 0.46,
+    "collision_radius": 45.0,
+    "rotation_speed": 180.0
   },
   "shooter": {
     "maximum_health": 30,
@@ -45,8 +42,19 @@
     "score": 250,
     "speed": 200.0,
     "collision_impulse": 440.0,
-    "action_interval": 1.5,
+    "action_interval": 1.0,
     "fragment_speed": 0.0,
-    "sound_pitch": 1.0
+    "sound_pitch": 1.0,
+    "visual_scale": 0.6,
+    "collision_radius": 42.0,
+    "collision_circles": [
+      { "x": -42.0, "y": 0.0, "radius": 25.0 },
+      { "x": 0.0, "y": 0.0, "radius": 30.0 },
+      { "x": 42.0, "y": 0.0, "radius": 25.0 }
+    ],
+    "weapon_emitters": [
+      { "x": 0.36, "y": 0.30 },
+      { "x": 0.64, "y": 0.30 }
+    ]
   }
 }

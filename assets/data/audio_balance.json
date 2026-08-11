@@ -11,11 +11,11 @@
         "item_press": 60.0,
         "player_normal_shot": 50.0,
         "enemy_shot": 100.0,
-        "saucer_kamikaze_spawn": 100.0,
-        "saucer_shooter_spawn": 100.0,
         "ship_explosion": 100.0,
         "asteroid_explosion": 100.0,
+        "bullet_hit_asteroid": 100.0,
         "hit_asteroid": 100.0,
-        "hit_enemy_saucer": 100.0
+        "hit_enemy_saucer": 100.0,
+        "metal_hit": 100.0
     }
 }

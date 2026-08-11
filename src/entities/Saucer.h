@@ -32,7 +32,10 @@ private:
 
 	void UpdateMovement(float deltaTime, const sf::Vector2f& target);
 	void Shoot(const sf::Vector2f& playerPosition);
+	[[nodiscard]] sf::Vector2f GetWeaponEmitterPosition(std::size_t index) const;
 
 	Mode mode;
 	float shootTimer{ 0.f };
+	float spinDirection{ 1.f };
+	std::size_t nextWeaponEmitter{ 0 };
 };
