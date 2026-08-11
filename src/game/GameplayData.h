@@ -91,8 +91,19 @@ public:
 
     struct LevelConfig
     {
+        struct PostProcessConfig
+        {
+            std::array<float, 3> tint{ 1.f, 1.f, 1.f };
+            float saturation{ 1.f };
+            float contrast{ 1.f };
+            float bloomIntensity{ 1.f };
+            float vignetteStrength{ 0.22f };
+        };
+
         int number{ 1 };
         std::string background;
+        float backgroundBrightness{ 1.f };
+        PostProcessConfig postProcess;
         std::vector<SpawnGroup> initialSpawns;
         std::vector<WaveConfig> waves;
     };

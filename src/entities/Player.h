@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 
 #include "core/Entity.h"
 #include "systems/InputHandler.h"
@@ -8,6 +9,7 @@
 
 class AssetStore;
 class World;
+class GamepadManager;
 
 namespace sf
 {
@@ -17,7 +19,8 @@ namespace sf
 class Player final : public Entity
 {
 public:
-	Player(AssetStore& assets, World& world, InputHandler<Config::PlayerAction>& input);
+	Player(AssetStore& assets, World& world, InputHandler<Config::PlayerAction>& input,
+		GamepadManager& gamepad);
 	~Player();
 
 	Type GetType() const noexcept override;
@@ -33,6 +36,7 @@ public:
 	[[nodiscard]] std::array<sf::Vector2f, 2> GetEngineEmitterPositions() const;
 	[[nodiscard]] sf::Vector2f GetMuzzlePosition() const;
 	[[nodiscard]] sf::Vector2f GetExhaustDirection() const noexcept;
+	[[nodiscard]] std::optional<sf::Vector2f> GetGamepadAimPoint() const;
 
 private:
 	void BindInput();
@@ -42,8 +46,11 @@ private:
 	void UpdateInvulnerability(float dt);
 
 	InputHandler<Config::PlayerAction>& input;
+	GamepadManager& gamepad;
 	sf::Vector2f moveInput{ 0.f, 0.f };
+	sf::Vector2f gamepadAimDirection{ 0.f, -1.f };
 	float shootTimer{ 0.f };
 	float invulnerabilityTimer{ 0.f };
 	bool isThrusting{ false };
+	bool aimingWithGamepad{ false };
 };

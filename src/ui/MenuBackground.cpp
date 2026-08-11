@@ -9,6 +9,7 @@
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/Shader.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Angle.hpp>
 
@@ -29,6 +30,8 @@ MenuBackground::DecorativeAsteroid::DecorativeAsteroid(const sf::Texture& textur
 
 MenuBackground::MenuBackground(AssetStore& assets, sf::Vector2f size)
     : background(assets.Textures().Get(Config::Texture::MainMenuBackground))
+    , vignette(size)
+    , vignetteShader(assets.GetShader(Config::Shader::MenuVignette))
     , logicalSize(size)
 {
     const sf::Vector2u textureSize{ background.getTexture().getSize() };
@@ -42,6 +45,11 @@ MenuBackground::MenuBackground(AssetStore& assets, sf::Vector2f size)
     });
     background.setScale({ scale, scale });
     background.setPosition(logicalSize * 0.5f);
+
+    vignette.setPosition({ 0.f, 0.f });
+    vignette.setFillColor(sf::Color::White);
+    vignetteShader.setUniform("aspectRatio", logicalSize.x / logicalSize.y);
+    vignetteShader.setUniform("strength", 0.36f);
 
     InitializeStars();
     InitializeAsteroids(assets);
@@ -115,6 +123,20 @@ void MenuBackground::Draw(sf::RenderTarget& target) const
         states.transform.translate(currentParallax * asteroid.depth);
         target.draw(asteroid.sprite, states);
     }
+
+    sf::RenderStates vignetteStates;
+    const sf::IntRect viewport{ target.getViewport(target.getView()) };
+    const sf::Vector2u targetSize{ target.getSize() };
+    const float viewportBottom{
+        static_cast<float>(targetSize.y) -
+        static_cast<float>(viewport.position.y + viewport.size.y) };
+    vignetteShader.setUniform("viewportOrigin", sf::Glsl::Vec2(
+        static_cast<float>(viewport.position.x), viewportBottom));
+    vignetteShader.setUniform("viewportSize", sf::Glsl::Vec2(
+        static_cast<float>(std::max(1, viewport.size.x)),
+        static_cast<float>(std::max(1, viewport.size.y))));
+    vignetteStates.shader = &vignetteShader;
+    target.draw(vignette, vignetteStates);
 }
 
 void MenuBackground::InitializeStars()

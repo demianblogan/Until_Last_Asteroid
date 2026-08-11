@@ -28,7 +28,8 @@ namespace
         "bullet_hit_asteroid",
         "hit_asteroid",
         "hit_enemy_saucer",
-        "metal_hit"
+        "metal_hit",
+        "game_over"
     };
 
     template <std::size_t Size>

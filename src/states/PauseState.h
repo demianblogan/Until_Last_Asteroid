@@ -12,6 +12,7 @@
 #include "ui/GlowingCursor.h"
 #include "ui/MenuButton.h"
 #include "ui/NeonGlow.h"
+#include "ui/ScreenFade.h"
 
 namespace sf { class Shader; }
 
@@ -45,7 +46,9 @@ private:
     sf::Text title;
     NeonGlow neonGlow;
     GlowingCursor menuCursor;
+    ScreenFade screenFade;
     std::vector<MenuButton> buttons;
+    sf::Vector2u capturedWindowSize{};
     std::size_t selectedIndex{ 0 };
     std::size_t pendingActivation{ 0 };
     float activationDelayRemaining{ 0.f };

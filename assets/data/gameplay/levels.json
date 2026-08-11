@@ -3,6 +3,14 @@
     {
       "number": 1,
       "background": "level_01_blue_nebula",
+      "background_brightness": 0.52,
+      "post_process": {
+        "tint": [0.96, 1.02, 1.08],
+        "saturation": 1.06,
+        "contrast": 1.05,
+        "bloom_intensity": 0.82,
+        "vignette_strength": 0.34
+      },
       "initial_spawns": [
         { "type": "big_meteor", "count": 3 },
         { "type": "kamikaze", "count": 1 },
@@ -13,6 +21,14 @@
     {
       "number": 2,
       "background": "level_02_violet_clouds",
+      "background_brightness": 0.70,
+      "post_process": {
+        "tint": [1.03, 0.96, 1.10],
+        "saturation": 1.08,
+        "contrast": 1.06,
+        "bloom_intensity": 0.78,
+        "vignette_strength": 0.35
+      },
       "initial_spawns": [
         { "type": "big_meteor", "count": 2 }
       ],
@@ -23,6 +39,14 @@
     {
       "number": 3,
       "background": "level_03_asteroid_belt",
+      "background_brightness": 0.65,
+      "post_process": {
+        "tint": [1.05, 1.00, 0.92],
+        "saturation": 1.04,
+        "contrast": 1.05,
+        "bloom_intensity": 0.62,
+        "vignette_strength": 0.32
+      },
       "initial_spawns": [
         { "type": "big_meteor", "count": 3 }
       ],
@@ -33,6 +57,14 @@
     {
       "number": 4,
       "background": "level_04_red_storm",
+      "background_brightness": 0.74,
+      "post_process": {
+        "tint": [1.10, 0.94, 0.90],
+        "saturation": 1.10,
+        "contrast": 1.07,
+        "bloom_intensity": 0.72,
+        "vignette_strength": 0.38
+      },
       "initial_spawns": [
         { "type": "big_meteor", "count": 4 }
       ],
@@ -43,6 +75,14 @@
     {
       "number": 5,
       "background": "level_05_deep_void",
+      "background_brightness": 0.70,
+      "post_process": {
+        "tint": [0.94, 1.00, 1.08],
+        "saturation": 0.98,
+        "contrast": 1.08,
+        "bloom_intensity": 0.80,
+        "vignette_strength": 0.39
+      },
       "initial_spawns": [
         { "type": "big_meteor", "count": 5 },
         { "type": "shooter", "count": 3 }

@@ -122,7 +122,8 @@ namespace
                     { "windowMode", ToString(settings.graphics.windowMode) },
                     { "showFps", settings.graphics.showFps },
                     { "verticalSynchronization", settings.graphics.verticalSync },
-                    { "frameRateLimit", settings.graphics.frameRateLimit }
+                    { "frameRateLimit", settings.graphics.frameRateLimit },
+                    { "postEffects", settings.graphics.postEffects }
                 }
             },
             {
@@ -130,6 +131,13 @@ namespace
                 {
                     { "musicMaster", settings.audio.musicVolume },
                     { "soundsMaster", settings.audio.soundVolume }
+                }
+            },
+            {
+                "gameplay",
+                {
+                    { "screenShake", settings.gameplay.screenShake },
+                    { "showScorePopups", settings.gameplay.showScorePopups }
                 }
             },
             {
@@ -165,12 +173,29 @@ namespace
                 *graphics,
                 "verticalSynchronization",
                 result.graphics.verticalSync);
+            result.graphics.postEffects = ReadValue(
+                *graphics,
+                "postEffects",
+                result.graphics.postEffects);
 
             const unsigned int frameRateLimit{
                 ReadValue(*graphics, "frameRateLimit", result.graphics.frameRateLimit)
             };
             if (std::ranges::find(SupportedFrameRateLimits, frameRateLimit) != SupportedFrameRateLimits.end())
                 result.graphics.frameRateLimit = frameRateLimit;
+        }
+
+        if (const auto gameplay{ data.find("gameplay") };
+            gameplay != data.end() && gameplay->is_object())
+        {
+            result.gameplay.screenShake = ReadValue(
+                *gameplay,
+                "screenShake",
+                result.gameplay.screenShake);
+            result.gameplay.showScorePopups = ReadValue(
+                *gameplay,
+                "showScorePopups",
+                result.gameplay.showScorePopups);
         }
 
         if (const auto audio{ data.find("audio") };

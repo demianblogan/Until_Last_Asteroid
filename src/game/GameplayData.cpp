@@ -220,6 +220,35 @@ namespace
         RequireNonNegative(result.amplitude, "amplitude", path);
         return result;
     }
+
+    GameplayData::LevelConfig::PostProcessConfig ReadPostProcess(
+        const Json& object,
+        const std::filesystem::path& path)
+    {
+        GameplayData::LevelConfig::PostProcessConfig result;
+        const Json& tint{ object.at("tint") };
+        if (!tint.is_array() || tint.size() != result.tint.size())
+            throw std::runtime_error(
+                "Gameplay value 'tint' must contain exactly three values in " + path.string());
+        for (std::size_t index{ 0u }; index < result.tint.size(); ++index)
+            result.tint[index] = tint.at(index).get<float>();
+
+        result.saturation = Require<float>(object, "saturation", path);
+        result.contrast = Require<float>(object, "contrast", path);
+        result.bloomIntensity = Require<float>(object, "bloom_intensity", path);
+        result.vignetteStrength = Require<float>(object, "vignette_strength", path);
+
+        for (float channel : result.tint)
+            RequirePositive(channel, "tint", path);
+        RequirePositive(result.saturation, "saturation", path);
+        RequirePositive(result.contrast, "contrast", path);
+        RequireNonNegative(result.bloomIntensity, "bloom_intensity", path);
+        RequireNonNegative(result.vignetteStrength, "vignette_strength", path);
+        if (result.vignetteStrength > 1.f)
+            throw std::runtime_error(
+                "Post-process vignette is outside its safe range in " + path.string());
+        return result;
+    }
 }
 
 GameplayData::GameplayData(const std::filesystem::path& directory)
@@ -386,6 +415,22 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
         LevelConfig level;
         level.number = Require<int>(levelJson, "number", levelsPath);
         level.background = Require<std::string>(levelJson, "background", levelsPath);
+        level.backgroundBrightness = Require<float>(
+            levelJson, "background_brightness", levelsPath);
+        RequirePositive(level.backgroundBrightness, "background_brightness", levelsPath);
+        if (level.backgroundBrightness > 1.f)
+            throw std::runtime_error(
+                "Level background brightness must not exceed 1 in " + levelsPath.string());
+        try
+        {
+            level.postProcess = ReadPostProcess(levelJson.at("post_process"), levelsPath);
+        }
+        catch (const Json::exception& exception)
+        {
+            throw std::runtime_error(
+                "Invalid post-process settings for level " + std::to_string(level.number) +
+                " in " + levelsPath.string() + ": " + exception.what());
+        }
         if (level.number != static_cast<int>(levels.size()) + 1)
             throw std::runtime_error("Gameplay levels must be sequential in " + levelsPath.string());
         if (level.background.empty())

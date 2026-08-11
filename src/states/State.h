@@ -8,6 +8,7 @@ class AssetStore;
 class AudioManager;
 class DisplayManager;
 class SettingsManager;
+class GamepadManager;
 class StateStack;
 
 namespace sf
@@ -24,6 +25,8 @@ struct StateContext
     AudioManager& audio;
     DisplayManager& display;
     sf::Vector2f logicalSize;
+    bool& mainMenuIntroPlayed;
+    GamepadManager& gamepad;
 };
 
 class State

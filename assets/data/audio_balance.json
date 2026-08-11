@@ -16,6 +16,7 @@
         "bullet_hit_asteroid": 100.0,
         "hit_asteroid": 100.0,
         "hit_enemy_saucer": 100.0,
-        "metal_hit": 100.0
+        "metal_hit": 50.0,
+        "game_over": 100.0
     }
 }

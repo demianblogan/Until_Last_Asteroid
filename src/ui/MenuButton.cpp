@@ -51,6 +51,7 @@ void MenuButton::SetSelected(bool isSelected)
 void MenuButton::SetLabel(std::string_view text)
 {
     label.setString(std::string(text));
+    CenterLabel();
 }
 
 void MenuButton::SetFrameOpacity(float opacity)

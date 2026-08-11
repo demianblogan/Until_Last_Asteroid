@@ -105,6 +105,18 @@ void AudioManager::ResumeSounds(SoundGroup group)
     }
 }
 
+void AudioManager::StopSounds(SoundGroup group)
+{
+    std::erase_if(activeSounds, [group](const auto& activeSound)
+        {
+            if (activeSound->group != group)
+                return false;
+
+            activeSound->sound.stop();
+            return true;
+        });
+}
+
 void AudioManager::PlayMusic(Config::Music id, bool looping, float baseVolume)
 {
     sf::Music& music{ assets.Music().Get(id) };

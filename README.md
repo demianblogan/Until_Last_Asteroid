@@ -35,6 +35,9 @@ Default controls (all bindings can be changed in Options):
 | Shoot        | Left Mouse Button |
 | Pause        | ESC               |
 
+Xbox and PlayStation-style controllers are also supported with twin-stick
+movement and aiming, trigger shooting, and D-pad menu navigation.
+
 ---
 
 ## 🧠 Game Features
@@ -51,12 +54,18 @@ Default controls (all bindings can be changed in Options):
 - High-resolution player, enemy, asteroid, and projectile artwork
 - Batched particles for engines, hits, explosions, smoke, sparks, and debris
 - Projectile glow, hit flashes, camera shake, and compound ship colliders
+- Configurable gameplay post-processing with bloom, color grading, vignette,
+  damage feedback, and explosion distortion
+- Animated score HUD, optional score popups, and polished Game Over, level
+  completion, and victory screens
 - Skippable company splash screen
 - Animated sci-fi main menu
 - Pause menu with Resume and Back to Main Menu
 - Persistent Graphics, Audio, and Controls settings
 - Fullscreen, Windowed, and Borderless display modes
 - Rebindable keyboard and mouse controls
+- Xbox and DualSense controller layouts with automatic input switching
+- Gameplay options for screen shake and score popups
 - Bloom-highlighted UI, menu cursor, and gameplay crosshair
 
 ---

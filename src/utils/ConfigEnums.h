@@ -23,6 +23,23 @@ namespace Config
 		PlayerLife,
 		HealthBarFrame,
 		HealthBarFill,
+		ScorePanelFrame,
+		GameOverTitleFrame,
+		ResultTitleFrame,
+		XboxLeftStick,
+		XboxRightStick,
+		XboxRightTrigger,
+		XboxDpad,
+		XboxConfirm,
+		XboxBack,
+		XboxMenu,
+		PlayStationLeftStick,
+		PlayStationRightStick,
+		PlayStationRightTrigger,
+		PlayStationDpad,
+		PlayStationConfirm,
+		PlayStationBack,
+		PlayStationOptions,
 
 		BigEnemySaucer,
 		SmallEnemySaucer,
@@ -64,6 +81,7 @@ namespace Config
 		HitAsteroid,
 		HitEnemySaucer,
 		MetalHit,
+		GameOver,
 
 		Count
 	};
@@ -81,7 +99,10 @@ namespace Config
 	{
 		GaussianBlur,
 		BrightPass,
-		HitFlash
+		HitFlash,
+		SceneBrightPass,
+		SceneComposite,
+		MenuVignette
 	};
 
 	enum class Cursor

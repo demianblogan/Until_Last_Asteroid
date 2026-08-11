@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/System/Vector2.hpp>
 
@@ -11,6 +12,7 @@ class AssetStore;
 namespace sf
 {
     class RenderTarget;
+    class Shader;
     class Texture;
 }
 
@@ -45,6 +47,8 @@ private:
     void InitializeAsteroids(AssetStore& assets);
 
     sf::Sprite background;
+    sf::RectangleShape vignette;
+    sf::Shader& vignetteShader;
     sf::Vector2f logicalSize;
     sf::Vector2f targetParallax;
     sf::Vector2f currentParallax;

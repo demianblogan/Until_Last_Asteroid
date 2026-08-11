@@ -36,7 +36,15 @@ void GlowingCursor::Draw(sf::RenderWindow& window)
         return;
     }
 
-    sprite.setPosition(window.mapPixelToCoords(pixelPosition));
+    DrawAt(window, window.mapPixelToCoords(pixelPosition));
+}
+
+void GlowingCursor::DrawAt(sf::RenderWindow& window, sf::Vector2f position)
+{
+    if (!window.hasFocus())
+        return;
+
+    sprite.setPosition(position);
     const sf::FloatRect bounds{ sprite.getGlobalBounds() };
     glow.DrawBloom(
         window,

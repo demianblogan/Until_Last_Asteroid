@@ -18,6 +18,7 @@ struct GraphicsSettings
     bool showFps{ false };
     bool verticalSync{ true };
     unsigned int frameRateLimit{ 0u };
+    bool postEffects{ true };
 };
 
 struct AudioSettings
@@ -47,11 +48,18 @@ struct ControlSettings
     ControlBinding fire{ InputDevice::Mouse, static_cast<int>(sf::Mouse::Button::Left) };
 };
 
+struct GameplaySettings
+{
+    bool screenShake{ true };
+    bool showScorePopups{ true };
+};
+
 struct GameSettings
 {
-    static constexpr int FORMAT_VERSION{ 1 };
+    static constexpr int FORMAT_VERSION{ 3 };
 
     GraphicsSettings graphics;
     AudioSettings audio;
+    GameplaySettings gameplay;
     ControlSettings controls;
 };

@@ -12,6 +12,7 @@
 #include "app/DisplayManager.h"
 #include "settings/SettingsManager.h"
 #include "states/StateStack.h"
+#include "systems/GamepadManager.h"
 
 class Application
 {
@@ -36,6 +37,8 @@ private:
     AssetStore assets;
     AudioManager audio;
     DisplayManager display;
+    bool mainMenuIntroPlayed{ false };
+    GamepadManager gamepad;
     StateStack stateStack;
     std::optional<sf::Text> fpsText;
     float fpsElapsed{ 0.f };

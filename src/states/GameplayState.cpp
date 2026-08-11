@@ -10,11 +10,14 @@
 #include "entities/Meteor.h"
 #include "entities/Saucer.h"
 #include "settings/SettingsManager.h"
+#include "systems/GamepadManager.h"
 #include "utils/Random.h"
 
 namespace
 {
 	constexpr sf::Color CrosshairGlowColor{ 25, 220, 255 };
+	constexpr float GameplayFadeInDuration{ 0.45f };
+	constexpr float GameplayFadeOutDuration{ 0.38f };
 }
 
 GameplayState::GameplayState(StateStack& stateStack, StateContext context)
@@ -22,20 +25,24 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	, gameplayData(context.assets.GetGameplayData())
 	, input(actions)
 	, background(context.assets, context.logicalSize)
-	, effects(gameplayData.GetEffects())
+	, effects(gameplayData.GetEffects(), context.assets)
+	, postProcessor(context.assets, context.logicalSize)
 	, world(static_cast<unsigned int>(context.logicalSize.x),
 		static_cast<unsigned int>(context.logicalSize.y),
-		context.assets, context.audio, session)
+		context.assets, context.audio, session, context.gamepad)
 	, crosshair(context.assets, Config::Texture::GameplayCrosshair,
 		{ 32.f, 32.f }, CrosshairGlowColor)
+	, gameOverScreen(context.assets, context.audio, context.gamepad, context.logicalSize)
+	, resultScreen(context.assets, context.audio, context.gamepad, context.logicalSize)
+	, screenFade(context.logicalSize)
 {
 	world.SetWindow(context.window);
 	context.window.setMouseCursorVisible(false);
 	session.ConfigurePlayerHealth(gameplayData.GetPlayer().maximumHealth);
 	hud.emplace(context.assets, session);
 	SetupInput();
-	SetupUI();
 	Reset();
+	screenFade.StartFadeIn(GameplayFadeInDuration);
 	context.audio.PlayMusic(Config::Music::GameplayBackground1);
 }
 
@@ -66,35 +73,6 @@ void GameplayState::SetupInput()
 	addBinding(Fire, controls.fire);
 }
 
-void GameplayState::SetupUI()
-{
-	sf::Font& font{ GetContext().assets.Fonts().Get(Config::Font::GUI) };
-	exitHintText.emplace(font);
-	exitHintText->setString("ESC - Pause Menu");
-	exitHintText->setCharacterSize(25);
-	exitHintText->setPosition({ 20.f, 20.f });
-
-	sf::Text gameOver(font, "GAME OVER", 100);
-	CenterText(gameOver, GetContext().logicalSize.y * 0.4f);
-	sf::Text restart(font, "Press SPACE to restart", 50);
-	CenterText(restart, GetContext().logicalSize.y * 0.6f);
-	gameOverTexts = { gameOver, restart };
-
-	sf::Text levelComplete(font, "LEVEL 1 COMPLETE", 100);
-	CenterText(levelComplete, GetContext().logicalSize.y * 0.4f);
-	sf::Text next(font, "Press SPACE to continue", 50);
-	CenterText(next, GetContext().logicalSize.y * 0.6f);
-	levelCompleteTexts = { levelComplete, next };
-
-	sf::Text title(font, "YOU WIN!", 100);
-	CenterText(title, GetContext().logicalSize.y * 0.35f);
-	sf::Text score(font, "FINAL SCORE: 0", 50);
-	CenterText(score, GetContext().logicalSize.y * 0.5f);
-	sf::Text winRestart(font, "Press SPACE to restart", 40);
-	CenterText(winRestart, GetContext().logicalSize.y * 0.65f);
-	winTexts = { title, score, winRestart };
-}
-
 void GameplayState::HandleEvent(const sf::Event& event)
 {
 	if (event.is<sf::Event::FocusLost>() && session.IsPlaying())
@@ -103,27 +81,36 @@ void GameplayState::HandleEvent(const sf::Event& event)
 		return;
 	}
 
+	if (screenFade.IsActive())
+		return;
+
+	if (gameOverScreen.IsActive())
+	{
+		if (const auto action{ gameOverScreen.HandleEvent(event, GetContext().window) })
+			BeginGameOverTransition(*action);
+		return;
+	}
+	if (resultScreen.IsActive())
+	{
+		if (const auto action{ resultScreen.HandleEvent(event, GetContext().window) })
+			BeginResultTransition(*action);
+		return;
+	}
+
+	if (session.IsPlaying() && GetContext().gamepad.IsPausePressed(event))
+	{
+		OpenPauseMenu();
+		return;
+	}
+
 	if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
 	{
-		if (key->code == sf::Keyboard::Key::Escape)
+		if (key->code == sf::Keyboard::Key::Escape && session.IsPlaying())
 		{
 			OpenPauseMenu();
 			return;
 		}
 
-		if (key->code == sf::Keyboard::Key::Space)
-		{
-			if (session.IsGameOver() || session.IsWin())
-			{
-				Reset();
-				return;
-			}
-			if (session.IsLevelComplete())
-			{
-				NextLevel();
-				return;
-			}
-		}
 	}
 
 	if (session.IsPlaying())
@@ -132,7 +119,10 @@ void GameplayState::HandleEvent(const sf::Event& event)
 
 void GameplayState::HandleRealtime()
 {
-	ResumeGameplaySounds();
+	if (session.IsPlaying())
+		ResumeGameplaySounds();
+	if (screenFade.IsActive() || gameOverScreen.IsActive() || resultScreen.IsActive())
+		return;
 	if (session.IsPlaying())
 		world.HandlePlayerRealtime();
 }
@@ -157,24 +147,64 @@ void GameplayState::ResumeGameplaySounds()
 
 void GameplayState::Update(float dt)
 {
-	background.Update(dt);
-	crosshair.Update(dt);
-	if (session.IsWin() && winTexts.size() >= 2)
+	screenFade.Update(dt);
+	gameOverScreen.Update(dt);
+	resultScreen.Update(dt);
+
+	if (gameplayTransition != GameplayTransition::None)
 	{
-		winTexts[1].setString("Score: " + std::to_string(session.GetScore()));
-		CenterTextX(winTexts[1]);
+		if (!screenFade.IsActive())
+		{
+			const GameplayTransition completedTransition{ gameplayTransition };
+			gameplayTransition = GameplayTransition::None;
+			if (completedTransition == GameplayTransition::RestartLevel)
+			{
+				RestartCurrentLevel();
+				screenFade.StartFadeIn(GameplayFadeInDuration);
+			}
+			else if (completedTransition == GameplayTransition::NextLevel)
+			{
+				NextLevel();
+				screenFade.StartFadeIn(GameplayFadeInDuration);
+			}
+			else if (completedTransition == GameplayTransition::RestartGame)
+			{
+				Reset();
+				screenFade.StartFadeIn(GameplayFadeInDuration);
+			}
+			else if (completedTransition == GameplayTransition::MainMenu)
+			{
+				GetContext().audio.StopMusic(Config::Music::GameplayBackground1);
+				RequestClear();
+				RequestPush(StateId::MainMenu);
+			}
+		}
+		return;
 	}
 
+	if (!gameOverScreen.IsActive() && !resultScreen.IsActive())
+	{
+		background.Update(dt);
+		crosshair.Update(dt);
+	}
+	if (screenFade.IsActive())
+		return;
 	if (!session.IsPlaying())
 	{
-		effects.Update(dt, world);
+		effects.Update(dt, world,
+			GetContext().settings.Get().gameplay.screenShake,
+			GetContext().settings.Get().gameplay.showScorePopups);
 		return;
 	}
 
 	world.Update(dt);
-	effects.Update(dt, world);
+	effects.Update(dt, world,
+		GetContext().settings.Get().gameplay.screenShake,
+		GetContext().settings.Get().gameplay.showScorePopups);
 	if (hud)
 		hud->Update(dt);
+	if (session.IsGameOver() && !gameOverScreen.IsActive())
+		BeginGameOver();
 	if (!session.IsPlaying())
 		return;
 
@@ -202,13 +232,16 @@ void GameplayState::Update(float dt)
 	if (allWavesSpawned && world.IsCleared())
 	{
 		if (session.GetLevel() >= gameplayData.GetLevelCount())
+		{
 			session.SetWin();
+			resultScreen.Start(ResultScreen::Mode::Victory,
+				session.GetLevel(), session.GetScore());
+		}
 		else
 		{
 			session.SetLevelComplete();
-			levelCompleteTexts[0].setString("LEVEL " +
-				std::to_string(session.GetLevel()) + " COMPLETE");
-			CenterTextX(levelCompleteTexts[0]);
+			resultScreen.Start(ResultScreen::Mode::LevelComplete,
+				session.GetLevel(), session.GetScore());
 		}
 	}
 }
@@ -216,32 +249,49 @@ void GameplayState::Update(float dt)
 void GameplayState::Render()
 {
 	auto& window{ GetContext().window };
-	window.draw(background);
-
-	sf::RenderStates worldStates;
-	worldStates.transform.translate(effects.GetCameraOffset());
-	effects.DrawBehindEntities(window, worldStates);
-	window.draw(world, worldStates);
-	effects.DrawAboveEntities(window, worldStates);
+	if (GetContext().settings.Get().graphics.postEffects)
+	{
+		postProcessor.Render(
+			window,
+			gameplayData.GetLevel(session.GetLevel()).postProcess,
+			effects.GetPostProcessState(),
+			[this](sf::RenderTarget& target) { DrawScene(target); });
+	}
+	else
+	{
+		DrawScene(window);
+	}
 
 	if (session.IsPlaying())
 	{
 		if (hud) hud->Draw(window);
 	}
 	else if (session.IsGameOver())
-		for (const sf::Text& text : gameOverTexts) window.draw(text);
-	else if (session.IsLevelComplete())
-		for (const sf::Text& text : levelCompleteTexts) window.draw(text);
-	else if (session.IsWin())
-		for (const sf::Text& text : winTexts) window.draw(text);
+		gameOverScreen.Draw(window);
+	else if (resultScreen.IsActive())
+		resultScreen.Draw(window);
+}
 
-	if (!session.IsPlaying() && exitHintText)
-		window.draw(*exitHintText);
+void GameplayState::DrawScene(sf::RenderTarget& target)
+{
+	target.draw(background);
+
+	sf::RenderStates worldStates;
+	worldStates.transform.translate(effects.GetCameraOffset());
+	effects.DrawBehindEntities(target, worldStates);
+	target.draw(world, worldStates);
+	effects.DrawAboveEntities(target, worldStates);
 }
 
 void GameplayState::RenderOverlay()
 {
-	crosshair.Draw(GetContext().window);
+	if (gameOverScreen.IsActive())
+		gameOverScreen.DrawCursor(GetContext().window);
+	else if (resultScreen.IsActive())
+		resultScreen.DrawCursor(GetContext().window);
+	else if (!world.GetPlayerGamepadAimPoint())
+		crosshair.Draw(GetContext().window);
+	screenFade.Draw(GetContext().window);
 }
 
 void GameplayState::SpawnPlayerIfNeeded()
@@ -285,8 +335,51 @@ void GameplayState::Reset()
 	world.Clear();
 	effects.Clear();
 	session.Reset();
+	gameOverScreen.Reset();
+	resultScreen.Reset();
+	gameplayTransition = GameplayTransition::None;
 	SpawnLevel();
 	if (hud) hud->Update(0.f);
+}
+
+void GameplayState::BeginGameOver()
+{
+	world.StopActiveSounds();
+	world.AddSound(Config::Sound::ShipExplosion);
+	GetContext().audio.PauseMusic(Config::Music::GameplayBackground1);
+	gameOverScreen.Start(session.GetScore());
+}
+
+void GameplayState::BeginGameOverTransition(GameOverScreen::Action action)
+{
+	gameplayTransition = action == GameOverScreen::Action::RestartLevel
+		? GameplayTransition::RestartLevel
+		: GameplayTransition::MainMenu;
+	screenFade.StartFadeOut(GameplayFadeOutDuration);
+}
+
+void GameplayState::BeginResultTransition(ResultScreen::Action action)
+{
+	if (action == ResultScreen::Action::MainMenu)
+		gameplayTransition = GameplayTransition::MainMenu;
+	else
+		gameplayTransition = resultScreen.GetMode() == ResultScreen::Mode::Victory
+			? GameplayTransition::RestartGame
+			: GameplayTransition::NextLevel;
+	screenFade.StartFadeOut(GameplayFadeOutDuration);
+}
+
+void GameplayState::RestartCurrentLevel()
+{
+	world.Clear();
+	effects.Clear();
+	session.RestartLevel();
+	gameOverScreen.Reset();
+	resultScreen.Reset();
+	SpawnLevel();
+	if (hud)
+		hud->Update(0.f);
+	GetContext().audio.ResumeMusic(Config::Music::GameplayBackground1);
 }
 
 void GameplayState::NextLevel()
@@ -299,6 +392,7 @@ void GameplayState::NextLevel()
 	world.Clear();
 	effects.Clear();
 	session.NextLevel();
+	resultScreen.Reset();
 	SpawnLevel();
 }
 
@@ -307,7 +401,7 @@ void GameplayState::SpawnLevel()
 	SpawnPlayerIfNeeded();
 	currentWaves.clear();
 	const auto& level{ gameplayData.GetLevel(session.GetLevel()) };
-	background.SetTheme(level.background);
+	background.SetTheme(level.background, level.backgroundBrightness);
 	for (const auto& group : level.initialSpawns)
 		for (int i{ 0 }; i < group.count; ++i)
 			SpawnConfiguredEnemy(group.kind);
@@ -357,18 +451,4 @@ sf::Vector2f GameplayState::GetSafeEdgeSpawnPosition()
 			return position;
 	}
 	return spawnAtEdge();
-}
-
-void GameplayState::CenterTextX(sf::Text& text)
-{
-	const sf::FloatRect bounds{ text.getLocalBounds() };
-	text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y });
-	text.setPosition({ GetContext().logicalSize.x * 0.5f, text.getPosition().y });
-}
-
-void GameplayState::CenterText(sf::Text& text, float y)
-{
-	const sf::FloatRect bounds{ text.getLocalBounds() };
-	text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y });
-	text.setPosition({ GetContext().logicalSize.x * 0.5f, y });
 }

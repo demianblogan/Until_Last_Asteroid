@@ -2,7 +2,6 @@
 
 #include <optional>
 #include <vector>
-#include <SFML/Graphics/Text.hpp>
 #include <SFML/System/Vector2.hpp>
 
 #include "core/World.h"
@@ -10,11 +9,15 @@
 #include "game/GameplaySession.h"
 #include "rendering/GameplayBackground.h"
 #include "rendering/GameplayEffects.h"
+#include "rendering/GameplayPostProcessor.h"
 #include "states/State.h"
 #include "systems/ActionMap.h"
 #include "systems/InputHandler.h"
 #include "ui/GlowingCursor.h"
+#include "ui/GameOverScreen.h"
 #include "ui/HUD.h"
+#include "ui/ResultScreen.h"
+#include "ui/ScreenFade.h"
 #include "utils/ConfigEnums.h"
 
 class GameplayState final : public State
@@ -30,6 +33,15 @@ public:
 	void RenderOverlay() override;
 
 private:
+	enum class GameplayTransition
+	{
+		None,
+		RestartLevel,
+		NextLevel,
+		RestartGame,
+		MainMenu
+	};
+
 	struct RuntimeWave
 	{
 		GameplayData::WaveConfig config;
@@ -38,16 +50,18 @@ private:
 	};
 
 	void SetupInput();
-	void SetupUI();
+	void DrawScene(sf::RenderTarget& target);
 	void OpenPauseMenu();
 	void ResumeGameplaySounds();
+	void BeginGameOver();
+	void BeginGameOverTransition(GameOverScreen::Action action);
+	void BeginResultTransition(ResultScreen::Action action);
+	void RestartCurrentLevel();
 	void SpawnPlayerIfNeeded();
 	void SpawnConfiguredEnemy(GameplayData::EnemyKind kind);
 	void Reset();
 	void NextLevel();
 	void SpawnLevel();
-	void CenterTextX(sf::Text& text);
-	void CenterText(sf::Text& text, float y);
 	[[nodiscard]] sf::Vector2f GetSafeSpawnPosition();
 	[[nodiscard]] sf::Vector2f GetSafeEdgeSpawnPosition();
 
@@ -59,13 +73,14 @@ private:
 	InputHandler<Config::PlayerAction> input;
 	GameplayBackground background;
 	GameplayEffects effects;
+	GameplayPostProcessor postProcessor;
 	World world;
 	GlowingCursor crosshair;
+	GameOverScreen gameOverScreen;
+	ResultScreen resultScreen;
+	ScreenFade screenFade;
 	std::optional<HUD> hud;
-	std::vector<sf::Text> gameOverTexts;
-	std::vector<sf::Text> levelCompleteTexts;
-	std::vector<sf::Text> winTexts;
-	std::optional<sf::Text> exitHintText;
 	std::vector<RuntimeWave> currentWaves;
 	bool gameplaySoundsPaused{ false };
+	GameplayTransition gameplayTransition{ GameplayTransition::None };
 };

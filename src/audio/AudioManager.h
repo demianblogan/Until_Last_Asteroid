@@ -42,6 +42,7 @@ public:
         SoundPlayback playback = SoundPlayback::AllowOverlap);
     void PauseSounds(SoundGroup group);
     void ResumeSounds(SoundGroup group);
+    void StopSounds(SoundGroup group);
 
     void PlayMusic(Config::Music id, bool looping = true, float baseVolume = 100.f);
     void StopMusic(Config::Music id);

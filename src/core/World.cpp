@@ -10,6 +10,7 @@
 #include "entities/Shot.h"
 #include "game/GameplaySession.h"
 #include "systems/Collision.h"
+#include "systems/GamepadManager.h"
 
 namespace
 {
@@ -23,8 +24,9 @@ namespace
 }
 
 World::World(unsigned int width, unsigned int height, AssetStore& assets,
-	AudioManager& audio, GameplaySession& session)
-	: assets(assets), audio(audio), session(session), width(width), height(height)
+	AudioManager& audio, GameplaySession& session, GamepadManager& gamepadManager)
+	: assets(assets), audio(audio), session(session), gamepad(gamepadManager),
+	  width(width), height(height)
 {
 	effectEvents.reserve(256);
 }
@@ -64,7 +66,7 @@ void World::SpawnPlayer(AssetStore& playerAssets, InputHandler<Config::PlayerAct
 	if (player != nullptr)
 		return;
 
-	auto playerPtr{ std::make_unique<Player>(playerAssets, *this, input) };
+	auto playerPtr{ std::make_unique<Player>(playerAssets, *this, input, gamepad) };
 	playerPtr->SetPosition({ GetWidth() * 0.5f, GetHeight() * 0.5f });
 	player = playerPtr.get();
 	Spawn(std::move(playerPtr));
@@ -134,6 +136,7 @@ void World::ClearEffectEvents() noexcept
 
 void World::PauseActiveSounds() { audio.PauseSounds(SoundGroup::Gameplay); }
 void World::ResumePausedSounds() { audio.ResumeSounds(SoundGroup::Gameplay); }
+void World::StopActiveSounds() { audio.StopSounds(SoundGroup::Gameplay); }
 
 sf::Vector2f World::GetPlayerPosition() const noexcept
 {
@@ -150,6 +153,11 @@ std::optional<World::PlayerEffectState> World::GetPlayerEffectState() const
 		player->GetVelocity(),
 		player->GetExhaustDirection(),
 		player->IsThrusting() };
+}
+
+std::optional<sf::Vector2f> World::GetPlayerGamepadAimPoint() const
+{
+	return player != nullptr ? player->GetGamepadAimPoint() : std::nullopt;
 }
 
 unsigned int World::GetWidth() const noexcept { return width; }
@@ -207,7 +215,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		const bool killed{ enemy.TakeDamage(shot.GetDamage()) };
 		enemy.ApplyImpulse(impactDirection * shot.GetKnockback());
 		if (killed)
-			session.AddScore(enemy.GetScoreValue());
+			AwardScore(enemy);
 		else if (enemy.GetType() == Entity::Type::Asteroid)
 			AddSound(Config::Sound::BulletHitAsteroid, enemy.GetSoundPitch());
 		else if (enemy.GetType() == Entity::Type::Enemy)
@@ -305,7 +313,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		const bool enemyKilled{ collidedEnemy->TakeDamage(
 			assets.GetGameplayData().GetPlayer().collisionDamage) };
 		if (enemyKilled)
-			session.AddScore(collidedEnemy->GetScoreValue());
+			AwardScore(*collidedEnemy);
 	}
 
 	if (!collidedPlayer->IsAlive())
@@ -326,6 +334,18 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		collidedEnemy->ApplyImpulse(manifold->normal *
 			assets.GetGameplayData().GetPlayer().collisionImpulse);
 	}
+}
+
+void World::AwardScore(const Enemy& enemy)
+{
+	const int points{ enemy.GetScoreValue() };
+	session.AddScore(points);
+	AddEffectEvent({
+		EffectEventType::ScorePopup,
+		enemy.GetPosition(),
+		{},
+		1.f,
+		points });
 }
 
 void World::ResolveCollision(Entity& first, Entity& second,

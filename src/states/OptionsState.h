@@ -14,11 +14,21 @@
 #include "ui/MenuBackground.h"
 #include "ui/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
+#include "ui/ScreenFade.h"
 
 class OptionsState final : public State
 {
 public:
-    OptionsState(StateStack& stateStack, StateContext context);
+    enum class Origin
+    {
+        MainMenu,
+        PauseMenu
+    };
+
+    OptionsState(
+        StateStack& stateStack,
+        StateContext context,
+        Origin origin = Origin::MainMenu);
     ~OptionsState() override;
 
     void HandleEvent(const sf::Event& event) override;
@@ -32,7 +42,10 @@ private:
         Root,
         Graphics,
         Audio,
-        Controls
+        Gameplay,
+        Controls,
+        KeyboardControls,
+        GamepadControls
     };
 
     enum class RowKind
@@ -49,7 +62,10 @@ private:
     {
         OpenGraphics,
         OpenAudio,
+        OpenGameplay,
         OpenControls,
+        OpenKeyboardControls,
+        OpenGamepadControls,
         Back,
         ResetAll,
         Resolution,
@@ -57,10 +73,14 @@ private:
         ShowFps,
         VerticalSync,
         FrameRateLimit,
+        PostEffects,
         ResetGraphics,
         MusicVolume,
         SoundVolume,
         ResetAudio,
+        ScreenShake,
+        ShowScorePopups,
+        ResetGameplay,
         MoveUp,
         MoveDown,
         MoveLeft,
@@ -78,7 +98,9 @@ private:
         sf::FloatRect bounds;
     };
 
-    void SetPage(Page newPage);
+    void ApplyPage(Page newPage);
+    void BeginPageTransition(Page newPage);
+    void BeginExit();
     void RefreshTitle();
     void RebuildRows();
     void RebuildRowTextCache();
@@ -133,6 +155,7 @@ private:
     [[nodiscard]] bool IsSelectedRowEnabled() const;
 
     void DrawTitle(sf::RenderTarget& target) const;
+    void DrawGamepadLayouts(sf::RenderTarget& target);
     void DrawRows(sf::RenderTarget& target);
     void DrawRow(
         sf::RenderTarget& target,
@@ -186,8 +209,12 @@ private:
     NeonGlow neonGlow;
     NeonGlow dropdownGlow;
     NeonGlow dialogGlow;
+    NeonGlow xboxHeadingGlow;
+    NeonGlow playStationHeadingGlow;
     GlowingCursor menuCursor;
+    ScreenFade screenFade;
     Page page{ Page::Root };
+    std::optional<Page> pendingPage;
     std::vector<Row> rows;
     std::vector<sf::Text> rowLabels;
     std::vector<sf::Text> rowValues;
@@ -209,4 +236,6 @@ private:
     float displayConfirmationRemaining{ 0.f };
     GraphicsSettings previousGraphics;
     bool saveFailed{ false };
+    bool exitPending{ false };
+    Origin origin;
 };

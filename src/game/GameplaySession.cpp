@@ -65,6 +65,14 @@ void GameplaySession::Reset() noexcept
 	playerHealth.Reset();
 	level = 1;
 	score = 0;
+	levelStartScore = 0;
+	state = State::Playing;
+}
+
+void GameplaySession::RestartLevel() noexcept
+{
+	playerHealth.Reset();
+	score = levelStartScore;
 	state = State::Playing;
 }
 
@@ -75,6 +83,7 @@ void GameplaySession::AddScore(int points) noexcept
 
 void GameplaySession::NextLevel() noexcept
 {
+	levelStartScore = score;
 	level++;
 	state = State::Playing;
 }

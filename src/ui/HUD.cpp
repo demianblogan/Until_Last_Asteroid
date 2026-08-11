@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include "assets/AssetStore.h"
 #include "game/GameplaySession.h"
@@ -11,6 +12,9 @@
 namespace
 {
 	constexpr float HealthBarScale{ 0.5f };
+	constexpr float ScorePanelScale{ 0.5f };
+	constexpr sf::Vector2f ScorePanelPosition{ 20.f, 20.f };
+	constexpr sf::Vector2f ScorePanelSize{ 387.f, 74.f };
 	constexpr sf::Vector2f FramePosition{ 20.f, 1010.f };
 	constexpr sf::Vector2f FillOffset{ 27.f * HealthBarScale, 19.f * HealthBarScale };
 	constexpr sf::Vector2f FrameSize{ 640.f * HealthBarScale, 100.f * HealthBarScale };
@@ -21,20 +25,32 @@ namespace
 		return sf::Color(
 			static_cast<std::uint8_t>(std::lerp(from.r, to.r, amount)),
 			static_cast<std::uint8_t>(std::lerp(from.g, to.g, amount)),
-			static_cast<std::uint8_t>(std::lerp(from.b, to.b, amount)));
+			static_cast<std::uint8_t>(std::lerp(from.b, to.b, amount)),
+			static_cast<std::uint8_t>(std::lerp(from.a, to.a, amount)));
 	}
 }
 
 HUD::HUD(AssetStore& assets, const GameplaySession& session)
 	: session(session)
-	, scoreText(assets.Fonts().Get(Config::Font::GUI))
+	, scoreText(assets.Fonts().Get(Config::Font::MenuRegular))
+	, scorePanel(assets.Textures().Get(Config::Texture::ScorePanelFrame))
+	, scoreGlow(assets)
 	, healthText(assets.Fonts().Get(Config::Font::MenuSemibold))
 	, healthFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, healthFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, healthGlow(assets)
 {
-	scoreText.setCharacterSize(50);
-	scoreText.setPosition({ 20.f, 20.f });
+	scorePanel.setPosition(ScorePanelPosition);
+	scorePanel.setScale({ ScorePanelScale, ScorePanelScale });
+
+	scoreText.setCharacterSize(28);
+	scoreText.setLetterSpacing(1.04f);
+	scoreText.setFillColor(sf::Color(226, 249, 255));
+	scoreText.setOutlineColor(sf::Color(4, 24, 38, 230));
+	scoreText.setOutlineThickness(2.f);
+	displayedScore = session.GetScore();
+	scoreText.setString("Score: " + std::to_string(displayedScore));
+	CenterScoreText();
 
 	healthFrame.setPosition(FramePosition);
 	healthFrame.setScale({ HealthBarScale, HealthBarScale });
@@ -49,8 +65,26 @@ HUD::HUD(AssetStore& assets, const GameplaySession& session)
 
 void HUD::Update(float deltaTime)
 {
-	scoreText.setString(std::to_string(session.GetScore()));
+	UpdateScore(deltaTime);
 	UpdateHealthBar(deltaTime);
+}
+
+void HUD::UpdateScore(float deltaTime)
+{
+	scoreGlow.Update(deltaTime);
+	const int currentScore{ session.GetScore() };
+	if (currentScore != displayedScore)
+	{
+		if (currentScore > displayedScore)
+			scorePulseRemaining = ScorePulseDuration;
+
+		displayedScore = currentScore;
+		scoreText.setString("Score: " + std::to_string(displayedScore));
+		CenterScoreText();
+		scoreGlow.Invalidate();
+	}
+
+	scorePulseRemaining = std::max(0.f, scorePulseRemaining - deltaTime);
 }
 
 void HUD::UpdateHealthBar(float deltaTime)
@@ -104,9 +138,52 @@ void HUD::CenterHealthText()
 	healthText.setPosition(FramePosition + FrameSize * 0.5f);
 }
 
+void HUD::CenterScoreText()
+{
+	const sf::FloatRect bounds{ scoreText.getLocalBounds() };
+	scoreText.setOrigin({
+		bounds.position.x + bounds.size.x * 0.5f,
+		bounds.position.y + bounds.size.y * 0.5f
+	});
+	scoreText.setPosition(ScorePanelPosition + ScorePanelSize * 0.5f);
+}
+
+void HUD::DrawScorePanel(sf::RenderTarget& target, const sf::RenderStates& states) const
+{
+	target.draw(scorePanel, states);
+	target.draw(scoreText, states);
+}
+
 void HUD::Draw(sf::RenderTarget& target)
 {
-	target.draw(scoreText);
+	if (scorePulseRemaining > 0.f)
+	{
+		const float normalized{ scorePulseRemaining / ScorePulseDuration };
+		const float flash{ normalized * normalized };
+		const sf::Color flashColor{ LerpColor(
+			sf::Color::Black,
+			sf::Color(170, 250, 255),
+			flash) };
+		scoreGlow.DrawBloom(
+			target,
+			scorePanel.getGlobalBounds(),
+			[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+			{
+				DrawScorePanel(glowTarget, states);
+			},
+			flashColor,
+			false);
+	}
+	DrawScorePanel(target, sf::RenderStates::Default);
+	if (scorePulseRemaining > 0.f)
+	{
+		const float normalized{ scorePulseRemaining / ScorePulseDuration };
+		const float flash{ normalized * normalized };
+		scoreGlow.DrawHighlight(
+			target,
+			scorePanel.getGlobalBounds(),
+			LerpColor(sf::Color::Black, sf::Color(205, 255, 255), flash));
+	}
 	target.draw(healthFrame);
 	if (healthFill.getTextureRect().size.x > 0)
 	{

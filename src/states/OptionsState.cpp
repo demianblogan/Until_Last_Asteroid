@@ -6,6 +6,7 @@
 
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/ConvexShape.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
@@ -15,6 +16,7 @@
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
 #include "settings/SettingsManager.h"
+#include "systems/GamepadManager.h"
 
 namespace
 {
@@ -26,6 +28,9 @@ namespace
     constexpr sf::Color Red{ 245, 92, 92 };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
     constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
+    constexpr float StateFadeDuration{ 0.24f };
+    constexpr float PageFadeOutDuration{ 0.1f };
+    constexpr float PageFadeInDuration{ 0.14f };
     constexpr sf::Vector2f RowPosition{ 260.f, 220.f };
     constexpr sf::Vector2f RowSize{ 1400.f, 82.f };
     constexpr float RowSpacing{ 98.f };
@@ -74,7 +79,7 @@ namespace
     }
 }
 
-OptionsState::OptionsState(StateStack& stateStack, StateContext context)
+OptionsState::OptionsState(StateStack& stateStack, StateContext context, Origin optionsOrigin)
     : State(stateStack, context)
     , background(context.assets, context.logicalSize)
     , shade(context.logicalSize)
@@ -83,14 +88,18 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context)
     , neonGlow(context.assets)
     , dropdownGlow(context.assets)
     , dialogGlow(context.assets)
+    , xboxHeadingGlow(context.assets)
+    , playStationHeadingGlow(context.assets)
     , menuCursor(
         context.assets,
         Config::Texture::MenuPointer,
         { 6.f, 2.f },
         InterfaceGlowColor)
+    , screenFade(context.logicalSize)
     , toggleOnText(context.assets.Fonts().Get(Config::Font::MenuRegular), "ON", 23)
     , toggleOffText(context.assets.Fonts().Get(Config::Font::MenuRegular), "OFF", 23)
     , previousGraphics(context.settings.Get().graphics)
+    , origin(optionsOrigin)
 {
     context.window.setMouseCursorVisible(false);
     shade.setFillColor(sf::Color(0, 4, 10, 150));
@@ -101,13 +110,30 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context)
     title.setFillColor(BrightCyan);
     title.setOutlineColor(sf::Color(2, 14, 25, 235));
     title.setOutlineThickness(3.f);
-    SetPage(Page::Root);
+    ApplyPage(Page::Root);
+    screenFade.StartFadeIn(StateFadeDuration);
 }
 
 void OptionsState::HandleEvent(const sf::Event& event)
 {
+    if (screenFade.IsActive())
+        return;
+
+    const GamepadManager::NavigationAction navigation{
+        GetContext().gamepad.GetNavigationAction(event) };
+
     if (displayConfirmationOpen)
     {
+        using enum GamepadManager::NavigationAction;
+        switch (navigation)
+        {
+        case Left: SelectDialogOption(0u); return;
+        case Right: SelectDialogOption(1u); return;
+        case Confirm: ActivateDialogOption(dialogSelectedIndex); return;
+        case Back: ActivateDialogOption(1u); return;
+        default: break;
+        }
+
         if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
         {
             const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
@@ -148,6 +174,13 @@ void OptionsState::HandleEvent(const sf::Event& event)
 
     if (pendingBinding.has_value())
     {
+        if (navigation == GamepadManager::NavigationAction::Back)
+        {
+            GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI);
+            pendingBinding.reset();
+            return;
+        }
+
         if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
         {
             background.SetMousePosition(GetContext().window.mapPixelToCoords(moved->position));
@@ -179,6 +212,16 @@ void OptionsState::HandleEvent(const sf::Event& event)
 
     if (dropdownOpen)
     {
+        using enum GamepadManager::NavigationAction;
+        switch (navigation)
+        {
+        case Up: MoveDropdownSelection(-1); return;
+        case Down: MoveDropdownSelection(1); return;
+        case Confirm: ApplyDropdownSelection(); return;
+        case Back: CloseDropdown(); return;
+        default: break;
+        }
+
         if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
         {
             if (key->code == sf::Keyboard::Key::Up)
@@ -240,6 +283,18 @@ void OptionsState::HandleEvent(const sf::Event& event)
         return;
     }
 
+    using enum GamepadManager::NavigationAction;
+    switch (navigation)
+    {
+    case Up: SelectPrevious(); return;
+    case Down: SelectNext(); return;
+    case Left: AdjustSelected(-1); return;
+    case Right: AdjustSelected(1); return;
+    case Confirm: ActivateSelected(); return;
+    case Back: Execute(Action::Back); return;
+    default: break;
+    }
+
     if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
     {
         switch (key->code)
@@ -280,7 +335,28 @@ void OptionsState::Update(float deltaTime)
     neonGlow.Update(deltaTime);
     dropdownGlow.Update(deltaTime);
     dialogGlow.Update(deltaTime);
+    xboxHeadingGlow.Update(deltaTime);
+    playStationHeadingGlow.Update(deltaTime);
     menuCursor.Update(deltaTime);
+
+    screenFade.Update(deltaTime);
+    if (!screenFade.IsActive())
+    {
+        if (exitPending)
+        {
+            exitPending = false;
+            RequestPop();
+            return;
+        }
+        if (pendingPage.has_value())
+        {
+            const Page nextPage{ *pendingPage };
+            pendingPage.reset();
+            ApplyPage(nextPage);
+            screenFade.StartFadeIn(PageFadeInDuration);
+        }
+    }
+
     if (!displayConfirmationOpen)
         return;
 
@@ -295,6 +371,8 @@ void OptionsState::Render()
     background.Draw(window);
     window.draw(shade);
     DrawTitle(window);
+    if (page == Page::GamepadControls)
+        DrawGamepadLayouts(window);
     DrawRows(window);
     if (dropdownOpen)
         DrawDropdown(window);
@@ -304,10 +382,12 @@ void OptionsState::Render()
 
 void OptionsState::RenderOverlay()
 {
-    menuCursor.Draw(GetContext().window);
+    if (!screenFade.IsActive() && !GetContext().gamepad.IsUsingGamepad())
+        menuCursor.Draw(GetContext().window);
+    screenFade.Draw(GetContext().window);
 }
 
-void OptionsState::SetPage(Page newPage)
+void OptionsState::ApplyPage(Page newPage)
 {
     page = newPage;
     RefreshTitle();
@@ -315,6 +395,22 @@ void OptionsState::SetPage(Page newPage)
     dropdownOpen = false;
     pendingBinding.reset();
     RebuildRows();
+}
+
+void OptionsState::BeginPageTransition(Page newPage)
+{
+    if (newPage == page || pendingPage.has_value() || exitPending)
+        return;
+    pendingPage = newPage;
+    screenFade.StartFadeOut(PageFadeOutDuration);
+}
+
+void OptionsState::BeginExit()
+{
+    if (exitPending || pendingPage.has_value())
+        return;
+    exitPending = true;
+    screenFade.StartFadeOut(StateFadeDuration);
 }
 
 OptionsState::~OptionsState()
@@ -331,7 +427,10 @@ void OptionsState::RefreshTitle()
     case Page::Root: value = "OPTIONS"; break;
     case Page::Graphics: value = "GRAPHICS"; break;
     case Page::Audio: value = "AUDIO"; break;
+    case Page::Gameplay: value = "GAMEPLAY"; break;
     case Page::Controls: value = "CONTROLS"; break;
+    case Page::KeyboardControls: value = "KEYBOARD"; break;
+    case Page::GamepadControls: value = "GAMEPAD"; break;
     }
 
     const auto center{ [this, &value](sf::Text& text)
@@ -361,9 +460,11 @@ void OptionsState::RebuildRows()
     case Page::Root:
         add("Graphics", RowKind::Button, Action::OpenGraphics);
         add("Audio", RowKind::Button, Action::OpenAudio);
+        add("Gameplay", RowKind::Button, Action::OpenGameplay);
         add("Controls", RowKind::Button, Action::OpenControls);
         add("Restore Defaults", RowKind::Button, Action::ResetAll);
-        add("Back to Main Menu", RowKind::Button, Action::Back);
+        add(origin == Origin::PauseMenu ? "Back to Pause Menu" : "Back to Main Menu",
+            RowKind::Button, Action::Back);
         break;
     case Page::Graphics:
         add("Display Resolution", RowKind::Dropdown, Action::Resolution,
@@ -373,7 +474,14 @@ void OptionsState::RebuildRows()
         add("Vertical Synchronization", RowKind::Toggle, Action::VerticalSync);
         add("Frame Rate Limit", RowKind::Choice, Action::FrameRateLimit,
             !GetContext().settings.Get().graphics.verticalSync);
+        add("Post Effects", RowKind::Toggle, Action::PostEffects);
         add("Restore Graphics Defaults", RowKind::Button, Action::ResetGraphics);
+        add("Back", RowKind::Button, Action::Back);
+        break;
+    case Page::Gameplay:
+        add("Screen Shake", RowKind::Toggle, Action::ScreenShake);
+        add("Show Score Popups", RowKind::Toggle, Action::ShowScorePopups);
+        add("Restore Gameplay Defaults", RowKind::Button, Action::ResetGameplay);
         add("Back", RowKind::Button, Action::Back);
         break;
     case Page::Audio:
@@ -383,6 +491,11 @@ void OptionsState::RebuildRows()
         add("Back", RowKind::Button, Action::Back);
         break;
     case Page::Controls:
+        add("Keyboard", RowKind::Button, Action::OpenKeyboardControls);
+        add("Gamepad", RowKind::Button, Action::OpenGamepadControls);
+        add("Back", RowKind::Button, Action::Back);
+        break;
+    case Page::KeyboardControls:
         add("Move Up", RowKind::Binding, Action::MoveUp);
         add("Move Down", RowKind::Binding, Action::MoveDown);
         add("Move Left", RowKind::Binding, Action::MoveLeft);
@@ -390,6 +503,12 @@ void OptionsState::RebuildRows()
         add("Fire", RowKind::Binding, Action::Fire);
         add("Restore Controls Defaults", RowKind::Button, Action::ResetControls);
         add("Back", RowKind::Button, Action::Back);
+        break;
+    case Page::GamepadControls:
+        add("Return to Controls Options", RowKind::Button, Action::Back);
+        rows.back().bounds.position.x = 580.f;
+        rows.back().bounds.position.y = 880.f;
+        rows.back().bounds.size.x = 760.f;
         break;
     }
 
@@ -438,6 +557,17 @@ void OptionsState::RebuildRowTextCache()
         else
         {
             rowValues.back().setPosition({ 1160.f, row.bounds.position.y + 20.f });
+        }
+
+        if (page == Page::GamepadControls && row.action == Action::Back)
+        {
+            const sf::FloatRect labelBounds{ rowLabels.back().getLocalBounds() };
+            rowLabels.back().setOrigin({
+                labelBounds.position.x + labelBounds.size.x * 0.5f,
+                labelBounds.position.y + labelBounds.size.y * 0.5f });
+            rowLabels.back().setPosition({
+                row.bounds.position.x + row.bounds.size.x * 0.5f,
+                row.bounds.position.y + row.bounds.size.y * 0.5f });
         }
     }
 }
@@ -536,6 +666,21 @@ void OptionsState::AdjustSelected(int direction)
         settings.graphics.verticalSync = !settings.graphics.verticalSync;
         SaveAndApplyLiveGraphics();
         RebuildRows();
+    }
+    else if (action == Action::PostEffects)
+    {
+        settings.graphics.postEffects = !settings.graphics.postEffects;
+        SaveSettings();
+    }
+    else if (action == Action::ScreenShake)
+    {
+        settings.gameplay.screenShake = !settings.gameplay.screenShake;
+        SaveSettings();
+    }
+    else if (action == Action::ShowScorePopups)
+    {
+        settings.gameplay.showScorePopups = !settings.gameplay.showScorePopups;
+        SaveSettings();
     }
     else if (action == Action::FrameRateLimit)
     {
@@ -807,19 +952,30 @@ void OptionsState::Execute(Action action)
     switch (action)
     {
     case Action::OpenGraphics:
-        SetPage(Page::Graphics);
+        BeginPageTransition(Page::Graphics);
         break;
     case Action::OpenAudio:
-        SetPage(Page::Audio);
+        BeginPageTransition(Page::Audio);
+        break;
+    case Action::OpenGameplay:
+        BeginPageTransition(Page::Gameplay);
         break;
     case Action::OpenControls:
-        SetPage(Page::Controls);
+        BeginPageTransition(Page::Controls);
+        break;
+    case Action::OpenKeyboardControls:
+        BeginPageTransition(Page::KeyboardControls);
+        break;
+    case Action::OpenGamepadControls:
+        BeginPageTransition(Page::GamepadControls);
         break;
     case Action::Back:
         if (page == Page::Root)
-            RequestPop();
+            BeginExit();
+        else if (page == Page::KeyboardControls || page == Page::GamepadControls)
+            BeginPageTransition(Page::Controls);
         else
-            SetPage(Page::Root);
+            BeginPageTransition(Page::Root);
         break;
     case Action::ResetAll:
     {
@@ -847,6 +1003,11 @@ void OptionsState::Execute(Action action)
     case Action::ResetAudio:
         GetContext().settings.Edit().audio = GetContext().settings.GetDefaults().audio;
         SaveAndApplyAudio();
+        RefreshRowTextValues();
+        break;
+    case Action::ResetGameplay:
+        GetContext().settings.Edit().gameplay = GetContext().settings.GetDefaults().gameplay;
+        SaveSettings();
         RefreshRowTextValues();
         break;
     case Action::ResetControls:
@@ -1050,6 +1211,12 @@ std::string OptionsState::GetRowValue(const Row& row) const
         return settings.graphics.showFps ? "ON" : "OFF";
     case Action::VerticalSync:
         return settings.graphics.verticalSync ? "ON" : "OFF";
+    case Action::PostEffects:
+        return settings.graphics.postEffects ? "ON" : "OFF";
+    case Action::ScreenShake:
+        return settings.gameplay.screenShake ? "ON" : "OFF";
+    case Action::ShowScorePopups:
+        return settings.gameplay.showScorePopups ? "ON" : "OFF";
     case Action::FrameRateLimit:
         return settings.graphics.frameRateLimit == 0u
             ? "Unlimited"
@@ -1164,6 +1331,115 @@ void OptionsState::DrawTitle(sf::RenderTarget& target) const
     target.draw(title);
 }
 
+void OptionsState::DrawGamepadLayouts(sf::RenderTarget& target)
+{
+    const auto drawPanel{ [this, &target](
+        const std::string& heading,
+        float top,
+        const std::array<Config::Texture, 7>& icons,
+        const std::array<std::string, 7>& actions,
+        NeonGlow& headingGlow)
+    {
+        RoundedRectangleShape panel({ 1400.f, 310.f }, 18.f, 12u);
+        panel.setPosition({ 260.f, top });
+        panel.setFillColor(sf::Color(3, 15, 28, 235));
+        panel.setOutlineColor(sf::Color(40, 132, 160, 205));
+        panel.setOutlineThickness(2.f);
+        target.draw(panel);
+
+        sf::Text headingText(
+            GetContext().assets.Fonts().Get(Config::Font::MenuSemibold), heading, 34u);
+        const sf::FloatRect headingLocalBounds{ headingText.getLocalBounds() };
+        headingText.setOrigin({
+            headingLocalBounds.position.x + headingLocalBounds.size.x * 0.5f,
+            headingLocalBounds.position.y + headingLocalBounds.size.y * 0.5f });
+        headingText.setPosition({ 960.f, top + 37.f });
+        headingText.setFillColor(BrightCyan);
+        headingText.setOutlineColor(sf::Color(3, 18, 31, 240));
+        headingText.setOutlineThickness(2.f);
+        const sf::FloatRect headingBounds{ headingText.getGlobalBounds() };
+        headingGlow.DrawBloom(
+            target,
+            headingBounds,
+            [&headingText](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+            {
+                glowTarget.draw(headingText, states);
+            },
+            Cyan,
+            false);
+        target.draw(headingText);
+        headingGlow.DrawHighlight(target, headingBounds, Cyan);
+
+        sf::RectangleShape dividerGlow({ 1300.f, 7.f });
+        dividerGlow.setPosition({ 310.f, top + 71.f });
+        dividerGlow.setFillColor(sf::Color(255, 166, 42, 38));
+        target.draw(dividerGlow);
+        sf::RectangleShape divider({ 1300.f, 2.f });
+        divider.setPosition({ 310.f, top + 73.f });
+        divider.setFillColor(Orange);
+        target.draw(divider);
+
+        for (std::size_t index{ 0u }; index < icons.size(); ++index)
+        {
+            const bool rightColumn{ index >= 4u };
+            const std::size_t row{ rightColumn ? index - 4u : index };
+            const sf::Vector2f cardPosition{
+                rightColumn ? 980.f : 300.f,
+                top + 86.f + static_cast<float>(row) * 51.f };
+            constexpr sf::Vector2f CardSize{ 640.f, 46.f };
+
+            RoundedRectangleShape card(CardSize, 10.f, 8u);
+            card.setPosition(cardPosition);
+            card.setFillColor(sf::Color(5, 27, 43, 218));
+            card.setOutlineColor(sf::Color(45, 126, 151, 180));
+            card.setOutlineThickness(1.f);
+            target.draw(card);
+
+            const sf::Texture& texture{ GetContext().assets.Textures().Get(icons[index]) };
+            sf::Sprite icon(texture);
+            const sf::Vector2u size{ texture.getSize() };
+            const float scale{ std::min(
+                70.f / static_cast<float>(size.x),
+                42.f / static_cast<float>(size.y)) };
+            icon.setOrigin({
+                static_cast<float>(size.x) * 0.5f,
+                static_cast<float>(size.y) * 0.5f });
+            icon.setScale({ scale, scale });
+            icon.setPosition({ cardPosition.x + 48.f, cardPosition.y + CardSize.y * 0.5f });
+            target.draw(icon);
+
+            DrawText(target, actions[index],
+                { cardPosition.x + 100.f, cardPosition.y + 7.f }, 25u, BrightCyan);
+        }
+    } };
+
+    const std::array<Config::Texture, 7> xboxIcons{
+        Config::Texture::XboxLeftStick,
+        Config::Texture::XboxRightStick,
+        Config::Texture::XboxRightTrigger,
+        Config::Texture::XboxDpad,
+        Config::Texture::XboxConfirm,
+        Config::Texture::XboxBack,
+        Config::Texture::XboxMenu
+    };
+    const std::array<Config::Texture, 7> playStationIcons{
+        Config::Texture::PlayStationLeftStick,
+        Config::Texture::PlayStationRightStick,
+        Config::Texture::PlayStationRightTrigger,
+        Config::Texture::PlayStationDpad,
+        Config::Texture::PlayStationConfirm,
+        Config::Texture::PlayStationBack,
+        Config::Texture::PlayStationOptions
+    };
+    const std::array<std::string, 7> actions{
+        "Move", "Aim", "Fire", "Menu Navigation", "Confirm", "Back", "Pause"
+    };
+
+    drawPanel("XBOX CONTROLLER", 190.f, xboxIcons, actions, xboxHeadingGlow);
+    drawPanel("PLAYSTATION CONTROLLER", 515.f, playStationIcons, actions,
+        playStationHeadingGlow);
+}
+
 void OptionsState::DrawRows(sf::RenderTarget& target)
 {
     if (!displayConfirmationOpen && !pendingBinding.has_value() && IsSelectedRowEnabled())
@@ -1221,9 +1497,17 @@ void OptionsState::DrawRow(
     }
     else if (row.kind == RowKind::Toggle)
     {
-        const bool value{ row.action == Action::ShowFps
-            ? GetContext().settings.Get().graphics.showFps
-            : GetContext().settings.Get().graphics.verticalSync };
+        bool value{ false };
+        if (row.action == Action::ShowFps)
+            value = GetContext().settings.Get().graphics.showFps;
+        else if (row.action == Action::VerticalSync)
+            value = GetContext().settings.Get().graphics.verticalSync;
+        else if (row.action == Action::PostEffects)
+            value = GetContext().settings.Get().graphics.postEffects;
+        else if (row.action == Action::ScreenShake)
+            value = GetContext().settings.Get().gameplay.screenShake;
+        else if (row.action == Action::ShowScorePopups)
+            value = GetContext().settings.Get().gameplay.showScorePopups;
         DrawToggle(target, row, value, states);
     }
     else if (row.kind == RowKind::Dropdown)

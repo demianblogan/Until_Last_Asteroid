@@ -30,6 +30,7 @@ public:
 
 	void ConfigurePlayerHealth(int maximumHealth) noexcept;
 	void Reset() noexcept;
+	void RestartLevel() noexcept;
 	void AddScore(int points) noexcept;
 	void NextLevel() noexcept;
 
@@ -38,4 +39,5 @@ private:
 	Health playerHealth;
 	int level{ 1 };
 	int score{ 0 };
+	int levelStartScore{ 0 };
 };

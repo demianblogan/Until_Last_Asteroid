@@ -8,13 +8,16 @@
 #include "assets/AssetStore.h"
 #include "core/World.h"
 #include "game/GameplaySession.h"
+#include "systems/GamepadManager.h"
 
-Player::Player(AssetStore& assets, World& world, InputHandler<Config::PlayerAction>& input)
+Player::Player(AssetStore& assets, World& world, InputHandler<Config::PlayerAction>& input,
+	GamepadManager& gamepadManager)
 	: Entity(assets, world, assets.Textures().Get(Config::Texture::PlayerShip),
 		assets.GetGameplayData().GetPlayer().visualScale,
 		assets.GetGameplayData().GetPlayer().collisionRadius,
 		assets.GetGameplayData().GetPlayer().collisionCircles)
 	, input(input)
+	, gamepad(gamepadManager)
 {
 	BindInput();
 }
@@ -43,13 +46,32 @@ void Player::Update(float deltaTime)
 	UpdateRotation();
 }
 
-void Player::HandleEvent(const sf::Event& event) { input.HandleEvent(event); }
-void Player::HandleRealtime() { input.Update(); }
+void Player::HandleEvent(const sf::Event& event)
+{
+	input.HandleEvent(event);
+	if (event.is<sf::Event::MouseMoved>() ||
+		event.is<sf::Event::MouseButtonPressed>() ||
+		event.is<sf::Event::KeyPressed>())
+		aimingWithGamepad = false;
+}
+
+void Player::HandleRealtime()
+{
+	input.Update();
+	const GamepadManager::GameplayInput gamepadInput{ gamepad.GetGameplayInput() };
+	moveInput += gamepadInput.movement;
+	if (gamepadInput.aimDirection)
+	{
+		gamepadAimDirection = *gamepadInput.aimDirection;
+		aimingWithGamepad = true;
+	}
+	if (gamepadInput.fire)
+		Shoot();
+}
 
 void Player::OnDestroy()
 {
 	SetVisible(true);
-	GetWorld().AddSound(Config::Sound::ShipExplosion);
 	GetWorld().AddEffectEvent({
 		World::EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.35f });
@@ -121,6 +143,13 @@ sf::Vector2f Player::GetExhaustDirection() const noexcept
 	return { std::cos(angle), std::sin(angle) };
 }
 
+std::optional<sf::Vector2f> Player::GetGamepadAimPoint() const
+{
+	if (!aimingWithGamepad)
+		return std::nullopt;
+	return GetPosition() + gamepadAimDirection * 190.f;
+}
+
 void Player::BindInput()
 {
 	using enum Config::PlayerAction;
@@ -140,7 +169,8 @@ void Player::UpdateMovement(float dt)
 	if (isThrusting)
 	{
 		const float length{ std::sqrt(moveInput.x * moveInput.x + moveInput.y * moveInput.y) };
-		velocity += moveInput / length * config.acceleration * dt;
+		const float intensity{ std::min(length, 1.f) };
+		velocity += moveInput / length * config.acceleration * intensity * dt;
 	}
 
 	const float speed{ std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y) };
@@ -155,6 +185,13 @@ void Player::UpdateMovement(float dt)
 
 void Player::UpdateRotation()
 {
+	if (aimingWithGamepad)
+	{
+		SetRotation(sf::radians(std::atan2(gamepadAimDirection.y, gamepadAimDirection.x)
+			+ std::numbers::pi_v<float> / 2.f));
+		return;
+	}
+
 	sf::RenderWindow& window{ GetWorld().GetWindow() };
 	const sf::Vector2i mousePixel{ sf::Mouse::getPosition(window) };
 	const sf::Vector2f mouseWorld{ window.mapPixelToCoords(mousePixel) };

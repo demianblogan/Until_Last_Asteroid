@@ -17,17 +17,21 @@
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
 #include "states/StateId.h"
+#include "systems/GamepadManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
 {
-    const std::array<std::string, 2> MenuLabels{ "Resume", "Back to Main Menu" };
+    const std::array<std::string, 3> MenuLabels{
+        "Resume", "Options", "Back to Main Menu"
+    };
 
     constexpr sf::Vector2f ButtonSize{ 540.f, 104.f };
-    constexpr sf::Vector2f FirstButtonPosition{ 90.f, 720.f };
+    constexpr sf::Vector2f FirstButtonPosition{ 90.f, 690.f };
     constexpr float ButtonSpacing{ 120.f };
-    constexpr float TitleY{ 620.f };
+    constexpr float TitleY{ 590.f };
     constexpr float ActivationDelay{ 0.12f };
+    constexpr float MainMenuFadeOutDuration{ 0.38f };
     constexpr float BlurRadius{ 4.f };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
     constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
@@ -65,6 +69,7 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
         Config::Texture::MenuPointer,
         { 6.f, 2.f },
         InterfaceGlowColor)
+    , screenFade(context.logicalSize)
 {
     context.window.setMouseCursorVisible(false);
 
@@ -126,8 +131,19 @@ PauseState::~PauseState()
 
 void PauseState::HandleEvent(const sf::Event& event)
 {
-    if (activationPending)
+    if (activationPending || returningToMainMenu)
         return;
+
+    using enum GamepadManager::NavigationAction;
+    switch (GetContext().gamepad.GetNavigationAction(event))
+    {
+    case Up: SelectPrevious(); return;
+    case Down: SelectNext(); return;
+    case Confirm: BeginActivation(selectedIndex); return;
+    case Back:
+    case Pause: BeginActivation(0u); return;
+    default: break;
+    }
 
     if (const auto* mouseMoved{ event.getIf<sf::Event::MouseMoved>() })
     {
@@ -185,6 +201,18 @@ void PauseState::Update(float deltaTime)
 {
     neonGlow.Update(deltaTime);
     menuCursor.Update(deltaTime);
+    screenFade.Update(deltaTime);
+
+    if (returningToMainMenu)
+    {
+        if (!screenFade.IsActive())
+        {
+            GetContext().audio.StopMusic(Config::Music::GameplayBackground1);
+            RequestClear();
+            RequestPush(StateId::MainMenu);
+        }
+        return;
+    }
 
     if (!activationPending)
         return;
@@ -199,7 +227,7 @@ void PauseState::Update(float deltaTime)
 
 void PauseState::Render()
 {
-    if (!frameCaptured)
+    if (!frameCaptured || capturedWindowSize != GetContext().window.getSize())
         CaptureBlurredFrame();
 
     sf::RenderWindow& window{ GetContext().window };
@@ -236,7 +264,9 @@ void PauseState::Render()
 
 void PauseState::RenderOverlay()
 {
-    menuCursor.Draw(GetContext().window);
+    if (!GetContext().gamepad.IsUsingGamepad())
+        menuCursor.Draw(GetContext().window);
+    screenFade.Draw(GetContext().window);
 }
 
 bool PauseState::IsTransparent() const noexcept
@@ -292,6 +322,7 @@ void PauseState::CaptureBlurredFrame()
     blurredFrame.draw(horizontalResult, blurStates);
     blurredFrame.display();
 
+    capturedWindowSize = windowSize;
     frameCaptured = true;
 }
 
@@ -363,10 +394,12 @@ void PauseState::CompleteActivation(std::size_t index)
         break;
 
     case 1:
+        RequestPush(StateId::PauseOptions);
+        break;
+
+    case 2:
         returningToMainMenu = true;
-        GetContext().audio.StopMusic(Config::Music::GameplayBackground1);
-        RequestClear();
-        RequestPush(StateId::MainMenu);
+        screenFade.StartFadeOut(MainMenuFadeOutDuration);
         break;
     }
 }

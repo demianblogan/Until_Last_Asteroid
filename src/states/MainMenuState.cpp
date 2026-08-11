@@ -15,6 +15,7 @@
 #include "audio/AudioManager.h"
 #include "core/GameVersion.h"
 #include "states/StateId.h"
+#include "systems/GamepadManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -28,6 +29,8 @@ namespace
     constexpr float TitleStartY{ 540.f };
     constexpr float TitleEndY{ 125.f };
     constexpr float ActivationDelay{ 0.12f };
+    constexpr float MenuFadeInDuration{ 0.45f };
+    constexpr float GameplayFadeOutDuration{ 0.38f };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
     constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
     constexpr std::size_t TypingSoundPoolSize{ 4 };
@@ -45,6 +48,7 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
         { 6.f, 2.f },
         InterfaceGlowColor)
     , introAnimation(MenuTitle, MenuLabels)
+    , screenFade(context.logicalSize)
     , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
     , version(context.assets.Fonts().Get(Config::Font::MenuRegular), std::string(GameVersion::Text), 20)
 {
@@ -86,7 +90,20 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
         buttons.back().SetFrameOpacity(0.f);
     }
 
-    ApplyAnimationState();
+    const bool shouldPlayIntro{ !context.mainMenuIntroPlayed };
+    context.mainMenuIntroPlayed = true;
+    if (shouldPlayIntro)
+    {
+        ApplyAnimationState();
+    }
+    else
+    {
+        static_cast<void>(introAnimation.Skip());
+        ApplyAnimationState();
+        Select(0u, false);
+        StartMenuMusic();
+    }
+    screenFade.StartFadeIn(MenuFadeInDuration);
 }
 
 MainMenuState::~MainMenuState()
@@ -96,8 +113,32 @@ MainMenuState::~MainMenuState()
 
 void MainMenuState::HandleEvent(const sf::Event& event)
 {
-    if (pendingActivation.has_value())
+    if (pendingActivation.has_value() || startingGameplay || screenFade.IsActive())
         return;
+
+    const GamepadManager::NavigationAction navigation{
+        GetContext().gamepad.GetNavigationAction(event) };
+
+    if (!introAnimation.IsInteractive() &&
+        navigation != GamepadManager::NavigationAction::None)
+    {
+        HandleAnimationEvents(introAnimation.Skip());
+        ApplyAnimationState();
+        return;
+    }
+
+    if (introAnimation.IsInteractive())
+    {
+        using enum GamepadManager::NavigationAction;
+        switch (navigation)
+        {
+        case Up: SelectPrevious(); return;
+        case Down: SelectNext(); return;
+        case Confirm: ActivateSelected(); return;
+        case Back: GetContext().window.close(); return;
+        default: break;
+        }
+    }
 
     if (const auto* mouseMoved{ event.getIf<sf::Event::MouseMoved>() })
     {
@@ -173,8 +214,24 @@ void MainMenuState::Update(float deltaTime)
     neonGlow.Update(deltaTime);
     titleNeonGlow.Update(deltaTime);
     menuCursor.Update(deltaTime);
+    screenFade.Update(deltaTime);
+
+    if (!startingGameplay && screenFade.IsActive())
+        return;
+
     HandleAnimationEvents(introAnimation.Update(deltaTime));
     ApplyAnimationState();
+
+    if (startingGameplay)
+    {
+        if (!screenFade.IsActive())
+        {
+            GetContext().audio.StopMusic(Config::Music::MainMenuBackground);
+            RequestClear();
+            RequestPush(StateId::Gameplay);
+        }
+        return;
+    }
 
     if (!pendingActivation.has_value())
         return;
@@ -234,7 +291,9 @@ void MainMenuState::Render()
 
 void MainMenuState::RenderOverlay()
 {
-    menuCursor.Draw(GetContext().window);
+    if (!GetContext().gamepad.IsUsingGamepad())
+        menuCursor.Draw(GetContext().window);
+    screenFade.Draw(GetContext().window);
 }
 
 void MainMenuState::SelectPrevious()
@@ -297,9 +356,8 @@ void MainMenuState::CompleteActivation(std::size_t index)
     switch (index)
     {
     case 0:
-        GetContext().audio.StopMusic(Config::Music::MainMenuBackground);
-        RequestClear();
-        RequestPush(StateId::Gameplay);
+        startingGameplay = true;
+        screenFade.StartFadeOut(GameplayFadeOutDuration);
         break;
 
     case 1:
