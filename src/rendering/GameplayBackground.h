@@ -18,7 +18,7 @@ class GameplayBackground final : public sf::Drawable
 public:
     GameplayBackground(AssetStore& assets, sf::Vector2f logicalSize);
 
-    void SetTheme(std::string_view theme);
+    void SetTheme(std::string_view theme, float brightness = 1.f);
     void Update(float deltaTime);
 
 private:

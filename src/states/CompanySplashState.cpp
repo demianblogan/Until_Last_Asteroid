@@ -82,8 +82,9 @@ void CompanySplashState::UpdateLayout()
 
 bool CompanySplashState::IsSkipEvent(const sf::Event& event)
 {
-    // Future controller support can be added here without changing transition logic.
-    return event.is<sf::Event::KeyPressed>() || event.is<sf::Event::MouseButtonPressed>();
+    return event.is<sf::Event::KeyPressed>() ||
+        event.is<sf::Event::MouseButtonPressed>() ||
+        event.is<sf::Event::JoystickButtonPressed>();
 }
 
 void CompanySplashState::Finish()

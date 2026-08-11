@@ -3,7 +3,9 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "State.h"
@@ -13,12 +15,18 @@ class StateStack
 public:
     explicit StateStack(StateContext context);
 
-    template <typename StateType>
-    void RegisterState(StateId stateId)
+    template <typename StateType, typename... Arguments>
+    void RegisterState(StateId stateId, Arguments... arguments)
     {
-        factories[stateId] = [this]
+        auto capturedArguments{ std::make_tuple(std::move(arguments)...) };
+        factories[stateId] = [this, capturedArguments = std::move(capturedArguments)]
         {
-            return std::make_unique<StateType>(*this, context);
+            return std::apply(
+                [this](const auto&... unpacked)
+                {
+                    return std::make_unique<StateType>(*this, context, unpacked...);
+                },
+                capturedArguments);
         };
     }
 

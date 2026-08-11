@@ -17,7 +17,8 @@ Application::Application()
     : window(CreateWindow(settings.Get().graphics))
     , audio(assets, settings)
     , display(window, LOGICAL_SIZE)
-    , stateStack(StateContext{ window, assets, settings, audio, display, LOGICAL_SIZE })
+    , stateStack(StateContext{
+        window, assets, settings, audio, display, LOGICAL_SIZE, mainMenuIntroPlayed, gamepad })
 {
     display.ConfigureExistingWindow(settings.Get().graphics);
     const sf::View logicalView(sf::FloatRect({ 0.f, 0.f }, LOGICAL_SIZE));
@@ -43,7 +44,8 @@ Application::Application()
     stateStack.RegisterState<CompanySplashState>(StateId::CompanySplash);
     stateStack.RegisterState<MainMenuState>(StateId::MainMenu);
     stateStack.RegisterState<ScoresState>(StateId::Scores);
-    stateStack.RegisterState<OptionsState>(StateId::Options);
+    stateStack.RegisterState<OptionsState>(StateId::Options, OptionsState::Origin::MainMenu);
+    stateStack.RegisterState<OptionsState>(StateId::PauseOptions, OptionsState::Origin::PauseMenu);
     stateStack.RegisterState<GameplayState>(StateId::Gameplay);
     stateStack.RegisterState<PauseState>(StateId::Pause);
     stateStack.PushState(StateId::CompanySplash);
@@ -97,6 +99,7 @@ void Application::Run()
 
         while (const std::optional<sf::Event> event{ window.pollEvent() })
         {
+            gamepad.HandleEvent(*event);
             if (const auto* resized{ event->getIf<sf::Event::Resized>() })
             {
                 const sf::View logicalView(sf::FloatRect({ 0.f, 0.f }, LOGICAL_SIZE));

@@ -9,6 +9,7 @@
 #include "ui/GlowingCursor.h"
 #include "ui/MenuButton.h"
 #include "ui/NeonGlow.h"
+#include "ui/ScreenFade.h"
 
 class PlaceholderState : public State
 {
@@ -31,8 +32,8 @@ private:
     MenuButton backButton;
     NeonGlow neonGlow;
     GlowingCursor menuCursor;
+    ScreenFade screenFade;
     bool backRequested{ false };
-    float backDelayRemaining{ 0.f };
 };
 
 class ScoresState final : public PlaceholderState

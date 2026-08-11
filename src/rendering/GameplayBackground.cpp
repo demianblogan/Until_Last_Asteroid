@@ -35,7 +35,7 @@ GameplayBackground::GameplayBackground(AssetStore& assets, sf::Vector2f logicalS
     SetTheme("level_01_blue_nebula");
 }
 
-void GameplayBackground::SetTheme(std::string_view theme)
+void GameplayBackground::SetTheme(std::string_view theme, float brightness)
 {
 	farBackground.reset();
 	std::optional<Config::Texture> backgroundTexture;
@@ -63,6 +63,9 @@ void GameplayBackground::SetTheme(std::string_view theme)
 			static_cast<float>(textureSize.y) * 0.5f });
 		farBackground->setPosition(logicalSize * 0.5f);
 		farBackground->setScale({ scale, scale });
+		const auto channel{ static_cast<std::uint8_t>(
+			std::clamp(brightness, 0.f, 1.f) * 255.f) };
+		farBackground->setColor(sf::Color(channel, channel, channel));
 	}
 
     if (theme == "level_02_violet_clouds")

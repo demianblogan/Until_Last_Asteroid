@@ -11,10 +11,11 @@
 
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
+#include "systems/GamepadManager.h"
 
 namespace
 {
-    constexpr float BackDelay{ 0.12f };
+    constexpr float StateFadeDuration{ 0.24f };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
     constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
 }
@@ -36,6 +37,7 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
         Config::Texture::MenuPointer,
         { 6.f, 2.f },
         InterfaceGlowColor)
+    , screenFade(context.logicalSize)
 {
     context.window.setMouseCursorVisible(false);
 
@@ -59,6 +61,7 @@ PlaceholderState::PlaceholderState(StateStack& stateStack, StateContext context,
 
     backButton.SetPosition({ 90.f, context.logicalSize.y - 140.f });
     backButton.SetSelected(true);
+    screenFade.StartFadeIn(StateFadeDuration);
 }
 
 PlaceholderState::~PlaceholderState()
@@ -69,8 +72,16 @@ PlaceholderState::~PlaceholderState()
 
 void PlaceholderState::HandleEvent(const sf::Event& event)
 {
-    if (backRequested)
+    if (backRequested || screenFade.IsActive())
         return;
+
+    const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
+    if (navigation == GamepadManager::NavigationAction::Confirm ||
+        navigation == GamepadManager::NavigationAction::Back)
+    {
+        GoBack();
+        return;
+    }
 
     if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
     {
@@ -96,12 +107,9 @@ void PlaceholderState::Update(float deltaTime)
 {
     neonGlow.Update(deltaTime);
     menuCursor.Update(deltaTime);
+    screenFade.Update(deltaTime);
 
-    if (!backRequested)
-        return;
-
-    backDelayRemaining -= deltaTime;
-    if (backDelayRemaining <= 0.f)
+    if (backRequested && !screenFade.IsActive())
         RequestPop();
 }
 
@@ -127,7 +135,9 @@ void PlaceholderState::Render()
 
 void PlaceholderState::RenderOverlay()
 {
-    menuCursor.Draw(GetContext().window);
+    if (!screenFade.IsActive() && !GetContext().gamepad.IsUsingGamepad())
+        menuCursor.Draw(GetContext().window);
+    screenFade.Draw(GetContext().window);
 }
 
 void PlaceholderState::GoBack()
@@ -139,7 +149,7 @@ void PlaceholderState::GoBack()
         1.f,
         SoundPlayback::Restart);
     backRequested = true;
-    backDelayRemaining = BackDelay;
+    screenFade.StartFadeOut(StateFadeDuration);
 }
 
 ScoresState::ScoresState(StateStack& stateStack, StateContext context)

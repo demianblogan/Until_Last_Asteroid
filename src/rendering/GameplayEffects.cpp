@@ -2,12 +2,16 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <numbers>
+#include <string>
 
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 
+#include "assets/AssetStore.h"
 #include "core/World.h"
+#include "utils/ConfigEnums.h"
 
 namespace
 {
@@ -23,15 +27,45 @@ namespace
     {
         return std::max(1, static_cast<int>(std::round(static_cast<float>(count) * scale)));
     }
+
+    constexpr float ScorePopupDuration{ 0.5f };
+    constexpr float ScorePopupRiseDistance{ 56.f };
 }
 
-GameplayEffects::GameplayEffects(const GameplayData::EffectsConfig& config)
+GameplayEffects::ScorePopup::ScorePopup(
+    const sf::Font& font, int points, sf::Vector2f position)
+    : text(font, "+" + std::to_string(points), 30u)
+{
+    text.setFillColor(sf::Color(225, 252, 255));
+    text.setOutlineColor(sf::Color(20, 175, 255, 230));
+    text.setOutlineThickness(2.f);
+    const sf::FloatRect bounds{ text.getLocalBounds() };
+    text.setOrigin({
+        bounds.position.x + bounds.size.x * 0.5f,
+        bounds.position.y + bounds.size.y * 0.5f });
+    text.setPosition(position);
+}
+
+GameplayEffects::GameplayEffects(const GameplayData::EffectsConfig& config, AssetStore& assets)
     : config(config)
+    , scorePopupFont(assets.Fonts().Get(Config::Font::MenuSemibold))
 {
 }
 
-void GameplayEffects::Update(float deltaTime, World& world)
+void GameplayEffects::Update(
+    float deltaTime, World& world, bool screenShakeEnabled, bool showScorePopups)
 {
+    if (!showScorePopups)
+        scorePopups.clear();
+
+    shakeEnabled = screenShakeEnabled;
+    if (!shakeEnabled)
+    {
+        shakeRemaining = 0.f;
+        shakeDuration = 0.f;
+        shakeAmplitude = 0.f;
+        cameraOffset = {};
+    }
     projectileGlowParticles.Clear();
 
     constexpr float EmissionInterval{ 1.f / 70.f };
@@ -77,6 +111,7 @@ void GameplayEffects::Update(float deltaTime, World& world)
             break;
         case World::EffectEventType::PlayerHit:
             EmitMetalHit(event.position, event.direction, event.scale);
+            postProcessState.damageVignette = 1.f;
             StartCameraShake(config.damageShake, event.scale);
             break;
         case World::EffectEventType::AsteroidExplosion:
@@ -84,6 +119,10 @@ void GameplayEffects::Update(float deltaTime, World& world)
             break;
         case World::EffectEventType::ShipExplosion:
             EmitShipExplosion(event.position, event.scale);
+            break;
+        case World::EffectEventType::ScorePopup:
+            if (showScorePopups)
+                EmitScorePopup(event.position, event.value);
             break;
         }
     }
@@ -96,7 +135,9 @@ void GameplayEffects::Update(float deltaTime, World& world)
     smokeParticles.Update(deltaTime);
     debrisParticles.Update(deltaTime);
     shockwaveParticles.Update(deltaTime);
+    UpdateScorePopups(deltaTime);
     UpdateCameraShake(deltaTime);
+    UpdatePostProcess(deltaTime);
 }
 
 void GameplayEffects::DrawBehindEntities(sf::RenderTarget& target, sf::RenderStates states) const
@@ -112,6 +153,8 @@ void GameplayEffects::DrawAboveEntities(sf::RenderTarget& target, sf::RenderStat
     target.draw(weaponParticles, states);
     target.draw(debrisParticles, states);
     target.draw(impactParticles, states);
+    for (const ScorePopup& popup : scorePopups)
+        target.draw(popup.text, states);
 }
 
 void GameplayEffects::Clear()
@@ -121,6 +164,10 @@ void GameplayEffects::Clear()
     shakeDuration = 0.f;
     shakeAmplitude = 0.f;
     cameraOffset = {};
+    postProcessState = {};
+    shockwaveElapsed = 0.f;
+    shockwaveDuration = 0.f;
+    shockwaveScale = 1.f;
     engineParticles.Clear();
     projectileGlowParticles.Clear();
     weaponParticles.Clear();
@@ -128,6 +175,7 @@ void GameplayEffects::Clear()
     smokeParticles.Clear();
     debrisParticles.Clear();
     shockwaveParticles.Clear();
+    scorePopups.clear();
 }
 
 std::size_t GameplayEffects::GetParticleCount() const noexcept
@@ -141,6 +189,11 @@ std::size_t GameplayEffects::GetParticleCount() const noexcept
 sf::Vector2f GameplayEffects::GetCameraOffset() const noexcept
 {
     return cameraOffset;
+}
+
+const GameplayEffects::PostProcessState& GameplayEffects::GetPostProcessState() const noexcept
+{
+    return postProcessState;
 }
 
 float GameplayEffects::RandomFloat(float minimum, float maximum)
@@ -372,6 +425,7 @@ void GameplayEffects::EmitAsteroidExplosion(const sf::Vector2f& position, float 
         shockwaveParticles.Emit({ position, {}, 0.42f, 42.f, 245.f * scale,
             { 255, 190, 95, 205 }, { 255, 80, 20, 0 } });
         StartCameraShake(config.largeExplosionShake, 0.8f * scale);
+        StartShockwave(position, scale);
     }
 }
 
@@ -437,11 +491,39 @@ void GameplayEffects::EmitShipExplosion(const sf::Vector2f& position, float scal
     shockwaveParticles.Emit({ position, {}, 0.46f, 48.f, 265.f * scale,
         { 120, 225, 255, 220 }, { 255, 65, 30, 0 } });
     StartCameraShake(config.largeExplosionShake, scale);
+    StartShockwave(position, scale);
+}
+
+void GameplayEffects::EmitScorePopup(const sf::Vector2f& position, int points)
+{
+    scorePopups.emplace_back(scorePopupFont, points, position);
+}
+
+void GameplayEffects::UpdateScorePopups(float deltaTime)
+{
+    for (ScorePopup& popup : scorePopups)
+    {
+        popup.elapsed += deltaTime;
+        const float progress{ std::clamp(popup.elapsed / ScorePopupDuration, 0.f, 1.f) };
+        popup.text.move({ 0.f, -ScorePopupRiseDistance * deltaTime / ScorePopupDuration });
+        const float fade{ 1.f - progress * progress };
+        const auto alpha{ static_cast<std::uint8_t>(255.f * fade) };
+        popup.text.setFillColor(sf::Color(225, 252, 255, alpha));
+        popup.text.setOutlineColor(sf::Color(
+            20, 175, 255, static_cast<std::uint8_t>(230.f * fade)));
+    }
+
+    std::erase_if(scorePopups, [](const ScorePopup& popup)
+    {
+        return popup.elapsed >= ScorePopupDuration;
+    });
 }
 
 void GameplayEffects::StartCameraShake(
     const GameplayData::CameraShakeConfig& shake, float scale)
 {
+    if (!shakeEnabled)
+        return;
     shakeDuration = std::max(shakeDuration, shake.duration);
     shakeRemaining = std::max(shakeRemaining, shake.duration);
     shakeAmplitude = std::min(12.f, std::max(shakeAmplitude, shake.amplitude * scale));
@@ -462,4 +544,33 @@ void GameplayEffects::UpdateCameraShake(float deltaTime)
         RandomFloat(-shakeAmplitude, shakeAmplitude) * falloff,
         RandomFloat(-shakeAmplitude, shakeAmplitude) * falloff };
     cameraOffset = cameraOffset * 0.3f + target * 0.7f;
+}
+
+void GameplayEffects::StartShockwave(const sf::Vector2f& position, float scale)
+{
+    postProcessState.shockwavePosition = position;
+    postProcessState.shockwaveActive = true;
+    shockwaveElapsed = 0.f;
+    shockwaveDuration = 0.55f;
+    shockwaveScale = std::clamp(scale, 0.7f, 1.35f);
+}
+
+void GameplayEffects::UpdatePostProcess(float deltaTime)
+{
+    postProcessState.damageVignette = std::max(
+        0.f,
+        postProcessState.damageVignette - deltaTime * 2.6f);
+
+    if (!postProcessState.shockwaveActive || shockwaveDuration <= 0.f)
+        return;
+
+    shockwaveElapsed += deltaTime;
+    const float progress{ std::clamp(shockwaveElapsed / shockwaveDuration, 0.f, 1.f) };
+    postProcessState.shockwaveRadius = std::lerp(24.f, 285.f * shockwaveScale, progress);
+    postProcessState.shockwaveStrength = (1.f - progress) * 0.9f;
+    if (progress >= 1.f)
+    {
+        postProcessState.shockwaveActive = false;
+        postProcessState.shockwaveStrength = 0.f;
+    }
 }

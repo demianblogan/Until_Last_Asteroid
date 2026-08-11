@@ -12,6 +12,7 @@
 #include "ui/MenuButton.h"
 #include "ui/MenuIntroAnimation.h"
 #include "ui/NeonGlow.h"
+#include "ui/ScreenFade.h"
 
 class MainMenuState final : public State
 {
@@ -41,6 +42,7 @@ private:
     NeonGlow titleNeonGlow;
     GlowingCursor menuCursor;
     MenuIntroAnimation introAnimation;
+    ScreenFade screenFade;
     sf::Text title;
     sf::Text version;
     std::vector<MenuButton> buttons;
@@ -49,4 +51,5 @@ private:
     std::size_t typingSoundIndex{ 0 };
     float activationDelayRemaining{ 0.f };
     float titleLeftPosition{ 0.f };
+    bool startingGameplay{ false };
 };

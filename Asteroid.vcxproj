@@ -149,6 +149,7 @@
     <ClCompile Include="src\audio\AudioManager.cpp" />
     <ClCompile Include="src\audio\AudioBalance.cpp" />
     <ClCompile Include="src\systems\Collision.cpp" />
+    <ClCompile Include="src\systems\GamepadManager.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
     <ClCompile Include="src\core\Entity.cpp" />
     <ClCompile Include="src\app\Application.cpp" />
@@ -157,6 +158,7 @@
     <ClCompile Include="src\game\Health.cpp" />
     <ClCompile Include="src\rendering\GameplayBackground.cpp" />
     <ClCompile Include="src\rendering\GameplayEffects.cpp" />
+    <ClCompile Include="src\rendering\GameplayPostProcessor.cpp" />
     <ClCompile Include="src\rendering\ParticleSystem.cpp" />
     <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
@@ -173,6 +175,9 @@
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
     <ClCompile Include="src\ui\NeonGlow.cpp" />
     <ClCompile Include="src\ui\RoundedRectangleShape.cpp" />
+    <ClCompile Include="src\ui\ScreenFade.cpp" />
+    <ClCompile Include="src\ui\GameOverScreen.cpp" />
+    <ClCompile Include="src\ui\ResultScreen.cpp" />
     <ClCompile Include="src\systems\InputAction.cpp" />
     <ClCompile Include="src\settings\SettingsManager.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -195,6 +200,7 @@
     <ClInclude Include="src\systems\InputAction.h" />
     <ClInclude Include="src\systems\ActionMap.h" />
     <ClInclude Include="src\systems\InputHandler.h" />
+    <ClInclude Include="src\systems\GamepadManager.h" />
     <ClInclude Include="src\settings\GameSettings.h" />
     <ClInclude Include="src\settings\SettingsManager.h" />
     <ClInclude Include="src\game\GameplaySession.h" />
@@ -202,6 +208,7 @@
     <ClInclude Include="src\game\Health.h" />
     <ClInclude Include="src\rendering\GameplayBackground.h" />
     <ClInclude Include="src\rendering\GameplayEffects.h" />
+    <ClInclude Include="src\rendering\GameplayPostProcessor.h" />
     <ClInclude Include="src\rendering\ParticleSystem.h" />
     <ClInclude Include="src\states\CompanySplashState.h" />
     <ClInclude Include="src\states\GameplayState.h" />
@@ -228,12 +235,18 @@
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
     <ClInclude Include="src\ui\NeonGlow.h" />
     <ClInclude Include="src\ui\RoundedRectangleShape.h" />
+    <ClInclude Include="src\ui\ScreenFade.h" />
+    <ClInclude Include="src\ui\GameOverScreen.h" />
+    <ClInclude Include="src\ui\ResultScreen.h" />
     <ClInclude Include="libs\nlohmann\json.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\bright_pass.frag" />
     <None Include="assets\shaders\gaussian_blur.frag" />
     <None Include="assets\shaders\hit_flash.frag" />
+    <None Include="assets\shaders\scene_bright_pass.frag" />
+    <None Include="assets\shaders\gameplay_post_process.frag" />
+    <None Include="assets\shaders\menu_vignette.frag" />
     <None Include="assets\data\audio_balance.json" />
     <None Include="assets\data\gameplay\player.json" />
     <None Include="assets\data\gameplay\weapons.json" />
@@ -249,6 +262,24 @@
     <None Include="assets\sprites\player\ship_v1_4.png" />
     <None Include="assets\sprites\ui\hud\health_bar_frame.png" />
     <None Include="assets\sprites\ui\hud\health_bar_fill.png" />
+    <None Include="assets\sprites\ui\hud\score_panel_frame.png" />
+    <None Include="assets\sprites\ui\game_over\game_over_title_frame.png" />
+    <None Include="assets\sprites\ui\results\result_title_frame.png" />
+    <None Include="assets\sprites\ui\controls\xbox_ls.png" />
+    <None Include="assets\sprites\ui\controls\xbox_rs.png" />
+    <None Include="assets\sprites\ui\controls\xbox_rt.png" />
+    <None Include="assets\sprites\ui\controls\xbox_dpad.png" />
+    <None Include="assets\sprites\ui\controls\xbox_a.png" />
+    <None Include="assets\sprites\ui\controls\xbox_b.png" />
+    <None Include="assets\sprites\ui\controls\xbox_menu.png" />
+    <None Include="assets\sprites\ui\controls\playstation_l.png" />
+    <None Include="assets\sprites\ui\controls\playstation_r.png" />
+    <None Include="assets\sprites\ui\controls\playstation_r2.png" />
+    <None Include="assets\sprites\ui\controls\playstation_dpad.png" />
+    <None Include="assets\sprites\ui\controls\playstation_cross.png" />
+    <None Include="assets\sprites\ui\controls\playstation_circle.png" />
+    <None Include="assets\sprites\ui\controls\playstation_options.png" />
+    <None Include="assets\audio\sounds\game_over.ogg" />
     <None Include="libs\nlohmann\LICENSE.MIT" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

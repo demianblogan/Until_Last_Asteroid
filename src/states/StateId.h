@@ -6,6 +6,7 @@ enum class StateId
     MainMenu,
     Scores,
     Options,
+    PauseOptions,
     Gameplay,
     Pause
 };

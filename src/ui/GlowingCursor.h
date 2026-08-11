@@ -25,6 +25,7 @@ public:
 
     void Update(float deltaTime);
     void Draw(sf::RenderWindow& window);
+    void DrawAt(sf::RenderWindow& window, sf::Vector2f position);
 
 private:
     sf::Sprite sprite;

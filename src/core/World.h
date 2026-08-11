@@ -12,7 +12,9 @@
 
 class AssetStore;
 class AudioManager;
+class Enemy;
 class GameplaySession;
+class GamepadManager;
 class Player;
 
 namespace sf
@@ -40,7 +42,8 @@ public:
 		ShipHit,
 		PlayerHit,
 		AsteroidExplosion,
-		ShipExplosion
+		ShipExplosion,
+		ScorePopup
 	};
 
 	struct EffectEvent
@@ -49,6 +52,7 @@ public:
 		sf::Vector2f position;
 		sf::Vector2f direction;
 		float scale{ 1.f };
+		int value{ 0 };
 	};
 
 	struct PlayerEffectState
@@ -59,7 +63,8 @@ public:
 		bool isThrusting{ false };
 	};
 
-	World(unsigned int width, unsigned int height, AssetStore& assets, AudioManager& audio, GameplaySession& session);
+	World(unsigned int width, unsigned int height, AssetStore& assets, AudioManager& audio,
+		GameplaySession& session, GamepadManager& gamepad);
 
 	void Update(float deltaTime);
 
@@ -73,9 +78,11 @@ public:
 	void ClearEffectEvents() noexcept;
 	void PauseActiveSounds();
 	void ResumePausedSounds();
+	void StopActiveSounds();
 
 	[[nodiscard]] sf::Vector2f GetPlayerPosition() const noexcept;
 	[[nodiscard]] std::optional<PlayerEffectState> GetPlayerEffectState() const;
+	[[nodiscard]] std::optional<sf::Vector2f> GetPlayerGamepadAimPoint() const;
 	[[nodiscard]] unsigned int GetWidth() const noexcept;
 	[[nodiscard]] unsigned int GetHeight() const noexcept;
 	[[nodiscard]] GameplaySession& GetSession() noexcept;
@@ -98,6 +105,7 @@ private:
 	void ResolveCollision(Entity& first, Entity& second,
 		const sf::Vector2f& normal, float penetration) const;
 	void HandleCollisionPair(Entity& first, Entity& second);
+	void AwardScore(const Enemy& enemy);
 	void RemoveDeadEntities();
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
@@ -107,6 +115,7 @@ private:
 	AssetStore& assets;
 	AudioManager& audio;
 	GameplaySession& session;
+	GamepadManager& gamepad;
 
 	Player* player{ nullptr };
 	sf::RenderWindow* window{ nullptr };

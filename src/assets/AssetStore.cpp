@@ -120,6 +120,33 @@ void AssetStore::InitializeTextures()
 	textures.LoadFromFile(Config::Texture::PlayerLife, "assets/sprites/player/life.png");
 	textures.LoadFromFile(Config::Texture::HealthBarFrame, "assets/sprites/ui/hud/health_bar_frame.png");
 	textures.LoadFromFile(Config::Texture::HealthBarFill, "assets/sprites/ui/hud/health_bar_fill.png");
+	textures.LoadFromFile(Config::Texture::ScorePanelFrame, "assets/sprites/ui/hud/score_panel_frame.png");
+	textures.Get(Config::Texture::ScorePanelFrame).setSmooth(true);
+	textures.LoadFromFile(Config::Texture::GameOverTitleFrame,
+		"assets/sprites/ui/game_over/game_over_title_frame.png");
+	textures.Get(Config::Texture::GameOverTitleFrame).setSmooth(true);
+	textures.LoadFromFile(Config::Texture::ResultTitleFrame,
+		"assets/sprites/ui/results/result_title_frame.png");
+	textures.Get(Config::Texture::ResultTitleFrame).setSmooth(true);
+	const auto loadControlIcon{ [this](Config::Texture id, const std::string& path)
+	{
+		textures.LoadFromFile(id, path);
+		textures.Get(id).setSmooth(true);
+	} };
+	loadControlIcon(Config::Texture::XboxLeftStick, "assets/sprites/ui/controls/xbox_ls.png");
+	loadControlIcon(Config::Texture::XboxRightStick, "assets/sprites/ui/controls/xbox_rs.png");
+	loadControlIcon(Config::Texture::XboxRightTrigger, "assets/sprites/ui/controls/xbox_rt.png");
+	loadControlIcon(Config::Texture::XboxDpad, "assets/sprites/ui/controls/xbox_dpad.png");
+	loadControlIcon(Config::Texture::XboxConfirm, "assets/sprites/ui/controls/xbox_a.png");
+	loadControlIcon(Config::Texture::XboxBack, "assets/sprites/ui/controls/xbox_b.png");
+	loadControlIcon(Config::Texture::XboxMenu, "assets/sprites/ui/controls/xbox_menu.png");
+	loadControlIcon(Config::Texture::PlayStationLeftStick, "assets/sprites/ui/controls/playstation_l.png");
+	loadControlIcon(Config::Texture::PlayStationRightStick, "assets/sprites/ui/controls/playstation_r.png");
+	loadControlIcon(Config::Texture::PlayStationRightTrigger, "assets/sprites/ui/controls/playstation_r2.png");
+	loadControlIcon(Config::Texture::PlayStationDpad, "assets/sprites/ui/controls/playstation_dpad.png");
+	loadControlIcon(Config::Texture::PlayStationConfirm, "assets/sprites/ui/controls/playstation_cross.png");
+	loadControlIcon(Config::Texture::PlayStationBack, "assets/sprites/ui/controls/playstation_circle.png");
+	loadControlIcon(Config::Texture::PlayStationOptions, "assets/sprites/ui/controls/playstation_options.png");
 
 	textures.LoadFromFile(Config::Texture::BigEnemySaucer,
 		"assets/sprites/enemies/kamikaze_saucer_v1_4.png");
@@ -198,6 +225,7 @@ void AssetStore::InitializeSounds()
 	sounds.LoadFromFile(Config::Sound::HitAsteroid, "assets/audio/sounds/hit_asteroid.ogg");
 	sounds.LoadFromFile(Config::Sound::HitEnemySaucer, "assets/audio/sounds/hit_enemy_saucer.ogg");
 	sounds.LoadFromFile(Config::Sound::MetalHit, "assets/audio/sounds/metal_hit.ogg");
+	sounds.LoadFromFile(Config::Sound::GameOver, "assets/audio/sounds/game_over.ogg");
 }
 
 void AssetStore::InitializeMusic()
@@ -229,6 +257,27 @@ void AssetStore::InitializeShaders()
 		throw std::runtime_error("Failed to load shader: " + hitFlashPath);
 
 	shaders.emplace(Config::Shader::HitFlash, std::move(hitFlashShader));
+
+	sf::Shader sceneBrightPassShader;
+	const std::string sceneBrightPassPath{ "assets/shaders/scene_bright_pass.frag" };
+	if (!sceneBrightPassShader.loadFromFile(sceneBrightPassPath, sf::Shader::Type::Fragment))
+		throw std::runtime_error("Failed to load shader: " + sceneBrightPassPath);
+
+	shaders.emplace(Config::Shader::SceneBrightPass, std::move(sceneBrightPassShader));
+
+	sf::Shader sceneCompositeShader;
+	const std::string sceneCompositePath{ "assets/shaders/gameplay_post_process.frag" };
+	if (!sceneCompositeShader.loadFromFile(sceneCompositePath, sf::Shader::Type::Fragment))
+		throw std::runtime_error("Failed to load shader: " + sceneCompositePath);
+
+	shaders.emplace(Config::Shader::SceneComposite, std::move(sceneCompositeShader));
+
+	sf::Shader menuVignetteShader;
+	const std::string menuVignettePath{ "assets/shaders/menu_vignette.frag" };
+	if (!menuVignetteShader.loadFromFile(menuVignettePath, sf::Shader::Type::Fragment))
+		throw std::runtime_error("Failed to load shader: " + menuVignettePath);
+
+	shaders.emplace(Config::Shader::MenuVignette, std::move(menuVignetteShader));
 }
 
 void AssetStore::InitializeCursors()

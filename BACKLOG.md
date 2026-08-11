@@ -192,29 +192,65 @@ Visual direction and production specifications are documented in
 - Prepared, extracted, file-verified, and smoke-tested the standalone Windows
   release candidate.
 
-## Planned
-
 ### v1.5.0
 
+- Treat v1.5.0 as a complete polish pass over the existing game; defer new
+  levels, enemies, bonuses, campaign progression, score tables, and bosses.
 - Add a physical-resolution gameplay post-processing pipeline while keeping the
   HUD and crosshair sharp.
-- Add a dedicated emissive layer and true scene bloom for projectiles, engines,
-  hits, and explosions.
-- Add subtle per-level color grading, restrained vignette, and a brief damage
-  vignette.
-- Add localized shockwave distortion for major explosions.
-- Evaluate subtle animated film grain with an A/B comparison; keep it only if it
-  materially improves the image.
-- Reserve brief chromatic aberration for exceptional future weapons and bosses;
-  never apply it continuously.
-- Add `Post-processing Quality: Off / Low / High` to Graphics settings.
-- Do not add continuous motion blur, heavy scanlines, strong lens flares, or
-  effects that reduce gameplay readability.
+- Add true scene bloom, subtle per-level color grading, restrained vignette,
+  damage vignette, and localized major-explosion distortion.
+- Remove film grain after the visual review showed that it did not improve the
+  presentation enough to justify keeping it.
+- Add `Post Effects: On / Off` to Graphics settings, and do not add continuous
+  motion blur, heavy scanlines, strong lens flares, or readability-reducing
+  effects.
+- Add a Gameplay settings page with `Screen Shake: On / Off` and
+  `Show Score Popups: On / Off`.
+- Add Options to the pause menu and reuse the main-menu Options presentation
+  without resuming gameplay or its audio.
+- Redesign the score HUD with Orbitron, a wide sci-fi frame, `Score: XXXXXX`,
+  and a short pulse whenever the score increases.
+- Add optional world-positioned `+points` popups with bloom, a 0.5-second upward
+  drift, and fade-out.
+- Add reusable fade transitions when starting gameplay and for later navigation
+  polish.
+- Replace the prototype Game Over text with an approved animated screen,
+  `Restart Level`, and `Go to Main Menu`; prevent the pause menu from opening
+  after death.
+- Replace the legacy Level Complete and You Win text with one reusable animated
+  result screen, mouse/keyboard/gamepad controls, and fade transitions for
+  continuing, replaying, or returning to the main menu.
+- Add normalized Xbox and DualSense controller support for twin-stick gameplay
+  and every menu, including hot-plugging and dead zones.
+- Split Controls into `Keyboard`, `Gamepad`, and `Back`: keyboard bindings remain
+  rebindable, while Gamepad shows read-only Xbox and PlayStation layouts in two
+  separate blocks.
+- Finish with a complete transition/effect tuning pass and controller-inclusive
+  regression checklist.
+- During the final tuning pass, reduce gameplay-background brightness where
+  needed, especially the blue Level 1 background, so cyan player art and shots
+  retain clear contrast without losing celestial detail.
+
+#### Release verification
+
+- Synchronized the displayed game version and README for v1.5.0.
+- Validated all JSON, referenced assets, Visual Studio project entries, source
+  registration, and 4K gameplay-background dimensions.
+- Built and verified the x64 Debug and Release configurations.
+- Prepared, extracted, file-verified, and startup-smoke-tested
+  `v1.5.0-rc.1`.
+- Completed the full manual gameplay, menus, settings, transitions, effects,
+  and controller-inclusive regression checklist without release-blocking issues.
+
+## Planned
 
 ## Deferred / needs design
 
+- Add controller vibration after the input layer has a dedicated haptics
+  backend. SFML 3.1 exposes controller input but no rumble API, XInput covers
+  only Xbox controllers, and DualSense needs a separate USB/Bluetooth HID path.
 - Add localization with externalized UI text and language selection in Options.
-- Add controller support, including skipping the company splash with a gamepad.
 - Review collision behaviour across wrapped screen edges only if the current
   collision style becomes a gameplay problem.
 - Decide whether slow motion improves major explosions after the visual-effects
