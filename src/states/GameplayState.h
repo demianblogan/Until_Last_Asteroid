@@ -5,8 +5,11 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "core/World.h"
+#include "entities/Pickup.h"
 #include "game/GameplayData.h"
 #include "game/GameplaySession.h"
+#include "game/TutorialDirector.h"
+#include "game/WaveDirector.h"
 #include "rendering/GameplayBackground.h"
 #include "rendering/GameplayEffects.h"
 #include "rendering/GameplayPostProcessor.h"
@@ -18,6 +21,7 @@
 #include "ui/HUD.h"
 #include "ui/ResultScreen.h"
 #include "ui/ScreenFade.h"
+#include "ui/WaveIntro.h"
 #include "utils/ConfigEnums.h"
 
 class GameplayState final : public State
@@ -39,14 +43,8 @@ private:
 		RestartLevel,
 		NextLevel,
 		RestartGame,
+		TutorialComplete,
 		MainMenu
-	};
-
-	struct RuntimeWave
-	{
-		GameplayData::WaveConfig config;
-		float timer{ 0.f };
-		int repetitionsSpawned{ 0 };
 	};
 
 	void SetupInput();
@@ -58,10 +56,24 @@ private:
 	void BeginResultTransition(ResultScreen::Action action);
 	void RestartCurrentLevel();
 	void SpawnPlayerIfNeeded();
-	void SpawnConfiguredEnemy(GameplayData::EnemyKind kind);
+	void SpawnConfiguredEnemy(GameplayData::EnemyKind kind, bool materialize = false);
+	void SpawnPickup(Pickup::Kind kind, sf::Vector2f position);
+	void StartTutorial();
+	void UpdateTutorial(float deltaTime);
+	void ExecuteTutorialAction(TutorialDirector::Action action);
+	void FinishTutorial();
+	void BeginLevelCompleteAudio();
+	void UpdateLevelCompleteAudio(float deltaTime);
+	[[nodiscard]] TutorialDirector::Snapshot GetTutorialSnapshot() const;
 	void Reset();
+	void RestoreCampaignProgress();
+	void SaveCompletedLevel();
 	void NextLevel();
 	void SpawnLevel();
+	void StartNextWave(bool materializeInitialSpawns);
+	void FinishWaveIntro();
+	void UpdatePlayerSpawnAnimation(float deltaTime);
+	void UpdateWaveMaterialization(float deltaTime);
 	[[nodiscard]] sf::Vector2f GetSafeSpawnPosition();
 	[[nodiscard]] sf::Vector2f GetSafeEdgeSpawnPosition();
 
@@ -69,6 +81,7 @@ private:
 
 	const GameplayData& gameplayData;
 	GameplaySession session;
+	WaveDirector waveDirector;
 	ActionMap<Config::PlayerAction> actions;
 	InputHandler<Config::PlayerAction> input;
 	GameplayBackground background;
@@ -79,8 +92,15 @@ private:
 	GameOverScreen gameOverScreen;
 	ResultScreen resultScreen;
 	ScreenFade screenFade;
+	WaveIntro waveIntro;
 	std::optional<HUD> hud;
-	std::vector<RuntimeWave> currentWaves;
+	std::optional<TutorialDirector> tutorial;
+	bool tutorialActive{ false };
 	bool gameplaySoundsPaused{ false };
+	float levelCompleteSoundRemaining{ 0.f };
 	GameplayTransition gameplayTransition{ GameplayTransition::None };
+	float playerSpawnElapsed{ 0.f };
+	float waveMaterializationElapsed{ 0.f };
+	bool playerSpawnAnimating{ false };
+	std::vector<Entity*> materializingEnemies;
 };

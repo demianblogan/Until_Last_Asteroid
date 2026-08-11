@@ -82,11 +82,14 @@ bool Player::TakeDamage(int damage)
 	if (IsInvulnerable() || !IsAlive())
 		return false;
 
-	auto& health{ GetWorld().GetSession().GetPlayerHealth() };
-	const bool damageApplied{ health.ApplyDamage(damage) };
-	if (!damageApplied)
+	auto& session{ GetWorld().GetSession() };
+	const GameplaySession::PlayerDamageResult result{ session.ApplyPlayerDamage(damage) };
+	if (!result.accepted)
 		return false;
-	if (health.IsDepleted())
+
+	lastDamageReachedHealth = result.healthDamaged;
+	blinkDuringInvulnerability = result.healthDamaged;
+	if (session.GetPlayerHealth().IsDepleted())
 	{
 		Destroy();
 		return true;
@@ -94,6 +97,11 @@ bool Player::TakeDamage(int damage)
 
 	invulnerabilityTimer = GetAssets().GetGameplayData().GetPlayer().damageInvulnerability;
 	return true;
+}
+
+bool Player::DidLastDamageReachHealth() const noexcept
+{
+	return lastDamageReachedHealth;
 }
 
 bool Player::IsInvulnerable() const noexcept
@@ -205,11 +213,19 @@ void Player::UpdateInvulnerability(float dt)
 	if (invulnerabilityTimer <= 0.f)
 	{
 		SetVisible(true);
+		blinkDuringInvulnerability = false;
 		return;
 	}
 
 	invulnerabilityTimer = std::max(0.f, invulnerabilityTimer - dt);
 	if (invulnerabilityTimer <= 0.f)
+	{
+		SetVisible(true);
+		blinkDuringInvulnerability = false;
+		return;
+	}
+
+	if (!blinkDuringInvulnerability)
 	{
 		SetVisible(true);
 		return;

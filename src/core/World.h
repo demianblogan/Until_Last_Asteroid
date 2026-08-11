@@ -63,10 +63,20 @@ public:
 		bool isThrusting{ false };
 	};
 
+	struct Statistics
+	{
+		unsigned int playerShotsFired{ 0u };
+		unsigned int bigMeteorsDestroyed{ 0u };
+		unsigned int smallMeteorsDestroyed{ 0u };
+		unsigned int shootersDestroyed{ 0u };
+		unsigned int shieldPickupsCollected{ 0u };
+	};
+
 	World(unsigned int width, unsigned int height, AssetStore& assets, AudioManager& audio,
 		GameplaySession& session, GamepadManager& gamepad);
 
 	void Update(float deltaTime);
+	void CommitPendingEntities();
 
 	void Spawn(std::unique_ptr<Entity> entity);
 	void SpawnPlayerShot(const sf::Vector2f& pos, float rotation);
@@ -86,6 +96,7 @@ public:
 	[[nodiscard]] unsigned int GetWidth() const noexcept;
 	[[nodiscard]] unsigned int GetHeight() const noexcept;
 	[[nodiscard]] GameplaySession& GetSession() noexcept;
+	[[nodiscard]] const Statistics& GetStatistics() const noexcept;
 
 	sf::RenderWindow& GetWindow() noexcept;
 	void SetWindow(sf::RenderWindow& window);
@@ -95,6 +106,7 @@ public:
 
 	bool HasPlayer() const noexcept;
 	void SpawnPlayer(AssetStore& assets, InputHandler<Config::PlayerAction>& input);
+	void SetPlayerSpawnPresentation(float progress) noexcept;
 
 	void HandlePlayerEvent(const sf::Event& event);
 	void HandlePlayerRealtime();
@@ -122,4 +134,6 @@ private:
 
 	unsigned int width;
 	unsigned int height;
+	float shieldVisualTime{ 0.f };
+	Statistics statistics;
 };

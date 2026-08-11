@@ -30,7 +30,6 @@ namespace
     constexpr float TitleEndY{ 125.f };
     constexpr float ActivationDelay{ 0.12f };
     constexpr float MenuFadeInDuration{ 0.45f };
-    constexpr float GameplayFadeOutDuration{ 0.38f };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
     constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
     constexpr std::size_t TypingSoundPoolSize{ 4 };
@@ -113,7 +112,7 @@ MainMenuState::~MainMenuState()
 
 void MainMenuState::HandleEvent(const sf::Event& event)
 {
-    if (pendingActivation.has_value() || startingGameplay || screenFade.IsActive())
+    if (pendingActivation.has_value() || screenFade.IsActive())
         return;
 
     const GamepadManager::NavigationAction navigation{
@@ -216,22 +215,11 @@ void MainMenuState::Update(float deltaTime)
     menuCursor.Update(deltaTime);
     screenFade.Update(deltaTime);
 
-    if (!startingGameplay && screenFade.IsActive())
+    if (screenFade.IsActive())
         return;
 
     HandleAnimationEvents(introAnimation.Update(deltaTime));
     ApplyAnimationState();
-
-    if (startingGameplay)
-    {
-        if (!screenFade.IsActive())
-        {
-            GetContext().audio.StopMusic(Config::Music::MainMenuBackground);
-            RequestClear();
-            RequestPush(StateId::Gameplay);
-        }
-        return;
-    }
 
     if (!pendingActivation.has_value())
         return;
@@ -356,8 +344,7 @@ void MainMenuState::CompleteActivation(std::size_t index)
     switch (index)
     {
     case 0:
-        startingGameplay = true;
-        screenFade.StartFadeOut(GameplayFadeOutDuration);
+        RequestPush(StateId::CampaignMenu);
         break;
 
     case 1:

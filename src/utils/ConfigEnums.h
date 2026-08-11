@@ -18,6 +18,8 @@ namespace Config
 		MenuButtonSelected,
 		MenuPointer,
 		GameplayCrosshair,
+		HealthPickup,
+		ShieldPickup,
 
 		PlayerShip,
 		PlayerLife,
@@ -61,6 +63,7 @@ namespace Config
 	enum class Font
 	{
 		GUI,
+		BodyRegular,
 		MenuRegular,
 		MenuSemibold
 	};
@@ -82,6 +85,9 @@ namespace Config
 		HitEnemySaucer,
 		MetalHit,
 		GameOver,
+		BonusTouched,
+		Countdown,
+		LevelComplete,
 
 		Count
 	};

@@ -29,6 +29,15 @@ public:
     [[nodiscard]] bool IsTransparent() const noexcept override;
 
 private:
+    enum class PauseAction
+    {
+        Resume,
+        RestartLevel,
+        SkipTutorial,
+        Options,
+        MainMenu
+    };
+
     void CaptureBlurredFrame();
     void SelectPrevious();
     void SelectNext();
@@ -48,6 +57,7 @@ private:
     GlowingCursor menuCursor;
     ScreenFade screenFade;
     std::vector<MenuButton> buttons;
+    std::vector<PauseAction> buttonActions;
     sf::Vector2u capturedWindowSize{};
     std::size_t selectedIndex{ 0 };
     std::size_t pendingActivation{ 0 };

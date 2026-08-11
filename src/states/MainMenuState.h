@@ -51,5 +51,4 @@ private:
     std::size_t typingSoundIndex{ 0 };
     float activationDelayRemaining{ 0.f };
     float titleLeftPosition{ 0.f };
-    bool startingGameplay{ false };
 };

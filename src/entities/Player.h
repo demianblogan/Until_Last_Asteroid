@@ -31,6 +31,7 @@ public:
 	void OnDestroy() override;
 
 	[[nodiscard]] bool TakeDamage(int damage);
+	[[nodiscard]] bool DidLastDamageReachHealth() const noexcept;
 	[[nodiscard]] bool IsInvulnerable() const noexcept;
 	[[nodiscard]] bool IsThrusting() const noexcept;
 	[[nodiscard]] std::array<sf::Vector2f, 2> GetEngineEmitterPositions() const;
@@ -51,6 +52,8 @@ private:
 	sf::Vector2f gamepadAimDirection{ 0.f, -1.f };
 	float shootTimer{ 0.f };
 	float invulnerabilityTimer{ 0.f };
+	bool blinkDuringInvulnerability{ false };
+	bool lastDamageReachedHealth{ false };
 	bool isThrusting{ false };
 	bool aimingWithGamepad{ false };
 };

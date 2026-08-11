@@ -6,10 +6,12 @@
 
 class AssetStore;
 class AudioManager;
+class CampaignSaveManager;
 class DisplayManager;
 class SettingsManager;
 class GamepadManager;
 class StateStack;
+struct GameplayLaunchRequest;
 
 namespace sf
 {
@@ -22,11 +24,13 @@ struct StateContext
     sf::RenderWindow& window;
     AssetStore& assets;
     SettingsManager& settings;
+    CampaignSaveManager& campaignSave;
     AudioManager& audio;
     DisplayManager& display;
     sf::Vector2f logicalSize;
     bool& mainMenuIntroPlayed;
     GamepadManager& gamepad;
+    GameplayLaunchRequest& gameplayLaunch;
 };
 
 class State

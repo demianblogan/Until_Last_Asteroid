@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics/Drawable.hpp>
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/System/Angle.hpp>
@@ -28,7 +29,8 @@ public:
 		Enemy,
 		Projectile_Player,
 		Projectile_Enemy,
-		Asteroid
+		Asteroid,
+		Pickup
 	};
 
 	Entity(AssetStore& assets, World& world, sf::Texture& texture,
@@ -50,6 +52,10 @@ public:
 	[[nodiscard]] const sf::Vector2f& GetVelocity() const noexcept;
 	void ApplyImpulse(const sf::Vector2f& impulse) noexcept;
 	void Translate(const sf::Vector2f& offset) noexcept;
+	void SetPresentation(
+		float scaleMultiplier,
+		float opacity,
+		sf::Color tint = sf::Color::White) noexcept;
 
 	[[nodiscard]] bool IsAlive() const noexcept;
 	void Destroy() noexcept;
@@ -91,6 +97,7 @@ private:
 	float hitFlashRemaining{ 0.f };
 	float hitFlashDuration{ 0.f };
 	float collisionRadius{ 0.f };
+	float visualScale{ 1.f };
 	std::vector<Collision::LocalCircle> collisionCircles;
 
 private:

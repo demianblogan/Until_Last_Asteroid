@@ -1,0 +1,7 @@
+{
+  "health_restore_percentage": 0.25,
+  "shield_capacity": 100.0,
+  "shield_duration": 10.0,
+  "visual_scale": 0.075,
+  "collision_radius": 42.0
+}

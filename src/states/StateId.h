@@ -4,6 +4,7 @@ enum class StateId
 {
     CompanySplash,
     MainMenu,
+    CampaignMenu,
     Scores,
     Options,
     PauseOptions,

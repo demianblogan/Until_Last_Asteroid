@@ -114,6 +114,10 @@ void AssetStore::InitializeTextures()
 	textures.LoadFromFile(Config::Texture::MenuButtonSelected, "assets/sprites/ui/menu_button_selected.png");
 	textures.LoadFromFile(Config::Texture::MenuPointer, "assets/cursors/menu_pointer.png");
 	textures.LoadFromFile(Config::Texture::GameplayCrosshair, "assets/cursors/gameplay_crosshair.png");
+	textures.LoadFromFile(Config::Texture::HealthPickup, "assets/sprites/pickups/health_pickup.png");
+	textures.LoadFromFile(Config::Texture::ShieldPickup, "assets/sprites/pickups/shield_pickup.png");
+	textures.Get(Config::Texture::HealthPickup).setSmooth(true);
+	textures.Get(Config::Texture::ShieldPickup).setSmooth(true);
 
 	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship_v1_4.png");
 	textures.Get(Config::Texture::PlayerShip).setSmooth(true);
@@ -205,6 +209,7 @@ void AssetStore::InitializeGameplayData()
 void AssetStore::InitializeFonts()
 {
 	fonts.LoadFromFile(Config::Font::GUI, "assets/fonts/trs_million.ttf");
+	fonts.LoadFromFile(Config::Font::BodyRegular, "assets/fonts/Exo2-Regular.ttf");
 	fonts.LoadFromFile(Config::Font::MenuRegular, "assets/fonts/orbitron_regular.ttf");
 	fonts.LoadFromFile(Config::Font::MenuSemibold, "assets/fonts/orbitron_semibold.ttf");
 }
@@ -226,6 +231,9 @@ void AssetStore::InitializeSounds()
 	sounds.LoadFromFile(Config::Sound::HitEnemySaucer, "assets/audio/sounds/hit_enemy_saucer.ogg");
 	sounds.LoadFromFile(Config::Sound::MetalHit, "assets/audio/sounds/metal_hit.ogg");
 	sounds.LoadFromFile(Config::Sound::GameOver, "assets/audio/sounds/game_over.ogg");
+	sounds.LoadFromFile(Config::Sound::BonusTouched, "assets/audio/sounds/bonus_touched.ogg");
+	sounds.LoadFromFile(Config::Sound::Countdown, "assets/audio/sounds/countdown.ogg");
+	sounds.LoadFromFile(Config::Sound::LevelComplete, "assets/audio/sounds/level_complete.ogg");
 }
 
 void AssetStore::InitializeMusic()

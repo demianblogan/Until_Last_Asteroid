@@ -76,6 +76,15 @@ public:
         float collisionRadius{ 1.f };
     };
 
+    struct PickupConfig
+    {
+        float healthRestorePercentage{ 0.25f };
+        float shieldCapacity{ 100.f };
+        float shieldDuration{ 10.f };
+        float visualScale{ 0.075f };
+        float collisionRadius{ 42.f };
+    };
+
     struct SpawnGroup
     {
         EnemyKind kind{ EnemyKind::BigMeteor };
@@ -84,9 +93,13 @@ public:
 
     struct WaveConfig
     {
-        float interval{ 0.f };
-        int repetitions{ 0 };
-        std::vector<EnemyKind> spawns;
+        struct ScheduledSpawn : SpawnGroup
+        {
+            float delay{ 0.f };
+        };
+
+        std::vector<SpawnGroup> initialSpawns;
+        std::vector<ScheduledSpawn> scheduledSpawns;
     };
 
     struct LevelConfig
@@ -104,7 +117,6 @@ public:
         std::string background;
         float backgroundBrightness{ 1.f };
         PostProcessConfig postProcess;
-        std::vector<SpawnGroup> initialSpawns;
         std::vector<WaveConfig> waves;
     };
 
@@ -141,6 +153,7 @@ public:
     [[nodiscard]] const PlayerConfig& GetPlayer() const noexcept;
     [[nodiscard]] const EnemyConfig& GetEnemy(EnemyKind kind) const noexcept;
     [[nodiscard]] const ProjectileConfig& GetProjectile(ProjectileKind kind) const noexcept;
+    [[nodiscard]] const PickupConfig& GetPickups() const noexcept;
     [[nodiscard]] const LevelConfig& GetLevel(int number) const;
     [[nodiscard]] int GetLevelCount() const noexcept;
     [[nodiscard]] float GetHitFlashDuration() const noexcept;
@@ -150,6 +163,7 @@ private:
     PlayerConfig player;
     std::array<EnemyConfig, static_cast<std::size_t>(EnemyKind::Count)> enemies;
     std::array<ProjectileConfig, static_cast<std::size_t>(ProjectileKind::Count)> projectiles;
+    PickupConfig pickups;
     std::vector<LevelConfig> levels;
     float hitFlashDuration{ 0.1f };
     EffectsConfig effects;

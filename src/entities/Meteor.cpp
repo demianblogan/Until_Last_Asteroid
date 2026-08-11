@@ -78,6 +78,11 @@ const GameplayData::EnemyConfig& Meteor::GetConfig(AssetStore& assets, Meteor::S
 	}
 }
 
+Meteor::Size Meteor::GetSize() const noexcept
+{
+	return size;
+}
+
 sf::Texture& Meteor::GetRandomTexture(AssetStore& assets, Meteor::Size size)
 {
 	using Texture = Config::Texture;

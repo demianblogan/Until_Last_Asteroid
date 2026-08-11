@@ -29,7 +29,10 @@ namespace
         "hit_asteroid",
         "hit_enemy_saucer",
         "metal_hit",
-        "game_over"
+        "game_over",
+        "bonus_touched",
+        "countdown",
+        "level_complete"
     };
 
     template <std::size_t Size>

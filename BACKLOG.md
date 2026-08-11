@@ -243,7 +243,44 @@ Visual direction and production specifications are documented in
 - Completed the full manual gameplay, menus, settings, transitions, effects,
   and controller-inclusive regression checklist without release-blocking issues.
 
+### v1.6.0 — Campaign foundation
+
+- Add a campaign submenu with Continue Campaign, Start New Campaign,
+  Select Level, Horde Mode, Run Mode, and Back to Main Menu. Keep Select Level,
+  Horde Mode, and Run Mode visible but disabled in this release.
+- Store versioned campaign progress separately from settings under
+  LocalAppData, write it atomically, and save only between levels.
+- Confirm before replacing existing progress and offer the optional English
+  tutorial when starting a new campaign.
+- Implement the guided tutorial sequence for movement, firing, asteroids,
+  score, armor, enemy combat, collision damage, and the shield pickup.
+- Add health and non-stacking timed shield pickups. Picking up another shield
+  refreshes it to 100 percent instead of stacking it.
+- Verify both pickups during development, then remove forced test drops from the
+  completed Level 1.
+- Replace the prototype Level 1 flow with three JSON-authored waves and a
+  WaveDirector that controls delayed spawns and wave completion.
+- Pre-place immediate wave entities before the fade-in, show the synchronized
+  First / Second / Final Wave and 3 / 2 / 1 / GO sequence, and animate the
+  player ship entering.
+- Complete the tutorial into Level 1, preserve the approved result screen,
+  and update campaign progress only after a completed level.
+- Add `Restart Level` to the pause menu without changing saved campaign progress,
+  plus `Restart Tutorial` and `Skip Tutorial` while onboarding is active.
+- Add pickup, countdown, and level-complete audio, including temporary music
+  ducking and sound-synchronized visual countdown timing.
+
+#### Release verification
+
+- Completed the full campaign, tutorial, wave, pickup, pause, save, audio, and
+  input regression pass without release-blocking issues.
+- Verified the final x64 Debug and Release configurations.
+- Synchronized the displayed game version, README, and release notes for v1.6.0.
+
 ## Planned
+
+- In the update after v1.6.0, introduce every campaign level with a dedicated
+  presentation card showing its number and authored name before the wave intro.
 
 ## Deferred / needs design
 

@@ -12,6 +12,8 @@
 namespace
 {
     constexpr sf::Color SelectedTextColor{ 255, 190, 72 };
+    constexpr sf::Color DisabledTextColor{ 100, 112, 122 };
+    constexpr std::uint8_t DisabledFrameBrightness{ 90u };
 }
 
 MenuButton::MenuButton(
@@ -44,8 +46,16 @@ void MenuButton::SetPosition(sf::Vector2f position)
 
 void MenuButton::SetSelected(bool isSelected)
 {
-    background.setTexture(isSelected ? selectedTexture : idleTexture, true);
-    label.setFillColor(isSelected ? SelectedTextColor : sf::Color::White);
+    selected = isSelected;
+    ApplyVisualState();
+}
+
+void MenuButton::SetEnabled(bool isEnabled)
+{
+    enabled = isEnabled;
+    if (!enabled)
+        selected = false;
+    ApplyVisualState();
 }
 
 void MenuButton::SetLabel(std::string_view text)
@@ -56,8 +66,13 @@ void MenuButton::SetLabel(std::string_view text)
 
 void MenuButton::SetFrameOpacity(float opacity)
 {
-    const auto alpha{ static_cast<std::uint8_t>(std::clamp(opacity, 0.f, 1.f) * 255.f) };
-    background.setColor(sf::Color(255, 255, 255, alpha));
+    frameOpacity = std::clamp(opacity, 0.f, 1.f);
+    ApplyVisualState();
+}
+
+bool MenuButton::IsEnabled() const noexcept
+{
+    return enabled;
 }
 
 bool MenuButton::Contains(sf::Vector2f point) const
@@ -90,4 +105,29 @@ void MenuButton::CenterLabel()
     });
 
     label.setPosition(background.getPosition() + size * 0.5f);
+}
+
+void MenuButton::ApplyVisualState()
+{
+    const auto alpha{ static_cast<std::uint8_t>(frameOpacity * 255.f) };
+    if (!enabled)
+    {
+        background.setTexture(idleTexture, true);
+        background.setColor(sf::Color(
+            DisabledFrameBrightness,
+            DisabledFrameBrightness,
+            DisabledFrameBrightness,
+            alpha));
+        label.setFillColor(sf::Color(
+            DisabledTextColor.r,
+            DisabledTextColor.g,
+            DisabledTextColor.b,
+            alpha));
+        return;
+    }
+
+    background.setTexture(selected ? selectedTexture : idleTexture, true);
+    background.setColor(sf::Color(255, 255, 255, alpha));
+    const sf::Color textColor{ selected ? SelectedTextColor : sf::Color::White };
+    label.setFillColor(sf::Color(textColor.r, textColor.g, textColor.b, alpha));
 }
