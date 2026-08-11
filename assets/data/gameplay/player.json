@@ -7,5 +7,17 @@
   "damping": 0.98,
   "maximum_speed": 600.0,
   "shoot_cooldown": 0.2,
+  "visual_scale": 0.55,
+  "collision_radius": 37.5,
+  "collision_circles": [
+    { "x": 0.0, "y": -42.0, "radius": 18.0 },
+    { "x": 0.0, "y": -8.0, "radius": 28.0 },
+    { "x": 0.0, "y": 34.0, "radius": 36.0 }
+  ],
+  "engine_emitters": [
+    { "x": 0.375, "y": 0.86 },
+    { "x": 0.625, "y": 0.86 }
+  ],
+  "muzzle_emitter": { "x": 0.5, "y": 0.055 },
   "hit_flash_duration": 0.1
 }

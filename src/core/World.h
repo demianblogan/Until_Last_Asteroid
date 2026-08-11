@@ -1,7 +1,9 @@
 #pragma once
 
-#include <vector>
+#include <array>
 #include <memory>
+#include <optional>
+#include <vector>
 #include <SFML/System/Vector2.hpp>
 
 #include "Entity.h"
@@ -28,6 +30,35 @@ class SaucerShot;
 class World : public sf::Drawable
 {
 public:
+	enum class EffectEventType
+	{
+		PlayerProjectileGlow,
+		EnemyProjectileGlow,
+		PlayerMuzzleFlash,
+		EnemyMuzzleFlash,
+		AsteroidHit,
+		ShipHit,
+		PlayerHit,
+		AsteroidExplosion,
+		ShipExplosion
+	};
+
+	struct EffectEvent
+	{
+		EffectEventType type;
+		sf::Vector2f position;
+		sf::Vector2f direction;
+		float scale{ 1.f };
+	};
+
+	struct PlayerEffectState
+	{
+		std::array<sf::Vector2f, 2> enginePositions;
+		sf::Vector2f velocity;
+		sf::Vector2f exhaustDirection;
+		bool isThrusting{ false };
+	};
+
 	World(unsigned int width, unsigned int height, AssetStore& assets, AudioManager& audio, GameplaySession& session);
 
 	void Update(float deltaTime);
@@ -37,10 +68,14 @@ public:
 	void SpawnSaucerShot(const sf::Vector2f& pos, const sf::Vector2f& target);
 
 	void AddSound(Config::Sound id, float pitch = 1.f);
+	void AddEffectEvent(const EffectEvent& event);
+	[[nodiscard]] const std::vector<EffectEvent>& GetEffectEvents() const noexcept;
+	void ClearEffectEvents() noexcept;
 	void PauseActiveSounds();
 	void ResumePausedSounds();
 
 	[[nodiscard]] sf::Vector2f GetPlayerPosition() const noexcept;
+	[[nodiscard]] std::optional<PlayerEffectState> GetPlayerEffectState() const;
 	[[nodiscard]] unsigned int GetWidth() const noexcept;
 	[[nodiscard]] unsigned int GetHeight() const noexcept;
 	[[nodiscard]] GameplaySession& GetSession() noexcept;
@@ -68,6 +103,7 @@ private:
 
 	std::vector<std::unique_ptr<Entity>> entities;
 	std::vector<std::unique_ptr<Entity>> pendingEntities;
+	std::vector<EffectEvent> effectEvents;
 	AssetStore& assets;
 	AudioManager& audio;
 	GameplaySession& session;

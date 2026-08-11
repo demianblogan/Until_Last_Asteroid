@@ -20,7 +20,7 @@ Quick start:
 
 1. Download `.zip` from Releases
 2. Extract it
-3. Run `Asteroid.exe`
+3. Run `UntilLastAsteroid.exe`
 
 ---
 
@@ -45,7 +45,12 @@ Default controls (all bindings can be changed in Options):
 - Player physics (acceleration, damping, max speed)
 - Screen wrapping (Asteroids-style world)
 - Sound effects and background music
-- HUD (score + lives)
+- Health, damage, knockback, invulnerability, and score systems
+- HUD with score and a color-changing health bar
+- Five unique 4K space backgrounds with animated star and dust parallax
+- High-resolution player, enemy, asteroid, and projectile artwork
+- Batched particles for engines, hits, explosions, smoke, sparks, and debris
+- Projectile glow, hit flashes, camera shake, and compound ship colliders
 - Skippable company splash screen
 - Animated sci-fi main menu
 - Pause menu with Resume and Back to Main Menu
@@ -59,13 +64,12 @@ Default controls (all bindings can be changed in Options):
 ## 👾 Enemies
 
 ### 🪨 Meteors
-- **Big** → slow, splits into medium (+20 pts)
-- **Medium** → medium speed, splits into small (+60 pts)
-- **Small** → fast (+100 pts)
+- **Large** → slow, splits into two small asteroids (+100 pts)
+- **Small** → faster and does not split (+50 pts)
 
 ### 🚀 Saucers
-- **Kamikaze** → aggressively chases the player (+50 pts)
-- **Shooter** → moves and shoots at the player (+200 pts)
+- **Kamikaze** → spins while aggressively chasing the player (+200 pts)
+- **Shooter** → alternates fire between two cannons (+250 pts)
 
 ---
 
@@ -93,7 +97,7 @@ The game contains **5 levels** with increasing difficulty:
 
 ## ▶️ Run
 
-1. Open `Asteroid.sln`
+1. Open `Asteroid.slnx`
 2. Build the project (Debug or Release)
 3. Make sure SFML DLLs are available next to the executable
    > DLLs can be found in the SFML `bin` folder
@@ -106,6 +110,8 @@ The game contains **5 levels** with increasing difficulty:
 ```
 src/        → game source code
 assets/     → textures, sounds, fonts
+design/     → visual direction and production specifications
+tests/      → focused performance benchmarks
 libs/       → external libraries (SFML)
 build/      → compiled binaries (ignored)
 ```

@@ -9,15 +9,23 @@
 #include "assets/AssetStore.h"
 #include "utils/ConfigEnums.h"
 
-Entity::Entity(AssetStore& assets, World& world, sf::Texture& texture)
+Entity::Entity(AssetStore& assets, World& world, sf::Texture& texture,
+	float visualScale, float collisionRadius,
+	std::span<const Collision::LocalCircle> configuredCollisionCircles)
 	: sprite(texture)
 	, assets(assets)
 	, world(world)
 	, hitFlashShader(assets.GetShader(Config::Shader::HitFlash))
+	, collisionRadius(collisionRadius)
+	, collisionCircles(configuredCollisionCircles.begin(), configuredCollisionCircles.end())
 {
+	if (collisionCircles.empty())
+		collisionCircles.push_back({ {}, collisionRadius });
+
 	const sf::Vector2u size = texture.getSize();
 	sf::Vector2f newOrigin(static_cast<float>(size.x) * 0.5f, static_cast<float>(size.y) * 0.5f);
 	sprite.setOrigin(newOrigin);
+	sprite.setScale({ visualScale, visualScale });
 }
 
 void Entity::SetPosition(const sf::Vector2f& position) noexcept
@@ -79,6 +87,11 @@ AssetStore& Entity::GetAssets() noexcept
 	return assets;
 }
 
+const AssetStore& Entity::GetAssets() const noexcept
+{
+	return assets;
+}
+
 void Entity::OnDestroy()
 {
 }
@@ -88,9 +101,47 @@ void Entity::Move(float deltaTime) noexcept
 	sprite.move((velocity + impulseVelocity) * deltaTime);
 }
 
+float Entity::GetCollisionRadius() const noexcept
+{
+	return collisionRadius;
+}
+
 bool Entity::CheckCollision(const Entity& other) const noexcept
 {
-	return Collision::Circle(GetSprite(), other.GetSprite());
+	return GetCollisionManifold(other).has_value();
+}
+
+sf::Vector2f Entity::GetCollisionCircleCenter(
+	const Collision::LocalCircle& circle) const noexcept
+{
+	const float angle{ GetRotation().asRadians() };
+	const float cosine{ std::cos(angle) };
+	const float sine{ std::sin(angle) };
+	return GetPosition() + sf::Vector2f{
+		circle.offset.x * cosine - circle.offset.y * sine,
+		circle.offset.x * sine + circle.offset.y * cosine };
+}
+
+std::optional<Collision::CircleManifold> Entity::GetCollisionManifold(
+	const Entity& other) const noexcept
+{
+	std::optional<Collision::CircleManifold> deepestManifold;
+	for (const Collision::LocalCircle& firstCircle : collisionCircles)
+	{
+		const sf::Vector2f firstCenter{ GetCollisionCircleCenter(firstCircle) };
+		for (const Collision::LocalCircle& secondCircle : other.collisionCircles)
+		{
+			const auto manifold{ Collision::GetCircleManifold(
+				firstCenter, firstCircle.radius,
+				other.GetCollisionCircleCenter(secondCircle), secondCircle.radius) };
+			if (manifold && (!deepestManifold ||
+				manifold->penetration > deepestManifold->penetration))
+			{
+				deepestManifold = manifold;
+			}
+		}
+	}
+	return deepestManifold;
 }
 
 void Entity::Accelerate(const sf::Vector2f& delta) noexcept

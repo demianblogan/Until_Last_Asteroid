@@ -149,7 +149,7 @@ void MenuBackground::InitializeAsteroids(AssetStore& assets)
     const std::array<Texture, 4> textures{
         Texture::BigMeteor1,
         Texture::BigMeteor3,
-        Texture::MediumMeteor1,
+        Texture::SmallMeteor1,
         Texture::SmallMeteor2
     };
     const std::array<sf::Vector2f, 4> positions{

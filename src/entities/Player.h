@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "core/Entity.h"
 #include "systems/InputHandler.h"
 #include "utils/ConfigEnums.h"
@@ -27,6 +29,10 @@ public:
 
 	[[nodiscard]] bool TakeDamage(int damage);
 	[[nodiscard]] bool IsInvulnerable() const noexcept;
+	[[nodiscard]] bool IsThrusting() const noexcept;
+	[[nodiscard]] std::array<sf::Vector2f, 2> GetEngineEmitterPositions() const;
+	[[nodiscard]] sf::Vector2f GetMuzzlePosition() const;
+	[[nodiscard]] sf::Vector2f GetExhaustDirection() const noexcept;
 
 private:
 	void BindInput();
@@ -39,4 +45,5 @@ private:
 	sf::Vector2f moveInput{ 0.f, 0.f };
 	float shootTimer{ 0.f };
 	float invulnerabilityTimer{ 0.f };
+	bool isThrusting{ false };
 };

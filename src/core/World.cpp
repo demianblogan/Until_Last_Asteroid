@@ -26,6 +26,7 @@ World::World(unsigned int width, unsigned int height, AssetStore& assets,
 	AudioManager& audio, GameplaySession& session)
 	: assets(assets), audio(audio), session(session), width(width), height(height)
 {
+	effectEvents.reserve(256);
 }
 
 void World::Update(float deltaTime)
@@ -108,19 +109,47 @@ void World::SpawnPlayerShot(const sf::Vector2f& pos, float rotation)
 
 void World::SpawnSaucerShot(const sf::Vector2f& pos, const sf::Vector2f& target)
 {
-	Spawn(std::make_unique<SaucerShot>(assets, *this, pos, target, session.GetScore()));
+	Spawn(std::make_unique<SaucerShot>(assets, *this, pos, target));
 }
 
 void World::AddSound(Config::Sound id, float pitch)
 {
 	audio.PlaySound(id, SoundGroup::Gameplay, 100.f, pitch);
 }
+
+void World::AddEffectEvent(const EffectEvent& event)
+{
+	effectEvents.push_back(event);
+}
+
+const std::vector<World::EffectEvent>& World::GetEffectEvents() const noexcept
+{
+	return effectEvents;
+}
+
+void World::ClearEffectEvents() noexcept
+{
+	effectEvents.clear();
+}
+
 void World::PauseActiveSounds() { audio.PauseSounds(SoundGroup::Gameplay); }
 void World::ResumePausedSounds() { audio.ResumeSounds(SoundGroup::Gameplay); }
 
 sf::Vector2f World::GetPlayerPosition() const noexcept
 {
 	return player != nullptr ? player->GetPosition() : sf::Vector2f{};
+}
+
+std::optional<World::PlayerEffectState> World::GetPlayerEffectState() const
+{
+	if (player == nullptr || !player->IsAlive())
+		return std::nullopt;
+
+	return PlayerEffectState{
+		player->GetEngineEmitterPositions(),
+		player->GetVelocity(),
+		player->GetExhaustDirection(),
+		player->IsThrusting() };
 }
 
 unsigned int World::GetWidth() const noexcept { return width; }
@@ -131,6 +160,7 @@ void World::Clear()
 {
 	entities.clear();
 	pendingEntities.clear();
+	effectEvents.clear();
 	player = nullptr;
 }
 
@@ -165,11 +195,23 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 {
 	auto handlePlayerShot = [this](Shot& shot, Enemy& enemy)
 	{
+		const sf::Vector2f impactDirection{ Normalize(shot.GetVelocity()) };
+		AddEffectEvent({
+			enemy.GetType() == Entity::Type::Asteroid
+				? EffectEventType::AsteroidHit
+				: EffectEventType::ShipHit,
+			shot.GetPosition(),
+			impactDirection,
+			std::clamp(enemy.GetCollisionRadius() / 45.f, 0.55f, 1.15f) });
 		shot.Destroy();
 		const bool killed{ enemy.TakeDamage(shot.GetDamage()) };
-		enemy.ApplyImpulse(Normalize(shot.GetVelocity()) * shot.GetKnockback());
+		enemy.ApplyImpulse(impactDirection * shot.GetKnockback());
 		if (killed)
 			session.AddScore(enemy.GetScoreValue());
+		else if (enemy.GetType() == Entity::Type::Asteroid)
+			AddSound(Config::Sound::BulletHitAsteroid, enemy.GetSoundPitch());
+		else if (enemy.GetType() == Entity::Type::Enemy)
+			AddSound(Config::Sound::MetalHit);
 	};
 
 	if (first.GetType() == Entity::Type::Projectile_Player)
@@ -189,8 +231,15 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		if (target.GetType() == Entity::Type::Player)
 		{
 			auto& targetPlayer{ static_cast<Player&>(target) };
-			if (targetPlayer.TakeDamage(shot.GetDamage()))
+			const bool damageAccepted{ targetPlayer.TakeDamage(shot.GetDamage()) };
+			if (damageAccepted)
+			{
+				AddEffectEvent({ EffectEventType::PlayerHit,
+					shot.GetPosition(), Normalize(shot.GetVelocity()), 1.f });
 				targetPlayer.ApplyImpulse(Normalize(shot.GetVelocity()) * shot.GetKnockback());
+			}
+			if (damageAccepted && targetPlayer.IsAlive())
+				AddSound(Config::Sound::MetalHit);
 			if (!targetPlayer.IsAlive())
 				session.SetGameOver();
 		}
@@ -234,6 +283,20 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 	const bool damageAccepted{ collidedPlayer->TakeDamage(collidedEnemy->GetContactDamage()) };
 	if (damageAccepted)
 	{
+		const sf::Vector2f impactDirection{ Normalize(
+			collidedEnemy->GetPosition() - collidedPlayer->GetPosition()) };
+		const sf::Vector2f impactPosition{ collidedPlayer->GetPosition() +
+			impactDirection * collidedPlayer->GetCollisionRadius() };
+		AddEffectEvent({ EffectEventType::PlayerHit,
+			impactPosition, -impactDirection, 1.15f });
+		AddEffectEvent({
+			collidedEnemy->GetType() == Entity::Type::Asteroid
+				? EffectEventType::AsteroidHit
+				: EffectEventType::ShipHit,
+			impactPosition,
+			impactDirection,
+			1.1f });
+
 		const Config::Sound impactSound{ collidedEnemy->GetType() == Entity::Type::Asteroid
 			? Config::Sound::HitAsteroid
 			: Config::Sound::HitEnemySaucer };
@@ -251,8 +314,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 	if (!collidedPlayer->IsAlive() || !collidedEnemy->IsAlive())
 		return;
 
-	const auto manifold{ Collision::GetCircleManifold(
-		collidedPlayer->GetSprite(), collidedEnemy->GetSprite()) };
+	const auto manifold{ collidedPlayer->GetCollisionManifold(*collidedEnemy) };
 	if (!manifold)
 		return;
 

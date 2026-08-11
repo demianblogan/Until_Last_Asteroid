@@ -30,15 +30,17 @@ bool Meteor::IsCollideWith(const Entity& other) const
 void Meteor::OnDestroy()
 {
 	GetWorld().AddSound(Config::Sound::AsteroidExplosion, GetSoundPitch());
+	GetWorld().AddEffectEvent({
+		World::EffectEventType::AsteroidExplosion,
+		GetPosition(),
+		GetVelocity(),
+		size == Size::Big ? 1.f : 0.62f });
 
 	Size newSize;
 
 	switch (size)
 	{
 	case Size::Big:
-		newSize = Size::Medium;
-		break;
-	case Size::Medium:
 		newSize = Size::Small;
 		break;
 	case Size::Small:
@@ -68,8 +70,6 @@ const GameplayData::EnemyConfig& Meteor::GetConfig(AssetStore& assets, Meteor::S
 	{
 	case Size::Small:
 		return assets.GetGameplayData().GetEnemy(Kind::SmallMeteor);
-	case Size::Medium:
-		return assets.GetGameplayData().GetEnemy(Kind::MediumMeteor);
 	case Size::Big:
 		return assets.GetGameplayData().GetEnemy(Kind::BigMeteor);
 
@@ -97,16 +97,6 @@ sf::Texture& Meteor::GetRandomTexture(AssetStore& assets, Meteor::Size size)
 		return assets.Textures().Get(small[Random::Int(0, static_cast<int>(small.size()) - 1)]);
 	}
 
-	case Size::Medium:
-	{
-		std::array medium
-		{
-			Texture::MediumMeteor1, Texture::MediumMeteor2
-		};
-
-		return assets.Textures().Get(medium[Random::Int(0, 1)]);
-	}
-
 	case Size::Big:
 	{
 		std::array big
@@ -115,7 +105,8 @@ sf::Texture& Meteor::GetRandomTexture(AssetStore& assets, Meteor::Size size)
 			Texture::BigMeteor3, Texture::BigMeteor4
 		};
 
-		return assets.Textures().Get(big[Random::Int(0, 3)]);
+		return assets.Textures().Get(
+			big[Random::Int(0, static_cast<int>(big.size()) - 1)]);
 	}
 
 	default:

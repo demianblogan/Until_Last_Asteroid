@@ -136,6 +136,81 @@ deferred ideas. Update it whenever an item changes scope or release.
 - Prepared, extracted, file-verified, and smoke-tested the standalone Windows
   release candidate.
 
+### v1.4.0
+
+- Replace the black gameplay field with a unique 4K space background for every
+  current level plus procedural star and dust parallax.
+- Replace the player, enemy, asteroid, and projectile artwork with a cohesive
+  high-resolution top-down sci-fi set.
+- Reduce asteroids to two gameplay sizes: large asteroids split into two small
+  asteroids, while small asteroids no longer split. The former medium art and
+  balance now define the small size; the former tiny size is removed.
+- Keep large asteroids, kamikazes, and shooters in the Level 1 initial spawn
+  during visual-development testing; rebalance this encounter when the campaign
+  and its onboarding progression are designed.
+- Make the circular kamikaze saucer spin while pursuing the player, and make the
+  shooter gunship alternate between its two JSON-configured weapon emitters.
+- Decouple explicit collision radii and visual scales from source PNG bounds.
+- After every new gameplay sprite is approved, review its silhouette and replace
+  provisional circle colliders where needed. Compare oriented boxes, capsules,
+  and compound circles. Per the final art review, perform this collider pass near
+  the end of v1.4.0 after the visual-effects and background work.
+- Use three JSON-configured rotating circles for the elongated player and the
+  wide shooter; retain single-circle collision for the circular kamikaze,
+  asteroids, and projectiles.
+- Add a reusable batched particle system for engines, muzzle flashes, hits, explosions,
+  smoke, sparks, and debris.
+- Add controlled gameplay bloom for emissive projectiles, engines, hits, and
+  explosions without blurring the HUD.
+- Give stone impacts, metal impacts, asteroid destruction, and ship destruction
+  distinct particle recipes, with their tuning values stored in validated JSON.
+- Play `metal_hit.ogg` for non-lethal projectile damage to player and enemy
+  ships, and remove the unused enemy-spawn sound events.
+- Play `bullet_hit_asteroid.ogg` for non-lethal projectile damage to asteroids,
+  using the asteroid-size pitch variation without replacing hull-impact audio.
+- Add bounded camera shake for damage and major explosions.
+- Move level backgrounds and visual-effect parameters into validated JSON data.
+- Preserve gameplay balance and behaviour while changing presentation.
+- Profile a chaotic effects scene before deciding whether object pooling is
+  necessary.
+- The Release benchmark with 100 simulated entities and 1,000 particles measured
+  about 1.51 ms per frame on the development machine, so do not add object
+  pooling in v1.4.0.
+
+Visual direction and production specifications are documented in
+`design/VISUAL_BIBLE_v1.4.0.md`.
+
+#### Release verification
+
+- Completed the full manual gameplay and regression checklist for
+  `v1.4.0-rc.1`, including the final non-lethal asteroid-hit sound.
+- Approved the new backgrounds, sprites, combat effects, enemy behaviour,
+  audio changes, and compound ship colliders.
+- Built and verified the x64 Debug and Release configurations.
+- Validated all JSON data, Visual Studio project files, 4K background sizes,
+  removed-resource references, and Release startup.
+- Prepared, extracted, file-verified, and smoke-tested the standalone Windows
+  release candidate.
+
+## Planned
+
+### v1.5.0
+
+- Add a physical-resolution gameplay post-processing pipeline while keeping the
+  HUD and crosshair sharp.
+- Add a dedicated emissive layer and true scene bloom for projectiles, engines,
+  hits, and explosions.
+- Add subtle per-level color grading, restrained vignette, and a brief damage
+  vignette.
+- Add localized shockwave distortion for major explosions.
+- Evaluate subtle animated film grain with an A/B comparison; keep it only if it
+  materially improves the image.
+- Reserve brief chromatic aberration for exceptional future weapons and bosses;
+  never apply it continuously.
+- Add `Post-processing Quality: Off / Low / High` to Graphics settings.
+- Do not add continuous motion blur, heavy scanlines, strong lens flares, or
+  effects that reduce gameplay readability.
+
 ## Deferred / needs design
 
 - Add localization with externalized UI text and language selection in Options.
@@ -146,6 +221,3 @@ deferred ideas. Update it whenever an item changes scope or release.
   pass; do not treat it as a committed feature yet.
 - Add object pooling only when profiling shows allocation pressure during
   chaotic scenes; do not migrate the game to ECS pre-emptively.
-- Add distinct non-lethal projectile-hit sounds when a player shot damages an
-  asteroid or enemy without destroying it, and when an enemy shot damages the
-  player. Keep these separate from the existing hull-collision sounds.

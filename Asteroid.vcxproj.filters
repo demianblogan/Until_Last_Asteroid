@@ -20,6 +20,9 @@
     <ClCompile Include="src\game\GameplaySession.cpp" />
     <ClCompile Include="src\game\GameplayData.cpp" />
     <ClCompile Include="src\game\Health.cpp" />
+    <ClCompile Include="src\rendering\GameplayBackground.cpp" />
+    <ClCompile Include="src\rendering\GameplayEffects.cpp" />
+    <ClCompile Include="src\rendering\ParticleSystem.cpp" />
     <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
     <ClCompile Include="src\states\MainMenuState.cpp" />
@@ -64,6 +67,9 @@
     <ClInclude Include="src\game\GameplaySession.h" />
     <ClInclude Include="src\game\GameplayData.h" />
     <ClInclude Include="src\game\Health.h" />
+    <ClInclude Include="src\rendering\GameplayBackground.h" />
+    <ClInclude Include="src\rendering\GameplayEffects.h" />
+    <ClInclude Include="src\rendering\ParticleSystem.h" />
     <ClInclude Include="src\core\GameVersion.h" />
     <ClInclude Include="src\utils\ConfigEnums.h" />
     <ClInclude Include="src\assets\AssetStore.h" />
@@ -97,6 +103,14 @@
     <None Include="assets\data\gameplay\weapons.json" />
     <None Include="assets\data\gameplay\enemies.json" />
     <None Include="assets\data\gameplay\levels.json" />
+	<None Include="assets\data\gameplay\effects.json" />
+    <None Include="assets\backgrounds\gameplay\level_01_blue_nebula.jpg" />
+	<None Include="assets\backgrounds\gameplay\level_02_violet_clouds.jpg" />
+	<None Include="assets\backgrounds\gameplay\level_03_asteroid_belt.jpg" />
+	<None Include="assets\backgrounds\gameplay\level_04_red_storm.jpg" />
+    <None Include="assets\backgrounds\gameplay\level_05_deep_void.jpg" />
+	<None Include="tests\PerformanceBenchmark.cpp" />
+    <None Include="assets\sprites\player\ship_v1_4.png" />
     <None Include="assets\sprites\ui\hud\health_bar_frame.png" />
     <None Include="assets\sprites\ui\hud\health_bar_fill.png" />
     <None Include="libs\nlohmann\LICENSE.MIT" />

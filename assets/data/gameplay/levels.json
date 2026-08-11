@@ -2,13 +2,17 @@
   "levels": [
     {
       "number": 1,
+      "background": "level_01_blue_nebula",
       "initial_spawns": [
-        { "type": "big_meteor", "count": 3 }
+        { "type": "big_meteor", "count": 3 },
+        { "type": "kamikaze", "count": 1 },
+        { "type": "shooter", "count": 1 }
       ],
       "waves": []
     },
     {
       "number": 2,
+      "background": "level_02_violet_clouds",
       "initial_spawns": [
         { "type": "big_meteor", "count": 2 }
       ],
@@ -18,6 +22,7 @@
     },
     {
       "number": 3,
+      "background": "level_03_asteroid_belt",
       "initial_spawns": [
         { "type": "big_meteor", "count": 3 }
       ],
@@ -27,6 +32,7 @@
     },
     {
       "number": 4,
+      "background": "level_04_red_storm",
       "initial_spawns": [
         { "type": "big_meteor", "count": 4 }
       ],
@@ -36,6 +42,7 @@
     },
     {
       "number": 5,
+      "background": "level_05_deep_void",
       "initial_spawns": [
         { "type": "big_meteor", "count": 5 },
         { "type": "shooter", "count": 3 }

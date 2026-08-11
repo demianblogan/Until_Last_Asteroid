@@ -11,7 +11,7 @@ Saucer::Saucer(AssetStore& assets, World& world, Mode mode)
 	: Enemy(assets, world, GetTexture(assets, mode), GetConfig(assets, mode))
 	, mode(mode)
 {
-	// No code
+	spinDirection = Random::Float(0.f, 1.f) < 0.5f ? -1.f : 1.f;
 }
 
 Entity::Type Saucer::GetType() const noexcept
@@ -32,18 +32,19 @@ void Saucer::Update(float deltaTime)
 	const sf::Vector2f playerPos{ GetWorld().GetPlayerPosition() };
 	const sf::Vector2f toPlayer{ playerPos - GetPosition() };
 
-	const float angleRad{ std::atan2(toPlayer.y, toPlayer.x) };
-	const float angleDeg{ angleRad * 180.f / std::numbers::pi_v<float> };
-
-	static constexpr float ROTATION_OFFSET{ 90.f };
-	SetRotation(sf::degrees(angleDeg + ROTATION_OFFSET));
-
 	if (mode == Mode::Kamikaze)
 	{
+		SetRotation(GetRotation() + sf::degrees(
+			GetRotationSpeed() * spinDirection * deltaTime));
 		UpdateMovement(deltaTime, playerPos);
 	}
 	else
 	{
+		const float angleRad{ std::atan2(toPlayer.y, toPlayer.x) };
+		const float angleDeg{ angleRad * 180.f / std::numbers::pi_v<float> };
+		static constexpr float RotationOffset{ 90.f };
+		SetRotation(sf::degrees(angleDeg + RotationOffset));
+
 		if (GetVelocity().x == 0.f && GetVelocity().y == 0.f)
 		{
 			float angle{ Random::Float(0.f, 2.f * std::numbers::pi_v<float>) };
@@ -58,7 +59,7 @@ void Saucer::Update(float deltaTime)
 	{
 		shootTimer += deltaTime;
 
-		if (shootTimer > GetActionInterval())
+		if (shootTimer >= GetActionInterval())
 			Shoot(playerPos);
 	}
 }
@@ -66,6 +67,9 @@ void Saucer::Update(float deltaTime)
 void Saucer::OnDestroy()
 {
 	GetWorld().AddSound(Config::Sound::ShipExplosion);
+	GetWorld().AddEffectEvent({
+		World::EffectEventType::ShipExplosion,
+		GetPosition(), GetVelocity(), mode == Mode::Shooter ? 1.1f : 0.95f });
 }
 
 void Saucer::UpdateMovement(float deltaTime, const sf::Vector2f& target)
@@ -80,9 +84,23 @@ void Saucer::UpdateMovement(float deltaTime, const sf::Vector2f& target)
 
 void Saucer::Shoot(const sf::Vector2f& playerPosition)
 {
-	shootTimer = 0.f;
+	shootTimer -= GetActionInterval();
+	GetWorld().SpawnSaucerShot(
+		GetWeaponEmitterPosition(nextWeaponEmitter), playerPosition);
+	nextWeaponEmitter = (nextWeaponEmitter + 1) % GetWeaponEmitters().size();
+}
 
-	GetWorld().SpawnSaucerShot(GetPosition(), playerPosition);
+sf::Vector2f Saucer::GetWeaponEmitterPosition(std::size_t index) const
+{
+	const sf::Sprite& sprite{ GetSprite() };
+	const sf::IntRect textureRect{ sprite.getTextureRect() };
+	const GameplayData::NormalizedPoint& emitter{ GetWeaponEmitters().at(index) };
+	const sf::Vector2f localPosition{
+		static_cast<float>(textureRect.position.x) +
+			static_cast<float>(textureRect.size.x) * emitter.x,
+		static_cast<float>(textureRect.position.y) +
+			static_cast<float>(textureRect.size.y) * emitter.y };
+	return sprite.getTransform().transformPoint(localPosition);
 }
 
 const GameplayData::EnemyConfig& Saucer::GetConfig(AssetStore& assets, Mode mode)

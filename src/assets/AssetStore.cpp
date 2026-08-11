@@ -95,34 +95,71 @@ void AssetStore::InitializeTextures()
 {
 	textures.LoadFromFile(Config::Texture::CompanyLogo, "assets/other/alone_bull_company.png");
 	textures.LoadFromFile(Config::Texture::MainMenuBackground, "assets/backgrounds/main_menu_background.png");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundLevel1,
+		"assets/backgrounds/gameplay/level_01_blue_nebula.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundLevel2,
+		"assets/backgrounds/gameplay/level_02_violet_clouds.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundLevel3,
+		"assets/backgrounds/gameplay/level_03_asteroid_belt.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundLevel4,
+		"assets/backgrounds/gameplay/level_04_red_storm.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundLevel5,
+		"assets/backgrounds/gameplay/level_05_deep_void.jpg");
+	textures.Get(Config::Texture::GameplayBackgroundLevel1).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundLevel2).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundLevel3).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundLevel4).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundLevel5).setSmooth(true);
 	textures.LoadFromFile(Config::Texture::MenuButtonIdle, "assets/sprites/ui/menu_button_idle.png");
 	textures.LoadFromFile(Config::Texture::MenuButtonSelected, "assets/sprites/ui/menu_button_selected.png");
 	textures.LoadFromFile(Config::Texture::MenuPointer, "assets/cursors/menu_pointer.png");
 	textures.LoadFromFile(Config::Texture::GameplayCrosshair, "assets/cursors/gameplay_crosshair.png");
 
-	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship.png");
+	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship_v1_4.png");
+	textures.Get(Config::Texture::PlayerShip).setSmooth(true);
 	textures.LoadFromFile(Config::Texture::PlayerLife, "assets/sprites/player/life.png");
 	textures.LoadFromFile(Config::Texture::HealthBarFrame, "assets/sprites/ui/hud/health_bar_frame.png");
 	textures.LoadFromFile(Config::Texture::HealthBarFill, "assets/sprites/ui/hud/health_bar_fill.png");
 
-	textures.LoadFromFile(Config::Texture::BigEnemySaucer, "assets/sprites/enemies/big_enemy_saucer.png");
-	textures.LoadFromFile(Config::Texture::SmallEnemySaucer, "assets/sprites/enemies/small_enemy_saucer.png");
+	textures.LoadFromFile(Config::Texture::BigEnemySaucer,
+		"assets/sprites/enemies/kamikaze_saucer_v1_4.png");
+	textures.LoadFromFile(Config::Texture::SmallEnemySaucer,
+		"assets/sprites/enemies/shooter_gunship_v1_4.png");
+	textures.Get(Config::Texture::BigEnemySaucer).setSmooth(true);
+	textures.Get(Config::Texture::SmallEnemySaucer).setSmooth(true);
 
-	textures.LoadFromFile(Config::Texture::BigMeteor1, "assets/sprites/meteors/big_meteor_1.png");
-	textures.LoadFromFile(Config::Texture::BigMeteor2, "assets/sprites/meteors/big_meteor_2.png");
-	textures.LoadFromFile(Config::Texture::BigMeteor3, "assets/sprites/meteors/big_meteor_3.png");
-	textures.LoadFromFile(Config::Texture::BigMeteor4, "assets/sprites/meteors/big_meteor_4.png");
+	textures.LoadFromFile(Config::Texture::BigMeteor1,
+		"assets/sprites/meteors/large_asteroid_01_v1_4.png");
+	textures.LoadFromFile(Config::Texture::BigMeteor2,
+		"assets/sprites/meteors/large_asteroid_02_v1_4.png");
+	textures.LoadFromFile(Config::Texture::BigMeteor3,
+		"assets/sprites/meteors/large_asteroid_03_v1_4.png");
+	textures.LoadFromFile(Config::Texture::BigMeteor4,
+		"assets/sprites/meteors/large_asteroid_04_v1_4.png");
+	textures.Get(Config::Texture::BigMeteor1).setSmooth(true);
+	textures.Get(Config::Texture::BigMeteor2).setSmooth(true);
+	textures.Get(Config::Texture::BigMeteor3).setSmooth(true);
+	textures.Get(Config::Texture::BigMeteor4).setSmooth(true);
 
-	textures.LoadFromFile(Config::Texture::MediumMeteor1, "assets/sprites/meteors/medium_meteor_1.png");
-	textures.LoadFromFile(Config::Texture::MediumMeteor2, "assets/sprites/meteors/medium_meteor_2.png");
+	textures.LoadFromFile(Config::Texture::SmallMeteor1,
+		"assets/sprites/meteors/small_asteroid_01_v1_4.png");
+	textures.LoadFromFile(Config::Texture::SmallMeteor2,
+		"assets/sprites/meteors/small_asteroid_02_v1_4.png");
+	textures.LoadFromFile(Config::Texture::SmallMeteor3,
+		"assets/sprites/meteors/small_asteroid_03_v1_4.png");
+	textures.LoadFromFile(Config::Texture::SmallMeteor4,
+		"assets/sprites/meteors/small_asteroid_04_v1_4.png");
+	textures.Get(Config::Texture::SmallMeteor1).setSmooth(true);
+	textures.Get(Config::Texture::SmallMeteor2).setSmooth(true);
+	textures.Get(Config::Texture::SmallMeteor3).setSmooth(true);
+	textures.Get(Config::Texture::SmallMeteor4).setSmooth(true);
 
-	textures.LoadFromFile(Config::Texture::SmallMeteor1, "assets/sprites/meteors/small_meteor_1.png");
-	textures.LoadFromFile(Config::Texture::SmallMeteor2, "assets/sprites/meteors/small_meteor_2.png");
-	textures.LoadFromFile(Config::Texture::SmallMeteor3, "assets/sprites/meteors/small_meteor_3.png");
-	textures.LoadFromFile(Config::Texture::SmallMeteor4, "assets/sprites/meteors/small_meteor_4.png");
-
-	textures.LoadFromFile(Config::Texture::PlayerShot, "assets/sprites/shots/player_shot.png");
-	textures.LoadFromFile(Config::Texture::EnemySaucerShot, "assets/sprites/shots/enemy_saucer_shot.png");
+	textures.LoadFromFile(Config::Texture::PlayerShot,
+		"assets/sprites/shots/player_projectile_v1_4.png");
+	textures.LoadFromFile(Config::Texture::EnemySaucerShot,
+		"assets/sprites/shots/enemy_projectile_v1_4.png");
+	textures.Get(Config::Texture::PlayerShot).setSmooth(true);
+	textures.Get(Config::Texture::EnemySaucerShot).setSmooth(true);
 }
 
 const GameplayData& AssetStore::GetGameplayData() const
@@ -155,13 +192,12 @@ void AssetStore::InitializeSounds()
 	sounds.LoadFromFile(Config::Sound::PlayerShot, "assets/audio/sounds/player_normal_shot.ogg");
 	sounds.LoadFromFile(Config::Sound::EnemyShot, "assets/audio/sounds/enemy_shot.ogg");
 
-	sounds.LoadFromFile(Config::Sound::SaucerKamikazeSpawn, "assets/audio/sounds/saucer_kamikaze_spawn.flac");
-	sounds.LoadFromFile(Config::Sound::SaucerShooterSpawn, "assets/audio/sounds/saucer_shooter_spawn.flac");
-
 	sounds.LoadFromFile(Config::Sound::ShipExplosion, "assets/audio/sounds/enemy_saucer_explosion.ogg");
 	sounds.LoadFromFile(Config::Sound::AsteroidExplosion, "assets/audio/sounds/asteroid_explosion.ogg");
+	sounds.LoadFromFile(Config::Sound::BulletHitAsteroid, "assets/audio/sounds/bullet_hit_asteroid.ogg");
 	sounds.LoadFromFile(Config::Sound::HitAsteroid, "assets/audio/sounds/hit_asteroid.ogg");
 	sounds.LoadFromFile(Config::Sound::HitEnemySaucer, "assets/audio/sounds/hit_enemy_saucer.ogg");
+	sounds.LoadFromFile(Config::Sound::MetalHit, "assets/audio/sounds/metal_hit.ogg");
 }
 
 void AssetStore::InitializeMusic()

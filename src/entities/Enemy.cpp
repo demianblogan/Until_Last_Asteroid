@@ -7,7 +7,8 @@
 
 Enemy::Enemy(AssetStore& assets, World& world, sf::Texture& texture,
 	const GameplayData::EnemyConfig& config)
-	: Entity(assets, world, texture)
+	: Entity(assets, world, texture, config.visualScale, config.collisionRadius,
+		config.collisionCircles)
 	, health(config.maximumHealth)
 	, scoreValue(config.score)
 	, contactDamage(config.contactDamage)
@@ -16,6 +17,8 @@ Enemy::Enemy(AssetStore& assets, World& world, sf::Texture& texture,
 	, actionInterval(config.actionInterval)
 	, fragmentSpeed(config.fragmentSpeed)
 	, soundPitch(config.soundPitch)
+	, rotationSpeed(config.rotationSpeed)
+	, weaponEmitters(config.weaponEmitters)
 {
 	constexpr float TwoPi{ 2.f * std::numbers::pi_v<float> };
 	const float angle{ Random::Float(0.f, TwoPi) };
@@ -54,3 +57,8 @@ void Enemy::Update(float deltaTime)
 float Enemy::GetMovementSpeed() const noexcept { return movementSpeed; }
 float Enemy::GetActionInterval() const noexcept { return actionInterval; }
 float Enemy::GetFragmentSpeed() const noexcept { return fragmentSpeed; }
+float Enemy::GetRotationSpeed() const noexcept { return rotationSpeed; }
+const std::array<GameplayData::NormalizedPoint, 2>& Enemy::GetWeaponEmitters() const noexcept
+{
+	return weaponEmitters;
+}

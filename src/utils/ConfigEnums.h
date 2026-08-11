@@ -9,6 +9,11 @@ namespace Config
 	{
 		CompanyLogo,
 		MainMenuBackground,
+		GameplayBackgroundLevel1,
+		GameplayBackgroundLevel2,
+		GameplayBackgroundLevel3,
+		GameplayBackgroundLevel4,
+		GameplayBackgroundLevel5,
 		MenuButtonIdle,
 		MenuButtonSelected,
 		MenuPointer,
@@ -26,9 +31,6 @@ namespace Config
 		BigMeteor2,
 		BigMeteor3,
 		BigMeteor4,
-
-		MediumMeteor1,
-		MediumMeteor2,
 
 		SmallMeteor1,
 		SmallMeteor2,
@@ -56,13 +58,12 @@ namespace Config
 		PlayerShot,
 		EnemyShot,
 
-		SaucerKamikazeSpawn,
-		SaucerShooterSpawn,
-
 		ShipExplosion,
 		AsteroidExplosion,
+		BulletHitAsteroid,
 		HitAsteroid,
 		HitEnemySaucer,
+		MetalHit,
 
 		Count
 	};
