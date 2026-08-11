@@ -42,7 +42,10 @@ movement and aiming, trigger shooting, and D-pad menu navigation.
 
 ## 🧠 Game Features
 
-- 5 handcrafted levels
+- Campaign menu with persistent, versioned progress
+- Optional guided tutorial for movement, combat, scoring, armor, and pickups
+- JSON-authored three-wave Level 1 with animated wave introductions
+- Health and timed shield pickups with dedicated HUD feedback
 - Dynamic enemy waves system
 - Score system with scaling difficulty
 - Player physics (acceleration, damping, max speed)
@@ -60,7 +63,7 @@ movement and aiming, trigger shooting, and D-pad menu navigation.
   completion, and victory screens
 - Skippable company splash screen
 - Animated sci-fi main menu
-- Pause menu with Resume and Back to Main Menu
+- Pause menu with Resume, Restart Level, Options, and Back to Main Menu
 - Persistent Graphics, Audio, and Controls settings
 - Fullscreen, Windowed, and Borderless display modes
 - Rebindable keyboard and mouse controls

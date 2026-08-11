@@ -1,8 +1,8 @@
 #include "PauseState.h"
 
 #include <algorithm>
-#include <array>
 #include <string>
+#include <utility>
 
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
@@ -16,20 +16,14 @@
 
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
+#include "game/GameplayLaunch.h"
 #include "states/StateId.h"
 #include "systems/GamepadManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
 {
-    const std::array<std::string, 3> MenuLabels{
-        "Resume", "Options", "Back to Main Menu"
-    };
-
     constexpr sf::Vector2f ButtonSize{ 540.f, 104.f };
-    constexpr sf::Vector2f FirstButtonPosition{ 90.f, 690.f };
-    constexpr float ButtonSpacing{ 120.f };
-    constexpr float TitleY{ 590.f };
     constexpr float ActivationDelay{ 0.12f };
     constexpr float MainMenuFadeOutDuration{ 0.38f };
     constexpr float BlurRadius{ 4.f };
@@ -72,6 +66,10 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     , screenFade(context.logicalSize)
 {
     context.window.setMouseCursorVisible(false);
+	const bool tutorialMenu{ context.gameplayLaunch.tutorialRunning };
+	const sf::Vector2f firstButtonPosition{ 90.f, tutorialMenu ? 455.f : 570.f };
+	const float buttonSpacing{ tutorialMenu ? 108.f : 112.f };
+	const float titleY{ tutorialMenu ? 365.f : 480.f };
 
     windowSnapshot.setSmooth(true);
     horizontalBlur.setSmooth(true);
@@ -95,8 +93,8 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
         titleBounds.position.y + titleBounds.size.y * 0.5f
     };
     const sf::Vector2f menuCenter{
-        FirstButtonPosition.x + ButtonSize.x * 0.5f,
-        TitleY
+		firstButtonPosition.x + ButtonSize.x * 0.5f,
+		titleY
     };
     titleGlow.setOrigin(titleOrigin);
     title.setOrigin(titleOrigin);
@@ -107,12 +105,24 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     const sf::Texture& idleTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
     const sf::Texture& selectedTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 
-    buttons.reserve(MenuLabels.size());
-    for (std::size_t index{ 0 }; index < MenuLabels.size(); ++index)
+	std::vector<std::pair<std::string, PauseAction>> menuItems{
+		{ "Resume", PauseAction::Resume },
+		{ tutorialMenu ? "Restart Tutorial" : "Restart Level", PauseAction::RestartLevel }
+	};
+	if (tutorialMenu)
+		menuItems.emplace_back("Skip Tutorial", PauseAction::SkipTutorial);
+	menuItems.emplace_back("Options", PauseAction::Options);
+	menuItems.emplace_back("Back to Main Menu", PauseAction::MainMenu);
+
+    buttons.reserve(menuItems.size());
+	buttonActions.reserve(menuItems.size());
+	for (std::size_t index{ 0 }; index < menuItems.size(); ++index)
     {
-        buttons.emplace_back(menuFont, idleTexture, selectedTexture, MenuLabels[index], ButtonSize);
+		buttons.emplace_back(
+			menuFont, idleTexture, selectedTexture, menuItems[index].first, ButtonSize);
         buttons.back().SetPosition(
-            FirstButtonPosition + sf::Vector2f{ 0.f, ButtonSpacing * static_cast<float>(index) });
+			firstButtonPosition + sf::Vector2f{ 0.f, buttonSpacing * static_cast<float>(index) });
+		buttonActions.push_back(menuItems[index].second);
     }
     Select(0, false);
 
@@ -387,17 +397,27 @@ void PauseState::BeginActivation(std::size_t index)
 
 void PauseState::CompleteActivation(std::size_t index)
 {
-    switch (index)
+	switch (buttonActions.at(index))
     {
-    case 0:
+    case PauseAction::Resume:
         RequestPop();
         break;
 
-    case 1:
+    case PauseAction::RestartLevel:
+        GetContext().gameplayLaunch.pendingCommand = GameplayRuntimeCommand::RestartLevel;
+        RequestPop();
+        break;
+
+    case PauseAction::SkipTutorial:
+		GetContext().gameplayLaunch.pendingCommand = GameplayRuntimeCommand::SkipTutorial;
+		RequestPop();
+		break;
+
+	case PauseAction::Options:
         RequestPush(StateId::PauseOptions);
         break;
 
-    case 2:
+    case PauseAction::MainMenu:
         returningToMainMenu = true;
         screenFade.StartFadeOut(MainMenuFadeOutDuration);
         break;

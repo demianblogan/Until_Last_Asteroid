@@ -17,6 +17,9 @@
         "hit_asteroid": 100.0,
         "hit_enemy_saucer": 100.0,
         "metal_hit": 50.0,
-        "game_over": 100.0
+        "game_over": 100.0,
+        "bonus_touched": 100.0,
+        "countdown": 100.0,
+        "level_complete": 100.0
     }
 }

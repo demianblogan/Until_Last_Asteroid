@@ -20,6 +20,7 @@ public:
 	};
 
 	Saucer(AssetStore& assets, World& world, Mode mode);
+	[[nodiscard]] Mode GetMode() const noexcept;
 
 	Type GetType() const noexcept override;
 	bool IsCollideWith(const Entity& other) const override;

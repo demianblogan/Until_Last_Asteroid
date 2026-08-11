@@ -395,6 +395,22 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
             "Invalid visual effect data in " + effectsPath.string() + ": " + exception.what());
     }
 
+    const std::filesystem::path pickupsPath{ directory / "pickups.json" };
+    const Json pickupsJson{ LoadJson(pickupsPath) };
+    pickups.healthRestorePercentage = Require<float>(
+        pickupsJson, "health_restore_percentage", pickupsPath);
+    pickups.shieldCapacity = Require<float>(pickupsJson, "shield_capacity", pickupsPath);
+    pickups.shieldDuration = Require<float>(pickupsJson, "shield_duration", pickupsPath);
+    pickups.visualScale = Require<float>(pickupsJson, "visual_scale", pickupsPath);
+    pickups.collisionRadius = Require<float>(pickupsJson, "collision_radius", pickupsPath);
+    RequirePositive(pickups.healthRestorePercentage, "health_restore_percentage", pickupsPath);
+    if (pickups.healthRestorePercentage > 1.f)
+        throw std::runtime_error("Health restore percentage must not exceed 1 in " + pickupsPath.string());
+    RequirePositive(pickups.shieldCapacity, "shield_capacity", pickupsPath);
+    RequirePositive(pickups.shieldDuration, "shield_duration", pickupsPath);
+    RequirePositive(pickups.visualScale, "visual_scale", pickupsPath);
+    RequirePositive(pickups.collisionRadius, "collision_radius", pickupsPath);
+
     const std::filesystem::path levelsPath{ directory / "levels.json" };
     const Json levelsJson{ LoadJson(levelsPath) };
     const Json* levelArray{ nullptr };
@@ -438,31 +454,42 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 
         try
         {
-            for (const Json& spawnJson : levelJson.at("initial_spawns"))
-            {
-                SpawnGroup spawn;
-                spawn.kind = ParseEnemyKind(Require<std::string>(spawnJson, "type", levelsPath), levelsPath);
-                spawn.count = Require<int>(spawnJson, "count", levelsPath);
-                if (spawn.count < 0)
-                    throw std::runtime_error("Initial spawn count cannot be negative in " + levelsPath.string());
-                level.initialSpawns.push_back(spawn);
-            }
-
             for (const Json& waveJson : levelJson.at("waves"))
             {
                 WaveConfig wave;
-                wave.interval = Require<float>(waveJson, "interval", levelsPath);
-                wave.repetitions = Require<int>(waveJson, "repetitions", levelsPath);
-                RequirePositive(wave.interval, "interval", levelsPath);
-                if (wave.repetitions <= 0)
-                    throw std::runtime_error("Wave repetitions must be positive in " + levelsPath.string());
+                for (const Json& spawnJson : waveJson.at("initial_spawns"))
+                {
+                    SpawnGroup spawn;
+                    spawn.kind = ParseEnemyKind(
+                        Require<std::string>(spawnJson, "type", levelsPath), levelsPath);
+                    spawn.count = Require<int>(spawnJson, "count", levelsPath);
+                    if (spawn.count <= 0)
+                        throw std::runtime_error(
+                            "Wave initial spawn count must be positive in " + levelsPath.string());
+                    wave.initialSpawns.push_back(spawn);
+                }
 
-                for (const Json& spawn : waveJson.at("spawns"))
-                    wave.spawns.push_back(ParseEnemyKind(spawn.get<std::string>(), levelsPath));
-                if (wave.spawns.empty())
-                    throw std::runtime_error("Wave spawns cannot be empty in " + levelsPath.string());
+                for (const Json& spawnJson : waveJson.at("scheduled_spawns"))
+                {
+                    WaveConfig::ScheduledSpawn spawn;
+                    spawn.delay = Require<float>(spawnJson, "delay", levelsPath);
+                    spawn.kind = ParseEnemyKind(
+                        Require<std::string>(spawnJson, "type", levelsPath), levelsPath);
+                    spawn.count = Require<int>(spawnJson, "count", levelsPath);
+                    RequireNonNegative(spawn.delay, "delay", levelsPath);
+                    if (spawn.count <= 0)
+                        throw std::runtime_error(
+                            "Scheduled spawn count must be positive in " + levelsPath.string());
+                    wave.scheduledSpawns.push_back(spawn);
+                }
+
+                if (wave.initialSpawns.empty() && wave.scheduledSpawns.empty())
+                    throw std::runtime_error("Gameplay waves cannot be empty in " + levelsPath.string());
                 level.waves.push_back(std::move(wave));
             }
+
+            if (level.waves.empty())
+                throw std::runtime_error("Gameplay levels must contain at least one wave in " + levelsPath.string());
         }
         catch (const Json::exception& exception)
         {
@@ -488,6 +515,11 @@ const GameplayData::EnemyConfig& GameplayData::GetEnemy(EnemyKind kind) const no
 const GameplayData::ProjectileConfig& GameplayData::GetProjectile(ProjectileKind kind) const noexcept
 {
     return projectiles[static_cast<std::size_t>(kind)];
+}
+
+const GameplayData::PickupConfig& GameplayData::GetPickups() const noexcept
+{
+    return pickups;
 }
 
 const GameplayData::LevelConfig& GameplayData::GetLevel(int number) const

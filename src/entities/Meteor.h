@@ -20,6 +20,7 @@ public:
 	};
 
 	Meteor(AssetStore& assets, World& world, Size size);
+	[[nodiscard]] Size GetSize() const noexcept;
 
 	Type GetType() const noexcept override;
 

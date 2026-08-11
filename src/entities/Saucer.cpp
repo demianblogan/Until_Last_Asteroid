@@ -72,6 +72,11 @@ void Saucer::OnDestroy()
 		GetPosition(), GetVelocity(), mode == Mode::Shooter ? 1.1f : 0.95f });
 }
 
+Saucer::Mode Saucer::GetMode() const noexcept
+{
+	return mode;
+}
+
 void Saucer::UpdateMovement(float deltaTime, const sf::Vector2f& target)
 {
 	const sf::Vector2f toTarget{ target - GetPosition() };

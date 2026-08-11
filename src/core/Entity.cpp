@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Shader.hpp>
 #include <SFML/Graphics/Texture.hpp>
@@ -17,6 +19,7 @@ Entity::Entity(AssetStore& assets, World& world, sf::Texture& texture,
 	, world(world)
 	, hitFlashShader(assets.GetShader(Config::Shader::HitFlash))
 	, collisionRadius(collisionRadius)
+	, visualScale(visualScale)
 	, collisionCircles(configuredCollisionCircles.begin(), configuredCollisionCircles.end())
 {
 	if (collisionCircles.empty())
@@ -152,6 +155,18 @@ void Entity::Accelerate(const sf::Vector2f& delta) noexcept
 void Entity::SetVisible(bool visible) noexcept
 {
 	isVisible = visible;
+}
+
+void Entity::SetPresentation(
+	float scaleMultiplier,
+	float opacity,
+	sf::Color tint) noexcept
+{
+	const float safeScale{ std::max(0.f, scaleMultiplier) };
+	const auto alpha{ static_cast<std::uint8_t>(
+		std::clamp(opacity, 0.f, 1.f) * 255.f) };
+	sprite.setScale({ visualScale * safeScale, visualScale * safeScale });
+	sprite.setColor(sf::Color(tint.r, tint.g, tint.b, alpha));
 }
 
 void Entity::FlashOnHit(float duration) noexcept

@@ -2,11 +2,18 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <numbers>
+#include <SFML/Graphics/BlendMode.hpp>
+#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
 #include "entities/Enemy.h"
+#include "entities/Meteor.h"
 #include "entities/Player.h"
+#include "entities/Pickup.h"
+#include "entities/Saucer.h"
 #include "entities/Shot.h"
 #include "game/GameplaySession.h"
 #include "systems/Collision.h"
@@ -21,6 +28,101 @@ namespace
 			return { 1.f, 0.f };
 		return vector / std::sqrt(lengthSquared);
 	}
+
+	void DrawPickupAura(
+		sf::RenderTarget& target,
+		const Pickup& pickup,
+		float visualTime,
+		sf::RenderStates states)
+	{
+		const sf::Color color{ pickup.GetKind() == Pickup::Kind::Health
+			? sf::Color(75, 255, 105)
+			: sf::Color(45, 230, 255) };
+		const float pulse{ 0.78f + 0.22f * std::sin(visualTime * 4.5f) };
+		states.blendMode = sf::BlendAdd;
+
+		for (int layer{ 0 }; layer < 3; ++layer)
+		{
+			const float radius{ pickup.GetCollisionRadius() * (1.15f + layer * 0.23f) };
+			sf::CircleShape aura(radius, 48u);
+			aura.setOrigin({ radius, radius });
+			aura.setPosition(pickup.GetPosition());
+			const auto alpha{ static_cast<std::uint8_t>((34.f - layer * 8.f) * pulse) };
+			aura.setFillColor(sf::Color(color.r, color.g, color.b, alpha));
+			target.draw(aura, states);
+		}
+	}
+
+	void DrawShieldOverlay(
+		sf::RenderTarget& target,
+		const Player& player,
+		float visualTime,
+		float ratio,
+		float hitFlashRatio,
+		sf::RenderStates states)
+	{
+		float pulse{ 0.9f + 0.1f * std::sin(visualTime * 3.5f) };
+		if (ratio <= 0.25f)
+			pulse = 0.35f + 0.65f * std::abs(std::sin(visualTime * 14.f));
+		if (hitFlashRatio > 0.f)
+		{
+			const float hitBlink{ 0.18f +
+				0.82f * std::abs(std::sin(hitFlashRatio * 8.f * std::numbers::pi_v<float>)) };
+			pulse = std::max(pulse, hitBlink * (1.f + hitFlashRatio * 0.55f));
+		}
+
+		const float radius{ player.GetCollisionRadius() * 1.62f };
+		const sf::Vector2f center{ player.GetPosition() };
+
+		sf::CircleShape shell(radius, 96u);
+		shell.setOrigin({ radius, radius });
+		shell.setPosition(center);
+		shell.setFillColor(sf::Color(20, 205, 235,
+			static_cast<std::uint8_t>(27.f * pulse)));
+		shell.setOutlineColor(sf::Color(70, 240, 255,
+			static_cast<std::uint8_t>(58.f * pulse)));
+		shell.setOutlineThickness(4.f);
+		target.draw(shell, states);
+
+		sf::RenderStates additiveStates{ states };
+		additiveStates.blendMode = sf::BlendAdd;
+		for (int layer{ 0 }; layer < 3; ++layer)
+		{
+			const float glowRadius{ radius + 2.f + layer * 3.f };
+			sf::CircleShape glow(glowRadius, 96u);
+			glow.setOrigin({ glowRadius, glowRadius });
+			glow.setPosition(center);
+			glow.setFillColor(sf::Color::Transparent);
+			glow.setOutlineColor(sf::Color(45, 225, 255,
+				static_cast<std::uint8_t>((34.f - layer * 8.f) * pulse)));
+			glow.setOutlineThickness(7.f + layer * 3.f);
+			target.draw(glow, additiveStates);
+		}
+
+		constexpr float HexRadius{ 9.f };
+		constexpr float HorizontalSpacing{ 16.f };
+		constexpr float VerticalSpacing{ 14.f };
+		for (int row{ -3 }; row <= 3; ++row)
+		{
+			for (int column{ -4 }; column <= 4; ++column)
+			{
+				const float x{ column * HorizontalSpacing + (row % 2 == 0 ? 0.f : 8.f) };
+				const float y{ row * VerticalSpacing };
+				if (x * x + y * y > (radius - HexRadius - 3.f) * (radius - HexRadius - 3.f))
+					continue;
+
+				sf::CircleShape hex(HexRadius, 6u);
+				hex.setOrigin({ HexRadius, HexRadius });
+				hex.setPosition(center + sf::Vector2f{ x, y });
+				hex.setRotation(sf::degrees(30.f));
+				hex.setFillColor(sf::Color::Transparent);
+				hex.setOutlineColor(sf::Color(70, 235, 255,
+					static_cast<std::uint8_t>(24.f * pulse)));
+				hex.setOutlineThickness(1.f);
+				target.draw(hex, additiveStates);
+			}
+		}
+	}
 }
 
 World::World(unsigned int width, unsigned int height, AssetStore& assets,
@@ -33,13 +135,8 @@ World::World(unsigned int width, unsigned int height, AssetStore& assets,
 
 void World::Update(float deltaTime)
 {
-	if (!pendingEntities.empty())
-	{
-		entities.insert(entities.end(),
-			std::make_move_iterator(pendingEntities.begin()),
-			std::make_move_iterator(pendingEntities.end()));
-		pendingEntities.clear();
-	}
+	shieldVisualTime += deltaTime;
+	CommitPendingEntities();
 
 	for (auto& entity : entities)
 	{
@@ -56,6 +153,17 @@ void World::Update(float deltaTime)
 	RemoveDeadEntities();
 }
 
+void World::CommitPendingEntities()
+{
+	if (pendingEntities.empty())
+		return;
+
+	entities.insert(entities.end(),
+		std::make_move_iterator(pendingEntities.begin()),
+		std::make_move_iterator(pendingEntities.end()));
+	pendingEntities.clear();
+}
+
 void World::Spawn(std::unique_ptr<Entity> entity)
 {
 	pendingEntities.push_back(std::move(entity));
@@ -70,6 +178,16 @@ void World::SpawnPlayer(AssetStore& playerAssets, InputHandler<Config::PlayerAct
 	playerPtr->SetPosition({ GetWidth() * 0.5f, GetHeight() * 0.5f });
 	player = playerPtr.get();
 	Spawn(std::move(playerPtr));
+}
+
+void World::SetPlayerSpawnPresentation(float progress) noexcept
+{
+	if (player == nullptr)
+		return;
+
+	progress = std::clamp(progress, 0.f, 1.f);
+	const float eased{ progress * progress * (3.f - 2.f * progress) };
+	player->SetPresentation(0.38f + 0.62f * eased, eased);
 }
 
 sf::RenderWindow& World::GetWindow() noexcept { return *window; }
@@ -106,6 +224,7 @@ void World::HandlePlayerRealtime()
 
 void World::SpawnPlayerShot(const sf::Vector2f& pos, float rotation)
 {
+	++statistics.playerShotsFired;
 	Spawn(std::make_unique<PlayerShot>(assets, *this, pos, rotation));
 }
 
@@ -163,6 +282,7 @@ std::optional<sf::Vector2f> World::GetPlayerGamepadAimPoint() const
 unsigned int World::GetWidth() const noexcept { return width; }
 unsigned int World::GetHeight() const noexcept { return height; }
 GameplaySession& World::GetSession() noexcept { return session; }
+const World::Statistics& World::GetStatistics() const noexcept { return statistics; }
 
 void World::Clear()
 {
@@ -170,6 +290,8 @@ void World::Clear()
 	pendingEntities.clear();
 	effectEvents.clear();
 	player = nullptr;
+	shieldVisualTime = 0.f;
+	statistics = {};
 }
 
 void World::Wrap(Entity& entity) const
@@ -201,6 +323,21 @@ void World::HandleCollisions()
 
 void World::HandleCollisionPair(Entity& first, Entity& second)
 {
+	if (first.GetType() == Entity::Type::Pickup || second.GetType() == Entity::Type::Pickup)
+	{
+		Pickup& pickup{ static_cast<Pickup&>(
+			first.GetType() == Entity::Type::Pickup ? first : second) };
+		Entity& other{ first.GetType() == Entity::Type::Pickup ? second : first };
+		if (other.GetType() == Entity::Type::Player && pickup.Apply(session))
+		{
+			AddSound(Config::Sound::BonusTouched);
+			if (pickup.GetKind() == Pickup::Kind::Shield)
+				++statistics.shieldPickupsCollected;
+			pickup.Destroy();
+		}
+		return;
+	}
+
 	auto handlePlayerShot = [this](Shot& shot, Enemy& enemy)
 	{
 		const sf::Vector2f impactDirection{ Normalize(shot.GetVelocity()) };
@@ -242,8 +379,9 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 			const bool damageAccepted{ targetPlayer.TakeDamage(shot.GetDamage()) };
 			if (damageAccepted)
 			{
-				AddEffectEvent({ EffectEventType::PlayerHit,
-					shot.GetPosition(), Normalize(shot.GetVelocity()), 1.f });
+				if (targetPlayer.DidLastDamageReachHealth())
+					AddEffectEvent({ EffectEventType::PlayerHit,
+						shot.GetPosition(), Normalize(shot.GetVelocity()), 1.f });
 				targetPlayer.ApplyImpulse(Normalize(shot.GetVelocity()) * shot.GetKnockback());
 			}
 			if (damageAccepted && targetPlayer.IsAlive())
@@ -295,8 +433,9 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 			collidedEnemy->GetPosition() - collidedPlayer->GetPosition()) };
 		const sf::Vector2f impactPosition{ collidedPlayer->GetPosition() +
 			impactDirection * collidedPlayer->GetCollisionRadius() };
-		AddEffectEvent({ EffectEventType::PlayerHit,
-			impactPosition, -impactDirection, 1.15f });
+		if (collidedPlayer->DidLastDamageReachHealth())
+			AddEffectEvent({ EffectEventType::PlayerHit,
+				impactPosition, -impactDirection, 1.15f });
 		AddEffectEvent({
 			collidedEnemy->GetType() == Entity::Type::Asteroid
 				? EffectEventType::AsteroidHit
@@ -338,6 +477,19 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 
 void World::AwardScore(const Enemy& enemy)
 {
+	if (const auto* meteor{ dynamic_cast<const Meteor*>(&enemy) })
+	{
+		if (meteor->GetSize() == Meteor::Size::Big)
+			++statistics.bigMeteorsDestroyed;
+		else
+			++statistics.smallMeteorsDestroyed;
+	}
+	else if (const auto* saucer{ dynamic_cast<const Saucer*>(&enemy) };
+		saucer != nullptr && saucer->GetMode() == Saucer::Mode::Shooter)
+	{
+		++statistics.shootersDestroyed;
+	}
+
 	const int points{ enemy.GetScoreValue() };
 	session.AddScore(points);
 	AddEffectEvent({
@@ -377,5 +529,22 @@ void World::RemoveDeadEntities()
 void World::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
 	for (const auto& entity : entities)
+	{
+		if (entity->GetType() == Entity::Type::Pickup)
+			DrawPickupAura(target, static_cast<const Pickup&>(*entity), shieldVisualTime, states);
+
 		target.draw(*entity, states);
+
+		const Shield& shield{ session.GetPlayerShield() };
+		if (entity.get() == player && (shield.IsActive() || shield.IsHitFlashing()))
+		{
+			DrawShieldOverlay(
+				target,
+				*player,
+				shieldVisualTime,
+				shield.GetRatio(),
+				shield.GetHitFlashRatio(),
+				states);
+		}
+	}
 }

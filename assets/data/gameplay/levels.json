@@ -11,12 +11,33 @@
         "bloom_intensity": 0.82,
         "vignette_strength": 0.34
       },
-      "initial_spawns": [
-        { "type": "big_meteor", "count": 3 },
-        { "type": "kamikaze", "count": 1 },
-        { "type": "shooter", "count": 1 }
-      ],
-      "waves": []
+      "waves": [
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 3 }
+          ],
+          "scheduled_spawns": []
+        },
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 3 }
+          ],
+          "scheduled_spawns": [
+            { "delay": 5.0, "type": "kamikaze", "count": 1 },
+            { "delay": 4.0, "type": "kamikaze", "count": 1 },
+            { "delay": 3.0, "type": "kamikaze", "count": 1 }
+          ]
+        },
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 3 }
+          ],
+          "scheduled_spawns": [
+            { "delay": 3.0, "type": "kamikaze", "count": 2 },
+            { "delay": 5.0, "type": "shooter", "count": 1 }
+          ]
+        }
+      ]
     },
     {
       "number": 2,
@@ -29,11 +50,16 @@
         "bloom_intensity": 0.78,
         "vignette_strength": 0.35
       },
-      "initial_spawns": [
-        { "type": "big_meteor", "count": 2 }
-      ],
       "waves": [
-        { "interval": 2.0, "repetitions": 2, "spawns": ["kamikaze"] }
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 2 }
+          ],
+          "scheduled_spawns": [
+            { "delay": 2.0, "type": "kamikaze", "count": 1 },
+            { "delay": 2.0, "type": "kamikaze", "count": 1 }
+          ]
+        }
       ]
     },
     {
@@ -47,11 +73,17 @@
         "bloom_intensity": 0.62,
         "vignette_strength": 0.32
       },
-      "initial_spawns": [
-        { "type": "big_meteor", "count": 3 }
-      ],
       "waves": [
-        { "interval": 2.0, "repetitions": 3, "spawns": ["shooter"] }
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 3 }
+          ],
+          "scheduled_spawns": [
+            { "delay": 2.0, "type": "shooter", "count": 1 },
+            { "delay": 2.0, "type": "shooter", "count": 1 },
+            { "delay": 2.0, "type": "shooter", "count": 1 }
+          ]
+        }
       ]
     },
     {
@@ -65,11 +97,20 @@
         "bloom_intensity": 0.72,
         "vignette_strength": 0.38
       },
-      "initial_spawns": [
-        { "type": "big_meteor", "count": 4 }
-      ],
       "waves": [
-        { "interval": 2.0, "repetitions": 3, "spawns": ["kamikaze", "shooter"] }
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 4 }
+          ],
+          "scheduled_spawns": [
+            { "delay": 2.0, "type": "kamikaze", "count": 1 },
+            { "delay": 0.0, "type": "shooter", "count": 1 },
+            { "delay": 2.0, "type": "kamikaze", "count": 1 },
+            { "delay": 0.0, "type": "shooter", "count": 1 },
+            { "delay": 2.0, "type": "kamikaze", "count": 1 },
+            { "delay": 0.0, "type": "shooter", "count": 1 }
+          ]
+        }
       ]
     },
     {
@@ -83,12 +124,21 @@
         "bloom_intensity": 0.80,
         "vignette_strength": 0.39
       },
-      "initial_spawns": [
-        { "type": "big_meteor", "count": 5 },
-        { "type": "shooter", "count": 3 }
-      ],
       "waves": [
-        { "interval": 1.0, "repetitions": 3, "spawns": ["kamikaze", "shooter"] }
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 5 },
+            { "type": "shooter", "count": 3 }
+          ],
+          "scheduled_spawns": [
+            { "delay": 1.0, "type": "kamikaze", "count": 1 },
+            { "delay": 0.0, "type": "shooter", "count": 1 },
+            { "delay": 1.0, "type": "kamikaze", "count": 1 },
+            { "delay": 0.0, "type": "shooter", "count": 1 },
+            { "delay": 1.0, "type": "kamikaze", "count": 1 },
+            { "delay": 0.0, "type": "shooter", "count": 1 }
+          ]
+        }
       ]
     }
   ]

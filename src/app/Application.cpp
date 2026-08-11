@@ -6,6 +6,7 @@
 #include <SFML/Window/Event.hpp>
 
 #include "states/CompanySplashState.h"
+#include "states/CampaignMenuState.h"
 #include "states/GameplayState.h"
 #include "states/MainMenuState.h"
 #include "states/OptionsState.h"
@@ -18,7 +19,16 @@ Application::Application()
     , audio(assets, settings)
     , display(window, LOGICAL_SIZE)
     , stateStack(StateContext{
-        window, assets, settings, audio, display, LOGICAL_SIZE, mainMenuIntroPlayed, gamepad })
+        window,
+        assets,
+        settings,
+        campaignSave,
+        audio,
+        display,
+        LOGICAL_SIZE,
+        mainMenuIntroPlayed,
+        gamepad,
+        gameplayLaunch })
 {
     display.ConfigureExistingWindow(settings.Get().graphics);
     const sf::View logicalView(sf::FloatRect({ 0.f, 0.f }, LOGICAL_SIZE));
@@ -43,6 +53,7 @@ Application::Application()
 
     stateStack.RegisterState<CompanySplashState>(StateId::CompanySplash);
     stateStack.RegisterState<MainMenuState>(StateId::MainMenu);
+    stateStack.RegisterState<CampaignMenuState>(StateId::CampaignMenu);
     stateStack.RegisterState<ScoresState>(StateId::Scores);
     stateStack.RegisterState<OptionsState>(StateId::Options, OptionsState::Origin::MainMenu);
     stateStack.RegisterState<OptionsState>(StateId::PauseOptions, OptionsState::Origin::PauseMenu);

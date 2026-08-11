@@ -10,6 +10,8 @@
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
 #include "app/DisplayManager.h"
+#include "campaign/CampaignSaveManager.h"
+#include "game/GameplayLaunch.h"
 #include "settings/SettingsManager.h"
 #include "states/StateStack.h"
 #include "systems/GamepadManager.h"
@@ -33,12 +35,14 @@ private:
     static constexpr float MAX_FRAME_TIME{ 0.1f };
 
     SettingsManager settings;
+    CampaignSaveManager campaignSave;
     sf::RenderWindow window;
     AssetStore assets;
     AudioManager audio;
     DisplayManager display;
     bool mainMenuIntroPlayed{ false };
     GamepadManager gamepad;
+    GameplayLaunchRequest gameplayLaunch;
     StateStack stateStack;
     std::optional<sf::Text> fpsText;
     float fpsElapsed{ 0.f };
