@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <SFML/Graphics/Text.hpp>
+#include <SFML/Graphics/Sprite.hpp>
 
 #include "states/State.h"
 #include "ui/GlowingCursor.h"
@@ -33,10 +34,14 @@ private:
 	MenuBackground background;
 	NeonGlow titleGlow;
 	NeonGlow buttonGlow;
+	NeonGlow partsGlow;
 	GlowingCursor menuCursor;
 	ScreenFade screenFade;
 	sf::Text title;
 	std::vector<MenuButton> buttons;
+	std::vector<MenuButton> partsFrames;
+	std::vector<sf::Sprite> partsIcons;
+	std::vector<sf::Text> partsCounts;
 	std::vector<int> buttonLevels;
 	std::size_t selectedIndex{ 0u };
 	bool launchingLevel{ false };

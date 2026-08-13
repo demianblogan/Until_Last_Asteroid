@@ -76,4 +76,6 @@ private:
     std::size_t dialogSelectedIndex{ 1u };
     DialogMode dialogMode{ DialogMode::None };
     bool launchingGameplay{ false };
+	bool launchingUpgrades{ false };
+	bool launchingLevelSelect{ false };
 };

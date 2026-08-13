@@ -33,11 +33,5 @@ private:
     NeonGlow neonGlow;
     GlowingCursor menuCursor;
     ScreenFade screenFade;
-    bool backRequested{ false };
-};
-
-class ScoresState final : public PlaceholderState
-{
-public:
-    ScoresState(StateStack& stateStack, StateContext context);
+	bool backRequested{ false };
 };

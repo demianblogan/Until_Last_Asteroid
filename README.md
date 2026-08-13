@@ -44,8 +44,11 @@ movement and aiming, trigger shooting, and D-pad menu navigation.
 
 - Campaign menu with persistent, versioned progress
 - Optional guided tutorial for movement, combat, scoring, armor, and pickups
-- Three connected JSON-authored campaign levels with animated introductions
-- Health, shield, homing-bullet, and time-slowdown pickups with dynamic HUD feedback
+- Six connected JSON-authored campaign levels with animated introductions
+- Finite collectible Parts and four functional ship-upgrade branches
+- Permanent per-level Records independent from campaign save progress
+- Health, shield, homing-bullet, time-slowdown, laser, and triple-shot pickups
+  with dynamic HUD feedback
 - Dynamic enemy waves system
 - Score system with scaling difficulty
 - Player physics (acceleration, damping, max speed)
@@ -84,16 +87,21 @@ movement and aiming, trigger shooting, and D-pad menu navigation.
 - **Shooter** → alternates fire between two cannons (+250 pts)
 - **Spinner** → follows a sinusoidal path while rotating and firing in three directions
 - **Missile Carrier** → launches slow, destructible homing missiles
+- **Laser Turret** → patrols a screen edge with a player-only sweeping beam
+- **Shooter Station** → shields its launch bay while constructing shooter ships
 
 ---
 
 ## 🧩 Levels
 
-The current campaign contains **3 connected levels**, each with three authored waves:
+The current campaign contains **6 connected levels**, each with three authored waves:
 
 - **Blue Frontier**
 - **Violet Crossing**
 - **Shattered Belt**
+- **Violet Siege**
+- **Asteroid Wake**
+- **Iron Graveyard**
 
 Completed levels can be replayed through the Select Level menu without rewinding
 campaign progress.

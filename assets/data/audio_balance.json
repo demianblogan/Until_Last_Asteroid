@@ -11,6 +11,8 @@
         "item_press": 60.0,
         "player_normal_shot": 50.0,
         "enemy_shot": 100.0,
+		"enemy_laser_shot": 50.0,
+		"enemy_station_working": 50.0,
         "ship_explosion": 100.0,
         "asteroid_explosion": 100.0,
         "bullet_hit_asteroid": 100.0,
@@ -19,7 +21,7 @@
         "metal_hit": 50.0,
         "game_over": 100.0,
         "bonus_touched": 100.0,
-        "countdown": 100.0,
+		"part_picked_up": 100.0,
         "level_complete": 100.0
     }
 }

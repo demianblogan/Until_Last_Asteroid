@@ -45,6 +45,7 @@ private:
 		NextLevel,
 		RestartGame,
 		TutorialComplete,
+		ShipUpgrades,
 		LevelSelect,
 		MainMenu
 	};
@@ -60,6 +61,7 @@ private:
 	void SpawnPlayerIfNeeded();
 	void SpawnConfiguredEnemy(
 		const GameplayData::SpawnGroup& spawn,
+		std::size_t spawnIndex,
 		bool materialize = false);
 	void SpawnPickup(Pickup::Kind kind, sf::Vector2f position);
 	void StartTutorial();
@@ -73,11 +75,17 @@ private:
 	void RestoreCampaignProgress();
 	void SaveCompletedLevel();
 	[[nodiscard]] ResultScreen::Statistics FinalizeLevelStatistics();
+	void CompleteCurrentLevel();
+#ifdef _DEBUG
+	void DebugCompleteCurrentLevel();
+#endif
 	void NextLevel();
 	void SpawnLevel();
 	void StartNextWave(bool materializeInitialSpawns, bool startWaveIntro = true);
 	void FinishWaveIntro();
 	void UpdatePlayerSpawnAnimation(float deltaTime);
+	void BeginPlayerWaveTeleport();
+	void UpdatePlayerWaveTeleport(float deltaTime);
 	void UpdateWaveMaterialization(float deltaTime);
 	void UpdateTimeSlowdownPresentation(float deltaTime);
 	[[nodiscard]] float GetWorldTimeScale() const noexcept;
@@ -108,11 +116,14 @@ private:
 	float levelCompleteSoundRemaining{ 0.f };
 	GameplayTransition gameplayTransition{ GameplayTransition::None };
 	float playerSpawnElapsed{ 0.f };
+	float playerTeleportElapsed{ 0.f };
 	float waveMaterializationElapsed{ 0.f };
 	float waveClearDelayRemaining{ 0.f };
 	float timeSlowdownVisualStrength{ 0.f };
 	float levelGameplayElapsed{ 0.f };
 	bool playerSpawnAnimating{ false };
+	bool playerTeleportAnimating{ false };
+	bool playerTeleportMoved{ false };
 	bool waveClearDelayActive{ false };
 	bool selectedLevelRun{ false };
 	bool selectedLevelAdvancesCampaign{ false };

@@ -62,6 +62,21 @@ std::optional<GameplayData::PickupKind> Enemy::RollPickupDrop() const
 	return pickupDrop->pool.back().kind;
 }
 
+void Enemy::SetPartDropId(std::string id) { partDropId = std::move(id); }
+const std::string& Enemy::GetPartDropId() const noexcept { return partDropId; }
+void Enemy::SetRewardsEnabled(bool enabled) noexcept { rewardsEnabled = enabled; }
+bool Enemy::AreRewardsEnabled() const noexcept { return rewardsEnabled; }
+bool Enemy::AcceptsKnockback() const noexcept { return true; }
+bool Enemy::CollidesWithPlayerProjectile(const Entity& projectile) const
+{
+	return CheckCollision(projectile);
+}
+sf::Vector2f Enemy::GetPlayerProjectileImpactPosition(
+	const Entity& projectile) const noexcept
+{
+	return projectile.GetPosition();
+}
+
 bool Enemy::TakeDamage(int damage)
 {
 	const bool damageApplied{ health.ApplyDamage(damage) };
@@ -69,13 +84,15 @@ bool Enemy::TakeDamage(int damage)
 		return false;
 	if (health.IsDepleted())
 	{
-		Destroy();
+		BeginDestruction();
 		return true;
 	}
 
 	FlashOnHit(GetAssets().GetGameplayData().GetHitFlashDuration());
 	return false;
 }
+
+void Enemy::BeginDestruction() { Destroy(); }
 
 Entity::Type Enemy::GetType() const noexcept { return Type::Enemy; }
 

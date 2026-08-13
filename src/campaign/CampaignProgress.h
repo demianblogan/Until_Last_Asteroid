@@ -1,11 +1,14 @@
 #pragma once
 
 #include <map>
+#include <string>
 #include <vector>
+
+#include "campaign/ShipUpgrades.h"
 
 struct CampaignProgress
 {
-    static constexpr int FORMAT_VERSION{ 1 };
+    static constexpr int FORMAT_VERSION{ 3 };
 
     int schemaVersion{ FORMAT_VERSION };
     bool tutorialCompleted{ false };
@@ -14,5 +17,8 @@ struct CampaignProgress
     int highestUnlockedLevel{ 1 };
     std::vector<int> completedLevels;
     std::map<int, int> levelBestScores;
-    int campaignScore{ 0 };
+	int partsBalance{ 0 };
+	std::vector<std::string> collectedPartIds;
+	CampaignPhase phase{ CampaignPhase::Playing };
+	ShipUpgradeRanks upgrades;
 };

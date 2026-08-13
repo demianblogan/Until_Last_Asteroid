@@ -8,14 +8,19 @@
 #include <SFML/Graphics/BlendMode.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/VertexArray.hpp>
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
 #include "entities/Enemy.h"
 #include "entities/HomingMissile.h"
+#include "entities/LaserTurret.h"
 #include "entities/Meteor.h"
+#include "entities/Part.h"
 #include "entities/Player.h"
 #include "entities/Pickup.h"
 #include "entities/Saucer.h"
+#include "entities/ShooterStation.h"
 #include "entities/Shot.h"
 #include "game/GameplaySession.h"
 #include "systems/Collision.h"
@@ -52,6 +57,12 @@ namespace
 		case Pickup::Kind::TimeSlowdown:
 			color = sf::Color(180, 75, 255);
 			break;
+		case Pickup::Kind::Laser:
+			color = sf::Color(255, 48, 25);
+			break;
+		case Pickup::Kind::TripleShot:
+			color = sf::Color(255, 175, 28);
+			break;
 		}
 		const float pulse{ 0.78f + 0.22f * std::sin(visualTime * 4.5f) };
 		states.blendMode = sf::BlendAdd;
@@ -65,6 +76,92 @@ namespace
 			const auto alpha{ static_cast<std::uint8_t>((34.f - layer * 8.f) * pulse) };
 			aura.setFillColor(sf::Color(color.r, color.g, color.b, alpha));
 			target.draw(aura, states);
+		}
+	}
+
+	void DrawPartAura(
+		sf::RenderTarget& target,
+		const Part& part,
+		float visualTime,
+		sf::RenderStates states)
+	{
+		const sf::Color color{ 255, 184, 38 };
+		const float pulse{ 0.55f + 0.45f * std::abs(
+			std::sin(visualTime * 2.f * std::numbers::pi_v<float>)) };
+		states.blendMode = sf::BlendAdd;
+		for (int layer{ 0 }; layer < 3; ++layer)
+		{
+			const float radius{ part.GetCollisionRadius() * (1.1f + layer * 0.24f) };
+			sf::CircleShape aura(radius, 48u);
+			aura.setOrigin({ radius, radius });
+			aura.setPosition(part.GetPosition());
+			const auto alpha{ static_cast<std::uint8_t>((36.f - layer * 9.f) * pulse) };
+			aura.setFillColor(sf::Color(color.r, color.g, color.b, alpha));
+			target.draw(aura, states);
+		}
+	}
+
+	void DrawEnergyShield(
+		sf::RenderTarget& target,
+		const sf::Vector2f& center,
+		float radius,
+		float pulse,
+		sf::Color shellColor,
+		sf::Color outlineColor,
+		sf::Color glowColor,
+		float hexOpacity,
+		sf::RenderStates states)
+	{
+		sf::CircleShape shell(radius, 96u);
+		shell.setOrigin({ radius, radius });
+		shell.setPosition(center);
+		shell.setFillColor(sf::Color(shellColor.r, shellColor.g, shellColor.b,
+			static_cast<std::uint8_t>(27.f * pulse)));
+		shell.setOutlineColor(sf::Color(outlineColor.r, outlineColor.g, outlineColor.b,
+			static_cast<std::uint8_t>(58.f * pulse)));
+		shell.setOutlineThickness(4.f);
+		target.draw(shell, states);
+
+		sf::RenderStates additiveStates{ states };
+		additiveStates.blendMode = sf::BlendAdd;
+		for (int layer{ 0 }; layer < 3; ++layer)
+		{
+			const float glowRadius{ radius + 2.f + layer * 3.f };
+			sf::CircleShape glow(glowRadius, 96u);
+			glow.setOrigin({ glowRadius, glowRadius });
+			glow.setPosition(center);
+			glow.setFillColor(sf::Color::Transparent);
+			glow.setOutlineColor(sf::Color(glowColor.r, glowColor.g, glowColor.b,
+				static_cast<std::uint8_t>((34.f - layer * 8.f) * pulse)));
+			glow.setOutlineThickness(7.f + layer * 3.f);
+			target.draw(glow, additiveStates);
+		}
+
+		constexpr float HexRadius{ 9.f };
+		constexpr float HorizontalSpacing{ 16.f };
+		constexpr float VerticalSpacing{ 14.f };
+		const int maximumRow{ static_cast<int>(std::ceil(radius / VerticalSpacing)) };
+		const int maximumColumn{ static_cast<int>(std::ceil(radius / HorizontalSpacing)) };
+		for (int row{ -maximumRow }; row <= maximumRow; ++row)
+		{
+			for (int column{ -maximumColumn }; column <= maximumColumn; ++column)
+			{
+				const float x{ column * HorizontalSpacing + (row % 2 == 0 ? 0.f : 8.f) };
+				const float y{ row * VerticalSpacing };
+				if (x * x + y * y >
+					(radius - HexRadius - 3.f) * (radius - HexRadius - 3.f))
+					continue;
+
+				sf::CircleShape hex(HexRadius, 6u);
+				hex.setOrigin({ HexRadius, HexRadius });
+				hex.setPosition(center + sf::Vector2f{ x, y });
+				hex.setRotation(sf::degrees(30.f));
+				hex.setFillColor(sf::Color::Transparent);
+				hex.setOutlineColor(sf::Color(outlineColor.r, outlineColor.g, outlineColor.b,
+					static_cast<std::uint8_t>(hexOpacity * pulse)));
+				hex.setOutlineThickness(1.f);
+				target.draw(hex, additiveStates);
+			}
 		}
 	}
 
@@ -86,57 +183,172 @@ namespace
 			pulse = std::max(pulse, hitBlink * (1.f + hitFlashRatio * 0.55f));
 		}
 
-		const float radius{ player.GetCollisionRadius() * 1.62f };
-		const sf::Vector2f center{ player.GetPosition() };
+		DrawEnergyShield(target, player.GetPosition(),
+			player.GetCollisionRadius() * 1.62f, pulse,
+			{ 20, 205, 235 }, { 70, 240, 255 }, { 45, 225, 255 }, 24.f, states);
+	}
 
-		sf::CircleShape shell(radius, 96u);
-		shell.setOrigin({ radius, radius });
-		shell.setPosition(center);
-		shell.setFillColor(sf::Color(20, 205, 235,
-			static_cast<std::uint8_t>(27.f * pulse)));
-		shell.setOutlineColor(sf::Color(70, 240, 255,
-			static_cast<std::uint8_t>(58.f * pulse)));
-		shell.setOutlineThickness(4.f);
-		target.draw(shell, states);
+	void DrawFeatheredBeam(
+		sf::RenderTarget& target,
+		const sf::Vector2f& start,
+		const sf::Vector2f& end,
+		float beamWidth,
+		float pulse,
+		sf::Color coreColor,
+		sf::Color glowColor,
+		sf::RenderStates states)
+	{
+		const sf::Vector2f delta{ end - start };
+		const float length{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+		if (length <= 0.1f)
+			return;
 
-		sf::RenderStates additiveStates{ states };
-		additiveStates.blendMode = sf::BlendAdd;
-		for (int layer{ 0 }; layer < 3; ++layer)
+		const sf::Vector2f direction{ delta / length };
+		const sf::Vector2f perpendicular{ -direction.y, direction.x };
+		const float outerHalfWidth{ beamWidth * 2.8f };
+		const float glowHalfWidth{ beamWidth * 1.35f };
+		const float coreHalfWidth{ beamWidth * 0.5f };
+		auto withAlpha = [pulse](sf::Color color, float alpha)
 		{
-			const float glowRadius{ radius + 2.f + layer * 3.f };
-			sf::CircleShape glow(glowRadius, 96u);
-			glow.setOrigin({ glowRadius, glowRadius });
-			glow.setPosition(center);
-			glow.setFillColor(sf::Color::Transparent);
-			glow.setOutlineColor(sf::Color(45, 225, 255,
-				static_cast<std::uint8_t>((34.f - layer * 8.f) * pulse)));
-			glow.setOutlineThickness(7.f + layer * 3.f);
-			target.draw(glow, additiveStates);
+			color.a = static_cast<std::uint8_t>(
+				std::clamp(alpha * pulse, 0.f, 255.f));
+			return color;
+		};
+
+		const std::array offsets{
+			-outerHalfWidth, -glowHalfWidth, -coreHalfWidth,
+			0.f,
+			coreHalfWidth, glowHalfWidth, outerHalfWidth };
+		const std::array colors{
+			withAlpha(glowColor, 0.f),
+			withAlpha(glowColor, 38.f),
+			withAlpha(glowColor, 150.f),
+			withAlpha(coreColor, 255.f),
+			withAlpha(glowColor, 150.f),
+			withAlpha(glowColor, 38.f),
+			withAlpha(glowColor, 0.f) };
+
+		sf::VertexArray beam(sf::PrimitiveType::TriangleStrip);
+		beam.resize(offsets.size() * 2u);
+		for (std::size_t index{ 0u }; index < offsets.size(); ++index)
+		{
+			beam[index * 2u] = sf::Vertex{
+				start + perpendicular * offsets[index], colors[index] };
+			beam[index * 2u + 1u] = sf::Vertex{
+				end + perpendicular * offsets[index], colors[index] };
 		}
 
-		constexpr float HexRadius{ 9.f };
-		constexpr float HorizontalSpacing{ 16.f };
-		constexpr float VerticalSpacing{ 14.f };
-		for (int row{ -3 }; row <= 3; ++row)
-		{
-			for (int column{ -4 }; column <= 4; ++column)
-			{
-				const float x{ column * HorizontalSpacing + (row % 2 == 0 ? 0.f : 8.f) };
-				const float y{ row * VerticalSpacing };
-				if (x * x + y * y > (radius - HexRadius - 3.f) * (radius - HexRadius - 3.f))
-					continue;
+		states.blendMode = sf::BlendAdd;
+		target.draw(beam, states);
+	}
 
-				sf::CircleShape hex(HexRadius, 6u);
-				hex.setOrigin({ HexRadius, HexRadius });
-				hex.setPosition(center + sf::Vector2f{ x, y });
-				hex.setRotation(sf::degrees(30.f));
-				hex.setFillColor(sf::Color::Transparent);
-				hex.setOutlineColor(sf::Color(70, 235, 255,
-					static_cast<std::uint8_t>(24.f * pulse)));
-				hex.setOutlineThickness(1.f);
-				target.draw(hex, additiveStates);
-			}
+	void DrawLaserBeam(
+		sf::RenderTarget& target,
+		const LaserTurret& turret,
+		sf::RenderStates states)
+	{
+		if (!turret.IsBeamActive())
+			return;
+		const sf::Vector2f start{ turret.GetBeamStart() };
+		const sf::Vector2f delta{ turret.GetBeamEnd() - start };
+		const float length{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+		if (length <= 0.1f)
+			return;
+		const float pulse{ turret.GetBeamPulse() };
+		DrawFeatheredBeam(target, start, turret.GetBeamEnd(),
+			turret.GetBeamWidth(), pulse,
+			sf::Color(255, 238, 210), sf::Color(255, 28, 10), states);
+		states.blendMode = sf::BlendAdd;
+
+		const sf::Vector2f direction{ delta / length };
+		const sf::Vector2f perpendicular{ -direction.y, direction.x };
+		constexpr int MarkerCount{ 18 };
+		const float animationTime{ turret.GetBeamAnimationTime() };
+		for (int index{ 0 }; index < MarkerCount; ++index)
+		{
+			const float base{ static_cast<float>(index) / MarkerCount };
+			const float travel{ std::fmod(base + animationTime * 0.7f, 1.f) };
+			const float phase{ travel * 4.f * std::numbers::pi_v<float> +
+				animationTime * 5.f };
+			const float offset{ std::sin(phase) * turret.GetBeamWidth() * 0.8f };
+			const float depth{ 0.5f + 0.5f * std::cos(phase) };
+			const float radius{ 3.f + depth * 4.f };
+			sf::CircleShape diamond(radius, 4u);
+			diamond.setOrigin({ radius, radius });
+			diamond.setRotation(sf::degrees(45.f + animationTime * 150.f));
+			diamond.setPosition(start + direction * (travel * length) +
+				perpendicular * offset);
+			diamond.setFillColor(sf::Color(255, 210, 125,
+				static_cast<std::uint8_t>(135.f + depth * 120.f)));
+			target.draw(diamond, states);
 		}
+	}
+
+	void DrawPlayerLaser(
+		sf::RenderTarget& target,
+		const Player& player,
+		float beamWidth,
+		sf::RenderStates states)
+	{
+		if (!player.IsLaserFiring())
+			return;
+		const sf::Vector2f start{ player.GetPosition() };
+		const sf::Vector2f delta{ player.GetLaserEndPosition() - start };
+		const float length{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+		if (length <= 0.1f)
+			return;
+		const float time{ player.GetLaserVisualTime() };
+		const float pulse{ 0.82f + 0.18f * std::sin(time * 18.f) };
+		DrawFeatheredBeam(target, start, player.GetLaserEndPosition(),
+			beamWidth, pulse,
+			sf::Color(225, 255, 255), sf::Color(20, 175, 255), states);
+		states.blendMode = sf::BlendAdd;
+
+		const sf::Vector2f direction{ delta / length };
+		const sf::Vector2f perpendicular{ -direction.y, direction.x };
+		for (int index{ 0 }; index < 22; ++index)
+		{
+			const float base{ static_cast<float>(index) / 22.f };
+			// Advance from the ship toward the far end of the beam.
+			const float travel{ std::fmod((1.f - base) + time * 1.25f, 1.f) };
+			const float side{ std::sin(travel * 6.f * std::numbers::pi_v<float> + time * 9.f) };
+			const float radius{ 2.5f + 2.f * std::abs(side) };
+			sf::CircleShape spark(radius, 4u);
+			spark.setOrigin({ radius, radius });
+			spark.setRotation(sf::degrees(45.f + time * 210.f));
+			spark.setPosition(start + direction * (travel * length) +
+				perpendicular * (side * beamWidth * 0.7f));
+			spark.setFillColor(sf::Color(120, 235, 255, 210));
+			target.draw(spark, states);
+		}
+	}
+
+	void DrawStationEffects(
+		sf::RenderTarget& target,
+		const ShooterStation& station,
+		sf::RenderStates states)
+	{
+		states.blendMode = sf::BlendAdd;
+		const float charge{ station.GetSpawnChargeRatio() };
+		if (charge > 0.f)
+		{
+			const float radius{ 18.f + charge * 30.f };
+			sf::CircleShape portal(radius, 64u);
+			portal.setOrigin({ radius, radius });
+			portal.setPosition(station.GetPosition());
+			portal.setFillColor(sf::Color(255, 28, 18,
+				static_cast<std::uint8_t>(70.f * charge)));
+			portal.setOutlineColor(sf::Color(255, 120, 55,
+				static_cast<std::uint8_t>(210.f * charge)));
+			portal.setOutlineThickness(4.f + 5.f * charge);
+			target.draw(portal, states);
+		}
+
+		if (!station.IsShieldActive())
+			return;
+		DrawEnergyShield(target, station.GetPosition(),
+			station.GetShieldRadius(), station.GetShieldPulse(),
+			{ 220, 28, 38 }, { 255, 78, 62 }, { 255, 40, 35 }, 64.f, states);
 	}
 }
 
@@ -215,6 +427,14 @@ void World::SetPlayerSpawnPresentation(float progress) noexcept
 	player->SetPresentation(0.38f + 0.62f * eased, eased);
 }
 
+void World::TeleportPlayerToCenter() noexcept
+{
+	if (player == nullptr)
+		return;
+	player->SetPosition({ GetWidth() * 0.5f, GetHeight() * 0.5f });
+	player->SetVelocity({});
+}
+
 sf::RenderWindow& World::GetWindow() noexcept { return *window; }
 void World::SetWindow(sf::RenderWindow& newWindow) { window = &newWindow; }
 
@@ -226,7 +446,8 @@ bool World::IsCleared() const noexcept
 		{
 			return entity->IsAlive() &&
 				(entity->GetType() == Entity::Type::Enemy ||
-				 entity->GetType() == Entity::Type::Asteroid);
+				 entity->GetType() == Entity::Type::Asteroid ||
+				 entity->GetType() == Entity::Type::Part);
 		});
 	};
 
@@ -253,10 +474,26 @@ void World::SetPlayerControlEnabled(bool enabled) noexcept
 		player->SetControlEnabled(enabled);
 }
 
-void World::SpawnPlayerShot(const sf::Vector2f& pos, float rotation)
+std::uint64_t World::BeginPlayerAttack() noexcept
 {
-	++statistics.playerShotsFired;
-	Spawn(std::make_unique<PlayerShot>(assets, *this, pos, rotation));
+	++statistics.playerAttacksFired;
+	return nextPlayerAttackId++;
+}
+
+void World::RegisterPlayerAttackHit(std::uint64_t attackId) noexcept
+{
+	if (attackId == 0u)
+		return;
+	if (successfulPlayerAttacks.insert(attackId).second)
+		++statistics.playerAttacksHit;
+}
+
+void World::SpawnPlayerShot(
+	const sf::Vector2f& pos, float rotation, std::uint64_t attackId,
+	bool playSound, bool tripleShotVisual)
+{
+	Spawn(std::make_unique<PlayerShot>(
+		assets, *this, pos, rotation, attackId, playSound, tripleShotVisual));
 }
 
 void World::SpawnSaucerShot(
@@ -272,6 +509,100 @@ void World::SpawnSaucerShot(
 void World::SpawnHomingMissile(const sf::Vector2f& pos, const sf::Vector2f& target)
 {
 	Spawn(std::make_unique<HomingMissile>(assets, *this, pos, target));
+}
+
+void World::SpawnStationShooter(
+	const sf::Vector2f& position,
+	float materializationDuration,
+	const Entity* station)
+{
+	auto shooter{ std::make_unique<Saucer>(assets, *this, Saucer::Mode::Shooter) };
+	shooter->SetPosition(position);
+	shooter->SetRewardsEnabled(false);
+	shooter->BeginMaterialization(materializationDuration, station);
+	Spawn(std::move(shooter));
+}
+
+void World::DamageEnemiesWithPlayerLaser(
+	const sf::Vector2f& start,
+	const sf::Vector2f& end,
+	float laserWidth,
+	int damage,
+	std::uint64_t attackId)
+{
+	const sf::Vector2f segment{ end - start };
+	const float lengthSquared{ segment.x * segment.x + segment.y * segment.y };
+	if (lengthSquared <= 0.001f || damage <= 0)
+		return;
+
+	for (const auto& entity : entities)
+	{
+		if (!entity->IsAlive())
+			continue;
+		const Entity::Type type{ entity->GetType() };
+		if (type != Entity::Type::Enemy && type != Entity::Type::Asteroid &&
+			type != Entity::Type::EnemyMissile)
+		{
+			continue;
+		}
+
+		const sf::Vector2f relative{ entity->GetPosition() - start };
+		const float projection{ std::clamp(
+			(relative.x * segment.x + relative.y * segment.y) / lengthSquared,
+			0.f, 1.f) };
+		const sf::Vector2f impactPosition{ start + segment * projection };
+		const sf::Vector2f offset{ entity->GetPosition() - impactPosition };
+		const float hitRadius{ entity->GetCollisionRadius() + laserWidth * 0.5f };
+		if (offset.x * offset.x + offset.y * offset.y > hitRadius * hitRadius)
+			continue;
+
+		RegisterPlayerAttackHit(attackId);
+		AddEffectEvent({ EffectEventType::ShipHit,
+			impactPosition, Normalize(segment),
+			std::clamp(entity->GetCollisionRadius() / 45.f, 0.55f, 1.2f) });
+		if (type == Entity::Type::EnemyMissile)
+		{
+			static_cast<void>(
+				static_cast<HomingMissile&>(*entity).TakeDamage(damage));
+			continue;
+		}
+
+		Enemy& enemy{ static_cast<Enemy&>(*entity) };
+		if (enemy.TakeDamage(damage))
+			AwardScore(enemy);
+	}
+}
+
+void World::DamagePlayerWithBeam(
+	const sf::Vector2f& start,
+	const sf::Vector2f& end,
+	float beamWidth,
+	int damage)
+{
+	if (player == nullptr || !player->IsAlive())
+		return;
+	const sf::Vector2f segment{ end - start };
+	const float lengthSquared{ segment.x * segment.x + segment.y * segment.y };
+	if (lengthSquared <= 0.001f)
+		return;
+	const sf::Vector2f relative{ player->GetPosition() - start };
+	const float projection{ std::clamp(
+		(relative.x * segment.x + relative.y * segment.y) / lengthSquared, 0.f, 1.f) };
+	const sf::Vector2f closest{ start + segment * projection };
+	const sf::Vector2f offset{ player->GetPosition() - closest };
+	const float hitRadius{ player->GetCollisionRadius() + beamWidth * 0.5f };
+	if (offset.x * offset.x + offset.y * offset.y > hitRadius * hitRadius)
+		return;
+
+	if (player->TakeDamage(damage))
+	{
+		if (player->DidLastDamageReachHealth())
+			AddEffectEvent({ EffectEventType::PlayerHit,
+				closest, Normalize(segment), 1.15f });
+		AddSound(Config::Sound::MetalHit, 0.85f);
+		if (!player->IsAlive())
+			session.SetGameOver();
+	}
 }
 
 void World::ExplodeEnemyMissile(
@@ -326,15 +657,36 @@ void World::ExplodeEnemyMissile(
 			enemy.GetPosition(), direction,
 			std::clamp(enemy.GetCollisionRadius() / 45.f, 0.65f, 1.25f) });
 		const bool killed{ enemy.TakeDamage(damage) };
-		enemy.ApplyImpulse(direction * impulse);
+			if (enemy.AcceptsKnockback())
+				enemy.ApplyImpulse(direction * impulse);
 		if (killed)
 			AwardScore(enemy);
 	}
 }
 
-void World::AddSound(Config::Sound id, float pitch)
+std::uint64_t World::AddSound(Config::Sound id, float pitch)
 {
-	audio.PlaySound(id, SoundGroup::Gameplay, 100.f, pitch);
+	return audio.PlaySound(id, SoundGroup::Gameplay, 100.f, pitch);
+}
+
+std::uint64_t World::AddSustainedSound(
+	Config::Sound id,
+	float pitch,
+	float loopStartSeconds,
+	float loopEndSeconds,
+	float outroStartSeconds)
+{
+	return audio.PlaySustainedSound(
+		id, SoundGroup::Gameplay, 100.f, pitch,
+		loopStartSeconds, loopEndSeconds, outroStartSeconds);
+}
+
+void World::ReleaseSound(std::uint64_t handle) { audio.ReleaseSound(handle); }
+void World::StopSound(std::uint64_t handle) { audio.StopSound(handle); }
+
+void World::CompleteDelayedEnemyDestruction(Enemy& enemy)
+{
+	AwardScore(enemy);
 }
 
 void World::AddEffectEvent(const EffectEvent& event)
@@ -372,7 +724,8 @@ void World::ClearPickups()
 {
 	const auto isPickup{ [](const auto& entity)
 	{
-		return entity->GetType() == Entity::Type::Pickup;
+		return entity->GetType() == Entity::Type::Pickup ||
+			entity->GetType() == Entity::Type::Part;
 	} };
 	std::erase_if(entities, isPickup);
 	std::erase_if(pendingEntities, isPickup);
@@ -460,6 +813,8 @@ void World::Clear()
 	player = nullptr;
 	shieldVisualTime = 0.f;
 	statistics = {};
+	nextPlayerAttackId = 1u;
+	successfulPlayerAttacks.clear();
 }
 
 void World::Wrap(Entity& entity) const
@@ -491,6 +846,20 @@ void World::HandleCollisions()
 
 void World::HandleCollisionPair(Entity& first, Entity& second)
 {
+	if (first.GetType() == Entity::Type::Part || second.GetType() == Entity::Type::Part)
+	{
+		Part& part{ static_cast<Part&>(
+			first.GetType() == Entity::Type::Part ? first : second) };
+		Entity& other{ first.GetType() == Entity::Type::Part ? second : first };
+		if (other.GetType() == Entity::Type::Player)
+		{
+			if (session.RecoverPart(part.GetId()))
+				AddSound(Config::Sound::PartPickedUp);
+			part.Destroy();
+		}
+		return;
+	}
+
 	if (first.GetType() == Entity::Type::Pickup || second.GetType() == Entity::Type::Pickup)
 	{
 		Pickup& pickup{ static_cast<Pickup&>(
@@ -514,8 +883,8 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		Entity& other{ first.GetType() == Entity::Type::EnemyMissile ? second : first };
 		if (other.GetType() == Entity::Type::Projectile_Player)
 		{
-			++statistics.playerShotsHit;
 			auto& shot{ static_cast<Shot&>(other) };
+			RegisterPlayerAttackHit(shot.GetPlayerAttackId());
 			AddEffectEvent({ EffectEventType::ShipHit,
 				missile.GetPosition(), Normalize(shot.GetVelocity()), 0.55f });
 			shot.Destroy();
@@ -533,18 +902,19 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 
 	auto handlePlayerShot = [this](Shot& shot, Enemy& enemy)
 	{
-		++statistics.playerShotsHit;
+		RegisterPlayerAttackHit(shot.GetPlayerAttackId());
 		const sf::Vector2f impactDirection{ Normalize(shot.GetVelocity()) };
 		AddEffectEvent({
 			enemy.GetType() == Entity::Type::Asteroid
 				? EffectEventType::AsteroidHit
 				: EffectEventType::ShipHit,
-			shot.GetPosition(),
+			enemy.GetPlayerProjectileImpactPosition(shot),
 			impactDirection,
 			std::clamp(enemy.GetCollisionRadius() / 45.f, 0.55f, 1.15f) });
 		shot.Destroy();
 		const bool killed{ enemy.TakeDamage(shot.GetDamage()) };
-		enemy.ApplyImpulse(impactDirection * shot.GetKnockback());
+		if (enemy.AcceptsKnockback())
+			enemy.ApplyImpulse(impactDirection * shot.GetKnockback());
 		if (killed)
 			AwardScore(enemy);
 		else if (enemy.GetType() == Entity::Type::Asteroid)
@@ -588,7 +958,8 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 			auto& enemy{ static_cast<Enemy&>(target) };
 			const bool destroyed{ enemy.TakeDamage(shot.GetDamage()) };
 			(void)destroyed;
-			enemy.ApplyImpulse(Normalize(shot.GetVelocity()) * shot.GetKnockback());
+			if (enemy.AcceptsKnockback())
+				enemy.ApplyImpulse(Normalize(shot.GetVelocity()) * shot.GetKnockback());
 		}
 	};
 
@@ -664,13 +1035,16 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 	if (damageAccepted)
 	{
 		collidedPlayer->ApplyImpulse(-manifold->normal * collidedEnemy->GetCollisionImpulse());
-		collidedEnemy->ApplyImpulse(manifold->normal *
-			assets.GetGameplayData().GetPlayer().collisionImpulse);
+		if (collidedEnemy->AcceptsKnockback())
+			collidedEnemy->ApplyImpulse(manifold->normal *
+				assets.GetGameplayData().GetPlayer().collisionImpulse);
 	}
 }
 
 void World::AwardScore(const Enemy& enemy)
 {
+	if (!enemy.AreRewardsEnabled())
+		return;
 	if (const auto* meteor{ dynamic_cast<const Meteor*>(&enemy) })
 	{
 		if (meteor->GetSize() == Meteor::Size::Big)
@@ -698,6 +1072,14 @@ void World::AwardScore(const Enemy& enemy)
 		auto pickup{ std::make_unique<Pickup>(assets, *this, *pickupKind) };
 		pickup->SetPosition(enemy.GetPosition());
 		Spawn(std::move(pickup));
+	}
+
+	if (!enemy.GetPartDropId().empty() &&
+		!session.IsPartCollected(enemy.GetPartDropId()))
+	{
+		auto part{ std::make_unique<Part>(assets, *this, enemy.GetPartDropId()) };
+		part->SetPosition(enemy.GetPosition());
+		Spawn(std::move(part));
 	}
 }
 
@@ -735,12 +1117,18 @@ void World::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	sf::Shader& playerEmissionShader{
 		assets.GetShader(Config::Shader::PlayerEmission) };
 	playerEmissionShader.setUniform("source", sf::Shader::CurrentTexture);
-	for (const auto& entity : entities)
+	const auto drawEntity = [&](const std::unique_ptr<Entity>& entity)
 	{
+		if (const auto* turret{ dynamic_cast<const LaserTurret*>(entity.get()) })
+			DrawLaserBeam(target, *turret, states);
 		if (entity->GetType() == Entity::Type::Pickup)
 			DrawPickupAura(target, static_cast<const Pickup&>(*entity), shieldVisualTime, states);
+		else if (entity->GetType() == Entity::Type::Part)
+			DrawPartAura(target, static_cast<const Part&>(*entity), shieldVisualTime, states);
 
 		target.draw(*entity, states);
+		if (const auto* station{ dynamic_cast<const ShooterStation*>(entity.get()) })
+			DrawStationEffects(target, *station, states);
 		if (entity->GetType() == Entity::Type::Enemy ||
 			entity->GetType() == Entity::Type::EnemyMissile)
 		{
@@ -768,5 +1156,24 @@ void World::draw(sf::RenderTarget& target, sf::RenderStates states) const
 				shield.GetHitFlashRatio(),
 				states);
 		}
+	};
+
+	// Stations form the background layer of their encounters. Drawing them in a
+	// dedicated pass guarantees that materialized shooters remain visible above
+	// the launch bay even when entity removal changes the vector order.
+	for (const auto& entity : entities)
+	{
+		if (dynamic_cast<const ShooterStation*>(entity.get()))
+			drawEntity(entity);
+	}
+	if (player != nullptr)
+	{
+		DrawPlayerLaser(target, *player,
+			assets.GetGameplayData().GetPickups().laserWidth, states);
+	}
+	for (const auto& entity : entities)
+	{
+		if (!dynamic_cast<const ShooterStation*>(entity.get()))
+			drawEntity(entity);
 	}
 }

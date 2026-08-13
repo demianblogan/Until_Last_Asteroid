@@ -23,6 +23,8 @@ namespace
         "item_press",
         "player_normal_shot",
         "enemy_shot",
+		"enemy_laser_shot",
+		"enemy_station_working",
         "ship_explosion",
         "asteroid_explosion",
         "bullet_hit_asteroid",
@@ -31,7 +33,7 @@ namespace
         "metal_hit",
         "game_over",
         "bonus_touched",
-        "countdown",
+		"part_picked_up",
         "level_complete"
     };
 

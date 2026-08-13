@@ -32,28 +32,30 @@ public:
 		int combatScore{ 0 };
 		int armorPercent{ 0 };
 		int armorBonus{ 0 };
-		unsigned int shotsHit{ 0u };
-		unsigned int shotsFired{ 0u };
+		unsigned int attacksHit{ 0u };
+		unsigned int attacksFired{ 0u };
 		int accuracyPercent{ 0 };
 		int targetAccuracyPercent{ 0 };
 		int accuracyBonus{ 0 };
+		int partsCollected{ 0 };
+		int partsTotal{ 0 };
+		int partsBonus{ 0 };
 		float completionSeconds{ 0.f };
-		float targetSeconds{ 0.f };
-		int timeBonus{ 0 };
 		int levelTotal{ 0 };
-		int campaignTotal{ 0 };
 	};
 
     enum class Mode
     {
         LevelComplete,
 		LevelReplay,
+		ContentComplete,
         Victory
     };
 
     enum class Action
     {
         Primary,
+		Restart,
         MainMenu
     };
 

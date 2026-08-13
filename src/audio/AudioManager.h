@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -34,12 +35,23 @@ public:
     void Update();
     void ApplySettings();
 
-    void PlaySound(
+    std::uint64_t PlaySound(
         Config::Sound id,
         SoundGroup group,
         float baseVolume = 100.f,
         float pitch = 1.f,
-        SoundPlayback playback = SoundPlayback::AllowOverlap);
+		SoundPlayback playback = SoundPlayback::AllowOverlap,
+		bool looping = false);
+	std::uint64_t PlaySustainedSound(
+		Config::Sound id,
+		SoundGroup group,
+		float baseVolume,
+		float pitch,
+		float loopStartSeconds,
+		float loopEndSeconds,
+		float outroStartSeconds);
+	void ReleaseSound(std::uint64_t handle);
+    void StopSound(std::uint64_t handle);
     void PauseSounds(SoundGroup group);
     void ResumeSounds(SoundGroup group);
     void StopSounds(SoundGroup group);
@@ -63,4 +75,5 @@ private:
     std::vector<std::unique_ptr<ActiveSound>> activeSounds;
     std::unordered_map<Config::Music, float> musicBaseVolumes;
 	float gameplayPitch{ 1.f };
+	std::uint64_t nextSoundHandle{ 1u };
 };

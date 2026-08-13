@@ -1,8 +1,10 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <memory>
 #include <optional>
+#include <unordered_set>
 #include <vector>
 #include <SFML/System/Vector2.hpp>
 
@@ -38,9 +40,12 @@ public:
 	{
 		PlayerProjectileGlow,
 		PlayerHomingProjectileGlow,
+		PlayerTripleProjectileGlow,
 		EnemyProjectileGlow,
 		MissileSmoke,
 		EnemyEngine,
+		StationWelding,
+		StationChainExplosion,
 		PlayerMuzzleFlash,
 		EnemyMuzzleFlash,
 		AsteroidHit,
@@ -48,6 +53,8 @@ public:
 		PlayerHit,
 		AsteroidExplosion,
 		ShipExplosion,
+		StationExplosion,
+		PlayerTeleport,
 		ScorePopup
 	};
 
@@ -70,8 +77,8 @@ public:
 
 	struct Statistics
 	{
-		unsigned int playerShotsFired{ 0u };
-		unsigned int playerShotsHit{ 0u };
+		unsigned int playerAttacksFired{ 0u };
+		unsigned int playerAttacksHit{ 0u };
 		unsigned int bigMeteorsDestroyed{ 0u };
 		unsigned int smallMeteorsDestroyed{ 0u };
 		unsigned int shootersDestroyed{ 0u };
@@ -85,20 +92,51 @@ public:
 	void CommitPendingEntities();
 
 	void Spawn(std::unique_ptr<Entity> entity);
-	void SpawnPlayerShot(const sf::Vector2f& pos, float rotation);
+	[[nodiscard]] std::uint64_t BeginPlayerAttack() noexcept;
+	void RegisterPlayerAttackHit(std::uint64_t attackId) noexcept;
+	void SpawnPlayerShot(
+		const sf::Vector2f& pos,
+		float rotation,
+		std::uint64_t attackId,
+		bool playSound = true,
+		bool tripleShotVisual = false);
+	void DamageEnemiesWithPlayerLaser(
+		const sf::Vector2f& start,
+		const sf::Vector2f& end,
+		float width,
+		int damage,
+		std::uint64_t attackId);
 	void SpawnSaucerShot(
 		const sf::Vector2f& pos,
 		const sf::Vector2f& target,
 		GameplayData::ProjectileKind projectileKind = GameplayData::ProjectileKind::Enemy,
 		bool playSound = true);
 	void SpawnHomingMissile(const sf::Vector2f& pos, const sf::Vector2f& target);
+	void SpawnStationShooter(
+		const sf::Vector2f& position,
+		float materializationDuration,
+		const Entity* station);
+	void DamagePlayerWithBeam(
+		const sf::Vector2f& start,
+		const sf::Vector2f& end,
+		float width,
+		int damage);
 	void ExplodeEnemyMissile(
 		const sf::Vector2f& position,
 		float radius,
 		int damage,
 		float impulse);
 
-	void AddSound(Config::Sound id, float pitch = 1.f);
+	std::uint64_t AddSound(Config::Sound id, float pitch = 1.f);
+	std::uint64_t AddSustainedSound(
+		Config::Sound id,
+		float pitch,
+		float loopStartSeconds,
+		float loopEndSeconds,
+		float outroStartSeconds);
+	void ReleaseSound(std::uint64_t handle);
+	void StopSound(std::uint64_t handle);
+	void CompleteDelayedEnemyDestruction(Enemy& enemy);
 	void AddEffectEvent(const EffectEvent& event);
 	[[nodiscard]] const std::vector<EffectEvent>& GetEffectEvents() const noexcept;
 	void ClearEffectEvents() noexcept;
@@ -130,6 +168,7 @@ public:
 	bool HasPlayer() const noexcept;
 	void SpawnPlayer(AssetStore& assets, InputHandler<Config::PlayerAction>& input);
 	void SetPlayerSpawnPresentation(float progress) noexcept;
+	void TeleportPlayerToCenter() noexcept;
 
 	void HandlePlayerEvent(const sf::Event& event);
 	void HandlePlayerRealtime();
@@ -160,4 +199,6 @@ private:
 	unsigned int height;
 	float shieldVisualTime{ 0.f };
 	Statistics statistics;
+	std::uint64_t nextPlayerAttackId{ 1u };
+	std::unordered_set<std::uint64_t> successfulPlayerAttacks;
 };

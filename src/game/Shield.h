@@ -4,7 +4,7 @@ class Shield
 {
 public:
     void Configure(float capacity, float duration) noexcept;
-    void Activate() noexcept;
+    void Activate(float extraDuration = 0.f) noexcept;
     void Deactivate() noexcept;
     void Update(float deltaTime) noexcept;
     [[nodiscard]] int AbsorbDamage(int damage) noexcept;
@@ -22,5 +22,6 @@ private:
     float current{ 0.f };
     float capacity{ 100.f };
     float duration{ 10.f };
+    float activeDuration{ 10.f };
     float hitFlashRemaining{ 0.f };
 };

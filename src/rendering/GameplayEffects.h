@@ -59,6 +59,7 @@ private:
 		float elapsed{ 0.f };
 		float duration{ 0.55f };
 		float scale{ 1.f };
+		float strength{ 0.9f };
 	};
 
     float RandomFloat(float minimum, float maximum);
@@ -66,20 +67,27 @@ private:
     sf::Vector2f RandomDirectionAround(const sf::Vector2f& direction, float spreadRadians);
     void EmitPlayerEngineParticles(const World& world);
     void EmitProjectileGlow(bool playerProjectile, const sf::Vector2f& position,
-        const sf::Vector2f& direction, bool homing = false);
+		const sf::Vector2f& direction, bool homing = false, bool triple = false);
 	void EmitMissileSmoke(const sf::Vector2f& position, const sf::Vector2f& direction);
 	void EmitEnemyEngine(const sf::Vector2f& position, const sf::Vector2f& direction);
+	void EmitStationWelding(const sf::Vector2f& position, float scale);
+	void EmitStationChainExplosion(const sf::Vector2f& position, float scale);
+	void EmitPlayerTeleport(const sf::Vector2f& position, float scale);
     void EmitMuzzleFlash(bool playerProjectile, const sf::Vector2f& position,
         const sf::Vector2f& direction);
     void EmitStoneHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale);
     void EmitMetalHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale);
     void EmitAsteroidExplosion(const sf::Vector2f& position, float scale);
     void EmitShipExplosion(const sf::Vector2f& position, float scale);
+	void EmitStationExplosion(const sf::Vector2f& position, float scale);
     void EmitScorePopup(const sf::Vector2f& position, int points);
     void UpdateScorePopups(float deltaTime);
     void StartCameraShake(const GameplayData::CameraShakeConfig& shake, float scale);
     void UpdateCameraShake(float deltaTime);
-    void StartShockwave(const sf::Vector2f& position, float scale);
+	void StartShockwave(
+		const sf::Vector2f& position,
+		float scale,
+		float strength = 0.9f);
     void UpdatePostProcess(float deltaTime);
 
     const GameplayData::EffectsConfig& config;

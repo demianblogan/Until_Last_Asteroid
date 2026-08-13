@@ -31,7 +31,8 @@ public:
 		Projectile_Enemy,
 		EnemyMissile,
 		Asteroid,
-		Pickup
+		Pickup,
+		Part
 	};
 
 	Entity(AssetStore& assets, World& world, sf::Texture& texture,
@@ -67,6 +68,7 @@ public:
 
 protected:
 	[[nodiscard]] World& GetWorld() noexcept;
+	[[nodiscard]] const World& GetWorld() const noexcept;
 	[[nodiscard]] AssetStore& GetAssets() noexcept;
 	[[nodiscard]] const AssetStore& GetAssets() const noexcept;
 

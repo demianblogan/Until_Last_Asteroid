@@ -3,6 +3,7 @@
 #include <string>
 #include <string_view>
 
+#include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/System/Vector2.hpp>
@@ -30,6 +31,9 @@ public:
     void SetEnabled(bool isEnabled);
     void SetLabel(std::string_view text);
     void SetFrameOpacity(float opacity);
+	void SetFrameColor(sf::Color color);
+	void SetLabelColor(sf::Color color);
+	void SetLabelOutline(sf::Color color, float thickness);
 
     [[nodiscard]] bool IsEnabled() const noexcept;
     [[nodiscard]] bool Contains(sf::Vector2f point) const;
@@ -51,5 +55,8 @@ private:
     sf::Vector2f size;
     bool selected{ false };
     bool enabled{ true };
-    float frameOpacity{ 1.f };
+	float frameOpacity{ 1.f };
+	sf::Color frameTint{ sf::Color::White };
+	bool customLabelColor{ false };
+	sf::Color labelTint{ sf::Color::White };
 };

@@ -26,6 +26,8 @@ public:
 		Shooter,
 		Spinner,
 		MissileCarrier,
+		LaserTurret,
+		ShooterStation,
         Count
     };
 
@@ -42,7 +44,9 @@ public:
 		Health,
 		Shield,
 		HomingBullets,
-		TimeSlowdown
+		TimeSlowdown,
+		Laser,
+		TripleShot
 	};
 
     struct PlayerConfig
@@ -78,6 +82,10 @@ public:
 		float rotationSpeed{ 0.f };
 		float sineAmplitude{ 0.f };
 		float sineFrequency{ 0.f };
+		int beamDamage{ 0 };
+		float beamWidth{ 0.f };
+		float shieldDuration{ 0.f };
+		float spawnAnimationDuration{ 0.f };
 		std::vector<NormalizedPoint> weaponEmitters;
 		std::vector<NormalizedPoint> engineEmitters;
     };
@@ -98,6 +106,11 @@ public:
         float shieldDuration{ 10.f };
 		float homingBulletsDuration{ 10.f };
 		float homingConeDegrees{ 90.f };
+		float laserDuration{ 10.f };
+		float laserDamageInterval{ 0.5f };
+		float laserWidth{ 18.f };
+		float tripleShotDuration{ 10.f };
+		float tripleShotAngleDegrees{ 5.f };
 		float homingTurnSpeedDegrees{ 480.f };
 		float timeSlowdownDuration{ 5.f };
 		float timeSlowdownWorldScale{ 0.35f };
@@ -105,6 +118,15 @@ public:
         float visualScale{ 0.075f };
         float collisionRadius{ 42.f };
     };
+
+	struct PartConfig
+	{
+		float lifetime{ 3.f };
+		float blinkDuration{ 0.75f };
+		float visualScale{ 0.065f };
+		float collisionRadius{ 34.f };
+		float rotationSpeedDegrees{ 70.f };
+	};
 
 	struct MissileConfig
 	{
@@ -136,6 +158,7 @@ public:
         EnemyKind kind{ EnemyKind::BigMeteor };
         int count{ 0 };
 		std::optional<PickupDropConfig> drop;
+		std::vector<std::string> partIds;
     };
 
     struct WaveConfig
@@ -164,10 +187,10 @@ public:
 		std::string title;
         std::string background;
         float backgroundBrightness{ 1.f };
-		float targetTimeSeconds{ 120.f };
 		float targetAccuracyPercent{ 75.f };
         PostProcessConfig postProcess;
         std::vector<WaveConfig> waves;
+		std::vector<std::string> partIds;
     };
 
     struct BurstConfig
@@ -205,6 +228,7 @@ public:
     [[nodiscard]] const ProjectileConfig& GetProjectile(ProjectileKind kind) const noexcept;
     [[nodiscard]] const PickupConfig& GetPickups() const noexcept;
 	[[nodiscard]] const MissileConfig& GetMissile() const noexcept;
+	[[nodiscard]] const PartConfig& GetParts() const noexcept;
     [[nodiscard]] const LevelConfig& GetLevel(int number) const;
     [[nodiscard]] int GetLevelCount() const noexcept;
     [[nodiscard]] float GetHitFlashDuration() const noexcept;
@@ -216,6 +240,7 @@ private:
     std::array<ProjectileConfig, static_cast<std::size_t>(ProjectileKind::Count)> projectiles;
     PickupConfig pickups;
 	MissileConfig missile;
+	PartConfig parts;
     std::vector<LevelConfig> levels;
     float hitFlashDuration{ 0.1f };
     EffectsConfig effects;

@@ -90,6 +90,25 @@ void MenuButton::SetFrameOpacity(float opacity)
     ApplyVisualState();
 }
 
+void MenuButton::SetFrameColor(sf::Color color)
+{
+	frameTint = color;
+	ApplyVisualState();
+}
+
+void MenuButton::SetLabelColor(sf::Color color)
+{
+	customLabelColor = true;
+	labelTint = color;
+	ApplyVisualState();
+}
+
+void MenuButton::SetLabelOutline(sf::Color color, float thickness)
+{
+	label.setOutlineColor(color);
+	label.setOutlineThickness(thickness);
+}
+
 bool MenuButton::IsEnabled() const noexcept
 {
     return enabled;
@@ -157,10 +176,12 @@ void MenuButton::ApplyVisualState()
 	leftFrame.setTexture(texture, false);
 	centerFrame.setTexture(texture, false);
 	rightFrame.setTexture(texture, false);
-	const sf::Color frameColor(255, 255, 255, alpha);
+	const sf::Color frameColor(frameTint.r, frameTint.g, frameTint.b,
+		static_cast<std::uint8_t>(static_cast<unsigned int>(alpha) * frameTint.a / 255u));
 	leftFrame.setColor(frameColor);
 	centerFrame.setColor(frameColor);
 	rightFrame.setColor(frameColor);
-    const sf::Color textColor{ selected ? SelectedTextColor : sf::Color::White };
+	const sf::Color textColor{ customLabelColor ? labelTint :
+		(selected ? SelectedTextColor : sf::Color::White) };
     label.setFillColor(sf::Color(textColor.r, textColor.g, textColor.b, alpha));
 }

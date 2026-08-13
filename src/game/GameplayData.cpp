@@ -4,6 +4,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -73,6 +74,10 @@ namespace
 			return GameplayData::EnemyKind::Spinner;
 		if (value == "missile_carrier")
 			return GameplayData::EnemyKind::MissileCarrier;
+		if (value == "laser_turret")
+			return GameplayData::EnemyKind::LaserTurret;
+		if (value == "shooter_station")
+			return GameplayData::EnemyKind::ShooterStation;
 
         throw std::runtime_error(
             "Unknown gameplay enemy type '" + value + "' in " + path.string());
@@ -90,6 +95,10 @@ namespace
 			return GameplayData::PickupKind::HomingBullets;
 		if (value == "time_slowdown")
 			return GameplayData::PickupKind::TimeSlowdown;
+		if (value == "laser")
+			return GameplayData::PickupKind::Laser;
+		if (value == "triple_shot")
+			return GameplayData::PickupKind::TripleShot;
 
 		throw std::runtime_error(
 			"Unknown pickup type '" + value + "' in " + path.string());
@@ -190,6 +199,15 @@ namespace
 			result.sineAmplitude = Require<float>(object, "sine_amplitude", path);
 		if (object.contains("sine_frequency"))
 			result.sineFrequency = Require<float>(object, "sine_frequency", path);
+		if (object.contains("beam_damage"))
+			result.beamDamage = Require<int>(object, "beam_damage", path);
+		if (object.contains("beam_width"))
+			result.beamWidth = Require<float>(object, "beam_width", path);
+		if (object.contains("shield_duration"))
+			result.shieldDuration = Require<float>(object, "shield_duration", path);
+		if (object.contains("spawn_animation_duration"))
+			result.spawnAnimationDuration = Require<float>(
+				object, "spawn_animation_duration", path);
 		if (object.contains("weapon_emitters"))
 		{
 			const Json& emitters{ object.at("weapon_emitters") };
@@ -251,6 +269,10 @@ namespace
 		RequireNonNegative(result.rotationSpeed, "rotation_speed", path);
 		RequireNonNegative(result.sineAmplitude, "sine_amplitude", path);
 		RequireNonNegative(result.sineFrequency, "sine_frequency", path);
+		RequireNonNegative(static_cast<float>(result.beamDamage), "beam_damage", path);
+		RequireNonNegative(result.beamWidth, "beam_width", path);
+		RequireNonNegative(result.shieldDuration, "shield_duration", path);
+		RequireNonNegative(result.spawnAnimationDuration, "spawn_animation_duration", path);
         return result;
     }
 
@@ -421,13 +443,15 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 
     const std::filesystem::path enemiesPath{ directory / "enemies.json" };
     const Json enemiesJson{ LoadJson(enemiesPath) };
-    const std::array<std::pair<const char*, EnemyKind>, 6> enemyNames{
+    const std::array<std::pair<const char*, EnemyKind>, 8> enemyNames{
         std::pair{ "big_meteor", EnemyKind::BigMeteor },
         std::pair{ "small_meteor", EnemyKind::SmallMeteor },
         std::pair{ "kamikaze", EnemyKind::Kamikaze },
         std::pair{ "shooter", EnemyKind::Shooter },
 		std::pair{ "spinner", EnemyKind::Spinner },
-		std::pair{ "missile_carrier", EnemyKind::MissileCarrier }
+		std::pair{ "missile_carrier", EnemyKind::MissileCarrier },
+		std::pair{ "laser_turret", EnemyKind::LaserTurret },
+		std::pair{ "shooter_station", EnemyKind::ShooterStation }
     };
     for (const auto& [name, kind] : enemyNames)
     {
@@ -470,6 +494,18 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 				throw std::runtime_error(
 					"Enemy 'missile_carrier' requires exactly two engine emitters in " +
 					enemiesPath.string());
+			if (kind == EnemyKind::LaserTurret)
+			{
+				RequirePositive(static_cast<float>(config.beamDamage), "beam_damage", enemiesPath);
+				RequirePositive(config.beamWidth, "beam_width", enemiesPath);
+			}
+			if (kind == EnemyKind::ShooterStation)
+			{
+				RequirePositive(config.actionInterval, "action_interval", enemiesPath);
+				RequirePositive(config.shieldDuration, "shield_duration", enemiesPath);
+				RequirePositive(config.spawnAnimationDuration,
+					"spawn_animation_duration", enemiesPath);
+			}
 			enemies[static_cast<std::size_t>(kind)] = config;
         }
         catch (const Json::exception& exception)
@@ -550,6 +586,16 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 		pickupsJson, "homing_cone_degrees", pickupsPath);
 	pickups.homingTurnSpeedDegrees = Require<float>(
 		pickupsJson, "homing_turn_speed_degrees", pickupsPath);
+	pickups.laserDuration = Require<float>(
+		pickupsJson, "laser_duration", pickupsPath);
+	pickups.laserDamageInterval = Require<float>(
+		pickupsJson, "laser_damage_interval", pickupsPath);
+	pickups.laserWidth = Require<float>(
+		pickupsJson, "laser_width", pickupsPath);
+	pickups.tripleShotDuration = Require<float>(
+		pickupsJson, "triple_shot_duration", pickupsPath);
+	pickups.tripleShotAngleDegrees = Require<float>(
+		pickupsJson, "triple_shot_angle_degrees", pickupsPath);
 	pickups.timeSlowdownDuration = Require<float>(
 		pickupsJson, "time_slowdown_duration", pickupsPath);
 	pickups.timeSlowdownWorldScale = Require<float>(
@@ -569,6 +615,14 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 		throw std::runtime_error(
 			"Homing cone must not exceed 360 degrees in " + pickupsPath.string());
 	RequirePositive(pickups.homingTurnSpeedDegrees, "homing_turn_speed_degrees", pickupsPath);
+	RequirePositive(pickups.laserDuration, "laser_duration", pickupsPath);
+	RequirePositive(pickups.laserDamageInterval, "laser_damage_interval", pickupsPath);
+	RequirePositive(pickups.laserWidth, "laser_width", pickupsPath);
+	RequirePositive(pickups.tripleShotDuration, "triple_shot_duration", pickupsPath);
+	RequirePositive(pickups.tripleShotAngleDegrees, "triple_shot_angle_degrees", pickupsPath);
+	if (pickups.tripleShotAngleDegrees >= 45.f)
+		throw std::runtime_error(
+			"Triple-shot angle must be below 45 degrees in " + pickupsPath.string());
 	RequirePositive(pickups.timeSlowdownDuration, "time_slowdown_duration", pickupsPath);
 	RequirePositive(pickups.timeSlowdownWorldScale, "time_slowdown_world_scale", pickupsPath);
 	if (pickups.timeSlowdownWorldScale > 1.f)
@@ -580,6 +634,19 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 			"Time slowdown audio pitch must not exceed 1 in " + pickupsPath.string());
     RequirePositive(pickups.visualScale, "visual_scale", pickupsPath);
     RequirePositive(pickups.collisionRadius, "collision_radius", pickupsPath);
+	parts.lifetime = Require<float>(pickupsJson, "part_lifetime", pickupsPath);
+	parts.blinkDuration = Require<float>(pickupsJson, "part_blink_duration", pickupsPath);
+	parts.visualScale = Require<float>(pickupsJson, "part_visual_scale", pickupsPath);
+	parts.collisionRadius = Require<float>(pickupsJson, "part_collision_radius", pickupsPath);
+	parts.rotationSpeedDegrees = Require<float>(
+		pickupsJson, "part_rotation_speed_degrees", pickupsPath);
+	RequirePositive(parts.lifetime, "part_lifetime", pickupsPath);
+	RequirePositive(parts.blinkDuration, "part_blink_duration", pickupsPath);
+	if (parts.blinkDuration > parts.lifetime)
+		throw std::runtime_error("Part blink duration must not exceed lifetime in " + pickupsPath.string());
+	RequirePositive(parts.visualScale, "part_visual_scale", pickupsPath);
+	RequirePositive(parts.collisionRadius, "part_collision_radius", pickupsPath);
+	RequireNonNegative(parts.rotationSpeedDegrees, "part_rotation_speed_degrees", pickupsPath);
 
     const std::filesystem::path levelsPath{ directory / "levels.json" };
     const Json levelsJson{ LoadJson(levelsPath) };
@@ -596,6 +663,7 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
             "Invalid levels in " + levelsPath.string() + ": " + exception.what());
     }
 
+    std::unordered_set<std::string> knownPartIds;
     for (const Json& levelJson : *levelArray)
     {
         LevelConfig level;
@@ -604,12 +672,9 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
         level.background = Require<std::string>(levelJson, "background", levelsPath);
         level.backgroundBrightness = Require<float>(
             levelJson, "background_brightness", levelsPath);
-		level.targetTimeSeconds = Require<float>(
-			levelJson, "target_time_seconds", levelsPath);
 		level.targetAccuracyPercent = Require<float>(
 			levelJson, "target_accuracy_percent", levelsPath);
         RequirePositive(level.backgroundBrightness, "background_brightness", levelsPath);
-		RequirePositive(level.targetTimeSeconds, "target_time_seconds", levelsPath);
 		RequirePositive(level.targetAccuracyPercent, "target_accuracy_percent", levelsPath);
 		if (level.targetAccuracyPercent > 100.f)
 			throw std::runtime_error(
@@ -647,10 +712,19 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
                     spawn.count = Require<int>(spawnJson, "count", levelsPath);
 					if (spawnJson.contains("drop"))
 						spawn.drop = ReadPickupDrop(spawnJson.at("drop"), levelsPath);
+					spawn.partIds = spawnJson.value("part_ids", std::vector<std::string>{});
                     if (spawn.count <= 0)
                         throw std::runtime_error(
                             "Wave initial spawn count must be positive in " + levelsPath.string());
-                    wave.initialSpawns.push_back(spawn);
+					if (spawn.partIds.size() > static_cast<std::size_t>(spawn.count))
+						throw std::runtime_error("Part ID count exceeds enemy count in " + levelsPath.string());
+					for (const std::string& id : spawn.partIds)
+					{
+						if (id.empty() || !knownPartIds.insert(id).second)
+							throw std::runtime_error("Part IDs must be non-empty and unique in " + levelsPath.string());
+						level.partIds.push_back(id);
+					}
+                    wave.initialSpawns.push_back(std::move(spawn));
                 }
 
                 for (const Json& spawnJson : waveJson.at("scheduled_spawns"))
@@ -662,11 +736,20 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
                     spawn.count = Require<int>(spawnJson, "count", levelsPath);
 					if (spawnJson.contains("drop"))
 						spawn.drop = ReadPickupDrop(spawnJson.at("drop"), levelsPath);
+					spawn.partIds = spawnJson.value("part_ids", std::vector<std::string>{});
                     RequireNonNegative(spawn.delay, "delay", levelsPath);
                     if (spawn.count <= 0)
                         throw std::runtime_error(
                             "Scheduled spawn count must be positive in " + levelsPath.string());
-                    wave.scheduledSpawns.push_back(spawn);
+					if (spawn.partIds.size() > static_cast<std::size_t>(spawn.count))
+						throw std::runtime_error("Part ID count exceeds enemy count in " + levelsPath.string());
+					for (const std::string& id : spawn.partIds)
+					{
+						if (id.empty() || !knownPartIds.insert(id).second)
+							throw std::runtime_error("Part IDs must be non-empty and unique in " + levelsPath.string());
+						level.partIds.push_back(id);
+					}
+                    wave.scheduledSpawns.push_back(std::move(spawn));
                 }
 
                 if (wave.initialSpawns.empty() && wave.scheduledSpawns.empty())
@@ -711,6 +794,11 @@ const GameplayData::PickupConfig& GameplayData::GetPickups() const noexcept
 const GameplayData::MissileConfig& GameplayData::GetMissile() const noexcept
 {
 	return missile;
+}
+
+const GameplayData::PartConfig& GameplayData::GetParts() const noexcept
+{
+	return parts;
 }
 
 const GameplayData::LevelConfig& GameplayData::GetLevel(int number) const

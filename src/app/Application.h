@@ -12,6 +12,7 @@
 #include "app/DisplayManager.h"
 #include "campaign/CampaignSaveManager.h"
 #include "game/GameplayLaunch.h"
+#include "records/RecordsManager.h"
 #include "settings/SettingsManager.h"
 #include "states/StateStack.h"
 #include "systems/GamepadManager.h"
@@ -36,6 +37,7 @@ private:
 
     SettingsManager settings;
     CampaignSaveManager campaignSave;
+	RecordsManager records;
     sf::RenderWindow window;
     AssetStore assets;
     AudioManager audio;

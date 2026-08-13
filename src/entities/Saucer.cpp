@@ -31,6 +31,21 @@ bool Saucer::IsCollideWith(const Entity& other) const
 
 void Saucer::Update(float deltaTime)
 {
+	if (materializationRemaining > 0.f)
+	{
+		if (materializationAnchor != nullptr)
+		{
+			if (GetWorld().IsEntityActive(materializationAnchor))
+				SetPosition(materializationAnchor->GetPosition());
+			else
+				materializationAnchor = nullptr;
+		}
+		materializationRemaining = std::max(0.f, materializationRemaining - deltaTime);
+		const float progress{ 1.f - materializationRemaining / materializationDuration };
+		SetPresentation(0.18f + 0.82f * progress, progress,
+			sf::Color(255, 80, 80));
+		return;
+	}
 	const sf::Vector2f playerPos{ GetWorld().GetPlayerPosition() };
 	const sf::Vector2f toPlayer{ playerPos - GetPosition() };
 
@@ -47,14 +62,21 @@ void Saucer::Update(float deltaTime)
 		static constexpr float RotationOffset{ 90.f };
 		SetRotation(sf::degrees(angleDeg + RotationOffset));
 
-		if (GetVelocity().x == 0.f && GetVelocity().y == 0.f)
+		if (approachingCenter)
 		{
-			float angle{ Random::Float(0.f, 2.f * std::numbers::pi_v<float>) };
-			sf::Vector2f direction{ std::cos(angle), std::sin(angle) };
-			SetVelocity(direction * GetMovementSpeed());
+			if (MoveToTarget(deltaTime, approachTarget))
+			{
+				approachingCenter = false;
+				hasPatrolTarget = false;
+			}
 		}
-
-		Move(deltaTime);
+		else
+		{
+			if (!hasPatrolTarget)
+				ChooseCentralPatrolTarget();
+			if (MoveToTarget(deltaTime, patrolTarget))
+				ChooseCentralPatrolTarget();
+		}
 	}
 
 	if (mode == Mode::Shooter)
@@ -77,6 +99,48 @@ void Saucer::OnDestroy()
 Saucer::Mode Saucer::GetMode() const noexcept
 {
 	return mode;
+}
+
+void Saucer::BeginMaterialization(float duration, const Entity* anchor) noexcept
+{
+	materializationDuration = std::max(0.05f, duration);
+	materializationRemaining = materializationDuration;
+	materializationAnchor = anchor;
+	SetVelocity({});
+	SetPresentation(0.18f, 0.f, sf::Color(255, 80, 80));
+}
+
+void Saucer::ConfigureApproachTarget(sf::Vector2f target) noexcept
+{
+	approachTarget = target;
+	approachingCenter = true;
+	hasPatrolTarget = false;
+}
+
+bool Saucer::MoveToTarget(float deltaTime, const sf::Vector2f& target)
+{
+	const sf::Vector2f delta{ target - GetPosition() };
+	const float distance{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+	const float step{ GetMovementSpeed() * deltaTime };
+	if (distance <= std::max(step, 0.001f))
+	{
+		SetPosition(target);
+		SetVelocity({});
+		return true;
+	}
+	SetVelocity(delta / distance * GetMovementSpeed());
+	Move(deltaTime);
+	return false;
+}
+
+void Saucer::ChooseCentralPatrolTarget()
+{
+	const float width{ static_cast<float>(GetWorld().GetWidth()) };
+	const float height{ static_cast<float>(GetWorld().GetHeight()) };
+	patrolTarget = {
+		Random::Float(width * 0.22f, width * 0.78f),
+		Random::Float(height * 0.2f, height * 0.8f) };
+	hasPatrolTarget = true;
 }
 
 void Saucer::UpdateMovement(float deltaTime, const sf::Vector2f& target)

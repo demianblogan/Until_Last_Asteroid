@@ -9,10 +9,11 @@
 #include "states/CampaignMenuState.h"
 #include "states/GameplayState.h"
 #include "states/LevelSelectState.h"
+#include "states/RecordsState.h"
+#include "states/ShipUpgradesState.h"
 #include "states/MainMenuState.h"
 #include "states/OptionsState.h"
 #include "states/PauseState.h"
-#include "states/PlaceholderStates.h"
 #include "utils/ConfigEnums.h"
 
 Application::Application()
@@ -24,6 +25,7 @@ Application::Application()
         assets,
         settings,
         campaignSave,
+		records,
         audio,
         display,
         LOGICAL_SIZE,
@@ -40,6 +42,8 @@ Application::Application()
 
     assets.Initialize();
     audio.ApplySettings();
+	if (const CampaignProgress* progress{ campaignSave.GetProgress() })
+		static_cast<void>(records.MergeCampaignScores(progress->levelBestScores));
 
     fpsText.emplace(assets.Fonts().Get(Config::Font::MenuRegular), "FPS: --", 24);
     fpsText->setFillColor(sf::Color(130, 235, 245));
@@ -56,7 +60,8 @@ Application::Application()
     stateStack.RegisterState<MainMenuState>(StateId::MainMenu);
     stateStack.RegisterState<CampaignMenuState>(StateId::CampaignMenu);
 	stateStack.RegisterState<LevelSelectState>(StateId::LevelSelect);
-    stateStack.RegisterState<ScoresState>(StateId::Scores);
+	stateStack.RegisterState<ShipUpgradesState>(StateId::ShipUpgrades);
+	stateStack.RegisterState<RecordsState>(StateId::Records);
     stateStack.RegisterState<OptionsState>(StateId::Options, OptionsState::Origin::MainMenu);
     stateStack.RegisterState<OptionsState>(StateId::PauseOptions, OptionsState::Origin::PauseMenu);
     stateStack.RegisterState<GameplayState>(StateId::Gameplay);

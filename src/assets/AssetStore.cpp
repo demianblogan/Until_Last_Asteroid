@@ -95,21 +95,60 @@ void AssetStore::InitializeTextures()
 {
 	textures.LoadFromFile(Config::Texture::CompanyLogo, "assets/other/alone_bull_company.png");
 	textures.LoadFromFile(Config::Texture::MainMenuBackground, "assets/backgrounds/main_menu_background.png");
-	textures.LoadFromFile(Config::Texture::GameplayBackgroundLevel1,
-		"assets/backgrounds/gameplay/level_01_blue_nebula.jpg");
-	textures.LoadFromFile(Config::Texture::GameplayBackgroundLevel2,
-		"assets/backgrounds/gameplay/level_02_violet_clouds.jpg");
-	textures.LoadFromFile(Config::Texture::GameplayBackgroundLevel3,
-		"assets/backgrounds/gameplay/level_03_asteroid_belt.jpg");
-	textures.LoadFromFile(Config::Texture::GameplayBackgroundLevel4,
-		"assets/backgrounds/gameplay/level_04_red_storm.jpg");
-	textures.LoadFromFile(Config::Texture::GameplayBackgroundLevel5,
-		"assets/backgrounds/gameplay/level_05_deep_void.jpg");
-	textures.Get(Config::Texture::GameplayBackgroundLevel1).setSmooth(true);
-	textures.Get(Config::Texture::GameplayBackgroundLevel2).setSmooth(true);
-	textures.Get(Config::Texture::GameplayBackgroundLevel3).setSmooth(true);
-	textures.Get(Config::Texture::GameplayBackgroundLevel4).setSmooth(true);
-	textures.Get(Config::Texture::GameplayBackgroundLevel5).setSmooth(true);
+	textures.LoadFromFile(Config::Texture::ShipUpgradesBackground,
+		"assets/backgrounds/ui/ship_upgrades_background_v1_8.png");
+	textures.Get(Config::Texture::ShipUpgradesBackground).setSmooth(true);
+	textures.LoadFromFile(Config::Texture::ShipUpgradesHeaderDivider,
+		"assets/sprites/ui/ship_upgrades/header_divider_v1_8.png");
+	textures.Get(Config::Texture::ShipUpgradesHeaderDivider).setSmooth(true);
+	textures.LoadFromFile(Config::Texture::ShipUpgradesPartsIcon,
+		"assets/sprites/ui/ship_upgrades/parts_counter_icon_v1_8.png");
+	textures.Get(Config::Texture::ShipUpgradesPartsIcon).setSmooth(true);
+	textures.LoadFromFile(Config::Texture::ShipUpgradesRowFrame,
+		"assets/sprites/ui/ship_upgrades/upgrade_row_frame_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ShipUpgradesRowFrameSelected,
+		"assets/sprites/ui/ship_upgrades/upgrade_row_frame_selected_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ShipUpgradeArmorIcon,
+		"assets/sprites/ui/ship_upgrades/upgrade_armor_icon_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ShipUpgradeEnginesIcon,
+		"assets/sprites/ui/ship_upgrades/upgrade_engines_icon_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ShipUpgradeFireRateIcon,
+		"assets/sprites/ui/ship_upgrades/upgrade_fire_rate_icon_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ShipUpgradeBonusDurationIcon,
+		"assets/sprites/ui/ship_upgrades/upgrade_bonus_duration_icon_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ShipUpgradeArmorIconSelected,
+		"assets/sprites/ui/ship_upgrades/upgrade_armor_icon_selected_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ShipUpgradeEnginesIconSelected,
+		"assets/sprites/ui/ship_upgrades/upgrade_engines_icon_selected_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ShipUpgradeFireRateIconSelected,
+		"assets/sprites/ui/ship_upgrades/upgrade_fire_rate_icon_selected_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ShipUpgradeBonusDurationIconSelected,
+		"assets/sprites/ui/ship_upgrades/upgrade_bonus_duration_icon_selected_v1_8.png");
+	textures.Get(Config::Texture::ShipUpgradesRowFrame).setSmooth(true);
+	textures.Get(Config::Texture::ShipUpgradesRowFrameSelected).setSmooth(true);
+	textures.Get(Config::Texture::ShipUpgradeArmorIcon).setSmooth(true);
+	textures.Get(Config::Texture::ShipUpgradeEnginesIcon).setSmooth(true);
+	textures.Get(Config::Texture::ShipUpgradeFireRateIcon).setSmooth(true);
+	textures.Get(Config::Texture::ShipUpgradeBonusDurationIcon).setSmooth(true);
+	textures.Get(Config::Texture::ShipUpgradeArmorIconSelected).setSmooth(true);
+	textures.Get(Config::Texture::ShipUpgradeEnginesIconSelected).setSmooth(true);
+	textures.Get(Config::Texture::ShipUpgradeFireRateIconSelected).setSmooth(true);
+	textures.Get(Config::Texture::ShipUpgradeBonusDurationIconSelected).setSmooth(true);
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundBlueRegion,
+		"assets/backgrounds/gameplay/blue_nebula_region.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundVioletRegion,
+		"assets/backgrounds/gameplay/violet_clouds_region.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundAsteroidRegion,
+		"assets/backgrounds/gameplay/asteroid_belt_region.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundRedRegion,
+		"assets/backgrounds/gameplay/red_storm_region.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundDeepVoidRegion,
+		"assets/backgrounds/gameplay/deep_void_region.jpg");
+	textures.Get(Config::Texture::GameplayBackgroundBlueRegion).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundVioletRegion).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundAsteroidRegion).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundRedRegion).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundDeepVoidRegion).setSmooth(true);
 	textures.LoadFromFile(Config::Texture::MenuButtonIdle, "assets/sprites/ui/menu_button_idle.png");
 	textures.LoadFromFile(Config::Texture::MenuButtonSelected, "assets/sprites/ui/menu_button_selected.png");
 	textures.LoadFromFile(Config::Texture::MenuPointer, "assets/cursors/menu_pointer.png");
@@ -120,10 +159,19 @@ void AssetStore::InitializeTextures()
 		"assets/sprites/pickups/homing_bullets_pickup.png");
 	textures.LoadFromFile(Config::Texture::TimeSlowdownPickup,
 		"assets/sprites/pickups/time_slowdown_pickup.png");
+	textures.LoadFromFile(Config::Texture::LaserPickup,
+		"assets/sprites/pickups/laser_pickup_v1_8.png");
+	textures.LoadFromFile(Config::Texture::TripleShotPickup,
+		"assets/sprites/pickups/triple_shot_pickup_v1_8.png");
+	textures.LoadFromFile(Config::Texture::PartToken,
+		"assets/sprites/pickups/part_token_v1_8.png");
 	textures.Get(Config::Texture::HealthPickup).setSmooth(true);
 	textures.Get(Config::Texture::ShieldPickup).setSmooth(true);
 	textures.Get(Config::Texture::HomingBulletsPickup).setSmooth(true);
 	textures.Get(Config::Texture::TimeSlowdownPickup).setSmooth(true);
+	textures.Get(Config::Texture::LaserPickup).setSmooth(true);
+	textures.Get(Config::Texture::TripleShotPickup).setSmooth(true);
+	textures.Get(Config::Texture::PartToken).setSmooth(true);
 
 	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship_v1_4.png");
 	textures.Get(Config::Texture::PlayerShip).setSmooth(true);
@@ -166,10 +214,16 @@ void AssetStore::InitializeTextures()
 		"assets/sprites/enemies/spinner_platform_v1_7.png");
 	textures.LoadFromFile(Config::Texture::MissileCarrier,
 		"assets/sprites/enemies/missile_carrier_v1_7.png");
+	textures.LoadFromFile(Config::Texture::LaserTurret,
+		"assets/sprites/enemies/laser_turret_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ShooterStation,
+		"assets/sprites/enemies/shooter_station_v1_8.png");
 	textures.Get(Config::Texture::BigEnemySaucer).setSmooth(true);
 	textures.Get(Config::Texture::SmallEnemySaucer).setSmooth(true);
 	textures.Get(Config::Texture::SpinnerPlatform).setSmooth(true);
 	textures.Get(Config::Texture::MissileCarrier).setSmooth(true);
+	textures.Get(Config::Texture::LaserTurret).setSmooth(true);
+	textures.Get(Config::Texture::ShooterStation).setSmooth(true);
 
 	textures.LoadFromFile(Config::Texture::BigMeteor1,
 		"assets/sprites/meteors/large_asteroid_01_v1_4.png");
@@ -238,6 +292,8 @@ void AssetStore::InitializeSounds()
 
 	sounds.LoadFromFile(Config::Sound::PlayerShot, "assets/audio/sounds/player_normal_shot.ogg");
 	sounds.LoadFromFile(Config::Sound::EnemyShot, "assets/audio/sounds/enemy_shot.ogg");
+	sounds.LoadFromFile(Config::Sound::EnemyLaserShot, "assets/audio/sounds/enemy_laser_shot.ogg");
+	sounds.LoadFromFile(Config::Sound::EnemyStationWorking, "assets/audio/sounds/enemy_station_working.ogg");
 
 	sounds.LoadFromFile(Config::Sound::ShipExplosion, "assets/audio/sounds/enemy_saucer_explosion.ogg");
 	sounds.LoadFromFile(Config::Sound::AsteroidExplosion, "assets/audio/sounds/asteroid_explosion.ogg");
@@ -247,7 +303,7 @@ void AssetStore::InitializeSounds()
 	sounds.LoadFromFile(Config::Sound::MetalHit, "assets/audio/sounds/metal_hit.ogg");
 	sounds.LoadFromFile(Config::Sound::GameOver, "assets/audio/sounds/game_over.ogg");
 	sounds.LoadFromFile(Config::Sound::BonusTouched, "assets/audio/sounds/bonus_touched.ogg");
-	sounds.LoadFromFile(Config::Sound::Countdown, "assets/audio/sounds/countdown.ogg");
+	sounds.LoadFromFile(Config::Sound::PartPickedUp, "assets/audio/sounds/parts_picked_up.ogg");
 	sounds.LoadFromFile(Config::Sound::LevelComplete, "assets/audio/sounds/level_complete.ogg");
 }
 

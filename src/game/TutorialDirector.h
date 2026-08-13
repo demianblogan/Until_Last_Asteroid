@@ -34,7 +34,7 @@ public:
     struct Snapshot
     {
         sf::Vector2f playerPosition;
-        unsigned int playerShotsFired{ 0u };
+        unsigned int playerAttacksFired{ 0u };
         unsigned int bigMeteorsDestroyed{ 0u };
         unsigned int smallMeteorsDestroyed{ 0u };
         unsigned int shootersDestroyed{ 0u };

@@ -4,8 +4,6 @@
 #include <array>
 #include <cstdint>
 #include <cmath>
-#include <iomanip>
-#include <sstream>
 #include <string>
 
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -22,8 +20,9 @@
 namespace
 {
     constexpr sf::Vector2f TitleFrameSize{ 1180.f, 203.f };
-    constexpr sf::Vector2f ButtonSize{ 540.f, 104.f };
-	constexpr sf::Vector2f StatisticsPanelSize{ 1320.f, 440.f };
+	constexpr sf::Vector2f ButtonSize{ 480.f, 88.f };
+	constexpr float ButtonGap{ 32.f };
+	constexpr sf::Vector2f StatisticsPanelSize{ 1320.f, 480.f };
 	constexpr sf::Vector2f StatisticsPanelPosition{ 300.f, 315.f };
     constexpr float DarkenDuration{ 0.42f };
     constexpr float TitleStart{ 0.22f };
@@ -31,16 +30,31 @@ namespace
 	constexpr float StatisticsPanelStart{ 0.50f };
 	constexpr float StatisticsPanelDuration{ 0.24f };
 	constexpr float FirstStatisticStart{ 0.78f };
-	constexpr float StatisticInterval{ 0.50f };
+	constexpr float StatisticInterval{ 0.42f };
 	constexpr float StatisticFadeDuration{ 0.18f };
 	constexpr float ValueCountDuration{ 1.f };
-	constexpr float FirstButtonStart{ 4.12f };
-	constexpr float SecondButtonStart{ 4.28f };
-	constexpr float InteractiveTime{ 4.42f };
+	constexpr float FirstButtonStart{ 3.55f };
+	constexpr float SecondButtonStart{ 3.70f };
+	constexpr float ThirdButtonStart{ 3.85f };
+	constexpr float InteractiveTime{ 4.0f };
     constexpr sf::Color SuccessGlowColor{ 65, 255, 90 };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
 	constexpr sf::Color StatisticsGold{ 255, 190, 72 };
-	constexpr std::size_t StatisticLineCount{ 6u };
+	constexpr std::size_t StatisticLineCount{ 5u };
+	constexpr std::array<sf::Vector2f, StatisticLineCount> LabelPositions{
+		sf::Vector2f{ 390.f, 455.f },
+		sf::Vector2f{ 390.f, 515.f },
+		sf::Vector2f{ 390.f, 575.f },
+		sf::Vector2f{ 390.f, 635.f },
+		sf::Vector2f{ 390.f, 715.f }
+	};
+	constexpr std::array<sf::Vector2f, StatisticLineCount> ValuePositions{
+		sf::Vector2f{ 1530.f, 455.f },
+		sf::Vector2f{ 1530.f, 515.f },
+		sf::Vector2f{ 1530.f, 575.f },
+		sf::Vector2f{ 1530.f, 635.f },
+		sf::Vector2f{ 1530.f, 715.f }
+	};
 
     float Progress(float elapsed, float start, float duration)
     {
@@ -51,15 +65,6 @@ namespace
     {
         return static_cast<std::uint8_t>(std::clamp(opacity, 0.f, 1.f) * 255.f);
     }
-
-	std::string FormatTime(float seconds)
-	{
-		const int totalSeconds{ std::max(0, static_cast<int>(seconds + 0.5f)) };
-		std::ostringstream stream;
-		stream << std::setfill('0') << std::setw(2) << totalSeconds / 60
-			<< ':' << std::setw(2) << totalSeconds % 60;
-		return stream.str();
-	}
 
 	void AlignLeft(sf::Text& text, sf::Vector2f position)
 	{
@@ -91,7 +96,7 @@ ResultScreen::ResultScreen(
     , title(assets.Fonts().Get(Config::Font::MenuSemibold), "LEVEL COMPLETE", 86u)
 	, statisticsPanel(StatisticsPanelSize, 22.f, 12u)
 	, statisticsSeparator({ StatisticsPanelSize.x - 100.f, 2.f })
-	, statisticsTitle(assets.Fonts().Get(Config::Font::BodyRegular), "STATISTICS", 36u)
+	, statisticsTitle(assets.Fonts().Get(Config::Font::MenuSemibold), "STATISTICS", 36u)
     , titleGlow(assets)
     , buttonGlow(assets)
     , menuCursor(assets, Config::Texture::MenuPointer, { 6.f, 2.f }, SelectionGlowColor)
@@ -121,14 +126,13 @@ ResultScreen::ResultScreen(
 	statisticsTitle.setFillColor(StatisticsGold);
 	statisticsTitle.setOutlineColor(sf::Color(70, 32, 2, 220));
 	statisticsTitle.setOutlineThickness(2.f);
-	CenterText(statisticsTitle, {
-		logicalSize.x * 0.5f, StatisticsPanelPosition.y + 42.f });
+	CenterText(statisticsTitle, { logicalSize.x * .5f, StatisticsPanelPosition.y + 52.f });
 
 	statisticLabels.reserve(StatisticLineCount);
 	statisticValues.reserve(StatisticLineCount);
 	for (std::size_t index{ 0u }; index < StatisticLineCount; ++index)
 	{
-		const unsigned int characterSize{ index >= 4u ? 31u : 27u };
+		const unsigned int characterSize{ index == 4u ? 31u : 27u };
 		statisticLabels.emplace_back(bodyFont, "", characterSize);
 		statisticValues.emplace_back(regularFont, "0", characterSize);
 		statisticLabels.back().setOutlineThickness(1.5f);
@@ -138,14 +142,14 @@ ResultScreen::ResultScreen(
 	const sf::Font& menuFont{ regularFont };
     const sf::Texture& idle{ assets.Textures().Get(Config::Texture::MenuButtonIdle) };
     const sf::Texture& selected{ assets.Textures().Get(Config::Texture::MenuButtonSelected) };
-    buttons.reserve(2u);
-    for (std::size_t index{ 0u }; index < 2u; ++index)
-    {
-        buttons.emplace_back(menuFont, idle, selected, "", ButtonSize);
-        buttons.back().SetPosition({
-            (logicalSize.x - ButtonSize.x) * 0.5f,
-			785.f + static_cast<float>(index) * 120.f });
-    }
+	buttons.reserve(3u);
+	for (std::size_t index{ 0u }; index < 3u; ++index)
+	{
+		buttons.emplace_back(menuFont, idle, selected, "", ButtonSize);
+		const float totalWidth{ ButtonSize.x * 3.f + ButtonGap * 2.f };
+		buttons.back().SetPosition({ (logicalSize.x - totalWidth) * .5f +
+			static_cast<float>(index) * (ButtonSize.x + ButtonGap), 860.f });
+	}
 
     Reset();
 }
@@ -170,31 +174,33 @@ void ResultScreen::Start(
 		title.setString("LEVEL " + std::to_string(level) + " COMPLETE");
 		buttons[0].SetLabel("Return to Levels");
 	}
+	else if (mode == Mode::ContentComplete)
+	{
+		title.setString("LEVEL " + std::to_string(level) + " COMPLETE");
+		buttons[0].SetLabel("Continue");
+	}
     else
     {
         title.setString("LEVEL " + std::to_string(level) + " COMPLETE");
         buttons[0].SetLabel("Continue");
     }
-	statisticLabels[0].setString("Combat score:");
+	statisticLabels[0].setString("Destroyed enemies");
 	statisticLabels[1].setString(
-		"Armor bonus (remaining " + std::to_string(statistics.armorPercent) + "%):");
+		"Armor " + std::to_string(statistics.armorPercent) + "%  (75% required)");
 	statisticLabels[2].setString(
-		"Accuracy bonus (your " + std::to_string(statistics.accuracyPercent) +
-		"% / target " + std::to_string(statistics.targetAccuracyPercent) + "%):");
+		"Accuracy " + std::to_string(statistics.accuracyPercent) + "%  (" +
+		std::to_string(statistics.targetAccuracyPercent) + "% required)");
 	statisticLabels[3].setString(
-		"Time bonus (your " + FormatTime(statistics.completionSeconds) +
-		" / target " + FormatTime(statistics.targetSeconds) + "):");
-	statisticLabels[4].setString("Level score:");
-	statisticLabels[5].setString("Campaign score:");
+		"Parts collected  " + std::to_string(statistics.partsCollected) + " / " +
+		std::to_string(statistics.partsTotal));
+	statisticLabels[4].setString("LEVEL SCORE");
 	for (std::size_t index{ 0u }; index < statisticLabels.size(); ++index)
 	{
-		const float y{ StatisticsPanelPosition.y + 112.f +
-			static_cast<float>(index) * 52.f };
-		AlignLeft(statisticLabels[index], { StatisticsPanelPosition.x + 72.f, y });
-		AlignRight(statisticValues[index], {
-			StatisticsPanelPosition.x + StatisticsPanelSize.x - 72.f, y });
+		AlignLeft(statisticLabels[index], LabelPositions[index]);
+		AlignRight(statisticValues[index], ValuePositions[index]);
 	}
-    buttons[1].SetLabel("Go to Main Menu");
+	buttons[1].SetLabel("Restart Level");
+	buttons[2].SetLabel("Main Menu");
 	CenterText(title, { logicalSize.x * 0.5f, 190.f });
     Select(0u, false);
     titleGlow.Invalidate();
@@ -263,7 +269,7 @@ std::optional<ResultScreen::Action> ResultScreen::HandleEvent(
     case Up: SelectPrevious(); return std::nullopt;
     case Down: SelectNext(); return std::nullopt;
     case Confirm: return ActivateSelected();
-    case Back: Select(1u, false); return ActivateSelected();
+	case Back: Select(2u, false); return ActivateSelected();
     default: break;
     }
 
@@ -327,8 +333,8 @@ void ResultScreen::Draw(sf::RenderTarget& target)
 		target.draw(value);
 	}
 
-    const std::size_t visibleButtons{ elapsed >= SecondButtonStart
-        ? 2u : (elapsed >= FirstButtonStart ? 1u : 0u) };
+	const std::size_t visibleButtons{ elapsed >= ThirdButtonStart ? 3u :
+		(elapsed >= SecondButtonStart ? 2u : (elapsed >= FirstButtonStart ? 1u : 0u)) };
     if (interactive && visibleButtons > 0u)
     {
         const MenuButton& selected{ buttons[selectedIndex] };
@@ -382,9 +388,8 @@ void ResultScreen::ApplyVisualState()
 		statistics.combatScore,
 		statistics.armorBonus,
 		statistics.accuracyBonus,
-		statistics.timeBonus,
-		statistics.levelTotal,
-		statistics.campaignTotal };
+		statistics.partsBonus,
+		statistics.levelTotal };
 	for (std::size_t index{ 0u }; index < statisticLabels.size(); ++index)
 	{
 		const float rowStart{ FirstStatisticStart +
@@ -398,10 +403,8 @@ void ResultScreen::ApplyVisualState()
 			static_cast<float>(targetValues[index]) * easedProgress)) };
 		const std::string prefix{ index >= 1u && index <= 3u ? "+" : "" };
 		statisticValues[index].setString(prefix + std::to_string(displayedValue));
-		AlignRight(statisticValues[index], {
-			StatisticsPanelPosition.x + StatisticsPanelSize.x - 72.f,
-			StatisticsPanelPosition.y + 112.f + static_cast<float>(index) * 52.f });
-		const sf::Color labelColor{ index >= 4u
+		AlignRight(statisticValues[index], ValuePositions[index]);
+		const sf::Color labelColor{ index == 4u
 			? sf::Color(155, 245, 255, rowAlpha)
 			: sf::Color(225, 240, 246, rowAlpha) };
 		statisticLabels[index].setFillColor(labelColor);
@@ -445,7 +448,9 @@ std::optional<ResultScreen::Action> ResultScreen::ActivateSelected()
 {
     audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f,
         SoundPlayback::Restart);
-    return selectedIndex == 0u ? Action::Primary : Action::MainMenu;
+	if (selectedIndex == 0u) return Action::Primary;
+	if (selectedIndex == 1u) return Action::Restart;
+	return Action::MainMenu;
 }
 
 void ResultScreen::CenterText(sf::Text& text, sf::Vector2f position)

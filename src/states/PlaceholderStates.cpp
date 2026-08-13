@@ -148,11 +148,6 @@ void PlaceholderState::GoBack()
         100.f,
         1.f,
         SoundPlayback::Restart);
-    backRequested = true;
-    screenFade.StartFadeOut(StateFadeDuration);
-}
-
-ScoresState::ScoresState(StateStack& stateStack, StateContext context)
-    : PlaceholderState(stateStack, context, "SCORES")
-{
+	backRequested = true;
+	screenFade.StartFadeOut(StateFadeDuration);
 }

@@ -51,11 +51,41 @@ bool Spinner::IsCollideWith(const Entity& other) const
 
 void Spinner::Update(float deltaTime)
 {
-	movementPhase += 2.f * std::numbers::pi_v<float> * sineFrequency * deltaTime;
-	SetVelocity(
-		travelDirection * GetMovementSpeed() +
-		lateralDirection * (std::sin(movementPhase) * sineAmplitude));
-	Move(deltaTime);
+	if (approachingCenter)
+	{
+		const sf::Vector2f delta{ approachTarget - GetPosition() };
+		const float distance{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+		const float step{ GetMovementSpeed() * deltaTime };
+		if (distance <= std::max(step, 0.001f))
+		{
+			SetPosition(approachTarget);
+			approachingCenter = false;
+		}
+		else
+		{
+			SetVelocity(delta / distance * GetMovementSpeed());
+			Move(deltaTime);
+		}
+	}
+	else
+	{
+		const sf::Vector2f position{ GetPosition() };
+		const float width{ static_cast<float>(GetWorld().GetWidth()) };
+		const float height{ static_cast<float>(GetWorld().GetHeight()) };
+		if ((position.x < width * 0.16f && travelDirection.x < 0.f) ||
+			(position.x > width * 0.84f && travelDirection.x > 0.f))
+			travelDirection.x = -travelDirection.x;
+		if ((position.y < height * 0.16f && travelDirection.y < 0.f) ||
+			(position.y > height * 0.84f && travelDirection.y > 0.f))
+			travelDirection.y = -travelDirection.y;
+		travelDirection = Normalize(travelDirection);
+		lateralDirection = { -travelDirection.y, travelDirection.x };
+		movementPhase += 2.f * std::numbers::pi_v<float> * sineFrequency * deltaTime;
+		SetVelocity(
+			travelDirection * GetMovementSpeed() +
+			lateralDirection * (std::sin(movementPhase) * sineAmplitude));
+		Move(deltaTime);
+	}
 
 	SetRotation(GetRotation() + sf::degrees(
 		GetRotationSpeed() * spinDirection * deltaTime));
@@ -66,6 +96,14 @@ void Spinner::Update(float deltaTime)
 		shootTimer -= GetActionInterval();
 		ShootRadialVolley();
 	}
+}
+
+void Spinner::ConfigureApproachTarget(sf::Vector2f target) noexcept
+{
+	approachTarget = target;
+	travelDirection = Normalize(target - GetPosition());
+	lateralDirection = { -travelDirection.y, travelDirection.x };
+	approachingCenter = true;
 }
 
 void Spinner::OnDestroy()
