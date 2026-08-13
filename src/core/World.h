@@ -7,6 +7,7 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "Entity.h"
+#include "game/GameplayData.h"
 #include "utils/ConfigEnums.h"
 #include "systems/InputHandler.h"
 
@@ -15,6 +16,7 @@ class AudioManager;
 class Enemy;
 class GameplaySession;
 class GamepadManager;
+class HomingMissile;
 class Player;
 
 namespace sf
@@ -35,7 +37,10 @@ public:
 	enum class EffectEventType
 	{
 		PlayerProjectileGlow,
+		PlayerHomingProjectileGlow,
 		EnemyProjectileGlow,
+		MissileSmoke,
+		EnemyEngine,
 		PlayerMuzzleFlash,
 		EnemyMuzzleFlash,
 		AsteroidHit,
@@ -66,6 +71,7 @@ public:
 	struct Statistics
 	{
 		unsigned int playerShotsFired{ 0u };
+		unsigned int playerShotsHit{ 0u };
 		unsigned int bigMeteorsDestroyed{ 0u };
 		unsigned int smallMeteorsDestroyed{ 0u };
 		unsigned int shootersDestroyed{ 0u };
@@ -75,12 +81,22 @@ public:
 	World(unsigned int width, unsigned int height, AssetStore& assets, AudioManager& audio,
 		GameplaySession& session, GamepadManager& gamepad);
 
-	void Update(float deltaTime);
+	void Update(float deltaTime, float worldTimeScale = 1.f);
 	void CommitPendingEntities();
 
 	void Spawn(std::unique_ptr<Entity> entity);
 	void SpawnPlayerShot(const sf::Vector2f& pos, float rotation);
-	void SpawnSaucerShot(const sf::Vector2f& pos, const sf::Vector2f& target);
+	void SpawnSaucerShot(
+		const sf::Vector2f& pos,
+		const sf::Vector2f& target,
+		GameplayData::ProjectileKind projectileKind = GameplayData::ProjectileKind::Enemy,
+		bool playSound = true);
+	void SpawnHomingMissile(const sf::Vector2f& pos, const sf::Vector2f& target);
+	void ExplodeEnemyMissile(
+		const sf::Vector2f& position,
+		float radius,
+		int damage,
+		float impulse);
 
 	void AddSound(Config::Sound id, float pitch = 1.f);
 	void AddEffectEvent(const EffectEvent& event);
@@ -89,8 +105,15 @@ public:
 	void PauseActiveSounds();
 	void ResumePausedSounds();
 	void StopActiveSounds();
+	void ClearProjectiles();
+	void ClearPickups();
 
 	[[nodiscard]] sf::Vector2f GetPlayerPosition() const noexcept;
+	[[nodiscard]] const Entity* FindHomingTarget(
+		const sf::Vector2f& position,
+		const sf::Vector2f& direction,
+		float minimumDirectionDot) const noexcept;
+	[[nodiscard]] bool IsEntityActive(const Entity* entity) const noexcept;
 	[[nodiscard]] std::optional<PlayerEffectState> GetPlayerEffectState() const;
 	[[nodiscard]] std::optional<sf::Vector2f> GetPlayerGamepadAimPoint() const;
 	[[nodiscard]] unsigned int GetWidth() const noexcept;
@@ -110,6 +133,7 @@ public:
 
 	void HandlePlayerEvent(const sf::Event& event);
 	void HandlePlayerRealtime();
+	void SetPlayerControlEnabled(bool enabled) noexcept;
 
 private:
 	void Wrap(Entity& e) const;

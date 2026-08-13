@@ -20,6 +20,8 @@ namespace Config
 		GameplayCrosshair,
 		HealthPickup,
 		ShieldPickup,
+		HomingBulletsPickup,
+		TimeSlowdownPickup,
 
 		PlayerShip,
 		PlayerLife,
@@ -45,6 +47,8 @@ namespace Config
 
 		BigEnemySaucer,
 		SmallEnemySaucer,
+		SpinnerPlatform,
+		MissileCarrier,
 
 		BigMeteor1,
 		BigMeteor2,
@@ -57,7 +61,8 @@ namespace Config
 		SmallMeteor4,
 
 		PlayerShot,
-		EnemySaucerShot
+		EnemySaucerShot,
+		HomingMissile
 	};
 
 	enum class Font
@@ -108,7 +113,9 @@ namespace Config
 		HitFlash,
 		SceneBrightPass,
 		SceneComposite,
-		MenuVignette
+		MenuVignette,
+		EnemyEmission,
+		PlayerEmission
 	};
 
 	enum class Cursor

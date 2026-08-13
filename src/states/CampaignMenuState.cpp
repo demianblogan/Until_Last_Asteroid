@@ -98,7 +98,7 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     {
         addButton("Continue Campaign", MenuAction::ContinueCampaign, true);
         addButton("Start New Campaign", MenuAction::StartNewCampaign, true);
-        addButton("Select Level", MenuAction::SelectLevel, false);
+        addButton("Select Level", MenuAction::SelectLevel, true);
     }
     else
     {
@@ -397,6 +397,8 @@ void CampaignMenuState::ActivateSelected()
         RequestPop();
         break;
     case MenuAction::SelectLevel:
+		RequestPush(StateId::LevelSelect);
+		break;
     case MenuAction::HordeMode:
     case MenuAction::RunMode:
         break;

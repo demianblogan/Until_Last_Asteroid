@@ -21,7 +21,9 @@ Entity::Type Saucer::GetType() const noexcept
 
 bool Saucer::IsCollideWith(const Entity& other) const
 {
-	if (other.GetType() != Type::Player && other.GetType() != Type::Projectile_Player)
+	if (other.GetType() != Type::Player &&
+		other.GetType() != Type::Projectile_Player &&
+		other.GetType() != Type::EnemyMissile)
 		return false;
 
 	return CheckCollision(other);

@@ -2,8 +2,11 @@
   "levels": [
     {
       "number": 1,
+      "title": "BLUE FRONTIER",
       "background": "level_01_blue_nebula",
-      "background_brightness": 0.52,
+      "background_brightness": 0.60,
+      "target_time_seconds": 105.0,
+      "target_accuracy_percent": 65.0,
       "post_process": {
         "tint": [0.96, 1.02, 1.08],
         "saturation": 1.06,
@@ -14,26 +17,59 @@
       "waves": [
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 3 }
+            { "type": "big_meteor", "count": 2 },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": { "type": "homing_bullets", "chance": 1.0 }
+            }
           ],
           "scheduled_spawns": []
         },
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 3 }
+            { "type": "big_meteor", "count": 2 },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": { "type": "shield", "chance": 1.0 }
+            }
           ],
           "scheduled_spawns": [
-            { "delay": 5.0, "type": "kamikaze", "count": 1 },
+            {
+              "delay": 5.0,
+              "type": "kamikaze",
+              "count": 1,
+              "drop": { "type": "time_slowdown", "chance": 1.0 }
+            },
             { "delay": 4.0, "type": "kamikaze", "count": 1 },
             { "delay": 3.0, "type": "kamikaze", "count": 1 }
           ]
         },
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 3 }
+            { "type": "big_meteor", "count": 2 },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": {
+                "chance": 1.0,
+                "pool": [
+                  { "type": "health", "weight": 1.0 },
+                  { "type": "homing_bullets", "weight": 1.0 },
+                  { "type": "time_slowdown", "weight": 1.0 }
+                ]
+              }
+            }
           ],
           "scheduled_spawns": [
-            { "delay": 3.0, "type": "kamikaze", "count": 2 },
+            {
+              "delay": 3.0,
+              "type": "kamikaze",
+              "count": 1,
+              "drop": { "type": "shield", "chance": 1.0 }
+            },
+            { "delay": 0.0, "type": "kamikaze", "count": 1 },
             { "delay": 5.0, "type": "shooter", "count": 1 }
           ]
         }
@@ -41,8 +77,11 @@
     },
     {
       "number": 2,
+      "title": "VIOLET CROSSING",
       "background": "level_02_violet_clouds",
       "background_brightness": 0.70,
+      "target_time_seconds": 145.0,
+      "target_accuracy_percent": 70.0,
       "post_process": {
         "tint": [1.03, 0.96, 1.10],
         "saturation": 1.08,
@@ -53,19 +92,67 @@
       "waves": [
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 2 }
+            { "type": "big_meteor", "count": 3 },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": {
+                "chance": 0.45,
+                "pool": [
+                  { "type": "health", "weight": 1.0 },
+                  { "type": "homing_bullets", "weight": 1.4 }
+                ]
+              }
+            }
           ],
           "scheduled_spawns": [
-            { "delay": 2.0, "type": "kamikaze", "count": 1 },
-            { "delay": 2.0, "type": "kamikaze", "count": 1 }
+            { "delay": 5.0, "type": "kamikaze", "count": 1 },
+            { "delay": 4.0, "type": "kamikaze", "count": 1 }
+          ]
+        },
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 3 },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": { "type": "health", "chance": 0.5 }
+            }
+          ],
+          "scheduled_spawns": [
+            {
+              "delay": 5.0,
+              "type": "spinner",
+              "count": 1,
+              "drop": { "type": "time_slowdown", "chance": 1.0 }
+            },
+            { "delay": 5.0, "type": "shooter", "count": 1 }
+          ]
+        },
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 4 }
+          ],
+          "scheduled_spawns": [
+            { "delay": 3.0, "type": "kamikaze", "count": 2 },
+            { "delay": 4.0, "type": "shooter", "count": 1 },
+            {
+              "delay": 4.0,
+              "type": "spinner",
+              "count": 1,
+              "drop": { "type": "shield", "chance": 0.65 }
+            }
           ]
         }
       ]
     },
     {
       "number": 3,
+      "title": "SHATTERED BELT",
       "background": "level_03_asteroid_belt",
-      "background_brightness": 0.65,
+      "background_brightness": 0.66,
+      "target_time_seconds": 185.0,
+      "target_accuracy_percent": 75.0,
       "post_process": {
         "tint": [1.05, 1.00, 0.92],
         "saturation": 1.04,
@@ -76,67 +163,54 @@
       "waves": [
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 3 }
+            { "type": "big_meteor", "count": 4 },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": { "type": "health", "chance": 0.5 }
+            }
           ],
           "scheduled_spawns": [
-            { "delay": 2.0, "type": "shooter", "count": 1 },
-            { "delay": 2.0, "type": "shooter", "count": 1 },
-            { "delay": 2.0, "type": "shooter", "count": 1 }
+            { "delay": 5.0, "type": "shooter", "count": 1 },
+            { "delay": 5.0, "type": "spinner", "count": 1 }
           ]
-        }
-      ]
-    },
-    {
-      "number": 4,
-      "background": "level_04_red_storm",
-      "background_brightness": 0.74,
-      "post_process": {
-        "tint": [1.10, 0.94, 0.90],
-        "saturation": 1.10,
-        "contrast": 1.07,
-        "bloom_intensity": 0.72,
-        "vignette_strength": 0.38
-      },
-      "waves": [
+        },
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 4 }
+            { "type": "big_meteor", "count": 5 }
           ],
           "scheduled_spawns": [
-            { "delay": 2.0, "type": "kamikaze", "count": 1 },
-            { "delay": 0.0, "type": "shooter", "count": 1 },
-            { "delay": 2.0, "type": "kamikaze", "count": 1 },
-            { "delay": 0.0, "type": "shooter", "count": 1 },
-            { "delay": 2.0, "type": "kamikaze", "count": 1 },
-            { "delay": 0.0, "type": "shooter", "count": 1 }
+            {
+              "delay": 5.0,
+              "type": "missile_carrier",
+              "count": 1,
+              "drop": { "type": "time_slowdown", "chance": 1.0 }
+            },
+            { "delay": 4.0, "type": "kamikaze", "count": 2 }
           ]
-        }
-      ]
-    },
-    {
-      "number": 5,
-      "background": "level_05_deep_void",
-      "background_brightness": 0.70,
-      "post_process": {
-        "tint": [0.94, 1.00, 1.08],
-        "saturation": 0.98,
-        "contrast": 1.08,
-        "bloom_intensity": 0.80,
-        "vignette_strength": 0.39
-      },
-      "waves": [
+        },
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 5 },
-            { "type": "shooter", "count": 3 }
+            { "type": "big_meteor", "count": 5 }
           ],
           "scheduled_spawns": [
-            { "delay": 1.0, "type": "kamikaze", "count": 1 },
-            { "delay": 0.0, "type": "shooter", "count": 1 },
-            { "delay": 1.0, "type": "kamikaze", "count": 1 },
-            { "delay": 0.0, "type": "shooter", "count": 1 },
-            { "delay": 1.0, "type": "kamikaze", "count": 1 },
-            { "delay": 0.0, "type": "shooter", "count": 1 }
+            { "delay": 3.0, "type": "kamikaze", "count": 2 },
+            { "delay": 4.0, "type": "spinner", "count": 1 },
+            { "delay": 3.0, "type": "shooter", "count": 1 },
+            {
+              "delay": 3.0,
+              "type": "missile_carrier",
+              "count": 1,
+              "drop": {
+                "chance": 0.75,
+                "pool": [
+                  { "type": "health", "weight": 1.4 },
+                  { "type": "shield", "weight": 1.0 },
+                  { "type": "homing_bullets", "weight": 1.0 },
+                  { "type": "time_slowdown", "weight": 0.8 }
+                ]
+              }
+            }
           ]
         }
       ]

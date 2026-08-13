@@ -10,11 +10,13 @@
 
 struct AudioManager::ActiveSound
 {
-    ActiveSound(Config::Sound id, SoundGroup group, float baseVolume, const sf::SoundBuffer& buffer)
+    ActiveSound(Config::Sound id, SoundGroup group, float baseVolume, float basePitch,
+		const sf::SoundBuffer& buffer)
         : sound(buffer)
         , id(id)
         , group(group)
         , baseVolume(baseVolume)
+		, basePitch(basePitch)
     {
     }
 
@@ -22,6 +24,7 @@ struct AudioManager::ActiveSound
     Config::Sound id;
     SoundGroup group;
     float baseVolume;
+	float basePitch;
 };
 
 AudioManager::AudioManager(AssetStore& assets, SettingsManager& settings)
@@ -73,10 +76,11 @@ void AudioManager::PlaySound(
         id,
         group,
         baseVolume,
+		pitch,
         assets.Sounds().Get(id)) };
     activeSound->sound.setAttenuation(0.f);
     activeSound->sound.setVolume(GetSoundVolume(id, baseVolume));
-    activeSound->sound.setPitch(pitch);
+	activeSound->sound.setPitch(pitch * (group == SoundGroup::Gameplay ? gameplayPitch : 1.f));
     activeSound->sound.play();
     activeSounds.push_back(std::move(activeSound));
 }
@@ -117,12 +121,24 @@ void AudioManager::StopSounds(SoundGroup group)
         });
 }
 
+void AudioManager::SetGameplayPitch(float pitch)
+{
+	gameplayPitch = std::clamp(pitch, 0.1f, 2.f);
+	for (const auto& activeSound : activeSounds)
+	{
+		if (activeSound->group == SoundGroup::Gameplay)
+			activeSound->sound.setPitch(activeSound->basePitch * gameplayPitch);
+	}
+	assets.Music().Get(Config::Music::GameplayBackground1).setPitch(gameplayPitch);
+}
+
 void AudioManager::PlayMusic(Config::Music id, bool looping, float baseVolume)
 {
     sf::Music& music{ assets.Music().Get(id) };
     musicBaseVolumes[id] = baseVolume;
     music.setLooping(looping);
     music.setVolume(GetMusicVolume(id, baseVolume));
+	music.setPitch(id == Config::Music::GameplayBackground1 ? gameplayPitch : 1.f);
     if (music.getStatus() != sf::SoundSource::Status::Playing)
         music.play();
 }

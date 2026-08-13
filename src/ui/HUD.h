@@ -27,8 +27,13 @@ private:
 	void UpdateScore(float deltaTime);
 	void UpdateHealthBar(float deltaTime);
 	void UpdateShieldBar(float deltaTime);
+	void UpdateHomingBar(float deltaTime);
+	void UpdateTimeSlowdownBar(float deltaTime);
+	void UpdateBonusBarLayout();
 	void CenterHealthText();
 	void CenterShieldText();
+	void CenterHomingText();
+	void CenterTimeSlowdownText();
 	void CenterScoreText();
 	void DrawScorePanel(sf::RenderTarget& target, const sf::RenderStates& states) const;
 
@@ -44,6 +49,14 @@ private:
 	sf::Sprite shieldFrame;
 	sf::Sprite shieldFill;
 	NeonGlow shieldGlow;
+	sf::Text homingText;
+	sf::Sprite homingFrame;
+	sf::Sprite homingFill;
+	NeonGlow homingGlow;
+	sf::Text timeSlowdownText;
+	sf::Sprite timeSlowdownFrame;
+	sf::Sprite timeSlowdownFill;
+	NeonGlow timeSlowdownGlow;
 	int displayedScore{ 0 };
 	float scorePulseRemaining{ 0.f };
 	float tutorialScoreHighlightRemaining{ 0.f };
@@ -54,6 +67,8 @@ private:
 	bool criticalWarningArmed{ true };
 	float shieldBlinkTimer{ 0.f };
 	bool shieldVisible{ false };
+	bool homingVisible{ false };
+	bool timeSlowdownVisible{ false };
 
 	static constexpr float CriticalThreshold{ 0.3f };
 	static constexpr float CriticalWarningDuration{ 3.f };

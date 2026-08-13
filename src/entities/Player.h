@@ -28,6 +28,7 @@ public:
 	void Update(float deltaTime) override;
 	void HandleEvent(const sf::Event& event);
 	void HandleRealtime();
+	void SetControlEnabled(bool enabled) noexcept;
 	void OnDestroy() override;
 
 	[[nodiscard]] bool TakeDamage(int damage);
@@ -56,4 +57,5 @@ private:
 	bool lastDamageReachedHealth{ false };
 	bool isThrusting{ false };
 	bool aimingWithGamepad{ false };
+	bool controlEnabled{ true };
 };

@@ -23,6 +23,9 @@ public:
 	[[nodiscard]] float GetCollisionImpulse() const noexcept;
 	[[nodiscard]] float GetSoundPitch() const noexcept;
 	[[nodiscard]] int GetCurrentHealth() const noexcept;
+	void SetPickupDrop(
+		const std::optional<GameplayData::SpawnGroup::PickupDropConfig>& drop);
+	[[nodiscard]] std::optional<GameplayData::PickupKind> RollPickupDrop() const;
 	[[nodiscard]] bool TakeDamage(int damage);
 	Type GetType() const noexcept override;
 
@@ -32,8 +35,10 @@ protected:
 	[[nodiscard]] float GetActionInterval() const noexcept;
 	[[nodiscard]] float GetFragmentSpeed() const noexcept;
 	[[nodiscard]] float GetRotationSpeed() const noexcept;
-	[[nodiscard]] const std::array<GameplayData::NormalizedPoint, 2>&
+	[[nodiscard]] const std::vector<GameplayData::NormalizedPoint>&
 		GetWeaponEmitters() const noexcept;
+	[[nodiscard]] const std::vector<GameplayData::NormalizedPoint>&
+		GetEngineEmitters() const noexcept;
 
 private:
 	Health health;
@@ -45,5 +50,7 @@ private:
 	float fragmentSpeed{ 0.f };
 	float soundPitch{ 1.f };
 	float rotationSpeed{ 0.f };
-	std::array<GameplayData::NormalizedPoint, 2> weaponEmitters{};
+	std::vector<GameplayData::NormalizedPoint> weaponEmitters;
+	std::vector<GameplayData::NormalizedPoint> engineEmitters;
+	std::optional<GameplayData::SpawnGroup::PickupDropConfig> pickupDrop;
 };

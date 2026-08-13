@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <array>
 #include <random>
 #include <vector>
 
@@ -21,13 +22,15 @@ namespace sf
 class GameplayEffects
 {
 public:
+	static constexpr std::size_t MaximumShockwaves{ 8u };
+
     struct PostProcessState
     {
-        sf::Vector2f shockwavePosition{};
-        float shockwaveRadius{ 0.f };
-        float shockwaveStrength{ 0.f };
+		std::array<sf::Vector2f, MaximumShockwaves> shockwavePositions{};
+		std::array<float, MaximumShockwaves> shockwaveRadii{};
+		std::array<float, MaximumShockwaves> shockwaveStrengths{};
+		std::size_t shockwaveCount{ 0u };
         float damageVignette{ 0.f };
-        bool shockwaveActive{ false };
     };
 
     GameplayEffects(const GameplayData::EffectsConfig& config, AssetStore& assets);
@@ -50,12 +53,22 @@ private:
         float elapsed{ 0.f };
     };
 
+	struct Shockwave
+	{
+		sf::Vector2f position;
+		float elapsed{ 0.f };
+		float duration{ 0.55f };
+		float scale{ 1.f };
+	};
+
     float RandomFloat(float minimum, float maximum);
     sf::Vector2f RandomDirection();
     sf::Vector2f RandomDirectionAround(const sf::Vector2f& direction, float spreadRadians);
     void EmitPlayerEngineParticles(const World& world);
     void EmitProjectileGlow(bool playerProjectile, const sf::Vector2f& position,
-        const sf::Vector2f& direction);
+        const sf::Vector2f& direction, bool homing = false);
+	void EmitMissileSmoke(const sf::Vector2f& position, const sf::Vector2f& direction);
+	void EmitEnemyEngine(const sf::Vector2f& position, const sf::Vector2f& direction);
     void EmitMuzzleFlash(bool playerProjectile, const sf::Vector2f& position,
         const sf::Vector2f& direction);
     void EmitStoneHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale);
@@ -86,8 +99,6 @@ private:
     float shakeAmplitude{ 0.f };
     sf::Vector2f cameraOffset{};
     PostProcessState postProcessState;
-    float shockwaveElapsed{ 0.f };
-    float shockwaveDuration{ 0.f };
-    float shockwaveScale{ 1.f };
+	std::vector<Shockwave> shockwaves;
     bool shakeEnabled{ true };
 };

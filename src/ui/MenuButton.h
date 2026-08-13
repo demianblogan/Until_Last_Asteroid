@@ -43,8 +43,11 @@ private:
 
     const sf::Texture& idleTexture;
     const sf::Texture& selectedTexture;
-    sf::Sprite background;
+	sf::Sprite leftFrame;
+	sf::Sprite centerFrame;
+	sf::Sprite rightFrame;
     sf::Text label;
+	sf::Vector2f position;
     sf::Vector2f size;
     bool selected{ false };
     bool enabled{ true };

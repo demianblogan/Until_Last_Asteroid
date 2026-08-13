@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <numbers>
 #include <SFML/Graphics/BlendMode.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
@@ -10,6 +11,7 @@
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
 #include "entities/Enemy.h"
+#include "entities/HomingMissile.h"
 #include "entities/Meteor.h"
 #include "entities/Player.h"
 #include "entities/Pickup.h"
@@ -35,9 +37,22 @@ namespace
 		float visualTime,
 		sf::RenderStates states)
 	{
-		const sf::Color color{ pickup.GetKind() == Pickup::Kind::Health
-			? sf::Color(75, 255, 105)
-			: sf::Color(45, 230, 255) };
+		sf::Color color;
+		switch (pickup.GetKind())
+		{
+		case Pickup::Kind::Health:
+			color = sf::Color(75, 255, 105);
+			break;
+		case Pickup::Kind::Shield:
+			color = sf::Color(45, 230, 255);
+			break;
+		case Pickup::Kind::HomingBullets:
+			color = sf::Color(255, 188, 45);
+			break;
+		case Pickup::Kind::TimeSlowdown:
+			color = sf::Color(180, 75, 255);
+			break;
+		}
 		const float pulse{ 0.78f + 0.22f * std::sin(visualTime * 4.5f) };
 		states.blendMode = sf::BlendAdd;
 
@@ -133,17 +148,27 @@ World::World(unsigned int width, unsigned int height, AssetStore& assets,
 	effectEvents.reserve(256);
 }
 
-void World::Update(float deltaTime)
+void World::Update(float deltaTime, float worldTimeScale)
 {
 	shieldVisualTime += deltaTime;
+	worldTimeScale = std::clamp(worldTimeScale, 0.f, 1.f);
 	CommitPendingEntities();
 
 	for (auto& entity : entities)
 	{
-		entity->UpdateEffects(deltaTime);
-		entity->Update(deltaTime);
+		const Entity::Type type{ entity->GetType() };
+		const bool usesPlayerTime{
+			type == Entity::Type::Player ||
+			type == Entity::Type::Projectile_Player ||
+			type == Entity::Type::Pickup };
+		const float entityDeltaTime{ usesPlayerTime
+			? deltaTime
+			: deltaTime * worldTimeScale };
+		entity->UpdateEffects(entityDeltaTime);
+		entity->Update(entityDeltaTime);
 		if (entity->GetType() != Entity::Type::Projectile_Player &&
-			entity->GetType() != Entity::Type::Projectile_Enemy)
+			entity->GetType() != Entity::Type::Projectile_Enemy &&
+			entity->GetType() != Entity::Type::EnemyMissile)
 		{
 			Wrap(*entity);
 		}
@@ -222,15 +247,89 @@ void World::HandlePlayerRealtime()
 		player->HandleRealtime();
 }
 
+void World::SetPlayerControlEnabled(bool enabled) noexcept
+{
+	if (player != nullptr)
+		player->SetControlEnabled(enabled);
+}
+
 void World::SpawnPlayerShot(const sf::Vector2f& pos, float rotation)
 {
 	++statistics.playerShotsFired;
 	Spawn(std::make_unique<PlayerShot>(assets, *this, pos, rotation));
 }
 
-void World::SpawnSaucerShot(const sf::Vector2f& pos, const sf::Vector2f& target)
+void World::SpawnSaucerShot(
+	const sf::Vector2f& pos,
+	const sf::Vector2f& target,
+	GameplayData::ProjectileKind projectileKind,
+	bool playSound)
 {
-	Spawn(std::make_unique<SaucerShot>(assets, *this, pos, target));
+	Spawn(std::make_unique<SaucerShot>(
+		assets, *this, pos, target, projectileKind, playSound));
+}
+
+void World::SpawnHomingMissile(const sf::Vector2f& pos, const sf::Vector2f& target)
+{
+	Spawn(std::make_unique<HomingMissile>(assets, *this, pos, target));
+}
+
+void World::ExplodeEnemyMissile(
+	const sf::Vector2f& position,
+	float radius,
+	int damage,
+	float impulse)
+{
+	for (auto& entityPointer : entities)
+	{
+		Entity& entity{ *entityPointer };
+		if (!entity.IsAlive())
+			continue;
+
+		const sf::Vector2f offset{ entity.GetPosition() - position };
+		const float reach{ radius + entity.GetCollisionRadius() };
+		if (offset.x * offset.x + offset.y * offset.y > reach * reach)
+			continue;
+		const sf::Vector2f direction{ Normalize(offset) };
+
+		if (entity.GetType() == Entity::Type::EnemyMissile)
+		{
+			static_cast<HomingMissile&>(entity).Detonate();
+			continue;
+		}
+		if (entity.GetType() == Entity::Type::Player)
+		{
+			auto& targetPlayer{ static_cast<Player&>(entity) };
+			const bool damageAccepted{ targetPlayer.TakeDamage(damage) };
+			if (damageAccepted)
+			{
+				if (targetPlayer.DidLastDamageReachHealth())
+					AddEffectEvent({ EffectEventType::PlayerHit,
+						targetPlayer.GetPosition(), direction, 1.25f });
+				targetPlayer.ApplyImpulse(direction * impulse);
+			}
+			if (!targetPlayer.IsAlive())
+				session.SetGameOver();
+			continue;
+		}
+		if (entity.GetType() != Entity::Type::Enemy &&
+			entity.GetType() != Entity::Type::Asteroid)
+		{
+			continue;
+		}
+
+		auto& enemy{ static_cast<Enemy&>(entity) };
+		AddEffectEvent({
+			entity.GetType() == Entity::Type::Asteroid
+				? EffectEventType::AsteroidHit
+				: EffectEventType::ShipHit,
+			enemy.GetPosition(), direction,
+			std::clamp(enemy.GetCollisionRadius() / 45.f, 0.65f, 1.25f) });
+		const bool killed{ enemy.TakeDamage(damage) };
+		enemy.ApplyImpulse(direction * impulse);
+		if (killed)
+			AwardScore(enemy);
+	}
 }
 
 void World::AddSound(Config::Sound id, float pitch)
@@ -257,9 +356,78 @@ void World::PauseActiveSounds() { audio.PauseSounds(SoundGroup::Gameplay); }
 void World::ResumePausedSounds() { audio.ResumeSounds(SoundGroup::Gameplay); }
 void World::StopActiveSounds() { audio.StopSounds(SoundGroup::Gameplay); }
 
+void World::ClearProjectiles()
+{
+	const auto isProjectile{ [](const auto& entity)
+	{
+		return entity->GetType() == Entity::Type::Projectile_Player ||
+			entity->GetType() == Entity::Type::Projectile_Enemy ||
+			entity->GetType() == Entity::Type::EnemyMissile;
+	} };
+	std::erase_if(entities, isProjectile);
+	std::erase_if(pendingEntities, isProjectile);
+}
+
+void World::ClearPickups()
+{
+	const auto isPickup{ [](const auto& entity)
+	{
+		return entity->GetType() == Entity::Type::Pickup;
+	} };
+	std::erase_if(entities, isPickup);
+	std::erase_if(pendingEntities, isPickup);
+}
+
 sf::Vector2f World::GetPlayerPosition() const noexcept
 {
 	return player != nullptr ? player->GetPosition() : sf::Vector2f{};
+}
+
+const Entity* World::FindHomingTarget(
+	const sf::Vector2f& position,
+	const sf::Vector2f& direction,
+	float minimumDirectionDot) const noexcept
+{
+	const sf::Vector2f normalizedDirection{ Normalize(direction) };
+	const Entity* closestTarget{ nullptr };
+	float closestDistanceSquared{ std::numeric_limits<float>::max() };
+
+	for (const auto& entity : entities)
+	{
+		if (!entity->IsAlive() ||
+			(entity->GetType() != Entity::Type::Enemy &&
+			 entity->GetType() != Entity::Type::Asteroid &&
+			 entity->GetType() != Entity::Type::EnemyMissile))
+		{
+			continue;
+		}
+
+		const sf::Vector2f offset{ entity->GetPosition() - position };
+		const float distanceSquared{ offset.x * offset.x + offset.y * offset.y };
+		if (distanceSquared <= 0.0001f || distanceSquared >= closestDistanceSquared)
+			continue;
+
+		const float inverseDistance{ 1.f / std::sqrt(distanceSquared) };
+		const float directionDot{
+			(offset.x * normalizedDirection.x + offset.y * normalizedDirection.y) *
+			inverseDistance };
+		if (directionDot < minimumDirectionDot)
+			continue;
+
+		closestTarget = entity.get();
+		closestDistanceSquared = distanceSquared;
+	}
+
+	return closestTarget;
+}
+
+bool World::IsEntityActive(const Entity* entity) const noexcept
+{
+	return entity != nullptr && std::ranges::any_of(entities,
+		[entity](const auto& candidate)
+		{
+			return candidate.get() == entity && candidate->IsAlive();
+		});
 }
 
 std::optional<World::PlayerEffectState> World::GetPlayerEffectState() const
@@ -338,8 +506,34 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		return;
 	}
 
+	if (first.GetType() == Entity::Type::EnemyMissile ||
+		second.GetType() == Entity::Type::EnemyMissile)
+	{
+		auto& missile{ static_cast<HomingMissile&>(
+			first.GetType() == Entity::Type::EnemyMissile ? first : second) };
+		Entity& other{ first.GetType() == Entity::Type::EnemyMissile ? second : first };
+		if (other.GetType() == Entity::Type::Projectile_Player)
+		{
+			++statistics.playerShotsHit;
+			auto& shot{ static_cast<Shot&>(other) };
+			AddEffectEvent({ EffectEventType::ShipHit,
+				missile.GetPosition(), Normalize(shot.GetVelocity()), 0.55f });
+			shot.Destroy();
+			if (!missile.TakeDamage(shot.GetDamage()))
+				AddSound(Config::Sound::MetalHit, 1.2f);
+		}
+		else
+		{
+			missile.Detonate();
+			if (other.GetType() == Entity::Type::EnemyMissile)
+				static_cast<HomingMissile&>(other).Detonate();
+		}
+		return;
+	}
+
 	auto handlePlayerShot = [this](Shot& shot, Enemy& enemy)
 	{
+		++statistics.playerShotsHit;
 		const sf::Vector2f impactDirection{ Normalize(shot.GetVelocity()) };
 		AddEffectEvent({
 			enemy.GetType() == Entity::Type::Asteroid
@@ -498,6 +692,13 @@ void World::AwardScore(const Enemy& enemy)
 		{},
 		1.f,
 		points });
+
+	if (const auto pickupKind{ enemy.RollPickupDrop() })
+	{
+		auto pickup{ std::make_unique<Pickup>(assets, *this, *pickupKind) };
+		pickup->SetPosition(enemy.GetPosition());
+		Spawn(std::move(pickup));
+	}
 }
 
 void World::ResolveCollision(Entity& first, Entity& second,
@@ -528,12 +729,33 @@ void World::RemoveDeadEntities()
 
 void World::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
+	sf::Shader& enemyEmissionShader{
+		assets.GetShader(Config::Shader::EnemyEmission) };
+	enemyEmissionShader.setUniform("source", sf::Shader::CurrentTexture);
+	sf::Shader& playerEmissionShader{
+		assets.GetShader(Config::Shader::PlayerEmission) };
+	playerEmissionShader.setUniform("source", sf::Shader::CurrentTexture);
 	for (const auto& entity : entities)
 	{
 		if (entity->GetType() == Entity::Type::Pickup)
 			DrawPickupAura(target, static_cast<const Pickup&>(*entity), shieldVisualTime, states);
 
 		target.draw(*entity, states);
+		if (entity->GetType() == Entity::Type::Enemy ||
+			entity->GetType() == Entity::Type::EnemyMissile)
+		{
+			sf::RenderStates emissionStates{ states };
+			emissionStates.shader = &enemyEmissionShader;
+			emissionStates.blendMode = sf::BlendAdd;
+			target.draw(entity->GetSprite(), emissionStates);
+		}
+		else if (entity->GetType() == Entity::Type::Player)
+		{
+			sf::RenderStates emissionStates{ states };
+			emissionStates.shader = &playerEmissionShader;
+			emissionStates.blendMode = sf::BlendAdd;
+			target.draw(entity->GetSprite(), emissionStates);
+		}
 
 		const Shield& shield{ session.GetPlayerShield() };
 		if (entity.get() == player && (shield.IsActive() || shield.IsHitFlashing()))

@@ -29,6 +29,7 @@ public:
         sf::RenderWindow& window,
         const GameplayData::LevelConfig::PostProcessConfig& config,
         const GameplayEffects::PostProcessState& effects,
+		float timeSlowdownStrength,
         const SceneRenderer& renderScene);
 
 private:

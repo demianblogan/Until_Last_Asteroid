@@ -44,8 +44,8 @@ movement and aiming, trigger shooting, and D-pad menu navigation.
 
 - Campaign menu with persistent, versioned progress
 - Optional guided tutorial for movement, combat, scoring, armor, and pickups
-- JSON-authored three-wave Level 1 with animated wave introductions
-- Health and timed shield pickups with dedicated HUD feedback
+- Three connected JSON-authored campaign levels with animated introductions
+- Health, shield, homing-bullet, and time-slowdown pickups with dynamic HUD feedback
 - Dynamic enemy waves system
 - Score system with scaling difficulty
 - Player physics (acceleration, damping, max speed)
@@ -82,17 +82,21 @@ movement and aiming, trigger shooting, and D-pad menu navigation.
 ### 🚀 Saucers
 - **Kamikaze** → spins while aggressively chasing the player (+200 pts)
 - **Shooter** → alternates fire between two cannons (+250 pts)
+- **Spinner** → follows a sinusoidal path while rotating and firing in three directions
+- **Missile Carrier** → launches slow, destructible homing missiles
 
 ---
 
 ## 🧩 Levels
 
-The game contains **5 levels** with increasing difficulty:
+The current campaign contains **3 connected levels**, each with three authored waves:
 
-- More enemies
-- Faster spawn rates
-- Mixed enemy types
-- Combined wave mechanics
+- **Blue Frontier**
+- **Violet Crossing**
+- **Shattered Belt**
+
+Completed levels can be replayed through the Select Level menu without rewinding
+campaign progress.
 
 ---
 

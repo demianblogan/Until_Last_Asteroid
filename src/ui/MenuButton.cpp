@@ -24,23 +24,43 @@ MenuButton::MenuButton(
     sf::Vector2f buttonSize)
     : idleTexture(idleTexture)
     , selectedTexture(selectedTexture)
-    , background(idleTexture)
+	, leftFrame(idleTexture)
+	, centerFrame(idleTexture)
+	, rightFrame(idleTexture)
     , label(font, std::move(labelText), 38)
     , size(buttonSize)
 {
     const sf::Vector2u textureSize{ idleTexture.getSize() };
-    background.setScale({
-        size.x / static_cast<float>(textureSize.x),
-        size.y / static_cast<float>(textureSize.y)
-    });
+	const int textureWidth{ static_cast<int>(textureSize.x) };
+	const int textureHeight{ static_cast<int>(textureSize.y) };
+	const int capWidth{ std::min(textureHeight, textureWidth / 2) };
+	const int centerWidth{ std::max(1, textureWidth - capWidth * 2) };
+	leftFrame.setTextureRect({ { 0, 0 }, { capWidth, textureHeight } });
+	centerFrame.setTextureRect({ { capWidth, 0 }, { centerWidth, textureHeight } });
+	rightFrame.setTextureRect({
+		{ textureWidth - capWidth, 0 }, { capWidth, textureHeight } });
+	const float uniformScale{ size.y / static_cast<float>(textureHeight) };
+	const float targetCapWidth{ static_cast<float>(capWidth) * uniformScale };
+	const float targetCenterWidth{ std::max(1.f, size.x - targetCapWidth * 2.f) };
+	leftFrame.setScale({ uniformScale, uniformScale });
+	centerFrame.setScale({
+		targetCenterWidth / static_cast<float>(centerWidth), uniformScale });
+	rightFrame.setScale({ uniformScale, uniformScale });
 
     label.setFillColor(sf::Color::White);
+	SetPosition({});
     CenterLabel();
 }
 
 void MenuButton::SetPosition(sf::Vector2f position)
 {
-    background.setPosition(position);
+	this->position = position;
+	const float capWidth{ leftFrame.getGlobalBounds().size.x };
+	leftFrame.setPosition(position);
+	centerFrame.setPosition({ position.x + capWidth, position.y });
+	rightFrame.setPosition({
+		position.x + size.x - rightFrame.getGlobalBounds().size.x,
+		position.y });
     CenterLabel();
 }
 
@@ -77,12 +97,12 @@ bool MenuButton::IsEnabled() const noexcept
 
 bool MenuButton::Contains(sf::Vector2f point) const
 {
-    return background.getGlobalBounds().contains(point);
+	return sf::FloatRect(position, size).contains(point);
 }
 
 sf::FloatRect MenuButton::GetBounds() const
 {
-    return background.getGlobalBounds();
+	return { position, size };
 }
 
 void MenuButton::Draw(sf::RenderTarget& target) const
@@ -92,7 +112,9 @@ void MenuButton::Draw(sf::RenderTarget& target) const
 
 void MenuButton::Draw(sf::RenderTarget& target, const sf::RenderStates& states) const
 {
-    target.draw(background, states);
+	target.draw(leftFrame, states);
+	target.draw(centerFrame, states);
+	target.draw(rightFrame, states);
     target.draw(label, states);
 }
 
@@ -104,7 +126,7 @@ void MenuButton::CenterLabel()
         bounds.position.y + bounds.size.y * 0.5f
     });
 
-    label.setPosition(background.getPosition() + size * 0.5f);
+	label.setPosition(position + size * 0.5f);
 }
 
 void MenuButton::ApplyVisualState()
@@ -112,12 +134,17 @@ void MenuButton::ApplyVisualState()
     const auto alpha{ static_cast<std::uint8_t>(frameOpacity * 255.f) };
     if (!enabled)
     {
-        background.setTexture(idleTexture, true);
-        background.setColor(sf::Color(
+		leftFrame.setTexture(idleTexture, false);
+		centerFrame.setTexture(idleTexture, false);
+		rightFrame.setTexture(idleTexture, false);
+		const sf::Color frameColor(
             DisabledFrameBrightness,
             DisabledFrameBrightness,
             DisabledFrameBrightness,
-            alpha));
+			alpha);
+		leftFrame.setColor(frameColor);
+		centerFrame.setColor(frameColor);
+		rightFrame.setColor(frameColor);
         label.setFillColor(sf::Color(
             DisabledTextColor.r,
             DisabledTextColor.g,
@@ -126,8 +153,14 @@ void MenuButton::ApplyVisualState()
         return;
     }
 
-    background.setTexture(selected ? selectedTexture : idleTexture, true);
-    background.setColor(sf::Color(255, 255, 255, alpha));
+	const sf::Texture& texture{ selected ? selectedTexture : idleTexture };
+	leftFrame.setTexture(texture, false);
+	centerFrame.setTexture(texture, false);
+	rightFrame.setTexture(texture, false);
+	const sf::Color frameColor(255, 255, 255, alpha);
+	leftFrame.setColor(frameColor);
+	centerFrame.setColor(frameColor);
+	rightFrame.setColor(frameColor);
     const sf::Color textColor{ selected ? SelectedTextColor : sf::Color::White };
     label.setFillColor(sf::Color(textColor.r, textColor.g, textColor.b, alpha));
 }

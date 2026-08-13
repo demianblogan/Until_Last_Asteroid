@@ -1,6 +1,7 @@
 #include "GameplayPostProcessor.h"
 
 #include <algorithm>
+#include <array>
 
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -45,6 +46,7 @@ void GameplayPostProcessor::Render(
     sf::RenderWindow& window,
     const GameplayData::LevelConfig::PostProcessConfig& config,
     const GameplayEffects::PostProcessState& effects,
+	float timeSlowdownStrength,
     const SceneRenderer& renderScene)
 {
     if (!EnsureSize(window))
@@ -69,12 +71,32 @@ void GameplayPostProcessor::Render(
     compositeShader.setUniform("vignetteStrength", config.vignetteStrength);
     compositeShader.setUniform("damageVignette", effects.damageVignette);
     compositeShader.setUniform("aspectRatio", logicalSize.x / logicalSize.y);
-    compositeShader.setUniform("shockwaveActive", effects.shockwaveActive);
-    compositeShader.setUniform("shockwaveCenter", sf::Glsl::Vec2(
-        effects.shockwavePosition.x / logicalSize.x,
-        effects.shockwavePosition.y / logicalSize.y));
-    compositeShader.setUniform("shockwaveRadius", effects.shockwaveRadius / logicalSize.y);
-    compositeShader.setUniform("shockwaveStrength", effects.shockwaveStrength);
+	const auto shockwaveCount{ std::min(
+		effects.shockwaveCount, GameplayEffects::MaximumShockwaves) };
+	compositeShader.setUniform("shockwaveCount", static_cast<int>(shockwaveCount));
+	if (shockwaveCount > 0u)
+	{
+		std::array<sf::Glsl::Vec2, GameplayEffects::MaximumShockwaves> centers;
+		std::array<float, GameplayEffects::MaximumShockwaves> radii{};
+		for (std::size_t index{ 0u }; index < shockwaveCount; ++index)
+		{
+			// RenderTexture sampling uses a vertically flipped texture matrix.
+			// World coordinates originate at the top-left, so convert Y to the
+			// shader's bottom-left UV space before locating the shockwave.
+			centers[index] = sf::Glsl::Vec2(
+				effects.shockwavePositions[index].x / logicalSize.x,
+				1.f - effects.shockwavePositions[index].y / logicalSize.y);
+			radii[index] = effects.shockwaveRadii[index] / logicalSize.y;
+		}
+		compositeShader.setUniformArray(
+			"shockwaveCenters", centers.data(), shockwaveCount);
+		compositeShader.setUniformArray(
+			"shockwaveRadii", radii.data(), shockwaveCount);
+		compositeShader.setUniformArray(
+			"shockwaveStrengths", effects.shockwaveStrengths.data(), shockwaveCount);
+	}
+	compositeShader.setUniform("timeSlowdownStrength",
+		std::clamp(timeSlowdownStrength, 0.f, 1.f));
 
     sf::Sprite result(scene.getTexture());
     const sf::Vector2u sceneSize{ scene.getSize() };

@@ -43,6 +43,7 @@ public:
     void PauseSounds(SoundGroup group);
     void ResumeSounds(SoundGroup group);
     void StopSounds(SoundGroup group);
+	void SetGameplayPitch(float pitch);
 
     void PlayMusic(Config::Music id, bool looping = true, float baseVolume = 100.f);
     void StopMusic(Config::Music id);
@@ -61,4 +62,5 @@ private:
     AudioBalance balance;
     std::vector<std::unique_ptr<ActiveSound>> activeSounds;
     std::unordered_map<Config::Music, float> musicBaseVolumes;
+	float gameplayPitch{ 1.f };
 };
