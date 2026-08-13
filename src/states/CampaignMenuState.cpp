@@ -132,7 +132,7 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
 
 void CampaignMenuState::HandleEvent(const sf::Event& event)
 {
-    if (launchingGameplay || screenFade.IsActive())
+    if (launchingGameplay || launchingUpgrades || launchingLevelSelect || screenFade.IsActive())
         return;
 
     using enum GamepadManager::NavigationAction;
@@ -263,6 +263,15 @@ void CampaignMenuState::Update(float deltaTime)
         RequestClear();
         RequestPush(StateId::Gameplay);
     }
+	else if (launchingUpgrades && !screenFade.IsActive())
+	{
+		RequestClear();
+		RequestPush(StateId::ShipUpgrades);
+	}
+	else if (launchingLevelSelect && !screenFade.IsActive())
+	{
+		RequestPush(StateId::LevelSelect);
+	}
 }
 
 void CampaignMenuState::Render()
@@ -385,7 +394,19 @@ void CampaignMenuState::ActivateSelected()
     switch (buttonActions[selectedIndex])
     {
     case MenuAction::ContinueCampaign:
-        BeginGameplay(GameplayLaunchMode::ContinueCampaign);
+		if (const CampaignProgress* progress{ GetContext().campaignSave.GetProgress() };
+			progress != nullptr && progress->phase == CampaignPhase::AwaitingUpgrades)
+		{
+			launchingUpgrades = true;
+			screenFade.StartFadeOut(FadeDuration);
+		}
+		else if (progress != nullptr && progress->phase == CampaignPhase::ContentComplete)
+		{
+			launchingLevelSelect = true;
+			screenFade.StartFadeOut(FadeDuration);
+		}
+		else
+			BeginGameplay(GameplayLaunchMode::ContinueCampaign);
         break;
     case MenuAction::StartNewCampaign:
         if (GetContext().campaignSave.HasSave())

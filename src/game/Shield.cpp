@@ -7,12 +7,14 @@ void Shield::Configure(float newCapacity, float newDuration) noexcept
 {
     capacity = std::max(1.f, newCapacity);
     duration = std::max(0.1f, newDuration);
+    activeDuration = duration;
     current = 0.f;
     hitFlashRemaining = 0.f;
 }
 
-void Shield::Activate() noexcept
+void Shield::Activate(float extraDuration) noexcept
 {
+    activeDuration = duration + std::max(0.f, extraDuration);
     current = capacity;
     hitFlashRemaining = 0.f;
 }
@@ -30,7 +32,7 @@ void Shield::Update(float deltaTime) noexcept
 
     hitFlashRemaining = std::max(0.f, hitFlashRemaining - deltaTime);
     if (IsActive())
-        current = std::max(0.f, current - capacity / duration * deltaTime);
+        current = std::max(0.f, current - capacity / activeDuration * deltaTime);
 }
 
 int Shield::AbsorbDamage(int damage) noexcept

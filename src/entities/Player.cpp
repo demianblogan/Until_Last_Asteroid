@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <numbers>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Mouse.hpp>
@@ -9,6 +10,14 @@
 #include "core/World.h"
 #include "game/GameplaySession.h"
 #include "systems/GamepadManager.h"
+
+namespace
+{
+	constexpr float PlayerLaserPitch{ 1.25f };
+	constexpr float PlayerLaserLoopStart{ 1.f };
+	constexpr float PlayerLaserLoopEnd{ 4.8f };
+	constexpr float PlayerLaserOutroStart{ 4.8f };
+}
 
 Player::Player(AssetStore& assets, World& world, InputHandler<Config::PlayerAction>& input,
 	GamepadManager& gamepadManager)
@@ -24,6 +33,7 @@ Player::Player(AssetStore& assets, World& world, InputHandler<Config::PlayerActi
 
 Player::~Player()
 {
+	GetWorld().StopSound(laserSoundHandle);
 	input.UnsubscribeAll(Config::PlayerAction::Up);
 	input.UnsubscribeAll(Config::PlayerAction::Down);
 	input.UnsubscribeAll(Config::PlayerAction::Left);
@@ -45,6 +55,7 @@ void Player::Update(float deltaTime)
 	UpdateMovement(deltaTime);
 	if (controlEnabled)
 		UpdateRotation();
+	UpdateLaser(deltaTime);
 }
 
 void Player::HandleEvent(const sf::Event& event)
@@ -76,11 +87,20 @@ void Player::SetControlEnabled(bool enabled) noexcept
 {
 	controlEnabled = enabled;
 	if (!controlEnabled)
+	{
+		GetWorld().StopSound(laserSoundHandle);
+		laserSoundHandle = 0u;
 		moveInput = { 0.f, 0.f };
+		laserRequested = false;
+		laserFiring = false;
+		laserDamageTimer = 0.f;
+	}
 }
 
 void Player::OnDestroy()
 {
+	GetWorld().StopSound(laserSoundHandle);
+	laserSoundHandle = 0u;
 	SetVisible(true);
 	GetWorld().AddEffectEvent({
 		World::EffectEventType::ShipExplosion,
@@ -155,6 +175,27 @@ sf::Vector2f Player::GetMuzzlePosition() const
 	return sprite.getTransform().transformPoint(localPosition);
 }
 
+sf::Vector2f Player::GetLaserEndPosition() const
+{
+	const sf::Vector2f start{ GetPosition() };
+	const sf::Vector2f direction{ GetAimDirection() };
+	float distance{ std::numeric_limits<float>::max() };
+	const float width{ static_cast<float>(GetWorld().GetWidth()) };
+	const float height{ static_cast<float>(GetWorld().GetHeight()) };
+	if (direction.x > 0.0001f)
+		distance = std::min(distance, (width - start.x) / direction.x);
+	else if (direction.x < -0.0001f)
+		distance = std::min(distance, -start.x / direction.x);
+	if (direction.y > 0.0001f)
+		distance = std::min(distance, (height - start.y) / direction.y);
+	else if (direction.y < -0.0001f)
+		distance = std::min(distance, -start.y / direction.y);
+	return start + direction * std::max(0.f, distance);
+}
+
+bool Player::IsLaserFiring() const noexcept { return laserFiring; }
+float Player::GetLaserVisualTime() const noexcept { return laserVisualTime; }
+
 sf::Vector2f Player::GetExhaustDirection() const noexcept
 {
 	const float angle{ GetRotation().asRadians() + std::numbers::pi_v<float> * 0.5f };
@@ -181,6 +222,7 @@ void Player::BindInput()
 void Player::UpdateMovement(float dt)
 {
 	const auto& config{ GetAssets().GetGameplayData().GetPlayer() };
+	const float speedMultiplier{ GetWorld().GetSession().GetSpeedMultiplier() };
 	sf::Vector2f velocity{ GetVelocity() };
 
 	isThrusting = moveInput.x != 0.f || moveInput.y != 0.f;
@@ -188,12 +230,13 @@ void Player::UpdateMovement(float dt)
 	{
 		const float length{ std::sqrt(moveInput.x * moveInput.x + moveInput.y * moveInput.y) };
 		const float intensity{ std::min(length, 1.f) };
-		velocity += moveInput / length * config.acceleration * intensity * dt;
+		velocity += moveInput / length * config.acceleration * speedMultiplier * intensity * dt;
 	}
 
 	const float speed{ std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y) };
-	if (speed > config.maximumSpeed)
-		velocity = velocity / speed * config.maximumSpeed;
+	const float maximumSpeed{ config.maximumSpeed * speedMultiplier };
+	if (speed > maximumSpeed)
+		velocity = velocity / speed * maximumSpeed;
 
 	velocity *= std::pow(config.damping, dt * 60.f);
 	SetVelocity(velocity);
@@ -245,14 +288,84 @@ void Player::UpdateInvulnerability(float dt)
 	SetVisible(static_cast<int>(invulnerabilityTimer / BlinkInterval) % 2 == 0);
 }
 
+sf::Vector2f Player::GetAimDirection() const noexcept
+{
+	const float angle{ GetRotation().asRadians() - std::numbers::pi_v<float> * 0.5f };
+	return { std::cos(angle), std::sin(angle) };
+}
+
+void Player::UpdateLaser(float dt)
+{
+	const auto& pickupConfig{ GetAssets().GetGameplayData().GetPickups() };
+	const bool wasFiring{ laserFiring };
+	laserFiring = controlEnabled && laserRequested &&
+		GetWorld().GetSession().IsLaserActive();
+	laserRequested = false;
+	if (!laserFiring)
+	{
+		if (wasFiring)
+		{
+			if (controlEnabled && GetWorld().GetSession().IsLaserActive())
+				GetWorld().ReleaseSound(laserSoundHandle);
+			else
+				GetWorld().StopSound(laserSoundHandle);
+			laserSoundHandle = 0u;
+		}
+		laserDamageTimer = 0.f;
+		return;
+	}
+
+	laserVisualTime += dt;
+	laserDamageTimer += dt;
+	if (!wasFiring)
+	{
+		laserDamageTimer = pickupConfig.laserDamageInterval;
+		laserSoundHandle = GetWorld().AddSustainedSound(
+			Config::Sound::EnemyLaserShot,
+			PlayerLaserPitch,
+			PlayerLaserLoopStart,
+			PlayerLaserLoopEnd,
+			PlayerLaserOutroStart);
+	}
+	while (laserDamageTimer >= pickupConfig.laserDamageInterval)
+	{
+		laserDamageTimer -= pickupConfig.laserDamageInterval;
+		const std::uint64_t attackId{ GetWorld().BeginPlayerAttack() };
+		const int damage{ GetAssets().GetGameplayData().GetProjectile(
+			GameplayData::ProjectileKind::Player).damage };
+		GetWorld().DamageEnemiesWithPlayerLaser(
+			GetPosition(), GetLaserEndPosition(),
+			pickupConfig.laserWidth, damage, attackId);
+	}
+}
+
 void Player::Shoot()
 {
 	if (!controlEnabled)
 		return;
-	const float cooldown{ GetAssets().GetGameplayData().GetPlayer().shootCooldown };
+	if (GetWorld().GetSession().IsLaserActive())
+	{
+		laserRequested = true;
+		return;
+	}
+	const float cooldown{ GetAssets().GetGameplayData().GetPlayer().shootCooldown /
+		GetWorld().GetSession().GetFireRateMultiplier() };
 	if (shootTimer < cooldown)
 		return;
 
-	GetWorld().SpawnPlayerShot(GetMuzzlePosition(), GetRotation().asDegrees());
+	const std::uint64_t attackId{ GetWorld().BeginPlayerAttack() };
+	const float rotation{ GetRotation().asDegrees() };
+	const bool tripleShot{ GetWorld().GetSession().IsTripleShotActive() };
+	GetWorld().SpawnPlayerShot(
+		GetMuzzlePosition(), rotation, attackId, true, tripleShot);
+	if (tripleShot)
+	{
+		const float spread{
+			GetAssets().GetGameplayData().GetPickups().tripleShotAngleDegrees };
+		GetWorld().SpawnPlayerShot(
+			GetMuzzlePosition(), rotation - spread, attackId, false, true);
+		GetWorld().SpawnPlayerShot(
+			GetMuzzlePosition(), rotation + spread, attackId, false, true);
+	}
 	shootTimer = 0.f;
 }

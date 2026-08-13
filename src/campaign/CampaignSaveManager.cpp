@@ -12,6 +12,23 @@ namespace
 {
     using Json = nlohmann::json;
 
+	const char* SerializePhase(CampaignPhase phase)
+	{
+		switch (phase)
+		{
+		case CampaignPhase::AwaitingUpgrades: return "awaiting_upgrades";
+		case CampaignPhase::ContentComplete: return "content_complete";
+		default: return "playing";
+		}
+	}
+
+	CampaignPhase DeserializePhase(const std::string& value)
+	{
+		if (value == "awaiting_upgrades") return CampaignPhase::AwaitingUpgrades;
+		if (value == "content_complete") return CampaignPhase::ContentComplete;
+		return CampaignPhase::Playing;
+	}
+
     Json Serialize(const CampaignProgress& progress)
     {
         Json bestScores{ Json::object() };
@@ -26,7 +43,15 @@ namespace
             { "highest_unlocked_level", progress.highestUnlockedLevel },
             { "completed_levels", progress.completedLevels },
             { "level_best_scores", std::move(bestScores) },
-            { "campaign_score", progress.campaignScore }
+			{ "parts_balance", progress.partsBalance },
+			{ "collected_part_ids", progress.collectedPartIds },
+			{ "campaign_phase", SerializePhase(progress.phase) },
+			{ "ship_upgrades", {
+				{ "armor", progress.upgrades.armor },
+				{ "engines", progress.upgrades.engines },
+				{ "fire_rate", progress.upgrades.fireRate },
+				{ "bonus_duration", progress.upgrades.bonusDuration }
+			} }
         };
     }
 
@@ -45,7 +70,26 @@ namespace
         result.campaignCompleted = data.value("campaign_completed", false);
         result.currentLevel = std::max(1, data.value("current_level", 1));
         result.highestUnlockedLevel = std::max(1, data.value("highest_unlocked_level", 1));
-        result.campaignScore = std::max(0, data.value("campaign_score", 0));
+		result.partsBalance = std::max(0, data.value("parts_balance", 0));
+		result.phase = DeserializePhase(data.value("campaign_phase", "playing"));
+		if (const auto upgrades{ data.find("ship_upgrades") };
+			upgrades != data.end() && upgrades->is_object())
+		{
+			result.upgrades.armor = upgrades->value("armor", 0);
+			result.upgrades.engines = upgrades->value("engines", 0);
+			result.upgrades.fireRate = upgrades->value("fire_rate", 0);
+			result.upgrades.bonusDuration = upgrades->value("bonus_duration", 0);
+			ShipUpgradeRules::Clamp(result.upgrades);
+		}
+		if (const auto parts{ data.find("collected_part_ids") };
+			parts != data.end() && parts->is_array())
+		{
+			for (const Json& id : *parts)
+			{
+				if (id.is_string() && !id.get_ref<const std::string&>().empty())
+					result.collectedPartIds.push_back(id.get<std::string>());
+			}
+		}
 
         if (const auto completed{ data.find("completed_levels") };
             completed != data.end() && completed->is_array())

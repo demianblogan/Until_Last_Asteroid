@@ -10,11 +10,14 @@
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
 #include "campaign/CampaignSaveManager.h"
+#include "entities/LaserTurret.h"
 #include "entities/Meteor.h"
 #include "entities/MissileCarrier.h"
 #include "entities/Saucer.h"
+#include "entities/ShooterStation.h"
 #include "entities/Spinner.h"
 #include "game/GameplayLaunch.h"
+#include "records/RecordsManager.h"
 #include "settings/SettingsManager.h"
 #include "systems/GamepadManager.h"
 #include "utils/Random.h"
@@ -25,12 +28,15 @@ namespace
 	constexpr float GameplayFadeInDuration{ 0.45f };
 	constexpr float GameplayFadeOutDuration{ 0.38f };
 	constexpr float PlayerSpawnDuration{ 0.55f };
+	constexpr float PlayerTeleportDuration{ 0.8f };
+	constexpr float PlayerTeleportMoveTime{ 0.34f };
 	constexpr float WaveMaterializationDuration{ 0.5f };
 	constexpr float WaveClearDelayDuration{ 2.f };
 	constexpr float TimeSlowdownFadeSpeed{ 4.f };
-	constexpr int MaximumArmorBonus{ 500 };
-	constexpr int MaximumAccuracyBonus{ 500 };
-	constexpr int MaximumTimeBonus{ 1000 };
+	constexpr float ArmorBonusThreshold{ 0.75f };
+	constexpr int ArmorBonusPoints{ 500 };
+	constexpr int AccuracyBonusPoints{ 600 };
+	constexpr int AllPartsBonusPoints{ 1000 };
 }
 
 GameplayState::GameplayState(StateStack& stateStack, StateContext context)
@@ -49,7 +55,7 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	, resultScreen(context.assets, context.audio, context.gamepad, context.logicalSize)
 	, screenFade(context.logicalSize)
 	, levelIntro(context.assets, context.logicalSize)
-	, waveIntro(context.assets, context.audio)
+	, waveIntro(context.assets)
 {
 	world.SetWindow(context.window);
 	context.window.setMouseCursorVisible(false);
@@ -64,6 +70,14 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	const GameplayLaunchMode launchMode{ context.gameplayLaunch.mode };
 	context.gameplayLaunch.mode = GameplayLaunchMode::ContinueCampaign;
 	const CampaignProgress* progress{ context.campaignSave.GetProgress() };
+	if (progress != nullptr)
+		session.ConfigureUpgrades(progress->upgrades);
+	session.ConfigurePlayerHealth(static_cast<int>(std::lround(
+		static_cast<float>(gameplayData.GetPlayer().maximumHealth) *
+		session.GetArmorMultiplier())));
+	session.GetPlayerHealth().Reset();
+	if (progress != nullptr)
+		session.ConfigureParts(progress->partsBalance, progress->collectedPartIds);
 	const bool resumeUnfinishedTutorial{
 		launchMode == GameplayLaunchMode::ContinueCampaign &&
 		progress != nullptr && !progress->tutorialCompleted };
@@ -81,10 +95,7 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 			selectedLevel == progress->currentLevel &&
 			std::ranges::find(progress->completedLevels, selectedLevel) ==
 				progress->completedLevels.end();
-		const int startingScore{ selectedLevelAdvancesCampaign && progress != nullptr
-			? std::max(0, progress->campaignScore)
-			: 0 };
-		session.StartAtLevel(selectedLevel, startingScore);
+		session.StartAtLevel(selectedLevel);
 		SpawnLevel();
 	}
 	else if (launchMode == GameplayLaunchMode::Tutorial || resumeUnfinishedTutorial)
@@ -94,6 +105,8 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 		RestoreCampaignProgress();
 		SpawnLevel();
 	}
+	if (hud)
+		hud->Update(0.f);
 	screenFade.StartFadeIn(GameplayFadeInDuration);
 	context.audio.PlayMusic(Config::Music::GameplayBackground1);
 }
@@ -159,6 +172,14 @@ void GameplayState::HandleEvent(const sf::Event& event)
 
 	if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
 	{
+#ifdef _DEBUG
+		if (key->code == sf::Keyboard::Key::F1 && session.IsPlaying() &&
+			!tutorialActive)
+		{
+			DebugCompleteCurrentLevel();
+			return;
+		}
+#endif
 		if (key->code == sf::Keyboard::Key::Escape && session.IsPlaying())
 		{
 			OpenPauseMenu();
@@ -263,7 +284,7 @@ void GameplayState::Update(float dt)
 				effects.Clear();
 				tutorial.reset();
 				tutorialActive = false;
-				session.StartAtLevel(1, 0);
+				session.StartAtLevel(1);
 				SpawnLevel();
 				screenFade.StartFadeIn(GameplayFadeInDuration);
 			}
@@ -273,6 +294,12 @@ void GameplayState::Update(float dt)
 				RequestClear();
 				RequestPush(StateId::CampaignMenu);
 				RequestPush(StateId::LevelSelect);
+			}
+			else if (completedTransition == GameplayTransition::ShipUpgrades)
+			{
+				GetContext().audio.StopMusic(Config::Music::GameplayBackground1);
+				RequestClear();
+				RequestPush(StateId::ShipUpgrades);
 			}
 			else if (completedTransition == GameplayTransition::MainMenu)
 			{
@@ -338,6 +365,7 @@ void GameplayState::Update(float dt)
 	}
 	if (waveClearDelayActive)
 	{
+		UpdatePlayerWaveTeleport(dt);
 		waveClearDelayRemaining = std::max(0.f, waveClearDelayRemaining - dt);
 		if (waveClearDelayRemaining <= 0.f)
 		{
@@ -348,9 +376,10 @@ void GameplayState::Update(float dt)
 		return;
 	}
 
-	waveDirector.Update(dt * worldTimeScale, [this](const GameplayData::SpawnGroup& spawn)
+	waveDirector.Update(dt * worldTimeScale, [this](
+		const GameplayData::SpawnGroup& spawn, std::size_t spawnIndex)
 	{
-		SpawnConfiguredEnemy(spawn);
+		SpawnConfiguredEnemy(spawn, spawnIndex);
 	});
 
 	if (waveDirector.IsDeploymentComplete() && world.IsCleared())
@@ -360,34 +389,11 @@ void GameplayState::Update(float dt)
 			waveClearDelayActive = true;
 			waveClearDelayRemaining = WaveClearDelayDuration;
 			world.SetPlayerControlEnabled(false);
+			BeginPlayerWaveTeleport();
 			return;
 		}
 
-		const ResultScreen::Statistics levelStatistics{ FinalizeLevelStatistics() };
-		session.ClearTemporaryEffects();
-		world.ClearPickups();
-		if (hud)
-			hud->Update(0.f);
-		SaveCompletedLevel();
-		BeginLevelCompleteAudio();
-		if (selectedLevelRun)
-		{
-			session.SetLevelComplete();
-			resultScreen.Start(ResultScreen::Mode::LevelReplay,
-				session.GetLevel(), levelStatistics);
-		}
-		else if (session.GetLevel() >= gameplayData.GetLevelCount())
-		{
-			session.SetWin();
-			resultScreen.Start(ResultScreen::Mode::Victory,
-				session.GetLevel(), levelStatistics);
-		}
-		else
-		{
-			session.SetLevelComplete();
-			resultScreen.Start(ResultScreen::Mode::LevelComplete,
-				session.GetLevel(), levelStatistics);
-		}
+		CompleteCurrentLevel();
 	}
 }
 
@@ -455,6 +461,7 @@ void GameplayState::SpawnPlayerIfNeeded()
 
 void GameplayState::SpawnConfiguredEnemy(
 	const GameplayData::SpawnGroup& spawn,
+	std::size_t spawnIndex,
 	bool materialize)
 {
 	using Kind = GameplayData::EnemyKind;
@@ -485,12 +492,76 @@ void GameplayState::SpawnConfiguredEnemy(
 		entity = std::make_unique<MissileCarrier>(GetContext().assets, world);
 		edgeSpawn = true;
 		break;
+	case Kind::LaserTurret:
+		entity = std::make_unique<LaserTurret>(GetContext().assets, world);
+		break;
+	case Kind::ShooterStation:
+		entity = std::make_unique<ShooterStation>(GetContext().assets, world);
+		break;
 	default:
 		std::unreachable();
 	}
 	static_cast<Enemy&>(*entity).SetPickupDrop(spawn.drop);
+	if (spawnIndex < spawn.partIds.size())
+		static_cast<Enemy&>(*entity).SetPartDropId(spawn.partIds[spawnIndex]);
 
-	entity->SetPosition(edgeSpawn ? GetSafeEdgeSpawnPosition() : GetSafeSpawnPosition());
+	if (auto* turret{ dynamic_cast<LaserTurret*>(entity.get()) })
+	{
+		const float inset{ turret->GetCollisionRadius() + 8.f };
+		const float right{ static_cast<float>(world.GetWidth()) - inset };
+		const float bottom{ static_cast<float>(world.GetHeight()) - inset };
+		sf::Vector2f first;
+		sf::Vector2f second;
+		sf::Vector2f inward;
+		switch (Random::Int(0, 3))
+		{
+		case 0: first = { inset, inset }; second = { right, inset }; inward = { 0.f, 1.f }; break;
+		case 1: first = { right, inset }; second = { right, bottom }; inward = { -1.f, 0.f }; break;
+		case 2: first = { right, bottom }; second = { inset, bottom }; inward = { 0.f, -1.f }; break;
+		default: first = { inset, bottom }; second = { inset, inset }; inward = { 1.f, 0.f }; break;
+		}
+		if (Random::Int(0, 1) == 1)
+			std::swap(first, second);
+		turret->ConfigurePath(first, second, inward);
+	}
+	else if (auto* station{ dynamic_cast<ShooterStation*>(entity.get()) })
+	{
+		const float inset{ station->GetCollisionRadius() + 8.f };
+		const float width{ static_cast<float>(world.GetWidth()) };
+		const float height{ static_cast<float>(world.GetHeight()) };
+		sf::Vector2f first;
+		sf::Vector2f second;
+		if (Random::Int(0, 1) == 0)
+		{
+			first = { inset, height * 0.5f };
+			second = { width - inset, height * 0.5f };
+		}
+		else
+		{
+			first = { width * 0.5f, inset };
+			second = { width * 0.5f, height - inset };
+		}
+		if (Random::Int(0, 1) == 1)
+			std::swap(first, second);
+		station->ConfigurePath(first, second);
+	}
+	else
+	{
+		entity->SetPosition(edgeSpawn ? GetSafeEdgeSpawnPosition() : GetSafeSpawnPosition());
+		if (spawn.kind == Kind::Shooter || spawn.kind == Kind::Spinner ||
+			spawn.kind == Kind::MissileCarrier)
+		{
+			const sf::Vector2f entryTarget{
+				Random::Float(world.GetWidth() * 0.36f, world.GetWidth() * 0.64f),
+				Random::Float(world.GetHeight() * 0.32f, world.GetHeight() * 0.68f) };
+			if (auto* saucer{ dynamic_cast<Saucer*>(entity.get()) })
+				saucer->ConfigureApproachTarget(entryTarget);
+			else if (auto* spinner{ dynamic_cast<Spinner*>(entity.get()) })
+				spinner->ConfigureApproachTarget(entryTarget);
+			else if (auto* carrier{ dynamic_cast<MissileCarrier*>(entity.get()) })
+				carrier->ConfigureApproachTarget(entryTarget);
+		}
+	}
 	if (materialize)
 	{
 		entity->SetPresentation(0.7f, 0.f, sf::Color(80, 225, 255));
@@ -633,7 +704,7 @@ TutorialDirector::Snapshot GameplayState::GetTutorialSnapshot() const
 	const World::Statistics& statistics{ world.GetStatistics() };
 	return {
 		world.GetPlayerPosition(),
-		statistics.playerShotsFired,
+		statistics.playerAttacksFired,
 		statistics.bigMeteorsDestroyed,
 		statistics.smallMeteorsDestroyed,
 		statistics.shootersDestroyed,
@@ -650,11 +721,14 @@ void GameplayState::Reset()
 	levelIntro.Reset();
 	gameplayTransition = GameplayTransition::None;
 	playerSpawnElapsed = 0.f;
+	playerTeleportElapsed = 0.f;
 	waveMaterializationElapsed = 0.f;
 	waveClearDelayRemaining = 0.f;
 	timeSlowdownVisualStrength = 0.f;
 	GetContext().audio.SetGameplayPitch(1.f);
 	playerSpawnAnimating = false;
+	playerTeleportAnimating = false;
+	playerTeleportMoved = false;
 	waveClearDelayActive = false;
 	materializingEnemies.clear();
 	tutorial.reset();
@@ -670,8 +744,8 @@ void GameplayState::RestoreCampaignProgress()
 		return;
 
 	const int level{ std::clamp(progress->currentLevel, 1, gameplayData.GetLevelCount()) };
-	const int score{ std::max(0, progress->campaignScore) };
-	session.StartAtLevel(level, score);
+	session.StartAtLevel(level);
+	session.ConfigureParts(progress->partsBalance, progress->collectedPartIds);
 }
 
 void GameplayState::SaveCompletedLevel()
@@ -681,6 +755,10 @@ void GameplayState::SaveCompletedLevel()
 		return;
 
 	const int completedLevel{ session.GetLevel() };
+	progress->partsBalance = session.GetPartsBalance();
+	progress->collectedPartIds.assign(
+		session.GetCollectedPartIds().begin(), session.GetCollectedPartIds().end());
+	std::ranges::sort(progress->collectedPartIds);
 	if (std::ranges::find(progress->completedLevels, completedLevel) ==
 		progress->completedLevels.end())
 	{
@@ -689,19 +767,27 @@ void GameplayState::SaveCompletedLevel()
 
 	int& bestScore{ progress->levelBestScores[completedLevel] };
 	bestScore = std::max(bestScore, session.GetLevelScore());
+	static_cast<void>(GetContext().records.SubmitCampaignLevelScore(
+		completedLevel, session.GetLevelScore()));
 	if (selectedLevelRun && !selectedLevelAdvancesCampaign)
 	{
 		static_cast<void>(GetContext().campaignSave.Save());
 		return;
 	}
-	progress->campaignScore = session.GetScore();
 	progress->highestUnlockedLevel = std::max(
 		progress->highestUnlockedLevel,
 		std::min(completedLevel + 1, gameplayData.GetLevelCount()));
+	progress->phase = CampaignPhase::AwaitingUpgrades;
 
-	if (completedLevel >= gameplayData.GetLevelCount())
+	constexpr int FinalCampaignLevel{ 10 };
+	if (completedLevel >= FinalCampaignLevel)
 	{
 		progress->campaignCompleted = true;
+		progress->currentLevel = FinalCampaignLevel;
+	}
+	else if (completedLevel >= gameplayData.GetLevelCount())
+	{
+		progress->campaignCompleted = false;
 		progress->currentLevel = gameplayData.GetLevelCount();
 	}
 	else
@@ -718,41 +804,78 @@ ResultScreen::Statistics GameplayState::FinalizeLevelStatistics()
 	const World::Statistics& worldStatistics{ world.GetStatistics() };
 	const float armorRatio{ std::clamp(
 		session.GetPlayerHealth().GetRatio(), 0.f, 1.f) };
-	const float rawAccuracyRatio{ worldStatistics.playerShotsFired > 0u
+	const float rawAccuracyRatio{ worldStatistics.playerAttacksFired > 0u
 		? std::clamp(
-			static_cast<float>(worldStatistics.playerShotsHit) /
-			static_cast<float>(worldStatistics.playerShotsFired), 0.f, 1.f)
+			static_cast<float>(worldStatistics.playerAttacksHit) /
+			static_cast<float>(worldStatistics.playerAttacksFired), 0.f, 1.f)
 		: 0.f };
 	const float targetAccuracyRatio{ level.targetAccuracyPercent / 100.f };
-	const float accuracyBonusRatio{ std::clamp(
-		rawAccuracyRatio / targetAccuracyRatio, 0.f, 1.f) };
-	const float timeRatio{ levelGameplayElapsed > 0.f
-		? std::clamp(level.targetTimeSeconds / levelGameplayElapsed, 0.f, 1.f)
-		: 1.f };
 
 	ResultScreen::Statistics result;
 	result.combatScore = session.GetLevelScore();
 	result.armorPercent = static_cast<int>(std::lround(armorRatio * 100.f));
-	result.armorBonus = static_cast<int>(std::lround(
-		armorRatio * static_cast<float>(MaximumArmorBonus)));
-	result.shotsHit = worldStatistics.playerShotsHit;
-	result.shotsFired = worldStatistics.playerShotsFired;
+	result.armorBonus = armorRatio >= ArmorBonusThreshold ? ArmorBonusPoints : 0;
+	result.attacksHit = worldStatistics.playerAttacksHit;
+	result.attacksFired = worldStatistics.playerAttacksFired;
 	result.accuracyPercent = static_cast<int>(std::lround(rawAccuracyRatio * 100.f));
 	result.targetAccuracyPercent = static_cast<int>(
 		std::lround(level.targetAccuracyPercent));
-	result.accuracyBonus = static_cast<int>(std::lround(
-		accuracyBonusRatio * static_cast<float>(MaximumAccuracyBonus)));
+	result.accuracyBonus = rawAccuracyRatio >= targetAccuracyRatio
+		? AccuracyBonusPoints
+		: 0;
+	result.partsTotal = static_cast<int>(level.partIds.size());
+	result.partsCollected = static_cast<int>(std::ranges::count_if(
+		level.partIds, [this](const std::string& id)
+		{
+			return session.IsPartCollected(id);
+		}));
+	result.partsBonus = result.partsTotal > 0 &&
+		result.partsCollected == result.partsTotal
+		? AllPartsBonusPoints
+		: 0;
 	result.completionSeconds = levelGameplayElapsed;
-	result.targetSeconds = level.targetTimeSeconds;
-	result.timeBonus = static_cast<int>(std::lround(
-		timeRatio * static_cast<float>(MaximumTimeBonus)));
 	const int completionBonus{
-		result.armorBonus + result.accuracyBonus + result.timeBonus };
+		result.armorBonus + result.accuracyBonus + result.partsBonus };
 	session.AddScore(completionBonus);
 	result.levelTotal = result.combatScore + completionBonus;
-	result.campaignTotal = session.GetScore();
 	return result;
 }
+
+void GameplayState::CompleteCurrentLevel()
+{
+	const ResultScreen::Statistics levelStatistics{ FinalizeLevelStatistics() };
+	session.ClearTemporaryEffects();
+	world.ClearPickups();
+	if (hud)
+		hud->Update(0.f);
+	BeginLevelCompleteAudio();
+	session.SetLevelComplete();
+
+	if (selectedLevelRun && !selectedLevelAdvancesCampaign)
+		resultScreen.Start(ResultScreen::Mode::LevelReplay,
+			session.GetLevel(), levelStatistics);
+	else if (session.GetLevel() >= gameplayData.GetLevelCount())
+		resultScreen.Start(ResultScreen::Mode::ContentComplete,
+			session.GetLevel(), levelStatistics);
+	else
+		resultScreen.Start(ResultScreen::Mode::LevelComplete,
+			session.GetLevel(), levelStatistics);
+}
+
+#ifdef _DEBUG
+void GameplayState::DebugCompleteCurrentLevel()
+{
+	constexpr int CompleteUpgradeTestBalance{ 36 };
+	const auto& level{ gameplayData.GetLevel(session.GetLevel()) };
+	for (const std::string& id : level.partIds)
+		static_cast<void>(session.RecoverPart(id));
+	session.DebugPreparePartsBalance(CompleteUpgradeTestBalance);
+
+	world.StopActiveSounds();
+	world.ClearProjectiles();
+	CompleteCurrentLevel();
+}
+#endif
 
 void GameplayState::BeginGameOver()
 {
@@ -772,6 +895,16 @@ void GameplayState::BeginGameOverTransition(GameOverScreen::Action action)
 
 void GameplayState::BeginResultTransition(ResultScreen::Action action)
 {
+	if (action == ResultScreen::Action::Restart)
+	{
+		world.StopActiveSounds();
+		session.DiscardRecoveredParts();
+		gameplayTransition = GameplayTransition::RestartLevel;
+		screenFade.StartFadeOut(GameplayFadeOutDuration);
+		return;
+	}
+	session.AcceptRecoveredParts();
+	SaveCompletedLevel();
 	if (action == ResultScreen::Action::MainMenu)
 		gameplayTransition = GameplayTransition::MainMenu;
 	else if (resultScreen.GetMode() == ResultScreen::Mode::LevelReplay)
@@ -779,7 +912,7 @@ void GameplayState::BeginResultTransition(ResultScreen::Action action)
 	else
 		gameplayTransition = resultScreen.GetMode() == ResultScreen::Mode::Victory
 			? GameplayTransition::RestartGame
-			: GameplayTransition::NextLevel;
+			: GameplayTransition::ShipUpgrades;
 	screenFade.StartFadeOut(GameplayFadeOutDuration);
 }
 
@@ -814,6 +947,8 @@ void GameplayState::NextLevel()
 	session.NextLevel();
 	resultScreen.Reset();
 	SpawnLevel();
+	if (hud)
+		hud->Update(0.f);
 }
 
 void GameplayState::SpawnLevel()
@@ -837,9 +972,9 @@ void GameplayState::StartNextWave(
 	materializingEnemies.clear();
 	waveMaterializationElapsed = 0.f;
 	static_cast<void>(waveDirector.StartNextWave([this, materializeInitialSpawns](
-		const GameplayData::SpawnGroup& spawn)
+		const GameplayData::SpawnGroup& spawn, std::size_t spawnIndex)
 	{
-		SpawnConfiguredEnemy(spawn, materializeInitialSpawns);
+		SpawnConfiguredEnemy(spawn, spawnIndex, materializeInitialSpawns);
 	}));
 	world.CommitPendingEntities();
 	if (startWaveIntro)
@@ -867,6 +1002,54 @@ void GameplayState::UpdatePlayerSpawnAnimation(float deltaTime)
 	if (playerSpawnElapsed >= PlayerSpawnDuration)
 	{
 		playerSpawnAnimating = false;
+	}
+}
+
+void GameplayState::BeginPlayerWaveTeleport()
+{
+	if (!world.HasPlayer())
+		return;
+	playerTeleportElapsed = 0.f;
+	playerTeleportAnimating = true;
+	playerTeleportMoved = false;
+	world.AddEffectEvent({
+		World::EffectEventType::PlayerTeleport,
+		world.GetPlayerPosition(), {}, 0.85f });
+}
+
+void GameplayState::UpdatePlayerWaveTeleport(float deltaTime)
+{
+	if (!playerTeleportAnimating)
+		return;
+
+	playerTeleportElapsed = std::min(
+		PlayerTeleportDuration, playerTeleportElapsed + deltaTime);
+	if (playerTeleportElapsed < PlayerTeleportMoveTime)
+	{
+		const float progress{ playerTeleportElapsed / PlayerTeleportMoveTime };
+		world.SetPlayerSpawnPresentation(1.f - progress);
+	}
+	else
+	{
+		if (!playerTeleportMoved)
+		{
+			world.TeleportPlayerToCenter();
+			world.AddEffectEvent({
+				World::EffectEventType::PlayerTeleport,
+				world.GetPlayerPosition(), {}, 1.15f });
+			playerTeleportMoved = true;
+		}
+		const float progress{ std::clamp(
+			(playerTeleportElapsed - PlayerTeleportMoveTime) /
+			(PlayerTeleportDuration - PlayerTeleportMoveTime), 0.f, 1.f) };
+		world.SetPlayerSpawnPresentation(progress);
+	}
+
+	if (playerTeleportElapsed >= PlayerTeleportDuration)
+	{
+		world.TeleportPlayerToCenter();
+		world.SetPlayerSpawnPresentation(1.f);
+		playerTeleportAnimating = false;
 	}
 }
 

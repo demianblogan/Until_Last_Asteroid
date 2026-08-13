@@ -10,6 +10,7 @@ class CampaignSaveManager;
 class DisplayManager;
 class SettingsManager;
 class GamepadManager;
+class RecordsManager;
 class StateStack;
 struct GameplayLaunchRequest;
 
@@ -25,6 +26,7 @@ struct StateContext
     AssetStore& assets;
     SettingsManager& settings;
     CampaignSaveManager& campaignSave;
+	RecordsManager& records;
     AudioManager& audio;
     DisplayManager& display;
     sf::Vector2f logicalSize;

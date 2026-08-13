@@ -164,7 +164,7 @@ std::optional<TutorialDirector::Action> TutorialDirector::EnterStep(
         SetInstruction(movementInstruction);
         break;
     case Step::Fire:
-        shotBaseline = snapshot.playerShotsFired;
+        shotBaseline = snapshot.playerAttacksFired;
         SetInstruction(fireInstruction);
         break;
     case Step::BigAsteroid:
@@ -234,7 +234,7 @@ std::optional<TutorialDirector::Action> TutorialDirector::UpdateCurrentStep(
             RequestStep(Step::Fire);
         break;
     case Step::Fire:
-        if (!conditionMet && snapshot.playerShotsFired > shotBaseline)
+        if (!conditionMet && snapshot.playerAttacksFired > shotBaseline)
         {
             conditionMet = true;
             stepElapsed = 0.f;

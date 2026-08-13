@@ -14,6 +14,7 @@
     <ClCompile Include="src\audio\AudioManager.cpp" />
     <ClCompile Include="src\audio\AudioBalance.cpp" />
     <ClCompile Include="src\campaign\CampaignSaveManager.cpp" />
+	<ClCompile Include="src\records\RecordsManager.cpp" />
     <ClCompile Include="src\systems\Collision.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
     <ClCompile Include="src\entities\Pickup.cpp" />
@@ -33,6 +34,7 @@
     <ClCompile Include="src\states\CampaignMenuState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
 	<ClCompile Include="src\states\LevelSelectState.cpp" />
+	<ClCompile Include="src\states\RecordsState.cpp" />
     <ClCompile Include="src\states\MainMenuState.cpp" />
     <ClCompile Include="src\states\OptionsState.cpp" />
     <ClCompile Include="src\states\PauseState.cpp" />
@@ -70,6 +72,7 @@
     <ClInclude Include="src\audio\AudioBalance.h" />
     <ClInclude Include="src\campaign\CampaignProgress.h" />
     <ClInclude Include="src\campaign\CampaignSaveManager.h" />
+	<ClInclude Include="src\records\RecordsManager.h" />
     <ClInclude Include="src\app\DisplayManager.h" />
     <ClInclude Include="src\assets\AssetStorage.h" />
     <ClInclude Include="src\systems\Collision.h" />
@@ -105,6 +108,7 @@
     <ClInclude Include="src\app\Application.h" />
     <ClInclude Include="src\states\GameplayState.h" />
 	<ClInclude Include="src\states\LevelSelectState.h" />
+	<ClInclude Include="src\states\RecordsState.h" />
     <ClInclude Include="src\states\CompanySplashState.h" />
     <ClInclude Include="src\states\CampaignMenuState.h" />
     <ClInclude Include="src\states\MainMenuState.h" />

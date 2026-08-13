@@ -1,6 +1,7 @@
 #include "AudioManager.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include <SFML/Audio/Music.hpp>
 #include <SFML/Audio/Sound.hpp>
@@ -10,9 +11,11 @@
 
 struct AudioManager::ActiveSound
 {
-    ActiveSound(Config::Sound id, SoundGroup group, float baseVolume, float basePitch,
+	ActiveSound(std::uint64_t handle, Config::Sound id, SoundGroup group,
+		float baseVolume, float basePitch,
 		const sf::SoundBuffer& buffer)
         : sound(buffer)
+		, handle(handle)
         , id(id)
         , group(group)
         , baseVolume(baseVolume)
@@ -21,10 +24,15 @@ struct AudioManager::ActiveSound
     }
 
     sf::Sound sound;
+	std::uint64_t handle;
     Config::Sound id;
     SoundGroup group;
     float baseVolume;
 	float basePitch;
+	bool sustained{ false };
+	float loopStartSeconds{ 0.f };
+	float loopEndSeconds{ 0.f };
+	float outroStartSeconds{ 0.f };
 };
 
 AudioManager::AudioManager(AssetStore& assets, SettingsManager& settings)
@@ -38,6 +46,25 @@ AudioManager::~AudioManager() = default;
 
 void AudioManager::Update()
 {
+	for (const auto& activeSound : activeSounds)
+	{
+		if (!activeSound->sustained ||
+			activeSound->sound.getStatus() != sf::Sound::Status::Playing)
+		{
+			continue;
+		}
+
+		const float offset{ activeSound->sound.getPlayingOffset().asSeconds() };
+		if (offset >= activeSound->loopEndSeconds)
+		{
+			const float loopDuration{
+				activeSound->loopEndSeconds - activeSound->loopStartSeconds };
+			const float wrappedOffset{ activeSound->loopStartSeconds +
+				std::fmod(offset - activeSound->loopStartSeconds, loopDuration) };
+			activeSound->sound.setPlayingOffset(sf::seconds(wrappedOffset));
+		}
+	}
+
     std::erase_if(activeSounds, [](const auto& activeSound)
         {
             return activeSound->sound.getStatus() == sf::Sound::Status::Stopped;
@@ -53,12 +80,13 @@ void AudioManager::ApplySettings()
         assets.Music().Get(id).setVolume(GetMusicVolume(id, baseVolume));
 }
 
-void AudioManager::PlaySound(
+std::uint64_t AudioManager::PlaySound(
     Config::Sound id,
     SoundGroup group,
     float baseVolume,
     float pitch,
-    SoundPlayback playback)
+	SoundPlayback playback,
+	bool looping)
 {
     if (playback == SoundPlayback::Restart)
     {
@@ -72,7 +100,9 @@ void AudioManager::PlaySound(
             });
     }
 
+	const std::uint64_t handle{ nextSoundHandle++ };
     auto activeSound{ std::make_unique<ActiveSound>(
+		handle,
         id,
         group,
         baseVolume,
@@ -81,8 +111,72 @@ void AudioManager::PlaySound(
     activeSound->sound.setAttenuation(0.f);
     activeSound->sound.setVolume(GetSoundVolume(id, baseVolume));
 	activeSound->sound.setPitch(pitch * (group == SoundGroup::Gameplay ? gameplayPitch : 1.f));
+	activeSound->sound.setLooping(looping);
     activeSound->sound.play();
     activeSounds.push_back(std::move(activeSound));
+	return handle;
+}
+
+std::uint64_t AudioManager::PlaySustainedSound(
+	Config::Sound id,
+	SoundGroup group,
+	float baseVolume,
+	float pitch,
+	float loopStartSeconds,
+	float loopEndSeconds,
+	float outroStartSeconds)
+{
+	const float duration{ assets.Sounds().Get(id).getDuration().asSeconds() };
+	loopStartSeconds = std::clamp(loopStartSeconds, 0.f, duration);
+	loopEndSeconds = std::clamp(loopEndSeconds, loopStartSeconds + 0.01f, duration);
+	outroStartSeconds = std::clamp(outroStartSeconds, loopEndSeconds, duration);
+
+	const std::uint64_t handle{ PlaySound(
+		id, group, baseVolume, pitch, SoundPlayback::AllowOverlap, false) };
+	const auto found{ std::find_if(activeSounds.begin(), activeSounds.end(),
+		[handle](const auto& activeSound) { return activeSound->handle == handle; }) };
+	if (found != activeSounds.end())
+	{
+		(*found)->sustained = true;
+		(*found)->loopStartSeconds = loopStartSeconds;
+		(*found)->loopEndSeconds = loopEndSeconds;
+		(*found)->outroStartSeconds = outroStartSeconds;
+	}
+	return handle;
+}
+
+void AudioManager::ReleaseSound(std::uint64_t handle)
+{
+	if (handle == 0u)
+		return;
+	std::erase_if(activeSounds, [handle](const auto& activeSound)
+	{
+		if (activeSound->handle != handle)
+			return false;
+		if (activeSound->sustained)
+		{
+			activeSound->sustained = false;
+			activeSound->sound.setPlayingOffset(
+				sf::seconds(activeSound->outroStartSeconds));
+			activeSound->sound.play();
+			return false;
+		}
+		activeSound->sound.stop();
+		return true;
+	});
+}
+
+void AudioManager::StopSound(std::uint64_t handle)
+{
+	if (handle == 0u)
+		return;
+	std::erase_if(activeSounds, [handle](const auto& activeSound)
+	{
+		if (activeSound->handle != handle)
+			return false;
+		activeSound->sound.stop();
+		return true;
+	});
 }
 
 void AudioManager::PauseSounds(SoundGroup group)

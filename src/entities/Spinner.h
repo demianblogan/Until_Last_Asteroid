@@ -9,6 +9,7 @@ class Spinner final : public Enemy
 {
 public:
 	Spinner(AssetStore& assets, World& world);
+	void ConfigureApproachTarget(sf::Vector2f target) noexcept;
 
 	Type GetType() const noexcept override;
 	bool IsCollideWith(const Entity& other) const override;
@@ -26,4 +27,6 @@ private:
 	float movementPhase{ 0.f };
 	float shootTimer{ 0.f };
 	float spinDirection{ 1.f };
+	sf::Vector2f approachTarget;
+	bool approachingCenter{ false };
 };

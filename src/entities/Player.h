@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <optional>
 
 #include "core/Entity.h"
@@ -37,6 +38,9 @@ public:
 	[[nodiscard]] bool IsThrusting() const noexcept;
 	[[nodiscard]] std::array<sf::Vector2f, 2> GetEngineEmitterPositions() const;
 	[[nodiscard]] sf::Vector2f GetMuzzlePosition() const;
+	[[nodiscard]] sf::Vector2f GetLaserEndPosition() const;
+	[[nodiscard]] bool IsLaserFiring() const noexcept;
+	[[nodiscard]] float GetLaserVisualTime() const noexcept;
 	[[nodiscard]] sf::Vector2f GetExhaustDirection() const noexcept;
 	[[nodiscard]] std::optional<sf::Vector2f> GetGamepadAimPoint() const;
 
@@ -46,6 +50,8 @@ private:
 	void UpdateMovement(float dt);
 	void UpdateRotation();
 	void UpdateInvulnerability(float dt);
+	void UpdateLaser(float dt);
+	[[nodiscard]] sf::Vector2f GetAimDirection() const noexcept;
 
 	InputHandler<Config::PlayerAction>& input;
 	GamepadManager& gamepad;
@@ -53,6 +59,11 @@ private:
 	sf::Vector2f gamepadAimDirection{ 0.f, -1.f };
 	float shootTimer{ 0.f };
 	float invulnerabilityTimer{ 0.f };
+	float laserDamageTimer{ 0.f };
+	float laserVisualTime{ 0.f };
+	std::uint64_t laserSoundHandle{ 0u };
+	bool laserRequested{ false };
+	bool laserFiring{ false };
 	bool blinkDuringInvulnerability{ false };
 	bool lastDamageReachedHealth{ false };
 	bool isThrusting{ false };

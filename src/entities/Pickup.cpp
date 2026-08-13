@@ -20,6 +20,10 @@ namespace
 			return Config::Texture::HomingBulletsPickup;
 		case Pickup::Kind::TimeSlowdown:
 			return Config::Texture::TimeSlowdownPickup;
+		case Pickup::Kind::Laser:
+			return Config::Texture::LaserPickup;
+		case Pickup::Kind::TripleShot:
+			return Config::Texture::TripleShotPickup;
 		}
 		return Config::Texture::HomingBulletsPickup;
     }
@@ -54,19 +58,30 @@ void Pickup::Update(float deltaTime)
 
 bool Pickup::Apply(GameplaySession& session)
 {
+	const float bonusDuration{ session.GetBonusDurationAddition() };
     if (kind == Kind::Shield)
     {
-        session.ActivateShield();
+		session.ActivateShield(bonusDuration);
         return true;
     }
 	if (kind == Kind::HomingBullets)
 	{
-		session.ActivateHomingBullets(config.homingBulletsDuration);
+		session.ActivateHomingBullets(config.homingBulletsDuration + bonusDuration);
 		return true;
 	}
 	if (kind == Kind::TimeSlowdown)
 	{
-		session.ActivateTimeSlowdown(config.timeSlowdownDuration);
+		session.ActivateTimeSlowdown(config.timeSlowdownDuration + bonusDuration);
+		return true;
+	}
+	if (kind == Kind::Laser)
+	{
+		session.ActivateLaser(config.laserDuration + bonusDuration);
+		return true;
+	}
+	if (kind == Kind::TripleShot)
+	{
+		session.ActivateTripleShot(config.tripleShotDuration + bonusDuration);
 		return true;
 	}
 

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include <string>
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -14,6 +15,7 @@ namespace
 	constexpr float HealthBarScale{ 0.5f };
 	constexpr float ScorePanelScale{ 0.5f };
 	constexpr sf::Vector2f ScorePanelPosition{ 20.f, 20.f };
+	constexpr sf::Vector2f PartsPanelPosition{ 1513.f, 986.f };
 	constexpr sf::Vector2f ScorePanelSize{ 387.f, 74.f };
 	constexpr sf::Vector2f FramePosition{ 20.f, 1010.f };
 	constexpr float BonusBarSpacing{ 60.f };
@@ -36,6 +38,10 @@ HUD::HUD(AssetStore& assets, const GameplaySession& session)
 	, scoreText(assets.Fonts().Get(Config::Font::MenuRegular))
 	, scorePanel(assets.Textures().Get(Config::Texture::ScorePanelFrame))
 	, scoreGlow(assets)
+	, partsText(assets.Fonts().Get(Config::Font::MenuRegular))
+	, partsPanel(assets.Textures().Get(Config::Texture::ScorePanelFrame))
+	, partsIcon(assets.Textures().Get(Config::Texture::PartToken))
+	, partsGlow(assets)
 	, healthText(assets.Fonts().Get(Config::Font::MenuSemibold))
 	, healthFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, healthFill(assets.Textures().Get(Config::Texture::HealthBarFill))
@@ -48,6 +54,10 @@ HUD::HUD(AssetStore& assets, const GameplaySession& session)
 	, homingFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, homingFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, homingGlow(assets)
+	, weaponText(assets.Fonts().Get(Config::Font::MenuSemibold))
+	, weaponFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
+	, weaponFill(assets.Textures().Get(Config::Texture::HealthBarFill))
+	, weaponGlow(assets)
 	, timeSlowdownText(assets.Fonts().Get(Config::Font::MenuSemibold))
 	, timeSlowdownFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, timeSlowdownFill(assets.Textures().Get(Config::Texture::HealthBarFill))
@@ -64,6 +74,25 @@ HUD::HUD(AssetStore& assets, const GameplaySession& session)
 	displayedScore = session.GetScore();
 	scoreText.setString("Score: " + std::to_string(displayedScore));
 	CenterScoreText();
+
+	partsPanel.setPosition(PartsPanelPosition);
+	partsPanel.setScale({ ScorePanelScale, ScorePanelScale });
+	const sf::Vector2u partTextureSize{ partsIcon.getTexture().getSize() };
+	const float partIconScale{ 48.f / static_cast<float>(
+		std::max(partTextureSize.x, partTextureSize.y)) };
+	partsIcon.setScale({ partIconScale, partIconScale });
+	partsIcon.setOrigin({
+		static_cast<float>(partTextureSize.x) * 0.5f,
+		static_cast<float>(partTextureSize.y) * 0.5f });
+	partsIcon.setPosition(PartsPanelPosition + sf::Vector2f{ 55.f, 37.f });
+	partsText.setCharacterSize(26);
+	partsText.setLetterSpacing(1.04f);
+	partsText.setFillColor(sf::Color(255, 224, 145));
+	partsText.setOutlineColor(sf::Color(4, 24, 38, 230));
+	partsText.setOutlineThickness(2.f);
+	displayedParts = session.GetDisplayedParts();
+	partsText.setString("PARTS: " + std::to_string(displayedParts));
+	CenterPartsText();
 
 	healthFrame.setPosition(FramePosition);
 	healthFrame.setScale({ HealthBarScale, HealthBarScale });
@@ -91,6 +120,13 @@ HUD::HUD(AssetStore& assets, const GameplaySession& session)
 	homingText.setFillColor(sf::Color(255, 239, 185));
 	homingText.setOutlineColor(sf::Color(20, 12, 0, 220));
 	homingText.setOutlineThickness(2.f);
+	weaponFrame.setPosition({ FramePosition.x, FramePosition.y - BonusBarSpacing * 3.f });
+	weaponFrame.setScale({ HealthBarScale, HealthBarScale });
+	weaponFill.setPosition(weaponFrame.getPosition() + FillOffset);
+	weaponFill.setScale({ HealthBarScale, HealthBarScale });
+	weaponText.setCharacterSize(18);
+	weaponText.setOutlineColor(sf::Color(18, 4, 2, 220));
+	weaponText.setOutlineThickness(2.f);
 	timeSlowdownFrame.setPosition({ FramePosition.x, FramePosition.y - BonusBarSpacing * 3.f });
 	timeSlowdownFrame.setScale({ HealthBarScale, HealthBarScale });
 	timeSlowdownFill.setPosition(timeSlowdownFrame.getPosition() + FillOffset);
@@ -112,9 +148,11 @@ void HUD::Update(float deltaTime)
 	tutorialShieldHighlightRemaining = std::max(
 		0.f, tutorialShieldHighlightRemaining - deltaTime);
 	UpdateScore(deltaTime);
+	UpdateParts(deltaTime);
 	UpdateHealthBar(deltaTime);
 	UpdateShieldBar(deltaTime);
 	UpdateHomingBar(deltaTime);
+	UpdateWeaponBar(deltaTime);
 	UpdateTimeSlowdownBar(deltaTime);
 	UpdateBonusBarLayout();
 }
@@ -193,6 +231,38 @@ void HUD::UpdateHomingBar(float deltaTime)
 	homingText.setString("HOMING " + std::to_string(percentage) + "%");
 }
 
+void HUD::UpdateWeaponBar(float deltaTime)
+{
+	using WeaponMode = GameplaySession::WeaponMode;
+	const WeaponMode mode{ session.GetWeaponMode() };
+	weaponVisible = mode != WeaponMode::Normal;
+	if (!weaponVisible)
+	{
+		weaponFill.setTextureRect(sf::IntRect({ 0, 0 }, { 0, 0 }));
+		return;
+	}
+
+	weaponGlow.Update(deltaTime);
+	const float ratio{ std::clamp(session.GetWeaponBonusRatio(), 0.f, 1.f) };
+	const sf::Vector2u textureSize{ weaponFill.getTexture().getSize() };
+	const int visibleWidth{ static_cast<int>(std::round(textureSize.x * ratio)) };
+	weaponFill.setTextureRect(sf::IntRect(
+		{ 0, 0 }, { visibleWidth, static_cast<int>(textureSize.y) }));
+	const int percentage{ static_cast<int>(std::ceil(ratio * 100.f)) };
+	if (mode == WeaponMode::Laser)
+	{
+		weaponFill.setColor(sf::Color(255, 55, 28));
+		weaponText.setFillColor(sf::Color(255, 218, 200));
+		weaponText.setString("LASER " + std::to_string(percentage) + "%");
+	}
+	else
+	{
+		weaponFill.setColor(sf::Color(255, 170, 30));
+		weaponText.setFillColor(sf::Color(255, 238, 185));
+		weaponText.setString("TRIPLE SHOT " + std::to_string(percentage) + "%");
+	}
+}
+
 void HUD::UpdateTimeSlowdownBar(float deltaTime)
 {
 	timeSlowdownVisible = session.IsTimeSlowdownActive();
@@ -231,6 +301,13 @@ void HUD::UpdateBonusBarLayout()
 		CenterHomingText();
 		nextY -= BonusBarSpacing;
 	}
+	if (weaponVisible)
+	{
+		weaponFrame.setPosition({ FramePosition.x, nextY });
+		weaponFill.setPosition(weaponFrame.getPosition() + FillOffset);
+		CenterWeaponText();
+		nextY -= BonusBarSpacing;
+	}
 	if (timeSlowdownVisible)
 	{
 		timeSlowdownFrame.setPosition({ FramePosition.x, nextY });
@@ -255,6 +332,22 @@ void HUD::UpdateScore(float deltaTime)
 	}
 
 	scorePulseRemaining = std::max(0.f, scorePulseRemaining - deltaTime);
+}
+
+void HUD::UpdateParts(float deltaTime)
+{
+	partsGlow.Update(deltaTime);
+	const int currentParts{ session.GetDisplayedParts() };
+	if (currentParts != displayedParts)
+	{
+		if (currentParts > displayedParts)
+			partsPulseRemaining = PartsPulseDuration;
+		displayedParts = currentParts;
+		partsText.setString("PARTS: " + std::to_string(displayedParts));
+		CenterPartsText();
+		partsGlow.Invalidate();
+	}
+	partsPulseRemaining = std::max(0.f, partsPulseRemaining - deltaTime);
 }
 
 void HUD::UpdateHealthBar(float deltaTime)
@@ -295,7 +388,8 @@ void HUD::UpdateHealthBar(float deltaTime)
 	}
 	healthFill.setColor(fillColor);
 
-	const int percentage{ static_cast<int>(std::round(ratio * 100.f)) };
+	const int percentage{ static_cast<int>(std::round(
+		ratio * 100.f * session.GetArmorMultiplier())) };
 	healthText.setString("ARMOR " + std::to_string(percentage) + "%");
 	CenterHealthText();
 }
@@ -324,6 +418,14 @@ void HUD::CenterHomingText()
 	homingText.setPosition(homingFrame.getPosition() + FrameSize * 0.5f);
 }
 
+void HUD::CenterWeaponText()
+{
+	const sf::FloatRect bounds{ weaponText.getLocalBounds() };
+	weaponText.setOrigin({ bounds.position.x + bounds.size.x * 0.5f,
+		bounds.position.y + bounds.size.y * 0.5f });
+	weaponText.setPosition(weaponFrame.getPosition() + FrameSize * 0.5f);
+}
+
 void HUD::CenterTimeSlowdownText()
 {
 	const sf::FloatRect bounds{ timeSlowdownText.getLocalBounds() };
@@ -342,10 +444,27 @@ void HUD::CenterScoreText()
 	scoreText.setPosition(ScorePanelPosition + ScorePanelSize * 0.5f);
 }
 
+void HUD::CenterPartsText()
+{
+	const sf::FloatRect bounds{ partsText.getLocalBounds() };
+	partsText.setOrigin({
+		bounds.position.x + bounds.size.x * 0.5f,
+		bounds.position.y + bounds.size.y * 0.5f
+	});
+	partsText.setPosition(PartsPanelPosition + ScorePanelSize * 0.5f + sf::Vector2f{ 28.f, 0.f });
+}
+
 void HUD::DrawScorePanel(sf::RenderTarget& target, const sf::RenderStates& states) const
 {
 	target.draw(scorePanel, states);
 	target.draw(scoreText, states);
+}
+
+void HUD::DrawPartsPanel(sf::RenderTarget& target, const sf::RenderStates& states) const
+{
+	target.draw(partsPanel, states);
+	target.draw(partsIcon, states);
+	target.draw(partsText, states);
 }
 
 void HUD::Draw(sf::RenderTarget& target)
@@ -383,6 +502,34 @@ void HUD::Draw(sf::RenderTarget& target)
 			target,
 			scorePanel.getGlobalBounds(),
 			LerpColor(sf::Color::Black, sf::Color(205, 255, 255), flash));
+	}
+	if (partsPulseRemaining > 0.f)
+	{
+		const float normalized{ partsPulseRemaining / PartsPulseDuration };
+		const float blink{ normalized *
+			(0.62f + 0.38f * std::abs(std::sin(normalized * 4.f * std::numbers::pi_v<float>))) };
+		const sf::Color flashColor{ LerpColor(
+			sf::Color::Black, sf::Color(255, 190, 38), blink) };
+		partsGlow.DrawBloom(
+			target,
+			partsPanel.getGlobalBounds(),
+			[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+			{
+				DrawPartsPanel(glowTarget, states);
+			},
+			flashColor,
+			false);
+	}
+	DrawPartsPanel(target, sf::RenderStates::Default);
+	if (partsPulseRemaining > 0.f)
+	{
+		const float normalized{ partsPulseRemaining / PartsPulseDuration };
+		const float blink{ normalized *
+			(0.62f + 0.38f * std::abs(std::sin(normalized * 4.f * std::numbers::pi_v<float>))) };
+		partsGlow.DrawHighlight(
+			target,
+			partsPanel.getGlobalBounds(),
+			LerpColor(sf::Color::Black, sf::Color(255, 215, 78), blink));
 	}
 	if (tutorialHealthHighlightRemaining > 0.f)
 	{
@@ -476,6 +623,27 @@ void HUD::Draw(sf::RenderTarget& target)
 		}
 		target.draw(homingFill);
 		target.draw(homingText);
+	}
+
+	if (weaponVisible)
+	{
+		target.draw(weaponFrame);
+		if (weaponFill.getTextureRect().size.x > 0)
+		{
+			weaponGlow.DrawBloom(
+				target,
+				weaponFill.getGlobalBounds(),
+				[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+				{
+					sf::Sprite glowSource{ weaponFill };
+					glowSource.setColor(sf::Color::White);
+					glowTarget.draw(glowSource, states);
+				},
+				weaponFill.getColor(),
+				false);
+		}
+		target.draw(weaponFill);
+		target.draw(weaponText);
 	}
 
 	if (timeSlowdownVisible)

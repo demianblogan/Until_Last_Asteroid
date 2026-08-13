@@ -5,6 +5,7 @@
 #include "assets/AssetStore.h"
 #include "core/World.h"
 #include "utils/ConfigEnums.h"
+#include "utils/Random.h"
 
 namespace
 {
@@ -44,8 +45,8 @@ void MissileCarrier::Update(float deltaTime)
 	const sf::Vector2f toPlayer{ playerPosition - GetPosition() };
 	const float angle{ std::atan2(toPlayer.y, toPlayer.x) };
 	SetRotation(sf::radians(angle + std::numbers::pi_v<float> * 0.5f));
-	Move(deltaTime);
-	EmitEngineParticles(-Normalize(toPlayer));
+	UpdatePatrolMovement(deltaTime);
+	EmitEngineParticles(-Normalize(GetVelocity()));
 
 	launchTimer += deltaTime;
 	if (launchTimer >= GetActionInterval())
@@ -53,6 +54,39 @@ void MissileCarrier::Update(float deltaTime)
 		launchTimer -= GetActionInterval();
 		LaunchMissile(playerPosition);
 	}
+}
+
+void MissileCarrier::ConfigureApproachTarget(sf::Vector2f target) noexcept
+{
+	patrolTarget = target;
+	hasPatrolTarget = true;
+}
+
+void MissileCarrier::ChooseCentralPatrolTarget()
+{
+	const float width{ static_cast<float>(GetWorld().GetWidth()) };
+	const float height{ static_cast<float>(GetWorld().GetHeight()) };
+	patrolTarget = {
+		Random::Float(width * 0.2f, width * 0.8f),
+		Random::Float(height * 0.18f, height * 0.82f) };
+	hasPatrolTarget = true;
+}
+
+void MissileCarrier::UpdatePatrolMovement(float deltaTime)
+{
+	if (!hasPatrolTarget)
+		ChooseCentralPatrolTarget();
+	const sf::Vector2f delta{ patrolTarget - GetPosition() };
+	const float distance{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+	const float step{ GetMovementSpeed() * deltaTime };
+	if (distance <= std::max(step, 0.001f))
+	{
+		SetPosition(patrolTarget);
+		ChooseCentralPatrolTarget();
+		return;
+	}
+	SetVelocity(delta / distance * GetMovementSpeed());
+	Move(deltaTime);
 }
 
 void MissileCarrier::OnDestroy()

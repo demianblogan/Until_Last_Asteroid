@@ -4,6 +4,8 @@
 #include "game/GameplayData.h"
 #include "game/Health.h"
 
+#include <string>
+
 class AssetStore;
 class World;
 
@@ -26,7 +28,16 @@ public:
 	void SetPickupDrop(
 		const std::optional<GameplayData::SpawnGroup::PickupDropConfig>& drop);
 	[[nodiscard]] std::optional<GameplayData::PickupKind> RollPickupDrop() const;
-	[[nodiscard]] bool TakeDamage(int damage);
+	void SetPartDropId(std::string id);
+	[[nodiscard]] const std::string& GetPartDropId() const noexcept;
+	void SetRewardsEnabled(bool enabled) noexcept;
+	[[nodiscard]] bool AreRewardsEnabled() const noexcept;
+	[[nodiscard]] virtual bool AcceptsKnockback() const noexcept;
+	[[nodiscard]] virtual bool CollidesWithPlayerProjectile(
+		const Entity& projectile) const;
+	[[nodiscard]] virtual sf::Vector2f GetPlayerProjectileImpactPosition(
+		const Entity& projectile) const noexcept;
+	[[nodiscard]] virtual bool TakeDamage(int damage);
 	Type GetType() const noexcept override;
 
 protected:
@@ -39,6 +50,7 @@ protected:
 		GetWeaponEmitters() const noexcept;
 	[[nodiscard]] const std::vector<GameplayData::NormalizedPoint>&
 		GetEngineEmitters() const noexcept;
+	virtual void BeginDestruction();
 
 private:
 	Health health;
@@ -53,4 +65,6 @@ private:
 	std::vector<GameplayData::NormalizedPoint> weaponEmitters;
 	std::vector<GameplayData::NormalizedPoint> engineEmitters;
 	std::optional<GameplayData::SpawnGroup::PickupDropConfig> pickupDrop;
+	std::string partDropId;
+	bool rewardsEnabled{ true };
 };

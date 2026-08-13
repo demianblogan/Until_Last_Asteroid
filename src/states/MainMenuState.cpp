@@ -21,7 +21,7 @@
 namespace
 {
     const std::string MenuTitle{ "Until Last Asteroid" };
-    const std::vector<std::string> MenuLabels{ "Start Game", "Scores", "Options", "Quit" };
+	const std::vector<std::string> MenuLabels{ "Start Game", "Records", "Options", "Quit" };
 
     constexpr sf::Vector2f ButtonSize{ 540.f, 104.f };
     constexpr sf::Vector2f FirstButtonPosition{ 90.f, 540.f };
@@ -348,7 +348,7 @@ void MainMenuState::CompleteActivation(std::size_t index)
         break;
 
     case 1:
-        RequestPush(StateId::Scores);
+		RequestPush(StateId::Records);
         break;
 
     case 2:

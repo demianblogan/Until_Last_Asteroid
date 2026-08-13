@@ -7,14 +7,17 @@
 #include "utils/ConfigEnums.h"
 #include "core/World.h"
 #include "game/GameplaySession.h"
+#include "entities/Enemy.h"
 
 Shot::Shot(AssetStore& assets, World& world, sf::Texture& texture,
-	const GameplayData::ProjectileConfig& config, VisualKind visualKind)
+	const GameplayData::ProjectileConfig& config, VisualKind visualKind,
+	std::uint64_t attackId)
 	: Entity(assets, world, texture, config.visualScale, config.collisionRadius)
 	, speed(config.speed)
 	, damage(config.damage)
 	, knockback(config.knockback)
 	, visualKind(visualKind)
+	, playerAttackId(attackId)
 {
 }
 
@@ -33,6 +36,8 @@ void Shot::Update(float deltaTime)
 			? World::EffectEventType::PlayerProjectileGlow
 			: visualKind == VisualKind::PlayerHoming
 				? World::EffectEventType::PlayerHomingProjectileGlow
+				: visualKind == VisualKind::PlayerTriple
+					? World::EffectEventType::PlayerTripleProjectileGlow
 				: World::EffectEventType::EnemyProjectileGlow,
 		position,
 		direction });
@@ -46,6 +51,7 @@ void Shot::Update(float deltaTime)
 
 int Shot::GetDamage() const noexcept { return damage; }
 float Shot::GetKnockback() const noexcept { return knockback; }
+std::uint64_t Shot::GetPlayerAttackId() const noexcept { return playerAttackId; }
 
 void Shot::SetDirection(const sf::Vector2f& direction) noexcept
 {
@@ -53,12 +59,16 @@ void Shot::SetDirection(const sf::Vector2f& direction) noexcept
 }
 
 PlayerShot::PlayerShot(AssetStore& assets, World& world,
-	const sf::Vector2f& position, float rotationDegrees)
+	const sf::Vector2f& position, float rotationDegrees, std::uint64_t attackId,
+	bool playSound, bool tripleShotVisual)
 	: Shot(assets, world, assets.Textures().Get(Config::Texture::PlayerShot),
 		assets.GetGameplayData().GetProjectile(GameplayData::ProjectileKind::Player),
-		world.GetSession().IsHomingBulletsActive()
+		tripleShotVisual
+			? VisualKind::PlayerTriple
+			: world.GetSession().IsHomingBulletsActive()
 			? VisualKind::PlayerHoming
-			: VisualKind::Player)
+			: VisualKind::Player,
+		attackId)
 	, homingEnabled(world.GetSession().IsHomingBulletsActive())
 {
 	SetPosition(position);
@@ -72,9 +82,17 @@ PlayerShot::PlayerShot(AssetStore& assets, World& world,
 		SetPresentation(1.f, 1.f, sf::Color(255, 205, 85));
 		AcquireHomingTarget();
 	}
+	if (tripleShotVisual)
+		SetPresentation(1.f, 1.f, sf::Color(65, 255, 115));
 	GetWorld().AddEffectEvent({ World::EffectEventType::PlayerMuzzleFlash,
 		position, direction });
-	GetWorld().AddSound(Config::Sound::PlayerShot);
+	if (playSound)
+	{
+		const float shotPitch{ tripleShotVisual
+			? 0.82f
+			: homingEnabled ? 1.18f : 1.f };
+		GetWorld().AddSound(Config::Sound::PlayerShot, shotPitch);
+	}
 }
 
 void PlayerShot::Update(float deltaTime)
@@ -127,9 +145,9 @@ Entity::Type PlayerShot::GetType() const noexcept { return Type::Projectile_Play
 
 bool PlayerShot::IsCollideWith(const Entity& other) const
 {
-	return (other.GetType() == Type::Enemy ||
-		other.GetType() == Type::Asteroid ||
-		other.GetType() == Type::EnemyMissile) && CheckCollision(other);
+	if (other.GetType() == Type::Enemy || other.GetType() == Type::Asteroid)
+		return static_cast<const Enemy&>(other).CollidesWithPlayerProjectile(*this);
+	return other.GetType() == Type::EnemyMissile && CheckCollision(other);
 }
 
 SaucerShot::SaucerShot(AssetStore& assets, World& world,

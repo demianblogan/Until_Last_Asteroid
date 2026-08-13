@@ -5,9 +5,19 @@
   "homing_bullets_duration": 10.0,
   "homing_cone_degrees": 90.0,
   "homing_turn_speed_degrees": 480.0,
+  "laser_duration": 10.0,
+  "laser_damage_interval": 0.1,
+  "laser_width": 18.0,
+  "triple_shot_duration": 10.0,
+  "triple_shot_angle_degrees": 5.0,
   "time_slowdown_duration": 5.0,
   "time_slowdown_world_scale": 0.35,
   "time_slowdown_audio_pitch": 0.72,
   "visual_scale": 0.075,
-  "collision_radius": 42.0
+  "collision_radius": 42.0,
+  "part_lifetime": 5.0,
+  "part_blink_duration": 1.0,
+  "part_visual_scale": 0.065,
+  "part_collision_radius": 34.0,
+  "part_rotation_speed_degrees": 70.0
 }

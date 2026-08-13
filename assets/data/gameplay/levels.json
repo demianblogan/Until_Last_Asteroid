@@ -3,9 +3,8 @@
     {
       "number": 1,
       "title": "BLUE FRONTIER",
-      "background": "level_01_blue_nebula",
+      "background": "blue_nebula_region",
       "background_brightness": 0.60,
-      "target_time_seconds": 105.0,
       "target_accuracy_percent": 65.0,
       "post_process": {
         "tint": [0.96, 1.02, 1.08],
@@ -17,23 +16,15 @@
       "waves": [
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 2 },
-            {
-              "type": "big_meteor",
-              "count": 1,
-              "drop": { "type": "homing_bullets", "chance": 1.0 }
-            }
+            { "type": "big_meteor", "count": 2, "part_ids": ["L01-W01-P01"] },
+            { "type": "big_meteor", "count": 1 }
           ],
           "scheduled_spawns": []
         },
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 2 },
-            {
-              "type": "big_meteor",
-              "count": 1,
-              "drop": { "type": "shield", "chance": 1.0 }
-            }
+            { "type": "big_meteor", "count": 2, "part_ids": ["L01-W02-P01"] },
+            { "type": "big_meteor", "count": 1 }
           ],
           "scheduled_spawns": [
             {
@@ -48,7 +39,7 @@
         },
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 2 },
+            { "type": "big_meteor", "count": 2, "part_ids": ["L01-W03-P01", "L01-W03-P02"] },
             {
               "type": "big_meteor",
               "count": 1,
@@ -78,9 +69,8 @@
     {
       "number": 2,
       "title": "VIOLET CROSSING",
-      "background": "level_02_violet_clouds",
+      "background": "blue_nebula_region",
       "background_brightness": 0.70,
-      "target_time_seconds": 145.0,
       "target_accuracy_percent": 70.0,
       "post_process": {
         "tint": [1.03, 0.96, 1.10],
@@ -92,7 +82,7 @@
       "waves": [
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 3 },
+            { "type": "big_meteor", "count": 3, "part_ids": ["L02-W01-P01"] },
             {
               "type": "big_meteor",
               "count": 1,
@@ -112,7 +102,7 @@
         },
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 3 },
+            { "type": "big_meteor", "count": 3, "part_ids": ["L02-W02-P01"] },
             {
               "type": "big_meteor",
               "count": 1,
@@ -131,7 +121,7 @@
         },
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 4 }
+            { "type": "big_meteor", "count": 4, "part_ids": ["L02-W03-P01", "L02-W03-P02"] }
           ],
           "scheduled_spawns": [
             { "delay": 3.0, "type": "kamikaze", "count": 2 },
@@ -149,9 +139,8 @@
     {
       "number": 3,
       "title": "SHATTERED BELT",
-      "background": "level_03_asteroid_belt",
+      "background": "violet_clouds_region",
       "background_brightness": 0.66,
-      "target_time_seconds": 185.0,
       "target_accuracy_percent": 75.0,
       "post_process": {
         "tint": [1.05, 1.00, 0.92],
@@ -163,7 +152,7 @@
       "waves": [
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 4 },
+            { "type": "big_meteor", "count": 4, "part_ids": ["L03-W01-P01"] },
             {
               "type": "big_meteor",
               "count": 1,
@@ -177,7 +166,7 @@
         },
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 5 }
+            { "type": "big_meteor", "count": 5, "part_ids": ["L03-W02-P01"] }
           ],
           "scheduled_spawns": [
             {
@@ -191,7 +180,7 @@
         },
         {
           "initial_spawns": [
-            { "type": "big_meteor", "count": 5 }
+            { "type": "big_meteor", "count": 5, "part_ids": ["L03-W03-P01", "L03-W03-P02"] }
           ],
           "scheduled_spawns": [
             { "delay": 3.0, "type": "kamikaze", "count": 2 },
@@ -211,6 +200,222 @@
                 ]
               }
             }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "VIOLET SIEGE",
+      "background": "violet_clouds_region",
+      "background_brightness": 0.68,
+      "target_accuracy_percent": 77.0,
+      "post_process": {
+        "tint": [1.04, 0.95, 1.11],
+        "saturation": 1.09,
+        "contrast": 1.07,
+        "bloom_intensity": 0.76,
+        "vignette_strength": 0.36
+      },
+      "waves": [
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 4, "part_ids": ["L04-W01-P01"] },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": { "type": "laser", "chance": 1.0 }
+            }
+          ],
+          "scheduled_spawns": [
+            { "delay": 4.0, "type": "laser_turret", "count": 1 },
+            { "delay": 5.0, "type": "shooter", "count": 1 }
+          ]
+        },
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 5, "part_ids": ["L04-W02-P01"] }
+          ],
+          "scheduled_spawns": [
+            {
+              "delay": 3.0,
+              "type": "spinner",
+              "count": 1,
+              "drop": { "type": "triple_shot", "chance": 1.0 }
+            },
+            { "delay": 4.0, "type": "shooter", "count": 1 },
+            { "delay": 4.0, "type": "kamikaze", "count": 2 }
+          ]
+        },
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 5, "part_ids": ["L04-W03-P01", "L04-W03-P02"] }
+          ],
+          "scheduled_spawns": [
+            { "delay": 3.0, "type": "laser_turret", "count": 1 },
+            { "delay": 4.0, "type": "missile_carrier", "count": 1 },
+            { "delay": 4.0, "type": "spinner", "count": 1 },
+            {
+              "delay": 4.0,
+              "type": "shooter",
+              "count": 2,
+              "drop": {
+                "chance": 0.75,
+                "pool": [
+                  { "type": "health", "weight": 1.3 },
+                  { "type": "shield", "weight": 1.0 },
+                  { "type": "laser", "weight": 1.0 },
+                  { "type": "triple_shot", "weight": 1.0 }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "title": "ASTEROID WAKE",
+      "background": "asteroid_belt_region",
+      "background_brightness": 0.64,
+      "target_accuracy_percent": 80.0,
+      "post_process": {
+        "tint": [1.05, 1.00, 0.92],
+        "saturation": 1.05,
+        "contrast": 1.07,
+        "bloom_intensity": 0.64,
+        "vignette_strength": 0.34
+      },
+      "waves": [
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 5, "part_ids": ["L05-W01-P01"] },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": { "type": "laser", "chance": 1.0 }
+            }
+          ],
+          "scheduled_spawns": [
+            { "delay": 5.0, "type": "shooter_station", "count": 1 },
+            { "delay": 6.0, "type": "kamikaze", "count": 2 }
+          ]
+        },
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 6, "part_ids": ["L05-W02-P01"] }
+          ],
+          "scheduled_spawns": [
+            { "delay": 3.0, "type": "laser_turret", "count": 1 },
+            {
+              "delay": 4.0,
+              "type": "missile_carrier",
+              "count": 1,
+              "drop": { "type": "triple_shot", "chance": 1.0 }
+            },
+            { "delay": 4.0, "type": "shooter", "count": 2 },
+            { "delay": 4.0, "type": "spinner", "count": 1 }
+          ]
+        },
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 6, "part_ids": ["L05-W03-P01", "L05-W03-P02"] }
+          ],
+          "scheduled_spawns": [
+            { "delay": 4.0, "type": "shooter_station", "count": 1 },
+            { "delay": 5.0, "type": "laser_turret", "count": 1 },
+            {
+              "delay": 5.0,
+              "type": "missile_carrier",
+              "count": 1,
+              "drop": {
+                "chance": 0.85,
+                "pool": [
+                  { "type": "health", "weight": 1.4 },
+                  { "type": "shield", "weight": 1.2 },
+                  { "type": "laser", "weight": 1.0 },
+                  { "type": "triple_shot", "weight": 1.0 }
+                ]
+              }
+            },
+            { "delay": 5.0, "type": "spinner", "count": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "title": "IRON GRAVEYARD",
+      "background": "asteroid_belt_region",
+      "background_brightness": 0.60,
+      "target_accuracy_percent": 82.0,
+      "post_process": {
+        "tint": [1.06, 0.99, 0.90],
+        "saturation": 1.07,
+        "contrast": 1.09,
+        "bloom_intensity": 0.68,
+        "vignette_strength": 0.37
+      },
+      "waves": [
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 6, "part_ids": ["L06-W01-P01"] },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": {
+                "chance": 1.0,
+                "pool": [
+                  { "type": "laser", "weight": 1.0 },
+                  { "type": "triple_shot", "weight": 1.0 }
+                ]
+              }
+            }
+          ],
+          "scheduled_spawns": [
+            { "delay": 3.0, "type": "laser_turret", "count": 1 },
+            { "delay": 3.0, "type": "spinner", "count": 1 },
+            { "delay": 4.0, "type": "missile_carrier", "count": 1 },
+            { "delay": 4.0, "type": "kamikaze", "count": 2 }
+          ]
+        },
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 7, "part_ids": ["L06-W02-P01"] },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": { "type": "shield", "chance": 1.0 }
+            }
+          ],
+          "scheduled_spawns": [
+            { "delay": 4.0, "type": "shooter_station", "count": 1 },
+            { "delay": 4.0, "type": "shooter", "count": 2 },
+            { "delay": 5.0, "type": "laser_turret", "count": 1 },
+            { "delay": 5.0, "type": "missile_carrier", "count": 1 }
+          ]
+        },
+        {
+          "initial_spawns": [
+            { "type": "big_meteor", "count": 7, "part_ids": ["L06-W03-P01", "L06-W03-P02"] },
+            {
+              "type": "big_meteor",
+              "count": 1,
+              "drop": { "type": "laser", "chance": 1.0 }
+            }
+          ],
+          "scheduled_spawns": [
+            { "delay": 4.0, "type": "shooter_station", "count": 1 },
+            { "delay": 4.0, "type": "laser_turret", "count": 1 },
+            { "delay": 4.0, "type": "spinner", "count": 1 },
+            {
+              "delay": 4.0,
+              "type": "missile_carrier",
+              "count": 1,
+              "drop": { "type": "triple_shot", "chance": 0.8 }
+            },
+            { "delay": 4.0, "type": "shooter", "count": 2 },
+            { "delay": 3.0, "type": "kamikaze", "count": 2 }
           ]
         }
       ]

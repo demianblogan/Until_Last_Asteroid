@@ -90,6 +90,11 @@ AssetStore& Entity::GetAssets() noexcept
 	return assets;
 }
 
+const World& Entity::GetWorld() const noexcept
+{
+	return world;
+}
+
 const AssetStore& Entity::GetAssets() const noexcept
 {
 	return assets;

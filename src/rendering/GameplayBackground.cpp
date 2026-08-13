@@ -32,23 +32,23 @@ GameplayBackground::GameplayBackground(AssetStore& assets, sf::Vector2f logicalS
     : assets(assets)
     , logicalSize(logicalSize)
 {
-    SetTheme("level_01_blue_nebula");
+    SetTheme("blue_nebula_region");
 }
 
 void GameplayBackground::SetTheme(std::string_view theme, float brightness)
 {
 	farBackground.reset();
 	std::optional<Config::Texture> backgroundTexture;
-	if (theme == "level_01_blue_nebula")
-		backgroundTexture = Config::Texture::GameplayBackgroundLevel1;
-	else if (theme == "level_02_violet_clouds")
-		backgroundTexture = Config::Texture::GameplayBackgroundLevel2;
-	else if (theme == "level_03_asteroid_belt")
-		backgroundTexture = Config::Texture::GameplayBackgroundLevel3;
-	else if (theme == "level_04_red_storm")
-		backgroundTexture = Config::Texture::GameplayBackgroundLevel4;
-	else if (theme == "level_05_deep_void")
-		backgroundTexture = Config::Texture::GameplayBackgroundLevel5;
+	if (theme == "blue_nebula_region")
+		backgroundTexture = Config::Texture::GameplayBackgroundBlueRegion;
+	else if (theme == "violet_clouds_region")
+		backgroundTexture = Config::Texture::GameplayBackgroundVioletRegion;
+	else if (theme == "asteroid_belt_region")
+		backgroundTexture = Config::Texture::GameplayBackgroundAsteroidRegion;
+	else if (theme == "red_storm_region")
+		backgroundTexture = Config::Texture::GameplayBackgroundRedRegion;
+	else if (theme == "deep_void_region")
+		backgroundTexture = Config::Texture::GameplayBackgroundDeepVoidRegion;
 
 	if (backgroundTexture)
 	{
@@ -68,22 +68,22 @@ void GameplayBackground::SetTheme(std::string_view theme, float brightness)
 		farBackground->setColor(sf::Color(channel, channel, channel));
 	}
 
-    if (theme == "level_02_violet_clouds")
+    if (theme == "violet_clouds_region")
     {
         topColor = { 3, 7, 19 };
         bottomColor = { 35, 16, 63 };
     }
-    else if (theme == "level_03_asteroid_belt")
+    else if (theme == "asteroid_belt_region")
     {
         topColor = { 5, 8, 14 };
         bottomColor = { 33, 29, 29 };
     }
-    else if (theme == "level_04_red_storm")
+    else if (theme == "red_storm_region")
     {
         topColor = { 8, 5, 16 };
         bottomColor = { 55, 12, 27 };
     }
-    else if (theme == "level_05_deep_void")
+    else if (theme == "deep_void_region")
     {
         topColor = { 1, 3, 10 };
         bottomColor = { 5, 11, 23 };
