@@ -19,6 +19,7 @@
 #include "ui/GlowingCursor.h"
 #include "ui/GameOverScreen.h"
 #include "ui/HUD.h"
+#include "ui/LevelIntro.h"
 #include "ui/ResultScreen.h"
 #include "ui/ScreenFade.h"
 #include "ui/WaveIntro.h"
@@ -44,6 +45,7 @@ private:
 		NextLevel,
 		RestartGame,
 		TutorialComplete,
+		LevelSelect,
 		MainMenu
 	};
 
@@ -56,7 +58,9 @@ private:
 	void BeginResultTransition(ResultScreen::Action action);
 	void RestartCurrentLevel();
 	void SpawnPlayerIfNeeded();
-	void SpawnConfiguredEnemy(GameplayData::EnemyKind kind, bool materialize = false);
+	void SpawnConfiguredEnemy(
+		const GameplayData::SpawnGroup& spawn,
+		bool materialize = false);
 	void SpawnPickup(Pickup::Kind kind, sf::Vector2f position);
 	void StartTutorial();
 	void UpdateTutorial(float deltaTime);
@@ -68,12 +72,15 @@ private:
 	void Reset();
 	void RestoreCampaignProgress();
 	void SaveCompletedLevel();
+	[[nodiscard]] ResultScreen::Statistics FinalizeLevelStatistics();
 	void NextLevel();
 	void SpawnLevel();
-	void StartNextWave(bool materializeInitialSpawns);
+	void StartNextWave(bool materializeInitialSpawns, bool startWaveIntro = true);
 	void FinishWaveIntro();
 	void UpdatePlayerSpawnAnimation(float deltaTime);
 	void UpdateWaveMaterialization(float deltaTime);
+	void UpdateTimeSlowdownPresentation(float deltaTime);
+	[[nodiscard]] float GetWorldTimeScale() const noexcept;
 	[[nodiscard]] sf::Vector2f GetSafeSpawnPosition();
 	[[nodiscard]] sf::Vector2f GetSafeEdgeSpawnPosition();
 
@@ -92,6 +99,7 @@ private:
 	GameOverScreen gameOverScreen;
 	ResultScreen resultScreen;
 	ScreenFade screenFade;
+	LevelIntro levelIntro;
 	WaveIntro waveIntro;
 	std::optional<HUD> hud;
 	std::optional<TutorialDirector> tutorial;
@@ -101,6 +109,12 @@ private:
 	GameplayTransition gameplayTransition{ GameplayTransition::None };
 	float playerSpawnElapsed{ 0.f };
 	float waveMaterializationElapsed{ 0.f };
+	float waveClearDelayRemaining{ 0.f };
+	float timeSlowdownVisualStrength{ 0.f };
+	float levelGameplayElapsed{ 0.f };
 	bool playerSpawnAnimating{ false };
+	bool waveClearDelayActive{ false };
+	bool selectedLevelRun{ false };
+	bool selectedLevelAdvancesCampaign{ false };
 	std::vector<Entity*> materializingEnemies;
 };

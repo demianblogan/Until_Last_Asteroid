@@ -2,9 +2,10 @@
 
 enum class GameplayLaunchMode
 {
-    ContinueCampaign,
-    NewCampaign,
-    Tutorial
+	ContinueCampaign,
+	NewCampaign,
+	Tutorial,
+	SelectedLevel
 };
 
 enum class GameplayRuntimeCommand
@@ -18,5 +19,6 @@ struct GameplayLaunchRequest
 {
     GameplayLaunchMode mode{ GameplayLaunchMode::ContinueCampaign };
     GameplayRuntimeCommand pendingCommand{ GameplayRuntimeCommand::None };
-    bool tutorialRunning{ false };
+	bool tutorialRunning{ false };
+	int selectedLevel{ 1 };
 };

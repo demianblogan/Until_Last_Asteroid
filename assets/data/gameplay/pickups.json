@@ -2,6 +2,12 @@
   "health_restore_percentage": 0.25,
   "shield_capacity": 100.0,
   "shield_duration": 10.0,
+  "homing_bullets_duration": 10.0,
+  "homing_cone_degrees": 90.0,
+  "homing_turn_speed_degrees": 480.0,
+  "time_slowdown_duration": 5.0,
+  "time_slowdown_world_scale": 0.35,
+  "time_slowdown_audio_pitch": 0.72,
   "visual_scale": 0.075,
   "collision_radius": 42.0
 }

@@ -80,5 +80,5 @@ void WaveDirector::SpawnGroup(
     const SpawnEnemy& spawnEnemy)
 {
     for (int count{ 0 }; count < group.count; ++count)
-        spawnEnemy(group.kind);
+        spawnEnemy(group);
 }

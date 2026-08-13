@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -22,7 +23,9 @@ public:
         BigMeteor,
         SmallMeteor,
         Kamikaze,
-        Shooter,
+		Shooter,
+		Spinner,
+		MissileCarrier,
         Count
     };
 
@@ -30,8 +33,17 @@ public:
     {
         Player,
         Enemy,
+		Spinner,
         Count
     };
+
+	enum class PickupKind
+	{
+		Health,
+		Shield,
+		HomingBullets,
+		TimeSlowdown
+	};
 
     struct PlayerConfig
     {
@@ -64,7 +76,10 @@ public:
         float collisionRadius{ 1.f };
 		std::vector<Collision::LocalCircle> collisionCircles;
 		float rotationSpeed{ 0.f };
-		std::array<NormalizedPoint, 2> weaponEmitters{};
+		float sineAmplitude{ 0.f };
+		float sineFrequency{ 0.f };
+		std::vector<NormalizedPoint> weaponEmitters;
+		std::vector<NormalizedPoint> engineEmitters;
     };
 
     struct ProjectileConfig
@@ -81,14 +96,46 @@ public:
         float healthRestorePercentage{ 0.25f };
         float shieldCapacity{ 100.f };
         float shieldDuration{ 10.f };
+		float homingBulletsDuration{ 10.f };
+		float homingConeDegrees{ 90.f };
+		float homingTurnSpeedDegrees{ 480.f };
+		float timeSlowdownDuration{ 5.f };
+		float timeSlowdownWorldScale{ 0.35f };
+		float timeSlowdownAudioPitch{ 0.72f };
         float visualScale{ 0.075f };
         float collisionRadius{ 42.f };
     };
 
+	struct MissileConfig
+	{
+		int maximumHealth{ 30 };
+		int explosionDamage{ 40 };
+		float speed{ 280.f };
+		float turnSpeedDegrees{ 110.f };
+		float explosionRadius{ 115.f };
+		float explosionImpulse{ 500.f };
+		float lifetime{ 12.f };
+		float visualScale{ 0.07f };
+		float collisionRadius{ 14.f };
+	};
+
     struct SpawnGroup
     {
+		struct PickupDropConfig
+		{
+			struct WeightedPickup
+			{
+				PickupKind kind{ PickupKind::Health };
+				float weight{ 1.f };
+			};
+
+			float chance{ 1.f };
+			std::vector<WeightedPickup> pool;
+		};
+
         EnemyKind kind{ EnemyKind::BigMeteor };
         int count{ 0 };
+		std::optional<PickupDropConfig> drop;
     };
 
     struct WaveConfig
@@ -114,8 +161,11 @@ public:
         };
 
         int number{ 1 };
+		std::string title;
         std::string background;
         float backgroundBrightness{ 1.f };
+		float targetTimeSeconds{ 120.f };
+		float targetAccuracyPercent{ 75.f };
         PostProcessConfig postProcess;
         std::vector<WaveConfig> waves;
     };
@@ -154,6 +204,7 @@ public:
     [[nodiscard]] const EnemyConfig& GetEnemy(EnemyKind kind) const noexcept;
     [[nodiscard]] const ProjectileConfig& GetProjectile(ProjectileKind kind) const noexcept;
     [[nodiscard]] const PickupConfig& GetPickups() const noexcept;
+	[[nodiscard]] const MissileConfig& GetMissile() const noexcept;
     [[nodiscard]] const LevelConfig& GetLevel(int number) const;
     [[nodiscard]] int GetLevelCount() const noexcept;
     [[nodiscard]] float GetHitFlashDuration() const noexcept;
@@ -164,6 +215,7 @@ private:
     std::array<EnemyConfig, static_cast<std::size_t>(EnemyKind::Count)> enemies;
     std::array<ProjectileConfig, static_cast<std::size_t>(ProjectileKind::Count)> projectiles;
     PickupConfig pickups;
+	MissileConfig missile;
     std::vector<LevelConfig> levels;
     float hitFlashDuration{ 0.1f };
     EffectsConfig effects;

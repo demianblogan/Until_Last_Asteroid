@@ -43,7 +43,8 @@ void Player::Update(float deltaTime)
 	shootTimer += deltaTime;
 	UpdateInvulnerability(deltaTime);
 	UpdateMovement(deltaTime);
-	UpdateRotation();
+	if (controlEnabled)
+		UpdateRotation();
 }
 
 void Player::HandleEvent(const sf::Event& event)
@@ -57,6 +58,8 @@ void Player::HandleEvent(const sf::Event& event)
 
 void Player::HandleRealtime()
 {
+	if (!controlEnabled)
+		return;
 	input.Update();
 	const GamepadManager::GameplayInput gamepadInput{ gamepad.GetGameplayInput() };
 	moveInput += gamepadInput.movement;
@@ -67,6 +70,13 @@ void Player::HandleRealtime()
 	}
 	if (gamepadInput.fire)
 		Shoot();
+}
+
+void Player::SetControlEnabled(bool enabled) noexcept
+{
+	controlEnabled = enabled;
+	if (!controlEnabled)
+		moveInput = { 0.f, 0.f };
 }
 
 void Player::OnDestroy()
@@ -237,6 +247,8 @@ void Player::UpdateInvulnerability(float dt)
 
 void Player::Shoot()
 {
+	if (!controlEnabled)
+		return;
 	const float cooldown{ GetAssets().GetGameplayData().GetPlayer().shootCooldown };
 	if (shootTimer < cooldown)
 		return;

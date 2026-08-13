@@ -116,8 +116,14 @@ void AssetStore::InitializeTextures()
 	textures.LoadFromFile(Config::Texture::GameplayCrosshair, "assets/cursors/gameplay_crosshair.png");
 	textures.LoadFromFile(Config::Texture::HealthPickup, "assets/sprites/pickups/health_pickup.png");
 	textures.LoadFromFile(Config::Texture::ShieldPickup, "assets/sprites/pickups/shield_pickup.png");
+	textures.LoadFromFile(Config::Texture::HomingBulletsPickup,
+		"assets/sprites/pickups/homing_bullets_pickup.png");
+	textures.LoadFromFile(Config::Texture::TimeSlowdownPickup,
+		"assets/sprites/pickups/time_slowdown_pickup.png");
 	textures.Get(Config::Texture::HealthPickup).setSmooth(true);
 	textures.Get(Config::Texture::ShieldPickup).setSmooth(true);
+	textures.Get(Config::Texture::HomingBulletsPickup).setSmooth(true);
+	textures.Get(Config::Texture::TimeSlowdownPickup).setSmooth(true);
 
 	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship_v1_4.png");
 	textures.Get(Config::Texture::PlayerShip).setSmooth(true);
@@ -156,8 +162,14 @@ void AssetStore::InitializeTextures()
 		"assets/sprites/enemies/kamikaze_saucer_v1_4.png");
 	textures.LoadFromFile(Config::Texture::SmallEnemySaucer,
 		"assets/sprites/enemies/shooter_gunship_v1_4.png");
+	textures.LoadFromFile(Config::Texture::SpinnerPlatform,
+		"assets/sprites/enemies/spinner_platform_v1_7.png");
+	textures.LoadFromFile(Config::Texture::MissileCarrier,
+		"assets/sprites/enemies/missile_carrier_v1_7.png");
 	textures.Get(Config::Texture::BigEnemySaucer).setSmooth(true);
 	textures.Get(Config::Texture::SmallEnemySaucer).setSmooth(true);
+	textures.Get(Config::Texture::SpinnerPlatform).setSmooth(true);
+	textures.Get(Config::Texture::MissileCarrier).setSmooth(true);
 
 	textures.LoadFromFile(Config::Texture::BigMeteor1,
 		"assets/sprites/meteors/large_asteroid_01_v1_4.png");
@@ -189,8 +201,11 @@ void AssetStore::InitializeTextures()
 		"assets/sprites/shots/player_projectile_v1_4.png");
 	textures.LoadFromFile(Config::Texture::EnemySaucerShot,
 		"assets/sprites/shots/enemy_projectile_v1_4.png");
+	textures.LoadFromFile(Config::Texture::HomingMissile,
+		"assets/sprites/shots/homing_missile_v1_7.png");
 	textures.Get(Config::Texture::PlayerShot).setSmooth(true);
 	textures.Get(Config::Texture::EnemySaucerShot).setSmooth(true);
+	textures.Get(Config::Texture::HomingMissile).setSmooth(true);
 }
 
 const GameplayData& AssetStore::GetGameplayData() const
@@ -286,6 +301,20 @@ void AssetStore::InitializeShaders()
 		throw std::runtime_error("Failed to load shader: " + menuVignettePath);
 
 	shaders.emplace(Config::Shader::MenuVignette, std::move(menuVignetteShader));
+
+	sf::Shader enemyEmissionShader;
+	const std::string enemyEmissionPath{ "assets/shaders/enemy_emission.frag" };
+	if (!enemyEmissionShader.loadFromFile(enemyEmissionPath, sf::Shader::Type::Fragment))
+		throw std::runtime_error("Failed to load shader: " + enemyEmissionPath);
+
+	shaders.emplace(Config::Shader::EnemyEmission, std::move(enemyEmissionShader));
+
+	sf::Shader playerEmissionShader;
+	const std::string playerEmissionPath{ "assets/shaders/player_emission.frag" };
+	if (!playerEmissionShader.loadFromFile(playerEmissionPath, sf::Shader::Type::Fragment))
+		throw std::runtime_error("Failed to load shader: " + playerEmissionPath);
+
+	shaders.emplace(Config::Shader::PlayerEmission, std::move(playerEmissionShader));
 }
 
 void AssetStore::InitializeCursors()

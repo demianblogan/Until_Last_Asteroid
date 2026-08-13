@@ -16,7 +16,7 @@ namespace
 	constexpr sf::Vector2f ScorePanelPosition{ 20.f, 20.f };
 	constexpr sf::Vector2f ScorePanelSize{ 387.f, 74.f };
 	constexpr sf::Vector2f FramePosition{ 20.f, 1010.f };
-	constexpr sf::Vector2f ShieldFramePosition{ 20.f, 950.f };
+	constexpr float BonusBarSpacing{ 60.f };
 	constexpr sf::Vector2f FillOffset{ 27.f * HealthBarScale, 19.f * HealthBarScale };
 	constexpr sf::Vector2f FrameSize{ 640.f * HealthBarScale, 100.f * HealthBarScale };
 
@@ -44,6 +44,14 @@ HUD::HUD(AssetStore& assets, const GameplaySession& session)
 	, shieldFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, shieldFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, shieldGlow(assets)
+	, homingText(assets.Fonts().Get(Config::Font::MenuSemibold))
+	, homingFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
+	, homingFill(assets.Textures().Get(Config::Texture::HealthBarFill))
+	, homingGlow(assets)
+	, timeSlowdownText(assets.Fonts().Get(Config::Font::MenuSemibold))
+	, timeSlowdownFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
+	, timeSlowdownFill(assets.Textures().Get(Config::Texture::HealthBarFill))
+	, timeSlowdownGlow(assets)
 {
 	scorePanel.setPosition(ScorePanelPosition);
 	scorePanel.setScale({ ScorePanelScale, ScorePanelScale });
@@ -65,15 +73,33 @@ HUD::HUD(AssetStore& assets, const GameplaySession& session)
 	healthText.setFillColor(sf::Color::White);
 	healthText.setOutlineColor(sf::Color(0, 10, 20, 210));
 	healthText.setOutlineThickness(2.f);
-	shieldFrame.setPosition(ShieldFramePosition);
+	shieldFrame.setPosition({ FramePosition.x, FramePosition.y - BonusBarSpacing });
 	shieldFrame.setScale({ HealthBarScale, HealthBarScale });
-	shieldFill.setPosition(ShieldFramePosition + FillOffset);
+	shieldFill.setPosition(shieldFrame.getPosition() + FillOffset);
 	shieldFill.setScale({ HealthBarScale, HealthBarScale });
 	shieldFill.setColor(sf::Color(35, 225, 245));
 	shieldText.setCharacterSize(18);
 	shieldText.setFillColor(sf::Color(215, 255, 255));
 	shieldText.setOutlineColor(sf::Color(0, 10, 20, 210));
 	shieldText.setOutlineThickness(2.f);
+	homingFrame.setPosition({ FramePosition.x, FramePosition.y - BonusBarSpacing * 2.f });
+	homingFrame.setScale({ HealthBarScale, HealthBarScale });
+	homingFill.setPosition(homingFrame.getPosition() + FillOffset);
+	homingFill.setScale({ HealthBarScale, HealthBarScale });
+	homingFill.setColor(sf::Color(255, 190, 40));
+	homingText.setCharacterSize(18);
+	homingText.setFillColor(sf::Color(255, 239, 185));
+	homingText.setOutlineColor(sf::Color(20, 12, 0, 220));
+	homingText.setOutlineThickness(2.f);
+	timeSlowdownFrame.setPosition({ FramePosition.x, FramePosition.y - BonusBarSpacing * 3.f });
+	timeSlowdownFrame.setScale({ HealthBarScale, HealthBarScale });
+	timeSlowdownFill.setPosition(timeSlowdownFrame.getPosition() + FillOffset);
+	timeSlowdownFill.setScale({ HealthBarScale, HealthBarScale });
+	timeSlowdownFill.setColor(sf::Color(180, 75, 255));
+	timeSlowdownText.setCharacterSize(18);
+	timeSlowdownText.setFillColor(sf::Color(238, 215, 255));
+	timeSlowdownText.setOutlineColor(sf::Color(13, 2, 24, 220));
+	timeSlowdownText.setOutlineThickness(2.f);
 	Update(0.f);
 }
 
@@ -88,6 +114,9 @@ void HUD::Update(float deltaTime)
 	UpdateScore(deltaTime);
 	UpdateHealthBar(deltaTime);
 	UpdateShieldBar(deltaTime);
+	UpdateHomingBar(deltaTime);
+	UpdateTimeSlowdownBar(deltaTime);
+	UpdateBonusBarLayout();
 }
 
 void HUD::HighlightScore(float duration) noexcept
@@ -140,8 +169,74 @@ void HUD::UpdateShieldBar(float deltaTime)
 	shieldFill.setColor(color);
 
 	const int percentage{ static_cast<int>(std::ceil(ratio * 100.f)) };
-	shieldText.setString(std::to_string(percentage) + "%");
-	CenterShieldText();
+	shieldText.setString("SHIELD " + std::to_string(percentage) + "%");
+}
+
+void HUD::UpdateHomingBar(float deltaTime)
+{
+	homingVisible = session.IsHomingBulletsActive();
+	if (!homingVisible)
+	{
+		homingFill.setTextureRect(sf::IntRect({ 0, 0 }, { 0, 0 }));
+		return;
+	}
+
+	homingGlow.Update(deltaTime);
+	const float ratio{ std::clamp(session.GetHomingBulletsRatio(), 0.f, 1.f) };
+	const sf::Vector2u textureSize{ homingFill.getTexture().getSize() };
+	const int visibleWidth{ static_cast<int>(std::round(textureSize.x * ratio)) };
+	homingFill.setTextureRect(sf::IntRect(
+		{ 0, 0 }, { visibleWidth, static_cast<int>(textureSize.y) }));
+	homingFill.setColor(sf::Color(255, 190, 40));
+
+	const int percentage{ static_cast<int>(std::ceil(ratio * 100.f)) };
+	homingText.setString("HOMING " + std::to_string(percentage) + "%");
+}
+
+void HUD::UpdateTimeSlowdownBar(float deltaTime)
+{
+	timeSlowdownVisible = session.IsTimeSlowdownActive();
+	if (!timeSlowdownVisible)
+	{
+		timeSlowdownFill.setTextureRect(sf::IntRect({ 0, 0 }, { 0, 0 }));
+		return;
+	}
+
+	timeSlowdownGlow.Update(deltaTime);
+	const float ratio{ std::clamp(session.GetTimeSlowdownRatio(), 0.f, 1.f) };
+	const sf::Vector2u textureSize{ timeSlowdownFill.getTexture().getSize() };
+	const int visibleWidth{ static_cast<int>(std::round(textureSize.x * ratio)) };
+	timeSlowdownFill.setTextureRect(sf::IntRect(
+		{ 0, 0 }, { visibleWidth, static_cast<int>(textureSize.y) }));
+	timeSlowdownFill.setColor(sf::Color(180, 75, 255));
+
+	const int percentage{ static_cast<int>(std::ceil(ratio * 100.f)) };
+	timeSlowdownText.setString("TIME SLOW " + std::to_string(percentage) + "%");
+}
+
+void HUD::UpdateBonusBarLayout()
+{
+	float nextY{ FramePosition.y - BonusBarSpacing };
+	if (shieldVisible)
+	{
+		shieldFrame.setPosition({ FramePosition.x, nextY });
+		shieldFill.setPosition(shieldFrame.getPosition() + FillOffset);
+		CenterShieldText();
+		nextY -= BonusBarSpacing;
+	}
+	if (homingVisible)
+	{
+		homingFrame.setPosition({ FramePosition.x, nextY });
+		homingFill.setPosition(homingFrame.getPosition() + FillOffset);
+		CenterHomingText();
+		nextY -= BonusBarSpacing;
+	}
+	if (timeSlowdownVisible)
+	{
+		timeSlowdownFrame.setPosition({ FramePosition.x, nextY });
+		timeSlowdownFill.setPosition(timeSlowdownFrame.getPosition() + FillOffset);
+		CenterTimeSlowdownText();
+	}
 }
 
 void HUD::UpdateScore(float deltaTime)
@@ -201,7 +296,7 @@ void HUD::UpdateHealthBar(float deltaTime)
 	healthFill.setColor(fillColor);
 
 	const int percentage{ static_cast<int>(std::round(ratio * 100.f)) };
-	healthText.setString(std::to_string(percentage) + "%");
+	healthText.setString("ARMOR " + std::to_string(percentage) + "%");
 	CenterHealthText();
 }
 
@@ -218,7 +313,23 @@ void HUD::CenterShieldText()
 	const sf::FloatRect bounds{ shieldText.getLocalBounds() };
 	shieldText.setOrigin({ bounds.position.x + bounds.size.x * 0.5f,
 		bounds.position.y + bounds.size.y * 0.5f });
-	shieldText.setPosition(ShieldFramePosition + FrameSize * 0.5f);
+	shieldText.setPosition(shieldFrame.getPosition() + FrameSize * 0.5f);
+}
+
+void HUD::CenterHomingText()
+{
+	const sf::FloatRect bounds{ homingText.getLocalBounds() };
+	homingText.setOrigin({ bounds.position.x + bounds.size.x * 0.5f,
+		bounds.position.y + bounds.size.y * 0.5f });
+	homingText.setPosition(homingFrame.getPosition() + FrameSize * 0.5f);
+}
+
+void HUD::CenterTimeSlowdownText()
+{
+	const sf::FloatRect bounds{ timeSlowdownText.getLocalBounds() };
+	timeSlowdownText.setOrigin({ bounds.position.x + bounds.size.x * 0.5f,
+		bounds.position.y + bounds.size.y * 0.5f });
+	timeSlowdownText.setPosition(timeSlowdownFrame.getPosition() + FrameSize * 0.5f);
 }
 
 void HUD::CenterScoreText()
@@ -344,5 +455,47 @@ void HUD::Draw(sf::RenderTarget& target)
 		}
 		target.draw(shieldFill);
 		target.draw(shieldText);
+	}
+
+	if (homingVisible)
+	{
+		target.draw(homingFrame);
+		if (homingFill.getTextureRect().size.x > 0)
+		{
+			homingGlow.DrawBloom(
+				target,
+				homingFill.getGlobalBounds(),
+				[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+				{
+					sf::Sprite glowSource{ homingFill };
+					glowSource.setColor(sf::Color::White);
+					glowTarget.draw(glowSource, states);
+				},
+				homingFill.getColor(),
+				false);
+		}
+		target.draw(homingFill);
+		target.draw(homingText);
+	}
+
+	if (timeSlowdownVisible)
+	{
+		target.draw(timeSlowdownFrame);
+		if (timeSlowdownFill.getTextureRect().size.x > 0)
+		{
+			timeSlowdownGlow.DrawBloom(
+				target,
+				timeSlowdownFill.getGlobalBounds(),
+				[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+				{
+					sf::Sprite glowSource{ timeSlowdownFill };
+					glowSource.setColor(sf::Color::White);
+					glowTarget.draw(glowSource, states);
+				},
+				timeSlowdownFill.getColor(),
+				false);
+		}
+		target.draw(timeSlowdownFill);
+		target.draw(timeSlowdownText);
 	}
 }

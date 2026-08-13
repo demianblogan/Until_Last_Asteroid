@@ -11,6 +11,7 @@
 #include "ui/GlowingCursor.h"
 #include "ui/MenuButton.h"
 #include "ui/NeonGlow.h"
+#include "ui/RoundedRectangleShape.h"
 
 class AssetStore;
 class AudioManager;
@@ -26,9 +27,27 @@ namespace sf
 class ResultScreen
 {
 public:
+	struct Statistics
+	{
+		int combatScore{ 0 };
+		int armorPercent{ 0 };
+		int armorBonus{ 0 };
+		unsigned int shotsHit{ 0u };
+		unsigned int shotsFired{ 0u };
+		int accuracyPercent{ 0 };
+		int targetAccuracyPercent{ 0 };
+		int accuracyBonus{ 0 };
+		float completionSeconds{ 0.f };
+		float targetSeconds{ 0.f };
+		int timeBonus{ 0 };
+		int levelTotal{ 0 };
+		int campaignTotal{ 0 };
+	};
+
     enum class Mode
     {
         LevelComplete,
+		LevelReplay,
         Victory
     };
 
@@ -41,7 +60,7 @@ public:
     ResultScreen(AssetStore& assets, AudioManager& audio, GamepadManager& gamepad,
         sf::Vector2f logicalSize);
 
-    void Start(Mode mode, int level, int score);
+    void Start(Mode mode, int level, const Statistics& statistics);
     void Reset();
     void Update(float deltaTime);
     [[nodiscard]] std::optional<Action> HandleEvent(
@@ -67,8 +86,13 @@ private:
     sf::Vector2f logicalSize;
     sf::RectangleShape shade;
     sf::Sprite titleFrame;
-    sf::Text title;
-    sf::Text summary;
+	sf::Text title;
+	RoundedRectangleShape statisticsPanel;
+	sf::RectangleShape statisticsSeparator;
+	sf::Text statisticsTitle;
+	std::vector<sf::Text> statisticLabels;
+	std::vector<sf::Text> statisticValues;
+	Statistics statistics;
     NeonGlow titleGlow;
     NeonGlow buttonGlow;
     GlowingCursor menuCursor;

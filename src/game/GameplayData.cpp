@@ -69,10 +69,72 @@ namespace
             return GameplayData::EnemyKind::Kamikaze;
         if (value == "shooter")
             return GameplayData::EnemyKind::Shooter;
+        if (value == "spinner")
+			return GameplayData::EnemyKind::Spinner;
+		if (value == "missile_carrier")
+			return GameplayData::EnemyKind::MissileCarrier;
 
         throw std::runtime_error(
             "Unknown gameplay enemy type '" + value + "' in " + path.string());
     }
+
+	GameplayData::PickupKind ParsePickupKind(
+		const std::string& value,
+		const std::filesystem::path& path)
+	{
+		if (value == "health")
+			return GameplayData::PickupKind::Health;
+		if (value == "shield")
+			return GameplayData::PickupKind::Shield;
+		if (value == "homing_bullets")
+			return GameplayData::PickupKind::HomingBullets;
+		if (value == "time_slowdown")
+			return GameplayData::PickupKind::TimeSlowdown;
+
+		throw std::runtime_error(
+			"Unknown pickup type '" + value + "' in " + path.string());
+	}
+
+	GameplayData::SpawnGroup::PickupDropConfig ReadPickupDrop(
+		const Json& object,
+		const std::filesystem::path& path)
+	{
+		GameplayData::SpawnGroup::PickupDropConfig result;
+		result.chance = object.contains("chance")
+			? Require<float>(object, "chance", path)
+			: 1.f;
+		if (result.chance < 0.f || result.chance > 1.f)
+			throw std::runtime_error(
+				"Pickup drop chance must be in [0, 1] in " + path.string());
+
+		const bool hasType{ object.contains("type") };
+		const bool hasPool{ object.contains("pool") };
+		if (hasType == hasPool)
+			throw std::runtime_error(
+				"Pickup drop must define exactly one of 'type' or 'pool' in " + path.string());
+
+		if (hasType)
+		{
+			result.pool.push_back({ ParsePickupKind(
+				Require<std::string>(object, "type", path), path), 1.f });
+			return result;
+		}
+
+		const Json& pool{ object.at("pool") };
+		if (!pool.is_array() || pool.empty())
+			throw std::runtime_error(
+				"Pickup drop pool must be a non-empty array in " + path.string());
+		for (const Json& entry : pool)
+		{
+			GameplayData::SpawnGroup::PickupDropConfig::WeightedPickup pickup;
+			pickup.kind = ParsePickupKind(
+				Require<std::string>(entry, "type", path), path);
+			pickup.weight = Require<float>(entry, "weight", path);
+			RequirePositive(pickup.weight, "weight", path);
+			result.pool.push_back(pickup);
+		}
+		return result;
+	}
 
     std::vector<Collision::LocalCircle> ReadCollisionCircles(
         const Json& object,
@@ -124,25 +186,55 @@ namespace
 		result.collisionCircles = ReadCollisionCircles(object, path);
 		if (object.contains("rotation_speed"))
 			result.rotationSpeed = Require<float>(object, "rotation_speed", path);
+		if (object.contains("sine_amplitude"))
+			result.sineAmplitude = Require<float>(object, "sine_amplitude", path);
+		if (object.contains("sine_frequency"))
+			result.sineFrequency = Require<float>(object, "sine_frequency", path);
 		if (object.contains("weapon_emitters"))
 		{
 			const Json& emitters{ object.at("weapon_emitters") };
-			if (!emitters.is_array() || emitters.size() != result.weaponEmitters.size())
+			if (!emitters.is_array() || emitters.empty())
 				throw std::runtime_error(
-					"Gameplay value 'weapon_emitters' must contain exactly two points in " +
+					"Gameplay value 'weapon_emitters' must contain at least one point in " +
 					path.string());
 
-			for (std::size_t i{ 0 }; i < result.weaponEmitters.size(); ++i)
+			result.weaponEmitters.reserve(emitters.size());
+			for (const Json& emitterJson : emitters)
 			{
-				result.weaponEmitters[i].x = Require<float>(emitters.at(i), "x", path);
-				result.weaponEmitters[i].y = Require<float>(emitters.at(i), "y", path);
-				if (result.weaponEmitters[i].x < 0.f || result.weaponEmitters[i].x > 1.f ||
-					result.weaponEmitters[i].y < 0.f || result.weaponEmitters[i].y > 1.f)
+				GameplayData::NormalizedPoint emitter;
+				emitter.x = Require<float>(emitterJson, "x", path);
+				emitter.y = Require<float>(emitterJson, "y", path);
+				if (emitter.x < 0.f || emitter.x > 1.f ||
+					emitter.y < 0.f || emitter.y > 1.f)
 				{
 					throw std::runtime_error(
 						"Weapon emitter coordinates must be normalized to [0, 1] in " +
 						path.string());
 				}
+				result.weaponEmitters.push_back(emitter);
+			}
+		}
+		if (object.contains("engine_emitters"))
+		{
+			const Json& emitters{ object.at("engine_emitters") };
+			if (!emitters.is_array() || emitters.empty())
+				throw std::runtime_error(
+					"Gameplay value 'engine_emitters' must contain at least one point in " +
+					path.string());
+			result.engineEmitters.reserve(emitters.size());
+			for (const Json& emitterJson : emitters)
+			{
+				GameplayData::NormalizedPoint emitter;
+				emitter.x = Require<float>(emitterJson, "x", path);
+				emitter.y = Require<float>(emitterJson, "y", path);
+				if (emitter.x < 0.f || emitter.x > 1.f ||
+					emitter.y < 0.f || emitter.y > 1.f)
+				{
+					throw std::runtime_error(
+						"Engine emitter coordinates must be normalized to [0, 1] in " +
+						path.string());
+				}
+				result.engineEmitters.push_back(emitter);
 			}
 		}
 
@@ -157,6 +249,8 @@ namespace
         RequirePositive(result.visualScale, "visual_scale", path);
         RequirePositive(result.collisionRadius, "collision_radius", path);
 		RequireNonNegative(result.rotationSpeed, "rotation_speed", path);
+		RequireNonNegative(result.sineAmplitude, "sine_amplitude", path);
+		RequireNonNegative(result.sineFrequency, "sine_frequency", path);
         return result;
     }
 
@@ -327,11 +421,13 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 
     const std::filesystem::path enemiesPath{ directory / "enemies.json" };
     const Json enemiesJson{ LoadJson(enemiesPath) };
-    const std::array<std::pair<const char*, EnemyKind>, 4> enemyNames{
+    const std::array<std::pair<const char*, EnemyKind>, 6> enemyNames{
         std::pair{ "big_meteor", EnemyKind::BigMeteor },
         std::pair{ "small_meteor", EnemyKind::SmallMeteor },
         std::pair{ "kamikaze", EnemyKind::Kamikaze },
-        std::pair{ "shooter", EnemyKind::Shooter }
+        std::pair{ "shooter", EnemyKind::Shooter },
+		std::pair{ "spinner", EnemyKind::Spinner },
+		std::pair{ "missile_carrier", EnemyKind::MissileCarrier }
     };
     for (const auto& [name, kind] : enemyNames)
     {
@@ -341,14 +437,39 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 			if (kind == EnemyKind::Kamikaze && !enemyJson.contains("rotation_speed"))
 				throw std::runtime_error(
 					"Enemy 'kamikaze' requires 'rotation_speed' in " + enemiesPath.string());
-			if (kind == EnemyKind::Shooter && !enemyJson.contains("weapon_emitters"))
+			if ((kind == EnemyKind::Shooter || kind == EnemyKind::Spinner ||
+				kind == EnemyKind::MissileCarrier) &&
+				!enemyJson.contains("weapon_emitters"))
 				throw std::runtime_error(
-					"Enemy 'shooter' requires 'weapon_emitters' in " + enemiesPath.string());
+					"Armed enemy requires 'weapon_emitters' in " + enemiesPath.string());
 			EnemyConfig config{ ReadEnemy(enemyJson, enemiesPath) };
 			if (kind == EnemyKind::Kamikaze)
 				RequirePositive(config.rotationSpeed, "rotation_speed", enemiesPath);
-			if (kind == EnemyKind::Shooter)
+			if (kind == EnemyKind::Shooter || kind == EnemyKind::Spinner ||
+				kind == EnemyKind::MissileCarrier)
 				RequirePositive(config.actionInterval, "action_interval", enemiesPath);
+			if (kind == EnemyKind::Shooter && config.weaponEmitters.size() != 2)
+				throw std::runtime_error(
+					"Enemy 'shooter' requires exactly two weapon emitters in " +
+					enemiesPath.string());
+			if (kind == EnemyKind::Spinner)
+			{
+				if (config.weaponEmitters.size() != 3)
+					throw std::runtime_error(
+						"Enemy 'spinner' requires exactly three weapon emitters in " +
+						enemiesPath.string());
+				RequirePositive(config.rotationSpeed, "rotation_speed", enemiesPath);
+				RequirePositive(config.sineAmplitude, "sine_amplitude", enemiesPath);
+				RequirePositive(config.sineFrequency, "sine_frequency", enemiesPath);
+			}
+			if (kind == EnemyKind::MissileCarrier && config.weaponEmitters.size() != 1)
+				throw std::runtime_error(
+					"Enemy 'missile_carrier' requires exactly one weapon emitter in " +
+					enemiesPath.string());
+			if (kind == EnemyKind::MissileCarrier && config.engineEmitters.size() != 2)
+				throw std::runtime_error(
+					"Enemy 'missile_carrier' requires exactly two engine emitters in " +
+					enemiesPath.string());
 			enemies[static_cast<std::size_t>(kind)] = config;
         }
         catch (const Json::exception& exception)
@@ -367,6 +488,28 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
             ReadProjectile(weaponsJson.at("player_shot"), weaponsPath);
         projectiles[static_cast<std::size_t>(ProjectileKind::Enemy)] =
             ReadProjectile(weaponsJson.at("enemy_shot"), weaponsPath);
+		projectiles[static_cast<std::size_t>(ProjectileKind::Spinner)] =
+			ReadProjectile(weaponsJson.at("spinner_shot"), weaponsPath);
+
+		const Json& missileJson{ weaponsJson.at("homing_missile") };
+		missile.maximumHealth = Require<int>(missileJson, "maximum_health", weaponsPath);
+		missile.explosionDamage = Require<int>(missileJson, "explosion_damage", weaponsPath);
+		missile.speed = Require<float>(missileJson, "speed", weaponsPath);
+		missile.turnSpeedDegrees = Require<float>(missileJson, "turn_speed_degrees", weaponsPath);
+		missile.explosionRadius = Require<float>(missileJson, "explosion_radius", weaponsPath);
+		missile.explosionImpulse = Require<float>(missileJson, "explosion_impulse", weaponsPath);
+		missile.lifetime = Require<float>(missileJson, "lifetime", weaponsPath);
+		missile.visualScale = Require<float>(missileJson, "visual_scale", weaponsPath);
+		missile.collisionRadius = Require<float>(missileJson, "collision_radius", weaponsPath);
+		RequirePositive(static_cast<float>(missile.maximumHealth), "maximum_health", weaponsPath);
+		RequirePositive(static_cast<float>(missile.explosionDamage), "explosion_damage", weaponsPath);
+		RequirePositive(missile.speed, "speed", weaponsPath);
+		RequirePositive(missile.turnSpeedDegrees, "turn_speed_degrees", weaponsPath);
+		RequirePositive(missile.explosionRadius, "explosion_radius", weaponsPath);
+		RequireNonNegative(missile.explosionImpulse, "explosion_impulse", weaponsPath);
+		RequirePositive(missile.lifetime, "lifetime", weaponsPath);
+		RequirePositive(missile.visualScale, "visual_scale", weaponsPath);
+		RequirePositive(missile.collisionRadius, "collision_radius", weaponsPath);
     }
     catch (const Json::exception& exception)
     {
@@ -401,6 +544,18 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
         pickupsJson, "health_restore_percentage", pickupsPath);
     pickups.shieldCapacity = Require<float>(pickupsJson, "shield_capacity", pickupsPath);
     pickups.shieldDuration = Require<float>(pickupsJson, "shield_duration", pickupsPath);
+	pickups.homingBulletsDuration = Require<float>(
+		pickupsJson, "homing_bullets_duration", pickupsPath);
+	pickups.homingConeDegrees = Require<float>(
+		pickupsJson, "homing_cone_degrees", pickupsPath);
+	pickups.homingTurnSpeedDegrees = Require<float>(
+		pickupsJson, "homing_turn_speed_degrees", pickupsPath);
+	pickups.timeSlowdownDuration = Require<float>(
+		pickupsJson, "time_slowdown_duration", pickupsPath);
+	pickups.timeSlowdownWorldScale = Require<float>(
+		pickupsJson, "time_slowdown_world_scale", pickupsPath);
+	pickups.timeSlowdownAudioPitch = Require<float>(
+		pickupsJson, "time_slowdown_audio_pitch", pickupsPath);
     pickups.visualScale = Require<float>(pickupsJson, "visual_scale", pickupsPath);
     pickups.collisionRadius = Require<float>(pickupsJson, "collision_radius", pickupsPath);
     RequirePositive(pickups.healthRestorePercentage, "health_restore_percentage", pickupsPath);
@@ -408,6 +563,21 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
         throw std::runtime_error("Health restore percentage must not exceed 1 in " + pickupsPath.string());
     RequirePositive(pickups.shieldCapacity, "shield_capacity", pickupsPath);
     RequirePositive(pickups.shieldDuration, "shield_duration", pickupsPath);
+	RequirePositive(pickups.homingBulletsDuration, "homing_bullets_duration", pickupsPath);
+	RequirePositive(pickups.homingConeDegrees, "homing_cone_degrees", pickupsPath);
+	if (pickups.homingConeDegrees > 360.f)
+		throw std::runtime_error(
+			"Homing cone must not exceed 360 degrees in " + pickupsPath.string());
+	RequirePositive(pickups.homingTurnSpeedDegrees, "homing_turn_speed_degrees", pickupsPath);
+	RequirePositive(pickups.timeSlowdownDuration, "time_slowdown_duration", pickupsPath);
+	RequirePositive(pickups.timeSlowdownWorldScale, "time_slowdown_world_scale", pickupsPath);
+	if (pickups.timeSlowdownWorldScale > 1.f)
+		throw std::runtime_error(
+			"Time slowdown world scale must not exceed 1 in " + pickupsPath.string());
+	RequirePositive(pickups.timeSlowdownAudioPitch, "time_slowdown_audio_pitch", pickupsPath);
+	if (pickups.timeSlowdownAudioPitch > 1.f)
+		throw std::runtime_error(
+			"Time slowdown audio pitch must not exceed 1 in " + pickupsPath.string());
     RequirePositive(pickups.visualScale, "visual_scale", pickupsPath);
     RequirePositive(pickups.collisionRadius, "collision_radius", pickupsPath);
 
@@ -430,10 +600,20 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
     {
         LevelConfig level;
         level.number = Require<int>(levelJson, "number", levelsPath);
+		level.title = Require<std::string>(levelJson, "title", levelsPath);
         level.background = Require<std::string>(levelJson, "background", levelsPath);
         level.backgroundBrightness = Require<float>(
             levelJson, "background_brightness", levelsPath);
+		level.targetTimeSeconds = Require<float>(
+			levelJson, "target_time_seconds", levelsPath);
+		level.targetAccuracyPercent = Require<float>(
+			levelJson, "target_accuracy_percent", levelsPath);
         RequirePositive(level.backgroundBrightness, "background_brightness", levelsPath);
+		RequirePositive(level.targetTimeSeconds, "target_time_seconds", levelsPath);
+		RequirePositive(level.targetAccuracyPercent, "target_accuracy_percent", levelsPath);
+		if (level.targetAccuracyPercent > 100.f)
+			throw std::runtime_error(
+				"Target accuracy must not exceed 100 percent in " + levelsPath.string());
         if (level.backgroundBrightness > 1.f)
             throw std::runtime_error(
                 "Level background brightness must not exceed 1 in " + levelsPath.string());
@@ -451,6 +631,8 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
             throw std::runtime_error("Gameplay levels must be sequential in " + levelsPath.string());
         if (level.background.empty())
             throw std::runtime_error("Level background cannot be empty in " + levelsPath.string());
+		if (level.title.empty())
+			throw std::runtime_error("Level title cannot be empty in " + levelsPath.string());
 
         try
         {
@@ -463,6 +645,8 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
                     spawn.kind = ParseEnemyKind(
                         Require<std::string>(spawnJson, "type", levelsPath), levelsPath);
                     spawn.count = Require<int>(spawnJson, "count", levelsPath);
+					if (spawnJson.contains("drop"))
+						spawn.drop = ReadPickupDrop(spawnJson.at("drop"), levelsPath);
                     if (spawn.count <= 0)
                         throw std::runtime_error(
                             "Wave initial spawn count must be positive in " + levelsPath.string());
@@ -476,6 +660,8 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
                     spawn.kind = ParseEnemyKind(
                         Require<std::string>(spawnJson, "type", levelsPath), levelsPath);
                     spawn.count = Require<int>(spawnJson, "count", levelsPath);
+					if (spawnJson.contains("drop"))
+						spawn.drop = ReadPickupDrop(spawnJson.at("drop"), levelsPath);
                     RequireNonNegative(spawn.delay, "delay", levelsPath);
                     if (spawn.count <= 0)
                         throw std::runtime_error(
@@ -520,6 +706,11 @@ const GameplayData::ProjectileConfig& GameplayData::GetProjectile(ProjectileKind
 const GameplayData::PickupConfig& GameplayData::GetPickups() const noexcept
 {
     return pickups;
+}
+
+const GameplayData::MissileConfig& GameplayData::GetMissile() const noexcept
+{
+	return missile;
 }
 
 const GameplayData::LevelConfig& GameplayData::GetLevel(int number) const

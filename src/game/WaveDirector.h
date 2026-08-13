@@ -9,7 +9,7 @@
 class WaveDirector
 {
 public:
-    using SpawnEnemy = std::function<void(GameplayData::EnemyKind)>;
+    using SpawnEnemy = std::function<void(const GameplayData::SpawnGroup&)>;
 
     void LoadLevel(const GameplayData::LevelConfig& level);
     bool StartNextWave(const SpawnEnemy& spawnEnemy);

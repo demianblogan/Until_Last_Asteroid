@@ -277,10 +277,52 @@ Visual direction and production specifications are documented in
 - Verified the final x64 Debug and Release configurations.
 - Synchronized the displayed game version, README, and release notes for v1.6.0.
 
-## Planned
+### v1.7.0 — New enemies, new pickups, connected levels
 
-- In the update after v1.6.0, introduce every campaign level with a dedicated
-  presentation card showing its number and authored name before the wave intro.
+- Introduce every campaign level with a dedicated presentation card showing its
+  number and authored name before the wave intro.
+- Add a ten-second Homing Bullets pickup. Newly fired shots acquire the nearest
+  enemy inside a 90-degree aiming cone and steer smoothly toward that target.
+- Present active timed bonuses as a dynamic vertical HUD list above armor. Keep
+  Shield below Homing Bullets when both are active and close gaps when an effect
+  expires independently.
+- Add a five-second Time Slowdown pickup. Keep the player and player projectiles
+  responsive while slowing enemies, hazards, and hostile projectiles; reinforce
+  the effect with audio pitch and a readable post-process treatment.
+- Add a two-second controlless cleanup interval after clearing a non-final wave.
+  Continue updating projectiles, explosions, particles, sound, and HUD before
+  starting the next wave introduction.
+- Add JSON-authored deterministic pickup drops, with optional weighted random
+  pools reserved for encounters where controlled variation is appropriate.
+- Add a rotating symmetric enemy that follows a sinusoidal path and fires three
+  projectiles once per second. Configure it to survive ten standard player shots.
+- Add a missile carrier and slow, destructible homing missiles. Missiles survive
+  three standard shots and explode for 40 damage when touching combat entities.
+- Replace the old prototype content with three complete three-wave campaign
+  levels. Level 1 uses three large asteroids per wave, Level 2 uses four, and
+  Level 3 uses five; all scheduled spawn times are authored from wave start.
+- Enable Select Level with a non-scrolling ten-slot layout. Keep locked entries
+  disabled and hide their authored names until reached. Replaying an earlier
+  level must not rewind campaign progress.
+- Expand the level result screen with separate combat score, remaining-armor,
+  accuracy, and target-time bonuses, followed by level and campaign totals.
+  Keep each level's target time in validated JSON for later balancing.
+- Design, but do not yet implement, a separate Salvage Credit economy and
+  between-level ship upgrades. Credits should look like rotating pseudo-3D
+  luminous tokens and blink before disappearing.
+
+#### Release verification
+
+- Completed the owner-led gameplay and visual verification for all v1.7 systems
+  without release-blocking issues.
+- Intentionally deferred campaign-wide encounter and pickup balancing until all
+  ten campaign levels are implemented; v1.7 keeps every new enemy and pickup
+  available for testing.
+- Verified the final x64 Debug and Release configurations.
+- Synchronized the displayed game version, README, backlog, and release notes
+  for v1.7.0.
+
+## Planned
 
 ## Deferred / needs design
 

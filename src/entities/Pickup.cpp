@@ -10,9 +10,18 @@ namespace
 {
     Config::Texture GetTexture(Pickup::Kind kind)
     {
-        return kind == Pickup::Kind::Health
-            ? Config::Texture::HealthPickup
-            : Config::Texture::ShieldPickup;
+		switch (kind)
+		{
+		case Pickup::Kind::Health:
+			return Config::Texture::HealthPickup;
+		case Pickup::Kind::Shield:
+			return Config::Texture::ShieldPickup;
+		case Pickup::Kind::HomingBullets:
+			return Config::Texture::HomingBulletsPickup;
+		case Pickup::Kind::TimeSlowdown:
+			return Config::Texture::TimeSlowdownPickup;
+		}
+		return Config::Texture::HomingBulletsPickup;
     }
 }
 
@@ -50,6 +59,16 @@ bool Pickup::Apply(GameplaySession& session)
         session.ActivateShield();
         return true;
     }
+	if (kind == Kind::HomingBullets)
+	{
+		session.ActivateHomingBullets(config.homingBulletsDuration);
+		return true;
+	}
+	if (kind == Kind::TimeSlowdown)
+	{
+		session.ActivateTimeSlowdown(config.timeSlowdownDuration);
+		return true;
+	}
 
     const int maximumHealth{ session.GetPlayerHealth().GetMaximum() };
     const int amount{ std::max(1, static_cast<int>(

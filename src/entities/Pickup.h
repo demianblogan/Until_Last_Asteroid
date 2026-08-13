@@ -8,11 +8,7 @@ class GameplaySession;
 class Pickup final : public Entity
 {
 public:
-    enum class Kind
-    {
-        Health,
-        Shield
-    };
+	using Kind = GameplayData::PickupKind;
 
     Pickup(AssetStore& assets, World& world, Kind kind);
 

@@ -32,6 +32,7 @@
     <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\CampaignMenuState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
+	<ClCompile Include="src\states\LevelSelectState.cpp" />
     <ClCompile Include="src\states\MainMenuState.cpp" />
     <ClCompile Include="src\states\OptionsState.cpp" />
     <ClCompile Include="src\states\PauseState.cpp" />
@@ -40,13 +41,17 @@
     <ClCompile Include="src\states\StateStack.cpp" />
     <ClCompile Include="src\systems\InputAction.cpp" />
     <ClCompile Include="src\entities\Meteor.cpp" />
+	<ClCompile Include="src\entities\HomingMissile.cpp" />
+	<ClCompile Include="src\entities\MissileCarrier.cpp" />
     <ClCompile Include="src\entities\Player.cpp" />
     <ClCompile Include="src\utils\Random.cpp" />
     <ClCompile Include="src\core\World.cpp" />
     <ClCompile Include="src\entities\Saucer.cpp" />
+	<ClCompile Include="src\entities\Spinner.cpp" />
     <ClCompile Include="src\entities\Shot.cpp" />
     <ClCompile Include="src\ui\HUD.cpp" />
     <ClCompile Include="src\ui\GlowingCursor.cpp" />
+	<ClCompile Include="src\ui\LevelIntro.cpp" />
     <ClCompile Include="src\ui\MenuBackground.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
@@ -75,10 +80,13 @@
     <ClInclude Include="src\core\World.h" />
     <ClInclude Include="src\entities\Shot.h" />
     <ClInclude Include="src\entities\Saucer.h" />
+	<ClInclude Include="src\entities\Spinner.h" />
     <ClInclude Include="src\entities\Enemy.h" />
     <ClInclude Include="src\entities\Pickup.h" />
     <ClInclude Include="src\core\Entity.h" />
     <ClInclude Include="src\entities\Meteor.h" />
+	<ClInclude Include="src\entities\HomingMissile.h" />
+	<ClInclude Include="src\entities\MissileCarrier.h" />
     <ClInclude Include="src\entities\Player.h" />
     <ClInclude Include="src\game\GameplaySession.h" />
     <ClInclude Include="src\game\GameplayData.h" />
@@ -96,6 +104,7 @@
     <ClInclude Include="src\assets\AssetStore.h" />
     <ClInclude Include="src\app\Application.h" />
     <ClInclude Include="src\states\GameplayState.h" />
+	<ClInclude Include="src\states\LevelSelectState.h" />
     <ClInclude Include="src\states\CompanySplashState.h" />
     <ClInclude Include="src\states\CampaignMenuState.h" />
     <ClInclude Include="src\states\MainMenuState.h" />
@@ -107,6 +116,7 @@
     <ClInclude Include="src\states\StateStack.h" />
     <ClInclude Include="src\ui\HUD.h" />
     <ClInclude Include="src\ui\GlowingCursor.h" />
+	<ClInclude Include="src\ui\LevelIntro.h" />
     <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
@@ -127,6 +137,8 @@
     <None Include="assets\shaders\scene_bright_pass.frag" />
     <None Include="assets\shaders\gameplay_post_process.frag" />
     <None Include="assets\shaders\menu_vignette.frag" />
+	<None Include="assets\shaders\enemy_emission.frag" />
+	<None Include="assets\shaders\player_emission.frag" />
     <None Include="assets\data\audio_balance.json" />
     <None Include="assets\data\gameplay\player.json" />
     <None Include="assets\data\gameplay\weapons.json" />
@@ -136,6 +148,8 @@
     <None Include="assets\data\gameplay\pickups.json" />
     <None Include="assets\sprites\pickups\health_pickup.png" />
     <None Include="assets\sprites\pickups\shield_pickup.png" />
+    <None Include="assets\sprites\pickups\homing_bullets_pickup.png" />
+    <None Include="assets\sprites\pickups\time_slowdown_pickup.png" />
     <None Include="assets\backgrounds\gameplay\level_01_blue_nebula.jpg" />
 	<None Include="assets\backgrounds\gameplay\level_02_violet_clouds.jpg" />
 	<None Include="assets\backgrounds\gameplay\level_03_asteroid_belt.jpg" />

@@ -12,5 +12,23 @@
     "knockback": 300.0,
     "visual_scale": 0.5,
     "collision_radius": 6.5
+	},
+  "spinner_shot": {
+    "damage": 15,
+    "speed": 650.0,
+    "knockback": 240.0,
+    "visual_scale": 0.5,
+    "collision_radius": 6.5
+	},
+  "homing_missile": {
+    "maximum_health": 30,
+    "explosion_damage": 40,
+    "speed": 280.0,
+    "turn_speed_degrees": 110.0,
+    "explosion_radius": 115.0,
+    "explosion_impulse": 500.0,
+    "lifetime": 12.0,
+    "visual_scale": 0.07,
+    "collision_radius": 14.0
   }
 }

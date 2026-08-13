@@ -8,6 +8,7 @@
 #include "states/CompanySplashState.h"
 #include "states/CampaignMenuState.h"
 #include "states/GameplayState.h"
+#include "states/LevelSelectState.h"
 #include "states/MainMenuState.h"
 #include "states/OptionsState.h"
 #include "states/PauseState.h"
@@ -54,6 +55,7 @@ Application::Application()
     stateStack.RegisterState<CompanySplashState>(StateId::CompanySplash);
     stateStack.RegisterState<MainMenuState>(StateId::MainMenu);
     stateStack.RegisterState<CampaignMenuState>(StateId::CampaignMenu);
+	stateStack.RegisterState<LevelSelectState>(StateId::LevelSelect);
     stateStack.RegisterState<ScoresState>(StateId::Scores);
     stateStack.RegisterState<OptionsState>(StateId::Options, OptionsState::Origin::MainMenu);
     stateStack.RegisterState<OptionsState>(StateId::PauseOptions, OptionsState::Origin::PauseMenu);

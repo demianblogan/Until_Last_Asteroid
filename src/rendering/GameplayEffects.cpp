@@ -94,9 +94,18 @@ void GameplayEffects::Update(
         case World::EffectEventType::PlayerProjectileGlow:
             EmitProjectileGlow(true, event.position, event.direction);
             break;
+		case World::EffectEventType::PlayerHomingProjectileGlow:
+			EmitProjectileGlow(true, event.position, event.direction, true);
+			break;
         case World::EffectEventType::EnemyProjectileGlow:
             EmitProjectileGlow(false, event.position, event.direction);
             break;
+		case World::EffectEventType::MissileSmoke:
+			EmitMissileSmoke(event.position, event.direction);
+			break;
+		case World::EffectEventType::EnemyEngine:
+			EmitEnemyEngine(event.position, event.direction);
+			break;
         case World::EffectEventType::PlayerMuzzleFlash:
             EmitMuzzleFlash(true, event.position, event.direction);
             break;
@@ -165,9 +174,7 @@ void GameplayEffects::Clear()
     shakeAmplitude = 0.f;
     cameraOffset = {};
     postProcessState = {};
-    shockwaveElapsed = 0.f;
-    shockwaveDuration = 0.f;
-    shockwaveScale = 1.f;
+	shockwaves.clear();
     engineParticles.Clear();
     projectileGlowParticles.Clear();
     weaponParticles.Clear();
@@ -248,11 +255,13 @@ void GameplayEffects::EmitPlayerEngineParticles(const World& world)
 }
 
 void GameplayEffects::EmitProjectileGlow(bool playerProjectile,
-    const sf::Vector2f& position, const sf::Vector2f& direction)
+    const sf::Vector2f& position, const sf::Vector2f& direction, bool homing)
 {
-    const sf::Color startColor{ playerProjectile
-        ? sf::Color{ 85, 235, 255, 235 }
-        : sf::Color{ 255, 55, 110, 235 } };
+    const sf::Color startColor{ homing
+		? sf::Color{ 255, 188, 45, 240 }
+		: playerProjectile
+            ? sf::Color{ 85, 235, 255, 235 }
+            : sf::Color{ 255, 55, 110, 235 } };
 
     (void)direction;
     projectileGlowParticles.Emit({
@@ -261,6 +270,56 @@ void GameplayEffects::EmitProjectileGlow(bool playerProjectile,
         playerProjectile ? 34.f : 31.f,
         startColor,
         startColor });
+}
+
+void GameplayEffects::EmitMissileSmoke(
+	const sf::Vector2f& position, const sf::Vector2f& direction)
+{
+	const sf::Vector2f normalized{ Normalize(direction) };
+	const sf::Vector2f perpendicular{ -normalized.y, normalized.x };
+	const sf::Vector2f exhaustPosition{ position - normalized * 20.f };
+	smokeParticles.Emit({
+		exhaustPosition + perpendicular * RandomFloat(-2.5f, 2.5f),
+		-normalized * RandomFloat(35.f, 65.f) +
+			perpendicular * RandomFloat(-22.f, 22.f),
+		RandomFloat(0.38f, 0.62f),
+		RandomFloat(13.f, 19.f),
+		RandomFloat(25.f, 34.f),
+		{ 125, 130, 145, 155 },
+		{ 35, 38, 48, 0 },
+		0.f,
+		RandomFloat(-0.8f, 0.8f),
+		1.2f });
+	weaponParticles.Emit({
+		exhaustPosition,
+		-normalized * RandomFloat(30.f, 55.f),
+		RandomFloat(0.08f, 0.13f),
+		RandomFloat(13.f, 17.f),
+		RandomFloat(4.f, 7.f),
+		{ 255, 245, 135, 255 },
+		{ 255, 90, 15, 0 },
+		0.f,
+		0.f,
+		2.f });
+}
+
+void GameplayEffects::EmitEnemyEngine(
+	const sf::Vector2f& position, const sf::Vector2f& direction)
+{
+	const sf::Vector2f normalized{ Normalize(direction) };
+	const sf::Vector2f perpendicular{ -normalized.y, normalized.x };
+	engineParticles.Emit({
+		position + perpendicular * RandomFloat(-1.5f, 1.5f),
+		normalized * RandomFloat(125.f, 190.f) +
+			perpendicular * RandomFloat(-20.f, 20.f),
+		RandomFloat(0.18f, 0.28f),
+		RandomFloat(11.f, 16.f),
+		RandomFloat(2.f, 4.f),
+		{ 255, 105, 75, 245 },
+		{ 130, 12, 28, 0 },
+		0.f,
+		0.f,
+		2.2f });
 }
 
 void GameplayEffects::EmitMuzzleFlash(bool playerProjectile,
@@ -548,11 +607,13 @@ void GameplayEffects::UpdateCameraShake(float deltaTime)
 
 void GameplayEffects::StartShockwave(const sf::Vector2f& position, float scale)
 {
-    postProcessState.shockwavePosition = position;
-    postProcessState.shockwaveActive = true;
-    shockwaveElapsed = 0.f;
-    shockwaveDuration = 0.55f;
-    shockwaveScale = std::clamp(scale, 0.7f, 1.35f);
+	if (shockwaves.size() >= MaximumShockwaves)
+		shockwaves.erase(shockwaves.begin());
+	shockwaves.push_back({
+		position,
+		0.f,
+		0.55f,
+		std::clamp(scale, 0.7f, 1.35f) });
 }
 
 void GameplayEffects::UpdatePostProcess(float deltaTime)
@@ -561,16 +622,25 @@ void GameplayEffects::UpdatePostProcess(float deltaTime)
         0.f,
         postProcessState.damageVignette - deltaTime * 2.6f);
 
-    if (!postProcessState.shockwaveActive || shockwaveDuration <= 0.f)
-        return;
+	for (Shockwave& shockwave : shockwaves)
+		shockwave.elapsed += deltaTime;
+	std::erase_if(shockwaves, [](const Shockwave& shockwave)
+	{
+		return shockwave.elapsed >= shockwave.duration;
+	});
 
-    shockwaveElapsed += deltaTime;
-    const float progress{ std::clamp(shockwaveElapsed / shockwaveDuration, 0.f, 1.f) };
-    postProcessState.shockwaveRadius = std::lerp(24.f, 285.f * shockwaveScale, progress);
-    postProcessState.shockwaveStrength = (1.f - progress) * 0.9f;
-    if (progress >= 1.f)
-    {
-        postProcessState.shockwaveActive = false;
-        postProcessState.shockwaveStrength = 0.f;
-    }
+	postProcessState.shockwaveCount = std::min(
+		shockwaves.size(), MaximumShockwaves);
+	for (std::size_t index{ 0u }; index < postProcessState.shockwaveCount; ++index)
+	{
+		const Shockwave& shockwave{ shockwaves[index] };
+		const float progress{ std::clamp(
+			shockwave.elapsed / shockwave.duration, 0.f, 1.f) };
+		// The explosion particles are rendered with the current camera-shake
+		// transform, so the post-process center must use the same offset.
+		postProcessState.shockwavePositions[index] = shockwave.position + cameraOffset;
+		postProcessState.shockwaveRadii[index] = std::lerp(
+			24.f, 285.f * shockwave.scale, progress);
+		postProcessState.shockwaveStrengths[index] = (1.f - progress) * 0.9f;
+	}
 }

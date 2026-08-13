@@ -29,6 +29,7 @@ public:
 		Enemy,
 		Projectile_Player,
 		Projectile_Enemy,
+		EnemyMissile,
 		Asteroid,
 		Pickup
 	};
