@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <iomanip>
+#include <sstream>
 #include <string>
 
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -39,6 +41,14 @@ namespace
     std::uint8_t ToAlpha(float opacity)
     {
         return static_cast<std::uint8_t>(std::clamp(opacity, 0.f, 1.f) * 255.f);
+    }
+
+    std::string FormatDuration(int seconds)
+    {
+        std::ostringstream stream;
+        stream << std::setfill('0') << std::setw(2) << seconds / 60
+            << ':' << std::setw(2) << seconds % 60;
+        return stream.str();
     }
 }
 
@@ -97,6 +107,27 @@ GameOverScreen::GameOverScreen(
 
 void GameOverScreen::Start(int score)
 {
+    StartWithSummary("Final Score: " + std::to_string(score), "Restart Level");
+}
+
+void GameOverScreen::StartHorde(int score, int wavesSurvived)
+{
+    StartWithSummary(
+        "Score: " + std::to_string(score) + "   Waves Survived: " +
+        std::to_string(wavesSurvived),
+        "Restart Horde");
+}
+
+void GameOverScreen::StartRun(int survivalSeconds, int recordSeconds)
+{
+    StartWithSummary(
+        "Time: " + FormatDuration(survivalSeconds) + "   Record: " +
+        FormatDuration(recordSeconds),
+        "Restart Run");
+}
+
+void GameOverScreen::StartWithSummary(std::string summary, std::string_view restartLabel)
+{
     if (active)
         return;
 
@@ -104,8 +135,9 @@ void GameOverScreen::Start(int score)
     interactive = false;
     elapsed = 0.f;
     selectedIndex = 0u;
-    finalScore.setString("Final Score: " + std::to_string(score));
+    finalScore.setString(std::move(summary));
     CenterText(finalScore, { logicalSize.x * 0.5f, 448.f });
+    buttons[0].SetLabel(restartLabel);
     Select(0u, false);
     titleGlow.Invalidate();
     buttonGlow.Invalidate();

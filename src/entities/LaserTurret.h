@@ -16,6 +16,7 @@ public:
 	[[nodiscard]] float GetBeamPulse() const noexcept;
 	[[nodiscard]] float GetBeamAnimationTime() const noexcept;
 	[[nodiscard]] bool IsBeamActive() const noexcept;
+	[[nodiscard]] bool IsArriving() const noexcept;
 	[[nodiscard]] bool AcceptsKnockback() const noexcept override;
 
 	Type GetType() const noexcept override;

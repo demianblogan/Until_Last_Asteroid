@@ -38,8 +38,10 @@ LevelIntro::LevelIntro(AssetStore& assets, sf::Vector2f screenSize)
 	, panel(PanelSize, 28.f, 12u)
 	, upperLine({ 760.f, 3.f })
 	, lowerLine({ 420.f, 2.f })
+	, levelTitleFont(assets.Fonts().Get(Config::Font::MenuRegular))
+	, modeObjectiveFont(assets.Fonts().Get(Config::Font::BodyRegular))
 	, levelLabel(assets.Fonts().Get(Config::Font::MenuSemibold), "LEVEL 1", 72u)
-	, title(assets.Fonts().Get(Config::Font::MenuRegular), "", 46u)
+	, title(levelTitleFont, "", 46u)
 	, logicalSize(screenSize)
 {
 	shade.setFillColor(sf::Color::Transparent);
@@ -64,8 +66,20 @@ LevelIntro::LevelIntro(AssetStore& assets, sf::Vector2f screenSize)
 
 void LevelIntro::Start(int levelNumber, std::string_view levelTitle)
 {
-	levelLabel.setString("LEVEL " + std::to_string(levelNumber));
-	title.setString(std::string(levelTitle));
+	title.setFont(levelTitleFont);
+	StartWithText("LEVEL " + std::to_string(levelNumber), levelTitle);
+}
+
+void LevelIntro::StartMode(std::string_view modeName, std::string_view objective)
+{
+	title.setFont(modeObjectiveFont);
+	StartWithText(modeName, objective);
+}
+
+void LevelIntro::StartWithText(std::string_view heading, std::string_view subtitle)
+{
+	levelLabel.setString(std::string(heading));
+	title.setString(std::string(subtitle));
 	elapsed = 0.f;
 	active = true;
 	levelGlow.Invalidate();

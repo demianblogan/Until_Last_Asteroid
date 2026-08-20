@@ -1,8 +1,11 @@
 #include "GameplayState.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
+#include <numbers>
+#include <string_view>
 #include <utility>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Event.hpp>
@@ -13,6 +16,8 @@
 #include "entities/LaserTurret.h"
 #include "entities/Meteor.h"
 #include "entities/MissileCarrier.h"
+#include "entities/Part.h"
+#include "entities/ReflectorGunship.h"
 #include "entities/Saucer.h"
 #include "entities/ShooterStation.h"
 #include "entities/Spinner.h"
@@ -33,10 +38,37 @@ namespace
 	constexpr float WaveMaterializationDuration{ 0.5f };
 	constexpr float WaveClearDelayDuration{ 2.f };
 	constexpr float TimeSlowdownFadeSpeed{ 4.f };
+	constexpr float RunAsteroidInterval{ 10.f };
+	constexpr float RunEnemyInterval{ 15.f };
+	constexpr int RunAsteroidLimit{ 10 };
+	constexpr int RunShooterLimit{ 3 };
 	constexpr float ArmorBonusThreshold{ 0.75f };
 	constexpr int ArmorBonusPoints{ 500 };
 	constexpr int AccuracyBonusPoints{ 600 };
 	constexpr int AllPartsBonusPoints{ 1000 };
+	struct HordeBackground
+	{
+		std::string_view theme;
+		float brightness;
+	};
+	constexpr std::array<HordeBackground, 9> HordeBackgrounds{
+		HordeBackground{ "blue_nebula_region", 0.65f },
+		HordeBackground{ "emerald_aurora_region", 0.64f },
+		HordeBackground{ "violet_clouds_region", 0.67f },
+		HordeBackground{ "rose_nursery_region", 0.62f },
+		HordeBackground{ "asteroid_belt_region", 0.62f },
+		HordeBackground{ "frozen_expanse_region", 0.66f },
+		HordeBackground{ "red_storm_region", 0.60f },
+		HordeBackground{ "ion_storm_region", 0.61f },
+		HordeBackground{ "deep_void_region", 0.66f }
+	};
+
+	Config::Music GetGameplayMusic(int level) noexcept
+	{
+		if (level >= 7) return Config::Music::GameplayBackground3;
+		if (level >= 4) return Config::Music::GameplayBackground2;
+		return Config::Music::GameplayBackground1;
+	}
 }
 
 GameplayState::GameplayState(StateStack& stateStack, StateContext context)
@@ -70,18 +102,33 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	const GameplayLaunchMode launchMode{ context.gameplayLaunch.mode };
 	context.gameplayLaunch.mode = GameplayLaunchMode::ContinueCampaign;
 	const CampaignProgress* progress{ context.campaignSave.GetProgress() };
-	if (progress != nullptr)
+	const bool campaignMode{
+		launchMode != GameplayLaunchMode::Horde &&
+		launchMode != GameplayLaunchMode::Run };
+	if (campaignMode && progress != nullptr)
 		session.ConfigureUpgrades(progress->upgrades);
+	else
+		session.ConfigureUpgrades({});
 	session.ConfigurePlayerHealth(static_cast<int>(std::lround(
 		static_cast<float>(gameplayData.GetPlayer().maximumHealth) *
 		session.GetArmorMultiplier())));
 	session.GetPlayerHealth().Reset();
-	if (progress != nullptr)
+	if (campaignMode && progress != nullptr)
 		session.ConfigureParts(progress->partsBalance, progress->collectedPartIds);
 	const bool resumeUnfinishedTutorial{
 		launchMode == GameplayLaunchMode::ContinueCampaign &&
 		progress != nullptr && !progress->tutorialCompleted };
-	if (launchMode == GameplayLaunchMode::SelectedLevel)
+	if (launchMode == GameplayLaunchMode::Horde)
+	{
+		hordeMode = true;
+		StartHorde();
+	}
+	else if (launchMode == GameplayLaunchMode::Run)
+	{
+		runMode = true;
+		StartRun();
+	}
+	else if (launchMode == GameplayLaunchMode::SelectedLevel)
 	{
 		selectedLevelRun = true;
 		const int highestUnlocked{ progress != nullptr
@@ -106,16 +153,20 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 		SpawnLevel();
 	}
 	if (hud)
+	{
+		hud->SetPartsVisible(!hordeMode && !runMode);
 		hud->Update(0.f);
+	}
 	screenFade.StartFadeIn(GameplayFadeInDuration);
-	context.audio.PlayMusic(Config::Music::GameplayBackground1);
+	if (tutorialActive)
+		context.audio.PlayGameplayMusic(GetGameplayMusic(session.GetLevel()));
 }
 
 GameplayState::~GameplayState()
 {
 	GetContext().gameplayLaunch.tutorialRunning = false;
 	GetContext().audio.SetGameplayPitch(1.f);
-	GetContext().audio.StopMusic(Config::Music::GameplayBackground1);
+	GetContext().audio.StopGameplayMusic();
 }
 
 void GameplayState::SetupInput()
@@ -174,9 +225,31 @@ void GameplayState::HandleEvent(const sf::Event& event)
 	{
 #ifdef _DEBUG
 		if (key->code == sf::Keyboard::Key::F1 && session.IsPlaying() &&
-			!tutorialActive)
+			!tutorialActive && !hordeMode && !runMode)
 		{
 			DebugCompleteCurrentLevel();
+			return;
+		}
+		if (key->code == sf::Keyboard::Key::F2 && session.IsPlaying() &&
+			!tutorialActive && !runMode && world.HasPlayer())
+		{
+			sf::Vector2f position{ world.GetPlayerPosition() + sf::Vector2f{ 180.f, 0.f } };
+			if (position.x > static_cast<float>(world.GetWidth()) - 60.f)
+				position.x = world.GetPlayerPosition().x - 180.f;
+			if (world.SpawnHelperPickup(position))
+				world.CommitPendingEntities();
+			return;
+		}
+		if (key->code == sf::Keyboard::Key::F3 && session.IsPlaying() &&
+			!tutorialActive && world.HasPlayer())
+		{
+			auto reflector{ std::make_unique<ReflectorGunship>(
+				GetContext().assets, world) };
+			reflector->SetPosition(GetSafeEdgeSpawnPosition());
+			reflector->ConfigureApproachTarget({
+				world.GetWidth() * 0.5f, world.GetHeight() * 0.5f });
+			world.Spawn(std::move(reflector));
+			world.CommitPendingEntities();
 			return;
 		}
 #endif
@@ -290,20 +363,20 @@ void GameplayState::Update(float dt)
 			}
 			else if (completedTransition == GameplayTransition::LevelSelect)
 			{
-				GetContext().audio.StopMusic(Config::Music::GameplayBackground1);
+				GetContext().audio.StopGameplayMusic();
 				RequestClear();
 				RequestPush(StateId::CampaignMenu);
 				RequestPush(StateId::LevelSelect);
 			}
 			else if (completedTransition == GameplayTransition::ShipUpgrades)
 			{
-				GetContext().audio.StopMusic(Config::Music::GameplayBackground1);
+				GetContext().audio.StopGameplayMusic();
 				RequestClear();
 				RequestPush(StateId::ShipUpgrades);
 			}
 			else if (completedTransition == GameplayTransition::MainMenu)
 			{
-				GetContext().audio.StopMusic(Config::Music::GameplayBackground1);
+				GetContext().audio.StopGameplayMusic();
 				RequestClear();
 				RequestPush(StateId::MainMenu);
 			}
@@ -321,7 +394,16 @@ void GameplayState::Update(float dt)
 	if (levelIntro.IsActive())
 	{
 		if (levelIntro.Update(dt))
-			waveIntro.Start(waveDirector.GetCurrentWaveNumber());
+		{
+			if (runMode)
+				FinishWaveIntro();
+			else if (hordeMode)
+				waveIntro.Start(hordeCurrentWave);
+			else
+				waveIntro.Start(
+					waveDirector.GetCurrentWaveNumber(),
+					!waveDirector.HasMoreWaves());
+		}
 		return;
 	}
 	if (waveIntro.IsActive())
@@ -346,14 +428,21 @@ void GameplayState::Update(float dt)
 
 	if (!waveClearDelayActive)
 		levelGameplayElapsed += dt;
-	session.Update(dt);
+	if (runMode)
+		UpdateRun(dt);
+	if (!waveClearDelayActive)
+		session.Update(dt);
 	const float worldTimeScale{ GetWorldTimeScale() };
 	world.Update(dt, worldTimeScale);
 	effects.Update(dt * worldTimeScale, world,
 		GetContext().settings.Get().gameplay.screenShake,
 		GetContext().settings.Get().gameplay.showScorePopups);
 	if (hud)
+	{
+		if (runMode)
+			hud->SetSurvivalTime(runElapsed);
 		hud->Update(dt);
+	}
 	if (session.IsGameOver() && !gameOverScreen.IsActive())
 		BeginGameOver();
 	if (!session.IsPlaying())
@@ -363,6 +452,8 @@ void GameplayState::Update(float dt)
 		UpdateTutorial(dt);
 		return;
 	}
+	if (runMode)
+		return;
 	if (waveClearDelayActive)
 	{
 		UpdatePlayerWaveTeleport(dt);
@@ -371,7 +462,10 @@ void GameplayState::Update(float dt)
 		{
 			waveClearDelayActive = false;
 			world.ClearProjectiles();
-			StartNextWave(true);
+			if (hordeMode)
+				StartNextHordeWave(true);
+			else
+				StartNextWave(true);
 		}
 		return;
 	}
@@ -384,8 +478,14 @@ void GameplayState::Update(float dt)
 
 	if (waveDirector.IsDeploymentComplete() && world.IsCleared())
 	{
-		if (waveDirector.HasMoreWaves())
+		if (hordeMode || waveDirector.HasMoreWaves())
 		{
+			if (hordeMode)
+			{
+				++hordeWavesSurvived;
+				GrantHordeWaveUpgrade();
+				hordeCurrentWave = hordeWavesSurvived + 1;
+			}
 			waveClearDelayActive = true;
 			waveClearDelayRemaining = WaveClearDelayDuration;
 			world.SetPlayerControlEnabled(false);
@@ -404,7 +504,7 @@ void GameplayState::Render()
 	{
 		postProcessor.Render(
 			window,
-			gameplayData.GetLevel(session.GetLevel()).postProcess,
+			GetPresentationLevel().postProcess,
 			effects.GetPostProcessState(),
 			timeSlowdownVisualStrength,
 			[this](sf::RenderTarget& target) { DrawScene(target); });
@@ -447,7 +547,7 @@ void GameplayState::RenderOverlay()
 	else if (resultScreen.IsActive())
 		resultScreen.DrawCursor(GetContext().window);
 	else if (!levelIntro.IsActive() && !waveIntro.IsActive() &&
-		!playerSpawnAnimating &&
+		!playerSpawnAnimating && !runMode &&
 		!world.GetPlayerGamepadAimPoint())
 		crosshair.Draw(GetContext().window);
 	screenFade.Draw(GetContext().window);
@@ -456,7 +556,10 @@ void GameplayState::RenderOverlay()
 void GameplayState::SpawnPlayerIfNeeded()
 {
 	if (!world.HasPlayer() && !session.IsGameOver())
+	{
 		world.SpawnPlayer(GetContext().assets, input);
+		world.SetPlayerFiringEnabled(!runMode);
+	}
 }
 
 void GameplayState::SpawnConfiguredEnemy(
@@ -498,12 +601,38 @@ void GameplayState::SpawnConfiguredEnemy(
 	case Kind::ShooterStation:
 		entity = std::make_unique<ShooterStation>(GetContext().assets, world);
 		break;
+	case Kind::ReflectorGunship:
+		entity = std::make_unique<ReflectorGunship>(GetContext().assets, world);
+		edgeSpawn = true;
+		break;
 	default:
 		std::unreachable();
 	}
-	static_cast<Enemy&>(*entity).SetPickupDrop(spawn.drop);
-	if (spawnIndex < spawn.partIds.size())
-		static_cast<Enemy&>(*entity).SetPartDropId(spawn.partIds[spawnIndex]);
+	Enemy& enemy{ static_cast<Enemy&>(*entity) };
+	const bool campaignSpawn{ !tutorialActive && !hordeMode && !runMode };
+	const bool campaignEnemy{
+		campaignSpawn &&
+		spawn.kind != Kind::BigMeteor && spawn.kind != Kind::SmallMeteor };
+	if (campaignEnemy)
+	{
+		const std::size_t ordinal{ campaignEnemySpawnOrdinal++ };
+		if (const auto bonus{ campaignBonusDrops.find(ordinal) };
+			bonus != campaignBonusDrops.end())
+		{
+			enemy.SetOrderedPickupDropCount(bonus->second);
+		}
+		if (const auto part{ campaignPartDrops.find(ordinal) };
+			part != campaignPartDrops.end())
+		{
+			enemy.SetPartDropId(part->second);
+		}
+	}
+	else if (!campaignSpawn)
+	{
+		enemy.SetPickupDrop(spawn.drop);
+		if (spawnIndex < spawn.partIds.size())
+			enemy.SetPartDropId(spawn.partIds[spawnIndex]);
+	}
 
 	if (auto* turret{ dynamic_cast<LaserTurret*>(entity.get()) })
 	{
@@ -513,15 +642,15 @@ void GameplayState::SpawnConfiguredEnemy(
 		sf::Vector2f first;
 		sf::Vector2f second;
 		sf::Vector2f inward;
-		switch (Random::Int(0, 3))
+		if (spawnIndex == 0u)
+			turretPathOffset = Random::Int(0, 3);
+		switch ((turretPathOffset + static_cast<int>(spawnIndex)) % 4)
 		{
 		case 0: first = { inset, inset }; second = { right, inset }; inward = { 0.f, 1.f }; break;
 		case 1: first = { right, inset }; second = { right, bottom }; inward = { -1.f, 0.f }; break;
 		case 2: first = { right, bottom }; second = { inset, bottom }; inward = { 0.f, -1.f }; break;
 		default: first = { inset, bottom }; second = { inset, inset }; inward = { 1.f, 0.f }; break;
 		}
-		if (Random::Int(0, 1) == 1)
-			std::swap(first, second);
 		turret->ConfigurePath(first, second, inward);
 	}
 	else if (auto* station{ dynamic_cast<ShooterStation*>(entity.get()) })
@@ -531,25 +660,35 @@ void GameplayState::SpawnConfiguredEnemy(
 		const float height{ static_cast<float>(world.GetHeight()) };
 		sf::Vector2f first;
 		sf::Vector2f second;
-		if (Random::Int(0, 1) == 0)
+		if (spawnIndex == 0u)
+			stationPathOffset = Random::Int(0, 3);
+		switch ((stationPathOffset + static_cast<int>(spawnIndex)) % 4)
 		{
-			first = { inset, height * 0.5f };
-			second = { width - inset, height * 0.5f };
+		case 0:
+			first = { inset, height * 0.32f };
+			second = { width - inset, height * 0.32f };
+			break;
+		case 1:
+			first = { width - inset, height * 0.68f };
+			second = { inset, height * 0.68f };
+			break;
+		case 2:
+			first = { width * 0.32f, inset };
+			second = { width * 0.32f, height - inset };
+			break;
+		default:
+			first = { width * 0.68f, height - inset };
+			second = { width * 0.68f, inset };
+			break;
 		}
-		else
-		{
-			first = { width * 0.5f, inset };
-			second = { width * 0.5f, height - inset };
-		}
-		if (Random::Int(0, 1) == 1)
-			std::swap(first, second);
 		station->ConfigurePath(first, second);
 	}
 	else
 	{
 		entity->SetPosition(edgeSpawn ? GetSafeEdgeSpawnPosition() : GetSafeSpawnPosition());
 		if (spawn.kind == Kind::Shooter || spawn.kind == Kind::Spinner ||
-			spawn.kind == Kind::MissileCarrier)
+			spawn.kind == Kind::MissileCarrier ||
+			spawn.kind == Kind::ReflectorGunship)
 		{
 			const sf::Vector2f entryTarget{
 				Random::Float(world.GetWidth() * 0.36f, world.GetWidth() * 0.64f),
@@ -560,6 +699,8 @@ void GameplayState::SpawnConfiguredEnemy(
 				spinner->ConfigureApproachTarget(entryTarget);
 			else if (auto* carrier{ dynamic_cast<MissileCarrier*>(entity.get()) })
 				carrier->ConfigureApproachTarget(entryTarget);
+			else if (auto* reflector{ dynamic_cast<ReflectorGunship*>(entity.get()) })
+				reflector->ConfigureApproachTarget(entryTarget);
 		}
 	}
 	if (materialize)
@@ -636,6 +777,9 @@ void GameplayState::ExecuteTutorialAction(TutorialDirector::Action action)
 	case HighlightShield:
 		if (hud) hud->HighlightShield(5.f);
 		break;
+	case HighlightParts:
+		if (hud) hud->HighlightParts(5.f);
+		break;
 	case SpawnShooter:
 	{
 		auto shooter{ std::make_unique<Saucer>(
@@ -654,6 +798,20 @@ void GameplayState::ExecuteTutorialAction(TutorialDirector::Action action)
 		if (delta.x * delta.x + delta.y * delta.y < 90000.f)
 			pickupPosition = { world.GetWidth() * 0.25f, world.GetHeight() * 0.72f };
 		SpawnPickup(Pickup::Kind::Shield, pickupPosition);
+		world.CommitPendingEntities();
+		break;
+	}
+	case SpawnPart:
+	{
+		const sf::Vector2f playerPosition{ world.GetPlayerPosition() };
+		const float horizontalOffset{
+			playerPosition.x + 180.f < static_cast<float>(world.GetWidth())
+				? 180.f
+				: -180.f };
+		auto part{ std::make_unique<Part>(
+			GetContext().assets, world, "TUTORIAL-PART") };
+		part->SetPosition(playerPosition + sf::Vector2f{ horizontalOffset, 0.f });
+		world.Spawn(std::move(part));
 		world.CommitPendingEntities();
 		break;
 	}
@@ -683,7 +841,8 @@ void GameplayState::BeginLevelCompleteAudio()
 		100.f,
 		1.f,
 		SoundPlayback::Restart);
-	GetContext().audio.PlayMusic(Config::Music::GameplayBackground1, true, 50.f);
+	GetContext().audio.PlayGameplayMusic(
+		GetGameplayMusic(session.GetLevel()), true, 50.f);
 	levelCompleteSoundRemaining = GetContext().assets.Sounds()
 		.Get(Config::Sound::LevelComplete).getDuration().asSeconds();
 }
@@ -696,7 +855,8 @@ void GameplayState::UpdateLevelCompleteAudio(float deltaTime)
 	levelCompleteSoundRemaining = std::max(
 		0.f, levelCompleteSoundRemaining - deltaTime);
 	if (levelCompleteSoundRemaining <= 0.f)
-		GetContext().audio.PlayMusic(Config::Music::GameplayBackground1, true, 100.f);
+		GetContext().audio.PlayGameplayMusic(
+			GetGameplayMusic(session.GetLevel()), true, 100.f);
 }
 
 TutorialDirector::Snapshot GameplayState::GetTutorialSnapshot() const
@@ -708,7 +868,8 @@ TutorialDirector::Snapshot GameplayState::GetTutorialSnapshot() const
 		statistics.bigMeteorsDestroyed,
 		statistics.smallMeteorsDestroyed,
 		statistics.shootersDestroyed,
-		statistics.shieldPickupsCollected };
+		statistics.shieldPickupsCollected,
+		session.GetDisplayedParts() };
 }
 
 void GameplayState::Reset()
@@ -881,8 +1042,23 @@ void GameplayState::BeginGameOver()
 {
 	world.StopActiveSounds();
 	world.AddSound(Config::Sound::ShipExplosion);
-	GetContext().audio.PauseMusic(Config::Music::GameplayBackground1);
-	gameOverScreen.Start(session.GetScore());
+	GetContext().audio.PauseGameplayMusic();
+	if (hordeMode)
+	{
+		static_cast<void>(GetContext().records.SubmitHordeResult(
+			hordeWavesSurvived, session.GetScore()));
+		gameOverScreen.StartHorde(session.GetScore(), hordeWavesSurvived);
+	}
+	else if (runMode)
+	{
+		const int survivedSeconds{ static_cast<int>(std::floor(runElapsed)) };
+		static_cast<void>(GetContext().records.SubmitRunSeconds(survivedSeconds));
+		gameOverScreen.StartRun(
+			survivedSeconds,
+			GetContext().records.Get().runSeconds);
+	}
+	else
+		gameOverScreen.Start(session.GetScore());
 }
 
 void GameplayState::BeginGameOverTransition(GameOverScreen::Action action)
@@ -905,10 +1081,14 @@ void GameplayState::BeginResultTransition(ResultScreen::Action action)
 	}
 	session.AcceptRecoveredParts();
 	SaveCompletedLevel();
+	GetContext().gameplayLaunch.upgradesReturnToLevelSelect = false;
 	if (action == ResultScreen::Action::MainMenu)
 		gameplayTransition = GameplayTransition::MainMenu;
 	else if (resultScreen.GetMode() == ResultScreen::Mode::LevelReplay)
-		gameplayTransition = GameplayTransition::LevelSelect;
+	{
+		GetContext().gameplayLaunch.upgradesReturnToLevelSelect = true;
+		gameplayTransition = GameplayTransition::ShipUpgrades;
+	}
 	else
 		gameplayTransition = resultScreen.GetMode() == ResultScreen::Mode::Victory
 			? GameplayTransition::RestartGame
@@ -921,7 +1101,21 @@ void GameplayState::RestartCurrentLevel()
 	if (tutorialActive)
 	{
 		StartTutorial();
-		GetContext().audio.ResumeMusic(Config::Music::GameplayBackground1);
+		GetContext().audio.ResumeGameplayMusic();
+		return;
+	}
+	if (hordeMode)
+	{
+		StartHorde();
+		if (hud)
+			hud->Update(0.f);
+		GetContext().audio.ResumeGameplayMusic();
+		return;
+	}
+	if (runMode)
+	{
+		StartRun();
+		GetContext().audio.ResumeGameplayMusic();
 		return;
 	}
 	world.Clear();
@@ -932,7 +1126,7 @@ void GameplayState::RestartCurrentLevel()
 	SpawnLevel();
 	if (hud)
 		hud->Update(0.f);
-	GetContext().audio.ResumeMusic(Config::Music::GameplayBackground1);
+	GetContext().audio.ResumeGameplayMusic();
 }
 
 void GameplayState::NextLevel()
@@ -954,13 +1148,429 @@ void GameplayState::NextLevel()
 void GameplayState::SpawnLevel()
 {
 	const auto& level{ gameplayData.GetLevel(session.GetLevel()) };
+	PrepareCampaignRewards(level);
 	levelGameplayElapsed = 0.f;
 	waveClearDelayActive = false;
 	waveClearDelayRemaining = 0.f;
 	background.SetTheme(level.background, level.backgroundBrightness);
+	GetContext().audio.PlayGameplayMusic(GetGameplayMusic(level.number));
 	waveDirector.LoadLevel(level);
 	StartNextWave(false, false);
 	levelIntro.Start(level.number, level.title);
+}
+
+void GameplayState::PrepareCampaignRewards(
+	const GameplayData::LevelConfig& level)
+{
+	using EnemyKind = GameplayData::EnemyKind;
+	campaignBonusDrops.clear();
+	campaignPartDrops.clear();
+	campaignEnemySpawnOrdinal = 0u;
+
+	std::size_t enemyOrdinal{ 0u };
+	std::vector<std::vector<std::size_t>> waveCandidates(level.waves.size());
+	for (std::size_t waveIndex{ 0u }; waveIndex < level.waves.size(); ++waveIndex)
+	{
+		const auto collectEnemies{ [&](const auto& groups)
+		{
+			for (const auto& group : groups)
+			{
+				if (group.kind == EnemyKind::BigMeteor ||
+					group.kind == EnemyKind::SmallMeteor)
+				{
+					continue;
+				}
+				for (int index{ 0 }; index < group.count; ++index)
+				{
+					waveCandidates[waveIndex].push_back(enemyOrdinal);
+					++enemyOrdinal;
+				}
+			}
+		} };
+		collectEnemies(level.waves[waveIndex].initialSpawns);
+		collectEnemies(level.waves[waveIndex].scheduledSpawns);
+	}
+
+	std::vector<std::string> partIds;
+	for (const std::string& id : level.partIds)
+	{
+		if (!session.IsPartCollected(id))
+			partIds.push_back(id);
+	}
+	for (std::size_t index{ partIds.size() }; index > 1u; --index)
+	{
+		const std::size_t other{ static_cast<std::size_t>(Random::Int(
+			0, static_cast<int>(index) - 1)) };
+		std::swap(partIds[index - 1u], partIds[other]);
+	}
+
+	const std::vector<GameplayData::PickupKind> bonuses{
+		BuildCampaignBonusSequence(level.number) };
+	world.ConfigureCampaignPickupSequence(bonuses);
+
+	std::array<int, 3> bonusQuota{
+		level.number / 3,
+		level.number / 3,
+		level.number / 3 };
+	if (level.number == 9)
+		bonusQuota = { 4, 4, 4 };
+	else if (level.number == 1)
+		bonusQuota = { 0, 1, 0 };
+	else
+	{
+		for (int index{ 0 }; index < level.number % 3; ++index)
+			++bonusQuota[static_cast<std::size_t>(index)];
+	}
+
+	std::vector<std::size_t> partCandidates;
+	for (std::size_t waveIndex{ 0u }; waveIndex < waveCandidates.size(); ++waveIndex)
+	{
+		auto& candidates{ waveCandidates[waveIndex] };
+		for (std::size_t index{ candidates.size() }; index > 1u; --index)
+		{
+			const std::size_t other{ static_cast<std::size_t>(Random::Int(
+				0, static_cast<int>(index) - 1)) };
+			std::swap(candidates[index - 1u], candidates[other]);
+		}
+		const std::size_t quota{ waveIndex < bonusQuota.size()
+			? static_cast<std::size_t>(bonusQuota[waveIndex])
+			: 0u };
+		if (candidates.empty() && quota > 0u)
+			return;
+		for (std::size_t index{ 0u }; index < quota; ++index)
+			++campaignBonusDrops[candidates[index % candidates.size()]];
+		for (const std::size_t ordinal : candidates)
+		{
+			if (ordinal != 0u && !campaignBonusDrops.contains(ordinal))
+				partCandidates.push_back(ordinal);
+		}
+	}
+	if (partCandidates.size() < partIds.size())
+	{
+		return;
+	}
+	for (std::size_t index{ partCandidates.size() }; index > 1u; --index)
+	{
+		const std::size_t other{ static_cast<std::size_t>(Random::Int(
+			0, static_cast<int>(index) - 1)) };
+		std::swap(partCandidates[index - 1u], partCandidates[other]);
+	}
+	std::vector<std::size_t> partSlots(
+		partCandidates.begin(), partCandidates.begin() +
+		static_cast<std::ptrdiff_t>(partIds.size()));
+	for (std::size_t index{ 0u }; index < partIds.size(); ++index)
+		campaignPartDrops.emplace(partSlots[index], std::move(partIds[index]));
+}
+
+std::vector<GameplayData::PickupKind>
+GameplayState::BuildCampaignBonusSequence(int levelNumber) const
+{
+	using Kind = GameplayData::PickupKind;
+	constexpr std::array<Kind, 7> introductionOrder{
+		Kind::Health,
+		Kind::Shield,
+		Kind::HomingBullets,
+		Kind::TripleShot,
+		Kind::TimeSlowdown,
+		Kind::Laser,
+		Kind::HelperBot };
+	if (levelNumber == 9)
+	{
+		return {
+			Kind::Health, Kind::Shield, Kind::HomingBullets, Kind::TripleShot,
+			Kind::Health, Kind::TimeSlowdown, Kind::Laser, Kind::HelperBot,
+			Kind::Health, Kind::Shield, Kind::HomingBullets, Kind::TripleShot };
+	}
+
+	const int count{ std::max(0, levelNumber) };
+	std::vector<Kind> result;
+	result.reserve(static_cast<std::size_t>(count));
+	if (levelNumber <= static_cast<int>(introductionOrder.size()))
+	{
+		if (levelNumber > 0)
+			result.push_back(introductionOrder[static_cast<std::size_t>(levelNumber - 1)]);
+		for (int index{ 0 }; index < levelNumber - 1; ++index)
+			result.push_back(introductionOrder[static_cast<std::size_t>(index)]);
+		return result;
+	}
+
+	const std::size_t start{ static_cast<std::size_t>(
+		(levelNumber - 1) % static_cast<int>(introductionOrder.size())) };
+	for (int index{ 0 }; index < count; ++index)
+	{
+		result.push_back(introductionOrder[
+			(start + static_cast<std::size_t>(index)) % introductionOrder.size()]);
+	}
+	return result;
+}
+
+void GameplayState::StartHorde()
+{
+	world.Clear();
+	effects.Clear();
+	session.ConfigureOneHitMode(false);
+	session.ConfigureUpgrades({});
+	session.ConfigurePlayerHealth(gameplayData.GetPlayer().maximumHealth);
+	session.ConfigureParts(0, {});
+	session.Reset();
+	gameOverScreen.Reset();
+	resultScreen.Reset();
+	levelIntro.Reset();
+	gameplayTransition = GameplayTransition::None;
+	levelGameplayElapsed = 0.f;
+	waveClearDelayActive = false;
+	waveClearDelayRemaining = 0.f;
+	playerSpawnAnimating = false;
+	playerTeleportAnimating = false;
+	playerTeleportMoved = false;
+	materializingEnemies.clear();
+	hordeCurrentWave = 1;
+	hordeWavesSurvived = 0;
+	hordeHelperAvailable = true;
+	hordeBonusBag.clear();
+
+	const HordeBackground& selectedBackground{ HordeBackgrounds[
+		static_cast<std::size_t>(Random::Int(
+			0, static_cast<int>(HordeBackgrounds.size()) - 1))] };
+	background.SetTheme(selectedBackground.theme, selectedBackground.brightness);
+	GetContext().audio.PlayGameplayMusic(Config::Music::GameplayBackground3);
+	if (hud)
+		hud->SetPartsVisible(false);
+	StartNextHordeWave(false, false);
+	levelIntro.StartMode(
+		"HORDE MODE",
+		"SURVIVE AS MANY WAVES AS POSSIBLE");
+}
+
+void GameplayState::StartRun()
+{
+	world.Clear();
+	effects.Clear();
+	session.ConfigureUpgrades({});
+	session.ConfigurePlayerHealth(gameplayData.GetPlayer().maximumHealth);
+	session.ConfigureParts(0, {});
+	session.Reset();
+	session.ConfigureOneHitMode(true);
+	gameOverScreen.Reset();
+	resultScreen.Reset();
+	levelIntro.Reset();
+	gameplayTransition = GameplayTransition::None;
+	levelGameplayElapsed = 0.f;
+	waveClearDelayActive = false;
+	waveClearDelayRemaining = 0.f;
+	playerSpawnAnimating = false;
+	playerTeleportAnimating = false;
+	playerTeleportMoved = false;
+	materializingEnemies.clear();
+	runElapsed = 0.f;
+	runAsteroidTimer = RunAsteroidInterval;
+	runEnemyTimer = RunEnemyInterval;
+	runAsteroidsSpawned = 0;
+	runShootersSpawned = 0;
+	runLaserTurretSpawned = false;
+	runReflectorSpawned = false;
+
+	const auto& presentation{ gameplayData.GetLevel(3) };
+	background.SetTheme(presentation.background, presentation.backgroundBrightness);
+	GetContext().audio.PlayGameplayMusic(Config::Music::GameplayBackground2);
+	if (hud)
+	{
+		hud->SetRunMode(true);
+		hud->SetPartsVisible(false);
+		hud->SetSurvivalTime(0.f);
+		hud->Update(0.f);
+	}
+	levelIntro.StartMode(
+		"RUN MODE",
+		"KEEP MOVING. ONE HIT ENDS THE RUN");
+}
+
+void GameplayState::UpdateRun(float deltaTime)
+{
+	runElapsed += deltaTime;
+	runAsteroidTimer -= deltaTime;
+	runEnemyTimer -= deltaTime;
+
+	while (runAsteroidTimer <= 0.f && runAsteroidsSpawned < RunAsteroidLimit)
+	{
+		SpawnRunAsteroid();
+		++runAsteroidsSpawned;
+		runAsteroidTimer += RunAsteroidInterval;
+	}
+	while (runEnemyTimer <= 0.f && runShootersSpawned < RunShooterLimit)
+	{
+		SpawnRunEnemy(GameplayData::EnemyKind::Shooter);
+		++runShootersSpawned;
+		runEnemyTimer += RunEnemyInterval;
+	}
+	if (!runLaserTurretSpawned && runElapsed >= 40.f)
+	{
+		SpawnRunEnemy(GameplayData::EnemyKind::LaserTurret);
+		runLaserTurretSpawned = true;
+	}
+	if (!runReflectorSpawned && runElapsed >= 60.f)
+	{
+		SpawnRunEnemy(GameplayData::EnemyKind::ReflectorGunship);
+		runReflectorSpawned = true;
+	}
+	world.CommitPendingEntities();
+}
+
+void GameplayState::SpawnRunAsteroid()
+{
+	auto meteor{ std::make_unique<Meteor>(
+		GetContext().assets,
+		world,
+		Meteor::Size::Big) };
+	meteor->SetPosition(GetSafeEdgeSpawnPosition());
+	const float angle{ Random::Float(0.f, 2.f * std::numbers::pi_v<float>) };
+	const sf::Vector2f direction{ std::cos(angle), std::sin(angle) };
+	const float speed{ Random::Float(80.f, 190.f) };
+	meteor->SetVelocity(direction * speed);
+	world.Spawn(std::move(meteor));
+}
+
+void GameplayState::SpawnRunEnemy(GameplayData::EnemyKind kind)
+{
+	GameplayData::SpawnGroup spawn;
+	spawn.count = 1;
+	spawn.kind = kind;
+	SpawnConfiguredEnemy(spawn, 0u);
+}
+
+void GameplayState::StartNextHordeWave(
+	bool materializeInitialSpawns,
+	bool startWaveIntro)
+{
+	hordeLevel = GetPresentationLevel();
+	hordeLevel.waves.clear();
+	hordeLevel.waves.push_back(BuildHordeWave());
+	waveDirector.LoadLevel(hordeLevel);
+	StartNextWave(materializeInitialSpawns, false);
+	if (startWaveIntro)
+		waveIntro.Start(hordeCurrentWave);
+}
+
+GameplayData::WaveConfig GameplayState::BuildHordeWave()
+{
+	using EnemyKind = GameplayData::EnemyKind;
+	GameplayData::WaveConfig wave;
+
+	GameplayData::SpawnGroup::PickupDropConfig bonusDrop;
+	bonusDrop.chance = 1.f;
+	bonusDrop.pool.push_back({ TakeNextHordeBonus(), 1.f });
+
+	GameplayData::SpawnGroup rewardMeteor;
+	rewardMeteor.kind = EnemyKind::BigMeteor;
+	rewardMeteor.count = 1;
+	rewardMeteor.drop = std::move(bonusDrop);
+	wave.initialSpawns.push_back(std::move(rewardMeteor));
+
+	const int asteroidCount{ std::min(hordeCurrentWave, 10) };
+	if (asteroidCount >= 2)
+	{
+		GameplayData::SpawnGroup additionalMeteors;
+		additionalMeteors.kind = EnemyKind::BigMeteor;
+		additionalMeteors.count = asteroidCount - 1;
+		wave.initialSpawns.push_back(std::move(additionalMeteors));
+	}
+
+	const auto scheduleOne{ [&wave](EnemyKind kind, float delay)
+	{
+		GameplayData::WaveConfig::ScheduledSpawn spawn;
+		spawn.kind = kind;
+		spawn.count = 1;
+		spawn.delay = delay;
+		wave.scheduledSpawns.push_back(std::move(spawn));
+	} };
+	const auto scheduleMany{ [&scheduleOne](EnemyKind kind, int count)
+	{
+		for (int index{ 0 }; index < count; ++index)
+			scheduleOne(kind, 2.f);
+	} };
+
+	if (hordeCurrentWave == 1)
+	{
+		scheduleMany(EnemyKind::Kamikaze, 3);
+		return wave;
+	}
+	if (hordeCurrentWave == 2)
+	{
+		scheduleMany(EnemyKind::Shooter, 3);
+		return wave;
+	}
+
+	// From Wave 3 onward, every previously introduced enemy gains one unit
+	// per wave. A new enemy family joins each wave until the full roster is active.
+	scheduleMany(EnemyKind::Kamikaze, hordeCurrentWave + 1);
+	scheduleMany(EnemyKind::Shooter, hordeCurrentWave + 1);
+	scheduleMany(EnemyKind::Spinner, hordeCurrentWave - 2);
+	if (hordeCurrentWave >= 4)
+		scheduleMany(EnemyKind::MissileCarrier, hordeCurrentWave - 3);
+	if (hordeCurrentWave >= 5)
+		scheduleMany(EnemyKind::LaserTurret, hordeCurrentWave - 4);
+	if (hordeCurrentWave >= 6)
+		scheduleMany(EnemyKind::ShooterStation, hordeCurrentWave - 5);
+	if (hordeCurrentWave >= 7)
+		scheduleMany(EnemyKind::ReflectorGunship, hordeCurrentWave - 6);
+	return wave;
+}
+
+GameplayData::PickupKind GameplayState::TakeNextHordeBonus()
+{
+	using Kind = GameplayData::PickupKind;
+	if (hordeBonusBag.empty())
+	{
+		hordeBonusBag = {
+			Kind::Health,
+			Kind::Shield,
+			Kind::HomingBullets,
+			Kind::TimeSlowdown,
+			Kind::Laser,
+			Kind::TripleShot };
+		if (hordeHelperAvailable)
+			hordeBonusBag.push_back(Kind::HelperBot);
+	}
+
+	const std::size_t index{ static_cast<std::size_t>(Random::Int(
+		0, static_cast<int>(hordeBonusBag.size()) - 1)) };
+	const Kind result{ hordeBonusBag[index] };
+	hordeBonusBag.erase(hordeBonusBag.begin() + static_cast<std::ptrdiff_t>(index));
+	if (result == Kind::HelperBot)
+		hordeHelperAvailable = false;
+	return result;
+}
+
+void GameplayState::GrantHordeWaveUpgrade()
+{
+	ShipUpgradeRanks ranks{ session.GetUpgradeRanks() };
+	const int rewardIndex{ (hordeWavesSurvived - 1) % 4 };
+	if (rewardIndex == 0)
+		++ranks.armor;
+	else if (rewardIndex == 1)
+		++ranks.fireRate;
+	else if (rewardIndex == 2)
+		++ranks.engines;
+	else
+		++ranks.bonusDuration;
+
+	const int previousMaximum{ session.GetPlayerHealth().GetMaximum() };
+	session.ConfigureUpgrades(ranks, false);
+	if (rewardIndex != 0)
+		return;
+
+	const int upgradedMaximum{ static_cast<int>(std::lround(
+		static_cast<float>(gameplayData.GetPlayer().maximumHealth) *
+		session.GetArmorMultiplier())) };
+	Health& health{ session.GetPlayerHealth() };
+	health.SetMaximum(upgradedMaximum, false);
+	static_cast<void>(health.Restore(upgradedMaximum - previousMaximum));
+}
+
+const GameplayData::LevelConfig& GameplayState::GetPresentationLevel() const
+{
+	return gameplayData.GetLevel(
+		hordeMode ? 9 : (runMode ? 3 : session.GetLevel()));
 }
 
 void GameplayState::StartNextWave(
@@ -978,7 +1588,9 @@ void GameplayState::StartNextWave(
 	}));
 	world.CommitPendingEntities();
 	if (startWaveIntro)
-		waveIntro.Start(waveDirector.GetCurrentWaveNumber());
+		waveIntro.Start(
+			waveDirector.GetCurrentWaveNumber(),
+			!hordeMode && !waveDirector.HasMoreWaves());
 }
 
 void GameplayState::FinishWaveIntro()

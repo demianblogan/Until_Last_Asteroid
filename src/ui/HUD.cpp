@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <numbers>
+#include <sstream>
 #include <string>
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
@@ -147,6 +149,8 @@ void HUD::Update(float deltaTime)
 		0.f, tutorialHealthHighlightRemaining - deltaTime);
 	tutorialShieldHighlightRemaining = std::max(
 		0.f, tutorialShieldHighlightRemaining - deltaTime);
+	tutorialPartsHighlightRemaining = std::max(
+		0.f, tutorialPartsHighlightRemaining - deltaTime);
 	UpdateScore(deltaTime);
 	UpdateParts(deltaTime);
 	UpdateHealthBar(deltaTime);
@@ -173,6 +177,29 @@ void HUD::HighlightShield(float duration) noexcept
 {
 	tutorialShieldHighlightRemaining = std::max(tutorialShieldHighlightRemaining, duration);
 	shieldGlow.Invalidate();
+}
+
+void HUD::SetRunMode(bool enabled) noexcept
+{
+	runMode = enabled;
+	displayedTimeSeconds = -1;
+	UpdateScore(0.f);
+}
+
+void HUD::SetPartsVisible(bool visible) noexcept
+{
+	partsVisible = visible;
+}
+
+void HUD::SetSurvivalTime(float seconds) noexcept
+{
+	survivalSeconds = std::max(0.f, seconds);
+}
+
+void HUD::HighlightParts(float duration) noexcept
+{
+	tutorialPartsHighlightRemaining = std::max(tutorialPartsHighlightRemaining, duration);
+	partsGlow.Invalidate();
 }
 
 void HUD::UpdateShieldBar(float deltaTime)
@@ -319,6 +346,21 @@ void HUD::UpdateBonusBarLayout()
 void HUD::UpdateScore(float deltaTime)
 {
 	scoreGlow.Update(deltaTime);
+	if (runMode)
+	{
+		const int totalSeconds{ static_cast<int>(std::floor(survivalSeconds)) };
+		if (totalSeconds != displayedTimeSeconds)
+		{
+			displayedTimeSeconds = totalSeconds;
+			std::ostringstream text;
+			text << "TIME " << std::setfill('0') << std::setw(2)
+				<< totalSeconds / 60 << ':' << std::setw(2)
+				<< totalSeconds % 60;
+			scoreText.setString(text.str());
+			CenterScoreText();
+		}
+		return;
+	}
 	const int currentScore{ session.GetScore() };
 	if (currentScore != displayedScore)
 	{
@@ -503,11 +545,16 @@ void HUD::Draw(sf::RenderTarget& target)
 			scorePanel.getGlobalBounds(),
 			LerpColor(sf::Color::Black, sf::Color(205, 255, 255), flash));
 	}
-	if (partsPulseRemaining > 0.f)
+	if (partsVisible &&
+		(partsPulseRemaining > 0.f || tutorialPartsHighlightRemaining > 0.f))
 	{
 		const float normalized{ partsPulseRemaining / PartsPulseDuration };
-		const float blink{ normalized *
-			(0.62f + 0.38f * std::abs(std::sin(normalized * 4.f * std::numbers::pi_v<float>))) };
+		const float tutorialFlash{ tutorialPartsHighlightRemaining > 0.f
+			? 0.4f + 0.6f * std::abs(std::sin(tutorialPartsHighlightRemaining * 9.f))
+			: 0.f };
+		const float blink{ std::max(normalized *
+			(0.62f + 0.38f * std::abs(std::sin(normalized * 4.f * std::numbers::pi_v<float>))),
+			tutorialFlash) };
 		const sf::Color flashColor{ LerpColor(
 			sf::Color::Black, sf::Color(255, 190, 38), blink) };
 		partsGlow.DrawBloom(
@@ -520,12 +567,18 @@ void HUD::Draw(sf::RenderTarget& target)
 			flashColor,
 			false);
 	}
-	DrawPartsPanel(target, sf::RenderStates::Default);
-	if (partsPulseRemaining > 0.f)
+	if (partsVisible)
+		DrawPartsPanel(target, sf::RenderStates::Default);
+	if (partsVisible &&
+		(partsPulseRemaining > 0.f || tutorialPartsHighlightRemaining > 0.f))
 	{
 		const float normalized{ partsPulseRemaining / PartsPulseDuration };
-		const float blink{ normalized *
-			(0.62f + 0.38f * std::abs(std::sin(normalized * 4.f * std::numbers::pi_v<float>))) };
+		const float tutorialFlash{ tutorialPartsHighlightRemaining > 0.f
+			? 0.4f + 0.6f * std::abs(std::sin(tutorialPartsHighlightRemaining * 9.f))
+			: 0.f };
+		const float blink{ std::max(normalized *
+			(0.62f + 0.38f * std::abs(std::sin(normalized * 4.f * std::numbers::pi_v<float>))),
+			tutorialFlash) };
 		partsGlow.DrawHighlight(
 			target,
 			partsPanel.getGlobalBounds(),

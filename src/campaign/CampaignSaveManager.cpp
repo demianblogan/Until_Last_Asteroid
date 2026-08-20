@@ -209,6 +209,30 @@ bool CampaignSaveManager::StartNewCampaign()
     return false;
 }
 
+bool CampaignSaveManager::UnlockNewContent(int availableLevels)
+{
+	if (!progress || availableLevels <= 0)
+		return true;
+	if (progress->phase != CampaignPhase::ContentComplete ||
+		progress->currentLevel >= availableLevels ||
+		std::ranges::find(progress->completedLevels, progress->currentLevel) ==
+			progress->completedLevels.end())
+	{
+		return true;
+	}
+
+	const CampaignProgress previous{ *progress };
+	++progress->currentLevel;
+	progress->highestUnlockedLevel = std::max(
+		progress->highestUnlockedLevel, progress->currentLevel);
+	progress->campaignCompleted = false;
+	progress->phase = CampaignPhase::Playing;
+	if (Save())
+		return true;
+	progress = previous;
+	return false;
+}
+
 bool CampaignSaveManager::Save() const
 {
     if (!progress)

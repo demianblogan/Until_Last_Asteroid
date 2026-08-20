@@ -26,8 +26,10 @@ public:
 	enum class Type
 	{
 		Player,
+		Companion,
 		Enemy,
 		Projectile_Player,
+		Projectile_Ally,
 		Projectile_Enemy,
 		EnemyMissile,
 		Asteroid,
@@ -74,6 +76,11 @@ protected:
 
 	void SetRotation(sf::Angle angle) noexcept;
 	[[nodiscard]] sf::Angle GetRotation() const noexcept;
+	void TurnTowards(
+		const sf::Vector2f& target,
+		float maximumDegreesPerSecond,
+		float deltaTime) noexcept;
+	[[nodiscard]] sf::Vector2f GetForwardDirection() const noexcept;
 
 	virtual void Update(float deltaTime) = 0;
 	virtual bool IsCollideWith(const Entity& other) const = 0;

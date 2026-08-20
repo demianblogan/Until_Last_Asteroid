@@ -1,6 +1,8 @@
 #pragma once
 
 #include <optional>
+#include <string>
+#include <unordered_map>
 #include <vector>
 #include <SFML/System/Vector2.hpp>
 
@@ -81,6 +83,21 @@ private:
 #endif
 	void NextLevel();
 	void SpawnLevel();
+	void PrepareCampaignRewards(const GameplayData::LevelConfig& level);
+	[[nodiscard]] std::vector<GameplayData::PickupKind>
+		BuildCampaignBonusSequence(int levelNumber) const;
+	void StartHorde();
+	void StartNextHordeWave(
+		bool materializeInitialSpawns,
+		bool startWaveIntro = true);
+	[[nodiscard]] GameplayData::WaveConfig BuildHordeWave();
+	[[nodiscard]] GameplayData::PickupKind TakeNextHordeBonus();
+	void GrantHordeWaveUpgrade();
+	void StartRun();
+	void UpdateRun(float deltaTime);
+	void SpawnRunAsteroid();
+	void SpawnRunEnemy(GameplayData::EnemyKind kind);
+	[[nodiscard]] const GameplayData::LevelConfig& GetPresentationLevel() const;
 	void StartNextWave(bool materializeInitialSpawns, bool startWaveIntro = true);
 	void FinishWaveIntro();
 	void UpdatePlayerSpawnAnimation(float deltaTime);
@@ -127,5 +144,24 @@ private:
 	bool waveClearDelayActive{ false };
 	bool selectedLevelRun{ false };
 	bool selectedLevelAdvancesCampaign{ false };
+	bool hordeMode{ false };
+	bool runMode{ false };
+	bool hordeHelperAvailable{ true };
+	int hordeCurrentWave{ 1 };
+	int hordeWavesSurvived{ 0 };
+	GameplayData::LevelConfig hordeLevel;
+	std::vector<GameplayData::PickupKind> hordeBonusBag;
+	std::unordered_map<std::size_t, int> campaignBonusDrops;
+	std::unordered_map<std::size_t, std::string> campaignPartDrops;
+	std::size_t campaignEnemySpawnOrdinal{ 0u };
+	int stationPathOffset{ 0 };
+	int turretPathOffset{ 0 };
+	float runElapsed{ 0.f };
+	float runAsteroidTimer{ 10.f };
+	float runEnemyTimer{ 15.f };
+	int runAsteroidsSpawned{ 0 };
+	int runShootersSpawned{ 0 };
+	bool runLaserTurretSpawned{ false };
+	bool runReflectorSpawned{ false };
 	std::vector<Entity*> materializingEnemies;
 };

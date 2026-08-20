@@ -36,15 +36,14 @@ bool MissileCarrier::IsCollideWith(const Entity& other) const
 {
 	return (other.GetType() == Type::Player ||
 		other.GetType() == Type::Projectile_Player ||
+		other.GetType() == Type::Projectile_Ally ||
 		other.GetType() == Type::EnemyMissile) && CheckCollision(other);
 }
 
 void MissileCarrier::Update(float deltaTime)
 {
 	const sf::Vector2f playerPosition{ GetWorld().GetPlayerPosition() };
-	const sf::Vector2f toPlayer{ playerPosition - GetPosition() };
-	const float angle{ std::atan2(toPlayer.y, toPlayer.x) };
-	SetRotation(sf::radians(angle + std::numbers::pi_v<float> * 0.5f));
+	TurnTowards(playerPosition, GetRotationSpeed(), deltaTime);
 	UpdatePatrolMovement(deltaTime);
 	EmitEngineParticles(-Normalize(GetVelocity()));
 

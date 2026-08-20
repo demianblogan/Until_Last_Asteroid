@@ -42,6 +42,8 @@ Application::Application()
 
     assets.Initialize();
     audio.ApplySettings();
+	static_cast<void>(campaignSave.UnlockNewContent(
+		assets.GetGameplayData().GetLevelCount()));
 	if (const CampaignProgress* progress{ campaignSave.GetProgress() })
 		static_cast<void>(records.MergeCampaignScores(progress->levelBestScores));
 
@@ -141,6 +143,11 @@ void Application::Run()
 
         stateStack.HandleRealtime();
         stateStack.Update(deltaTime);
+		if (stateStack.IsEmpty())
+		{
+			window.close();
+			break;
+		}
         audio.Update();
         UpdateFpsCounter(frameTime);
 

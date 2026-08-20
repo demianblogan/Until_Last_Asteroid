@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <optional>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include <SFML/Graphics/RectangleShape.hpp>
@@ -36,6 +38,8 @@ public:
         sf::Vector2f logicalSize);
 
     void Start(int finalScore);
+    void StartHorde(int finalScore, int wavesSurvived);
+    void StartRun(int survivalSeconds, int recordSeconds);
     void Reset();
     void Update(float deltaTime);
     [[nodiscard]] std::optional<Action> HandleEvent(
@@ -46,6 +50,7 @@ public:
     [[nodiscard]] bool IsActive() const noexcept;
 
 private:
+    void StartWithSummary(std::string summary, std::string_view restartLabel);
     void SkipAnimation();
     void ApplyVisualState();
     void Select(std::size_t index, bool playSound = true);

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <numbers>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Shader.hpp>
@@ -196,6 +197,33 @@ void Entity::SetRotation(sf::Angle angle) noexcept
 sf::Angle Entity::GetRotation() const noexcept
 {
 	return sprite.getRotation();
+}
+
+void Entity::TurnTowards(
+	const sf::Vector2f& target,
+	float maximumDegreesPerSecond,
+	float deltaTime) noexcept
+{
+	const sf::Vector2f direction{ target - GetPosition() };
+	if (direction.x * direction.x + direction.y * direction.y <= 0.0001f)
+		return;
+
+	const float desired{ std::atan2(direction.y, direction.x) +
+		std::numbers::pi_v<float> * 0.5f };
+	const float current{ GetRotation().asRadians() };
+	const float difference{ std::atan2(
+		std::sin(desired - current), std::cos(desired - current)) };
+	const float maximumStep{ std::max(0.f, maximumDegreesPerSecond) *
+		std::numbers::pi_v<float> / 180.f * std::max(0.f, deltaTime) };
+	SetRotation(sf::radians(current + std::clamp(
+		difference, -maximumStep, maximumStep)));
+}
+
+sf::Vector2f Entity::GetForwardDirection() const noexcept
+{
+	const float angle{ GetRotation().asRadians() -
+		std::numbers::pi_v<float> * 0.5f };
+	return { std::cos(angle), std::sin(angle) };
 }
 
 void Entity::draw(sf::RenderTarget& target, sf::RenderStates states) const

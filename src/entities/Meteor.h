@@ -28,8 +28,10 @@ public:
 	void OnDestroy() override;
 
 private:
+	void Update(float deltaTime) override;
 	static const GameplayData::EnemyConfig& GetConfig(AssetStore& assets, Size size);
 	static sf::Texture& GetRandomTexture(AssetStore& assets, Size size);
 
 	Size size;
+	float angularVelocity{ 0.f };
 };

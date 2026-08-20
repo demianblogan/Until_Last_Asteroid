@@ -585,6 +585,168 @@ result layout, and removal of cumulative campaign score.
 - Build only x64 Debug throughout development. Build Release only after all
   v1.8.0 work is complete and the release candidate is approved.
 
+### v1.9.0 — Campaign expansion and survival modes
+
+#### Implementation progress
+
+- Extended the guided tutorial after the shield explanation. A temporary Part
+  now appears near the player, respawns if it expires before collection, and
+  advances the tutorial only after it is collected. The follow-up message
+  explains that Parts purchase between-level ship upgrades and highlights the
+  lower-right Parts HUD before the existing tutorial completion message.
+- Added forward-compatible continuation for v1.8 campaign saves. Once more
+  levels are available, a campaign in the former `content_complete` phase
+  advances from its completed boundary to the next level. A save still awaiting
+  its between-level upgrade visit advances after that screen instead. The
+  existing campaign schema remains valid and `records.json` stays independent.
+- Added the friendly invulnerable helper drone as the final campaign pickup.
+  Its generated round white-and-navy sprite has a cyan eye and side cannon. A
+  level can issue the pickup only once; after collection the drone orbits the
+  player through the end of that level and fires a separately tracked homing
+  shot at the nearest enemy once per second. Drone hits still award normal
+  score and drops but never change the player's accuracy. In Debug builds, F2
+  issues the pickup once for isolated testing without changing existing waves.
+- Added the Reflector Gunship: a fast figure-eight enemy with 150 health, two
+  simultaneous player-targeted shots every 0.5 seconds, and alternating
+  three-second vulnerable and reflective-shield phases. Player and helper-bot
+  projectiles are returned toward the player with their standard 10 damage;
+  continuous player laser fire is blocked rather than reflected. The shield is
+  rendered as a red energy shell around the generated dual-cannon sprite. In
+  Debug builds, F3 spawns a gunship for isolated combat testing.
+- Added Levels 7–9 with exactly three authored waves and four finite Parts each,
+  bringing Levels 1–9 to the exact 36 Parts required for all ship upgrades.
+  Levels 7–8 use the red-storm region and Level 9 uses deep void. Each new level
+  includes the helper bot once in its ordered campaign reward sequence and
+  escalates from the new enemy's introduction to dense mixed endgame waves.
+- Registered all three gameplay tracks and assigned music by campaign region:
+  track 1 for Levels 1–3, track 2 for Levels 4–6, and track 3 for Levels 7–9.
+  Pause, game-over, result ducking, time slowdown, restarts, and state exits now
+  operate on the active gameplay track instead of assuming track 1.
+- Added typed Horde and Run launch modes plus atomic record submission APIs for
+  best Horde waves, Horde score, and Run survival time. Their menu entries stay
+  disabled until their gameplay directors are implemented and verified.
+- Enabled an endless Horde Mode with campaign upgrades and Parts disabled. Its
+  level-style introduction presents the mode objective before the first wave.
+  Wave 1 contains one large asteroid plus three kamikazes deployed one every two
+  seconds, and Wave 2 contains two large asteroids plus three shooters on the
+  same cadence. Later waves add one large asteroid per round up to a cap of ten,
+  introduce one enemy family per wave until the full roster is active, and add
+  one unit to every previously introduced family on each subsequent wave. Horde
+  wave titles use unbounded numbering and never display the campaign-only
+  `FINAL WAVE` label. The Horde objective uses the existing Exo2 body font for
+  improved readability. Exactly
+  one randomized bonus is assigned to a defeated large asteroid per wave; the
+  shuffled bonus pool avoids repeats until exhausted, and the helper bot can
+  appear only once per run. Game Over shows score and survived waves and submits
+  both values independently to the permanent records file.
+- Horde now selects one of all five gameplay regions at random for each new run.
+  Completing every wave grants one uncapped run-only upgrade in a repeating
+  Armor, Fire Rate, Engines, and Bonus Duration cycle. Armor rewards expand both
+  maximum and current armor, while the active campaign upgrades and save remain
+  untouched.
+- Enemy homing missiles now count as active wave threats. Killing the final
+  missile carrier no longer starts the inter-wave teleport while one of its
+  missiles can still reach the player.
+- Fixed sustained player-laser audio ownership. A released outro is tracked
+  separately from the active loop, replaced when firing resumes, and stopped
+  together with the loop when the laser bonus expires, control is disabled, or
+  the player is destroyed.
+- Increased the authored gameplay-background image brightness globally by ten
+  percent, covering the tutorial, every campaign level, Horde, and future modes
+  that use the shared gameplay background renderer.
+- Enabled Run Mode without player firing, Parts, campaign upgrades, or discrete
+  waves. One randomly directed and paced large asteroid appears every ten
+  seconds, capped at ten total. Shooters appear every fifteen seconds, capped at
+  three total. A single Laser Turret appears at 40 seconds and a single
+  Reflector Gunship at 60 seconds. No other enemies or pickups appear.
+  Any damage reaching armor immediately ends the run, while shield-absorbed
+  impacts remain survivable. The upper-left HUD is a live `MM:SS` stopwatch
+  instead of a score panel, matching Game Over and Records; the Parts panel and aiming cursor are
+  hidden, and Game Over shows both the run time and permanent best time.
+- Hid the campaign-only Parts HUD panel in Horde while retaining it in campaign
+  levels and the tutorial.
+- Corrected the long-standing wave-title animation target so `WAVE N` and
+  `FINAL WAVE` settle at the vertical center of the playfield before fading.
+- Kept campaign upgrades disabled in Horde and Run so their records remain
+  independent from the active campaign save.
+- Rebalanced all 27 campaign waves for the final Levels 1-9 tuning pass. Each
+  level now introduces its intended cumulative bonus sequence and retains all
+  36 permanent Part identifiers.
+  Levels 1-7 follow the approved absolute spawn schedule; Levels 8-9 use five
+  and six large asteroids per wave respectively and escalate through denser
+  mixed formations of every endgame enemy family.
+- Campaign rewards are now distributed across randomly selected enemy spawn
+  slots for the whole level. Asteroids and the first enemy cannot carry Parts;
+  Part and bonus slots never overlap. Level N grants exactly N bonuses: the new
+  bonus is first on Levels 1-7, followed by previously introduced types, while
+  Levels 8-9 continue cyclically after the helper bot. Existing collected Parts
+  are omitted without changing their permanent IDs. Bonus-bearing enemies are
+  selected independently inside each wave using the fixed distributions 0/1/0,
+  1/1/0, 1/1/1, 2/1/1, 2/2/1, 2/2/2, 3/2/2, 3/3/2, and 3/3/3 for Levels 1-9.
+- Temporary bonus timers now freeze as soon as a campaign or Horde wave is
+  cleared and remain frozen through teleportation and the next-wave intro.
+- Shooter Stations now visibly fly in from outside the arena. Simultaneous
+  stations receive distinct parallel routes and cannot spawn on top of one
+  another; off-screen arriving stations are exempt from screen wrapping.
+- Simultaneous Laser Turrets now receive distinct perimeter routes and remain
+  exempt from screen wrapping until their entrance is complete, preventing
+  turrets in the same spawn group from occupying one position.
+- Shooter Stations now enter with their shield already active and deploy their
+  first shooter immediately upon reaching the arena, removing the unprotected
+  opening before their normal production cycle begins.
+- Completing a previously unlocked level from Level Select now opens Ship
+  Upgrades after banking newly collected Parts. Back and the primary return
+  button lead back to Level Select without changing campaign progression.
+- Level 9 now grants four bonuses in every wave. Armor restoration is guaranteed
+  once per wave, with the remaining three rewards continuing the ordered bonus
+  rotation.
+- Added a dedicated `player_laser_shot.ogg` resource for the player's sustained
+  laser while retaining `enemy_laser_shot.ogg` for enemy Laser Turrets.
+- Batched each energy shield's complete hexagonal grid into one draw call and
+  reduced circular shell tessellation from 96 to 64 points. This removes the
+  hundreds of per-frame draw submissions previously caused by every active
+  Shooter Station shield while preserving its animated layered appearance.
+- Restored the complete Main Menu -> Campaign Menu -> Level Select hierarchy
+  after finishing a replayed level and visiting Ship Upgrades. Returning through
+  both menus no longer empties the state stack and leaves a permanent black
+  screen. The application now also closes safely if any future route exhausts
+  the state stack.
+- Large and small asteroids now start at a random orientation and rotate around
+  their center with randomized clockwise or counter-clockwise angular velocity.
+  Their authored base rotation speeds are stored in `enemies.json`; movement,
+  circular collision, fragmentation, and combat balance remain unchanged.
+- Shooters, Missile Carriers, and Reflector Gunships now turn toward the player
+  along the shortest arc at individually authored speeds instead of snapping
+  every frame. Shooter and Reflector volleys follow the ship's current forward
+  direction, making rapid player movement capable of throwing off their aim;
+  homing missiles retain their own independent guidance after launch.
+- Added four generated 3840x2160 gameplay backgrounds: emerald aurora, rose
+  stellar nursery, frozen silver expanse, and yellow-lime ion storm. Campaign
+  Levels 1-9 now each use a unique background, matching gradient/star colors,
+  and an individual post-process palette. Horde randomly selects from all nine.
+- Kept all pre-existing texture resource identifiers numerically stable by
+  appending the four new background keys to `Config::Texture`. A full Debug x64
+  rebuild removed mixed stale objects that briefly mapped backgrounds onto UI
+  and gameplay sprites after an interrupted compilation.
+- Built the approved v1.9.0 Release candidate with a clean x64 Release rebuild:
+  zero compiler warnings and zero errors. The displayed game version is v1.9.0.
+
+#### Release verification
+
+- Owner-led gameplay verification completed throughout staged development,
+  including the full campaign, Horde Mode, Run Mode, replay upgrades, final
+  balance, new enemies, pickups, backgrounds, audio, and performance fixes.
+- Parsed every source gameplay and audio JSON file successfully before packaging.
+- Full Windows x64 Debug and Release builds completed successfully.
+- Built and extracted `UntilLastAsteroid-v1.9.0-win64.zip`, verified every
+  packaged JSON file and required runtime asset, and passed a five-second
+  startup smoke test with the extracted Release executable. Archive SHA-256:
+  `B7C5304C9B5006F262BF7DD5DE37E2E9BBFBD7CEFA8EA1007F7C7E064F3E8165`.
+
+## In development
+
+- No active version. Level 10 and the campaign finale remain planned for v2.0.
+
 ## Deferred / needs design
 
 - Add controller vibration after the input layer has a dedicated haptics

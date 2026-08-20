@@ -46,6 +46,7 @@ bool Spinner::IsCollideWith(const Entity& other) const
 {
 	return (other.GetType() == Type::Player ||
 		other.GetType() == Type::Projectile_Player ||
+		other.GetType() == Type::Projectile_Ally ||
 		other.GetType() == Type::EnemyMissile) && CheckCollision(other);
 }
 

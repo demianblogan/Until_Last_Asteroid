@@ -28,11 +28,15 @@ public:
 	void SetPickupDrop(
 		const std::optional<GameplayData::SpawnGroup::PickupDropConfig>& drop);
 	[[nodiscard]] std::optional<GameplayData::PickupKind> RollPickupDrop() const;
+	void SetOrderedPickupDropCount(int count) noexcept;
+	[[nodiscard]] int GetOrderedPickupDropCount() const noexcept;
 	void SetPartDropId(std::string id);
 	[[nodiscard]] const std::string& GetPartDropId() const noexcept;
 	void SetRewardsEnabled(bool enabled) noexcept;
 	[[nodiscard]] bool AreRewardsEnabled() const noexcept;
 	[[nodiscard]] virtual bool AcceptsKnockback() const noexcept;
+	[[nodiscard]] virtual bool IsProjectileReflectionActive() const noexcept;
+	[[nodiscard]] virtual bool BlocksPlayerLaser() const noexcept;
 	[[nodiscard]] virtual bool CollidesWithPlayerProjectile(
 		const Entity& projectile) const;
 	[[nodiscard]] virtual sf::Vector2f GetPlayerProjectileImpactPosition(
@@ -65,6 +69,7 @@ private:
 	std::vector<GameplayData::NormalizedPoint> weaponEmitters;
 	std::vector<GameplayData::NormalizedPoint> engineEmitters;
 	std::optional<GameplayData::SpawnGroup::PickupDropConfig> pickupDrop;
+	int orderedPickupDropCount{ 0 };
 	std::string partDropId;
 	bool rewardsEnabled{ true };
 };

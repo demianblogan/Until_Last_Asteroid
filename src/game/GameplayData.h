@@ -28,12 +28,14 @@ public:
 		MissileCarrier,
 		LaserTurret,
 		ShooterStation,
+		ReflectorGunship,
         Count
     };
 
     enum class ProjectileKind
     {
         Player,
+		Helper,
         Enemy,
 		Spinner,
         Count
@@ -46,7 +48,8 @@ public:
 		HomingBullets,
 		TimeSlowdown,
 		Laser,
-		TripleShot
+		TripleShot,
+		HelperBot
 	};
 
     struct PlayerConfig
@@ -115,6 +118,11 @@ public:
 		float timeSlowdownDuration{ 5.f };
 		float timeSlowdownWorldScale{ 0.35f };
 		float timeSlowdownAudioPitch{ 0.72f };
+		float helperBotShotInterval{ 1.f };
+		float helperBotTurnSpeedDegrees{ 560.f };
+		float helperBotOrbitRadius{ 90.f };
+		float helperBotOrbitSpeedDegrees{ 42.f };
+		float helperBotVisualScale{ 0.045f };
         float visualScale{ 0.075f };
         float collisionRadius{ 42.f };
     };

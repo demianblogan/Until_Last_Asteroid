@@ -109,6 +109,33 @@ bool RecordsManager::SubmitCampaignLevelScore(int level, int score)
 	return false;
 }
 
+bool RecordsManager::SubmitHordeResult(int waves, int score)
+{
+	if (waves < 0 || score < 0) return false;
+	const GameRecords previous{ records };
+	records.hordeWaves = std::max(records.hordeWaves, waves);
+	records.hordeScore = std::max(records.hordeScore, score);
+	if (records.hordeWaves == previous.hordeWaves &&
+		records.hordeScore == previous.hordeScore)
+	{
+		return true;
+	}
+	if (Save()) return true;
+	records = previous;
+	return false;
+}
+
+bool RecordsManager::SubmitRunSeconds(int seconds)
+{
+	if (seconds < 0) return false;
+	if (seconds <= records.runSeconds) return true;
+	const int previous{ records.runSeconds };
+	records.runSeconds = seconds;
+	if (Save()) return true;
+	records.runSeconds = previous;
+	return false;
+}
+
 bool RecordsManager::MergeCampaignScores(const std::map<int, int>& scores)
 {
 	const GameRecords previous{ records };

@@ -17,6 +17,7 @@ public:
 	LevelIntro(AssetStore& assets, sf::Vector2f logicalSize);
 
 	void Start(int levelNumber, std::string_view levelTitle);
+	void StartMode(std::string_view modeName, std::string_view objective);
 	[[nodiscard]] bool Update(float deltaTime);
 	void Draw(sf::RenderTarget& target);
 	void Reset() noexcept;
@@ -24,6 +25,7 @@ public:
 	[[nodiscard]] bool IsActive() const noexcept;
 
 private:
+	void StartWithText(std::string_view heading, std::string_view subtitle);
 	void ApplyAnimation();
 	static void CenterText(sf::Text& text, sf::Vector2f position);
 
@@ -33,6 +35,8 @@ private:
 	RoundedRectangleShape panel;
 	sf::RectangleShape upperLine;
 	sf::RectangleShape lowerLine;
+	const sf::Font& levelTitleFont;
+	const sf::Font& modeObjectiveFont;
 	sf::Text levelLabel;
 	sf::Text title;
 	sf::Vector2f logicalSize;

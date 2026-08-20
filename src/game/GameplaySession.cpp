@@ -139,6 +139,11 @@ void GameplaySession::ConfigureShield(float capacity, float duration) noexcept
 	playerShield.Configure(capacity, duration);
 }
 
+void GameplaySession::ConfigureOneHitMode(bool enabled) noexcept
+{
+	oneHitMode = enabled;
+}
+
 GameplaySession::WeaponMode GameplaySession::GetWeaponMode() const noexcept
 {
 	return weaponBonusRemaining > 0.f ? weaponMode : WeaponMode::Normal;
@@ -152,6 +157,11 @@ bool GameplaySession::IsLaserActive() const noexcept
 bool GameplaySession::IsTripleShotActive() const noexcept
 {
 	return GetWeaponMode() == WeaponMode::TripleShot;
+}
+
+bool GameplaySession::IsHelperBotActive() const noexcept
+{
+	return helperBotActive;
 }
 
 float GameplaySession::GetWeaponBonusRatio() const noexcept
@@ -170,10 +180,20 @@ void GameplaySession::ConfigureParts(
 	pendingPartIds.clear();
 }
 
-void GameplaySession::ConfigureUpgrades(const ShipUpgradeRanks& ranks) noexcept
+void GameplaySession::ConfigureUpgrades(
+	const ShipUpgradeRanks& ranks,
+	bool clampToCampaignMaximum) noexcept
 {
 	upgradeRanks = ranks;
-	ShipUpgradeRules::Clamp(upgradeRanks);
+	if (clampToCampaignMaximum)
+		ShipUpgradeRules::Clamp(upgradeRanks);
+	else
+	{
+		upgradeRanks.armor = std::max(0, upgradeRanks.armor);
+		upgradeRanks.engines = std::max(0, upgradeRanks.engines);
+		upgradeRanks.fireRate = std::max(0, upgradeRanks.fireRate);
+		upgradeRanks.bonusDuration = std::max(0, upgradeRanks.bonusDuration);
+	}
 }
 
 bool GameplaySession::RecoverPart(const std::string& id)
@@ -223,7 +243,8 @@ GameplaySession::PlayerDamageResult GameplaySession::ApplyPlayerDamage(int damag
 	const bool shieldDamaged{ playerShield.GetCurrent() < shieldBefore };
 	bool healthDamaged{ false };
 	if (remainingDamage > 0)
-		healthDamaged = playerHealth.ApplyDamage(remainingDamage);
+		healthDamaged = playerHealth.ApplyDamage(
+			oneHitMode ? playerHealth.GetCurrent() : remainingDamage);
 	return { shieldDamaged || healthDamaged, shieldDamaged, healthDamaged };
 }
 
@@ -263,6 +284,14 @@ void GameplaySession::ActivateTripleShot(float duration) noexcept
 	weaponBonusRemaining = weaponBonusDuration;
 }
 
+bool GameplaySession::ActivateHelperBot() noexcept
+{
+	if (helperBotActive)
+		return false;
+	helperBotActive = true;
+	return true;
+}
+
 void GameplaySession::ClearTemporaryEffects() noexcept
 {
 	playerShield.Deactivate();
@@ -270,6 +299,7 @@ void GameplaySession::ClearTemporaryEffects() noexcept
 	timeSlowdownRemaining = 0.f;
 	weaponMode = WeaponMode::Normal;
 	weaponBonusRemaining = 0.f;
+	helperBotActive = false;
 }
 
 void GameplaySession::Reset() noexcept
@@ -280,6 +310,7 @@ void GameplaySession::Reset() noexcept
 	timeSlowdownRemaining = 0.f;
 	weaponMode = WeaponMode::Normal;
 	weaponBonusRemaining = 0.f;
+	helperBotActive = false;
 	level = 1;
 	score = 0;
 	levelStartScore = 0;
@@ -298,6 +329,7 @@ void GameplaySession::StartAtLevel(int levelNumber) noexcept
 	timeSlowdownRemaining = 0.f;
 	weaponMode = WeaponMode::Normal;
 	weaponBonusRemaining = 0.f;
+	helperBotActive = false;
 	level = levelNumber;
 	score = 0;
 	levelStartScore = 0;
@@ -313,6 +345,7 @@ void GameplaySession::RestartLevel() noexcept
 	timeSlowdownRemaining = 0.f;
 	weaponMode = WeaponMode::Normal;
 	weaponBonusRemaining = 0.f;
+	helperBotActive = false;
 	score = levelStartScore;
 	state = State::Playing;
 }

@@ -24,6 +24,8 @@ namespace
 			return Config::Texture::LaserPickup;
 		case Pickup::Kind::TripleShot:
 			return Config::Texture::TripleShotPickup;
+		case Pickup::Kind::HelperBot:
+			return Config::Texture::HelperBotPickup;
 		}
 		return Config::Texture::HomingBulletsPickup;
     }
@@ -84,6 +86,8 @@ bool Pickup::Apply(GameplaySession& session)
 		session.ActivateTripleShot(config.tripleShotDuration + bonusDuration);
 		return true;
 	}
+	if (kind == Kind::HelperBot)
+		return session.ActivateHelperBot();
 
     const int maximumHealth{ session.GetPlayerHealth().GetMaximum() };
     const int amount{ std::max(1, static_cast<int>(

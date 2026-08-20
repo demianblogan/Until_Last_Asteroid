@@ -23,6 +23,7 @@ bool Saucer::IsCollideWith(const Entity& other) const
 {
 	if (other.GetType() != Type::Player &&
 		other.GetType() != Type::Projectile_Player &&
+		other.GetType() != Type::Projectile_Ally &&
 		other.GetType() != Type::EnemyMissile)
 		return false;
 
@@ -57,10 +58,7 @@ void Saucer::Update(float deltaTime)
 	}
 	else
 	{
-		const float angleRad{ std::atan2(toPlayer.y, toPlayer.x) };
-		const float angleDeg{ angleRad * 180.f / std::numbers::pi_v<float> };
-		static constexpr float RotationOffset{ 90.f };
-		SetRotation(sf::degrees(angleDeg + RotationOffset));
+		TurnTowards(playerPos, GetRotationSpeed(), deltaTime);
 
 		if (approachingCenter)
 		{
@@ -155,9 +153,11 @@ void Saucer::UpdateMovement(float deltaTime, const sf::Vector2f& target)
 
 void Saucer::Shoot(const sf::Vector2f& playerPosition)
 {
+	(void)playerPosition;
 	shootTimer -= GetActionInterval();
+	const sf::Vector2f muzzle{ GetWeaponEmitterPosition(nextWeaponEmitter) };
 	GetWorld().SpawnSaucerShot(
-		GetWeaponEmitterPosition(nextWeaponEmitter), playerPosition);
+		muzzle, muzzle + GetForwardDirection() * 1000.f);
 	nextWeaponEmitter = (nextWeaponEmitter + 1) % GetWeaponEmitters().size();
 }
 

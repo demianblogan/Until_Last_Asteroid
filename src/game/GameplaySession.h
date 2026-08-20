@@ -44,6 +44,7 @@ public:
 	[[nodiscard]] WeaponMode GetWeaponMode() const noexcept;
 	[[nodiscard]] bool IsLaserActive() const noexcept;
 	[[nodiscard]] bool IsTripleShotActive() const noexcept;
+	[[nodiscard]] bool IsHelperBotActive() const noexcept;
 	[[nodiscard]] float GetWeaponBonusRatio() const noexcept;
 	[[nodiscard]] int GetLevel() const noexcept;
 	[[nodiscard]] int GetScore() const noexcept;
@@ -70,8 +71,11 @@ public:
 
 	void ConfigurePlayerHealth(int maximumHealth) noexcept;
 	void ConfigureShield(float capacity, float duration) noexcept;
+	void ConfigureOneHitMode(bool enabled) noexcept;
 	void ConfigureParts(int balance, const std::vector<std::string>& collectedIds);
-	void ConfigureUpgrades(const ShipUpgradeRanks& ranks) noexcept;
+	void ConfigureUpgrades(
+		const ShipUpgradeRanks& ranks,
+		bool clampToCampaignMaximum = true) noexcept;
 	[[nodiscard]] bool RecoverPart(const std::string& id);
 	void AcceptRecoveredParts();
 	void DiscardRecoveredParts() noexcept;
@@ -86,6 +90,7 @@ public:
 	void ActivateTimeSlowdown(float duration) noexcept;
 	void ActivateLaser(float duration) noexcept;
 	void ActivateTripleShot(float duration) noexcept;
+	[[nodiscard]] bool ActivateHelperBot() noexcept;
 	void ClearTemporaryEffects() noexcept;
 	void Reset() noexcept;
 	void StartAtLevel(int levelNumber) noexcept;
@@ -105,6 +110,7 @@ private:
 	WeaponMode weaponMode{ WeaponMode::Normal };
 	float weaponBonusRemaining{ 0.f };
 	float weaponBonusDuration{ 1.f };
+	bool helperBotActive{ false };
 	int level{ 1 };
 	int score{ 0 };
 	int levelStartScore{ 0 };
@@ -112,4 +118,5 @@ private:
 	std::unordered_set<std::string> collectedPartIds;
 	std::unordered_set<std::string> pendingPartIds;
 	ShipUpgradeRanks upgradeRanks;
+	bool oneHitMode{ false };
 };

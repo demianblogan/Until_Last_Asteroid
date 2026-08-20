@@ -196,7 +196,9 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\entities\Meteor.cpp" />
 	<ClCompile Include="src\entities\HomingMissile.cpp" />
+	<ClCompile Include="src\entities\HelperBot.cpp" />
 	<ClCompile Include="src\entities\MissileCarrier.cpp" />
+	<ClCompile Include="src\entities\ReflectorGunship.cpp" />
 	<ClCompile Include="src\entities\LaserTurret.cpp" />
 	<ClCompile Include="src\entities\ShooterStation.cpp" />
     <ClCompile Include="src\entities\Player.cpp" />
@@ -260,7 +262,9 @@
     <ClInclude Include="src\core\Entity.h" />
     <ClInclude Include="src\entities\Meteor.h" />
 	<ClInclude Include="src\entities\HomingMissile.h" />
+	<ClInclude Include="src\entities\HelperBot.h" />
 	<ClInclude Include="src\entities\MissileCarrier.h" />
+	<ClInclude Include="src\entities\ReflectorGunship.h" />
 	<ClInclude Include="src\entities\LaserTurret.h" />
 	<ClInclude Include="src\entities\ShooterStation.h" />
     <ClInclude Include="src\entities\Player.h" />
@@ -301,14 +305,20 @@
     <None Include="assets\sprites\pickups\time_slowdown_pickup.png" />
 	<None Include="assets\sprites\pickups\laser_pickup_v1_8.png" />
 	<None Include="assets\sprites\pickups\triple_shot_pickup_v1_8.png" />
+	<None Include="assets\sprites\pickups\helper_bot_pickup_v1_9.png" />
     <None Include="assets\sprites\pickups\part_token_v1_8.png" />
     <None Include="assets\sprites\enemies\laser_turret_v1_8.png" />
     <None Include="assets\sprites\enemies\shooter_station_v1_8.png" />
+	<None Include="assets\sprites\enemies\reflector_gunship_v1_9.png" />
     <None Include="assets\backgrounds\gameplay\blue_nebula_region.jpg" />
 	<None Include="assets\backgrounds\gameplay\violet_clouds_region.jpg" />
 	<None Include="assets\backgrounds\gameplay\asteroid_belt_region.jpg" />
 	<None Include="assets\backgrounds\gameplay\red_storm_region.jpg" />
     <None Include="assets\backgrounds\gameplay\deep_void_region.jpg" />
+	<None Include="assets\backgrounds\gameplay\emerald_aurora_region.jpg" />
+	<None Include="assets\backgrounds\gameplay\rose_nursery_region.jpg" />
+	<None Include="assets\backgrounds\gameplay\frozen_expanse_region.jpg" />
+	<None Include="assets\backgrounds\gameplay\ion_storm_region.jpg" />
 	<None Include="assets\backgrounds\ui\ship_upgrades_background_v1_8.png" />
 	<None Include="assets\sprites\ui\ship_upgrades\header_divider_v1_8.png" />
 	<None Include="assets\sprites\ui\ship_upgrades\parts_counter_icon_v1_8.png" />
@@ -346,6 +356,7 @@
     <None Include="assets\audio\sounds\game_over.ogg" />
     <None Include="assets\audio\sounds\parts_picked_up.ogg" />
     <None Include="assets\audio\sounds\enemy_laser_shot.ogg" />
+    <None Include="assets\audio\sounds\player_laser_shot.ogg" />
     <None Include="assets\audio\sounds\enemy_station_working.ogg" />
     <None Include="libs\nlohmann\LICENSE.MIT" />
   </ItemGroup>

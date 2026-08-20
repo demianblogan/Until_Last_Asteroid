@@ -37,6 +37,7 @@ namespace Config
 		TimeSlowdownPickup,
 		LaserPickup,
 		TripleShotPickup,
+		HelperBotPickup,
 		PartToken,
 
 		PlayerShip,
@@ -67,6 +68,7 @@ namespace Config
 		MissileCarrier,
 		LaserTurret,
 		ShooterStation,
+		ReflectorGunship,
 
 		BigMeteor1,
 		BigMeteor2,
@@ -80,7 +82,14 @@ namespace Config
 
 		PlayerShot,
 		EnemySaucerShot,
-		HomingMissile
+		HomingMissile,
+
+		// Append new texture identifiers here. Existing enum values are used as
+		// resource keys and must remain stable across incremental builds.
+		GameplayBackgroundEmeraldRegion,
+		GameplayBackgroundRoseRegion,
+		GameplayBackgroundFrozenRegion,
+		GameplayBackgroundIonRegion
 	};
 
 	enum class Font
@@ -113,6 +122,7 @@ namespace Config
 		BonusTouched,
 		PartPickedUp,
 		LevelComplete,
+		PlayerLaserShot,
 
 		Count
 	};
@@ -122,6 +132,8 @@ namespace Config
 		CompanySplash,
 		MainMenuBackground,
 		GameplayBackground1,
+		GameplayBackground2,
+		GameplayBackground3,
 
 		Count
 	};

@@ -43,12 +43,15 @@ movement and aiming, trigger shooting, and D-pad menu navigation.
 ## 🧠 Game Features
 
 - Campaign menu with persistent, versioned progress
-- Optional guided tutorial for movement, combat, scoring, armor, and pickups
-- Six connected JSON-authored campaign levels with animated introductions
+- Optional guided tutorial for movement, combat, scoring, armor, pickups, Parts,
+  and ship upgrades
+- Nine connected JSON-authored campaign levels with animated introductions
+- Endless Horde Mode with escalating waves and run-only cyclic upgrades
+- One-hit Run Mode with survival-time records and restricted defensive pickups
 - Finite collectible Parts and four functional ship-upgrade branches
 - Permanent per-level Records independent from campaign save progress
-- Health, shield, homing-bullet, time-slowdown, laser, and triple-shot pickups
-  with dynamic HUD feedback
+- Health, shield, homing-bullet, time-slowdown, laser, triple-shot, and helper-bot
+  pickups with dynamic HUD feedback
 - Dynamic enemy waves system
 - Score system with scaling difficulty
 - Player physics (acceleration, damping, max speed)
@@ -56,7 +59,7 @@ movement and aiming, trigger shooting, and D-pad menu navigation.
 - Sound effects and background music
 - Health, damage, knockback, invulnerability, and score systems
 - HUD with score and a color-changing health bar
-- Five unique 4K space backgrounds with animated star and dust parallax
+- Nine unique 4K space backgrounds with animated star and dust parallax
 - High-resolution player, enemy, asteroid, and projectile artwork
 - Batched particles for engines, hits, explosions, smoke, sparks, and debris
 - Projectile glow, hit flashes, camera shake, and compound ship colliders
@@ -89,19 +92,23 @@ movement and aiming, trigger shooting, and D-pad menu navigation.
 - **Missile Carrier** → launches slow, destructible homing missiles
 - **Laser Turret** → patrols a screen edge with a player-only sweeping beam
 - **Shooter Station** → shields its launch bay while constructing shooter ships
+- **Reflector Gunship** → fires twin cannons while alternating a reflective shield
 
 ---
 
 ## 🧩 Levels
 
-The current campaign contains **6 connected levels**, each with three authored waves:
+The current campaign contains **9 connected levels**, each with three authored waves:
 
 - **Blue Frontier**
-- **Violet Crossing**
+- **Emerald Crossing**
 - **Shattered Belt**
-- **Violet Siege**
+- **Rose Siege**
 - **Asteroid Wake**
-- **Iron Graveyard**
+- **Frozen Graveyard**
+- **Crimson Entry**
+- **Ion Storm**
+- **Void Threshold**
 
 Completed levels can be replayed through the Select Level menu without rewinding
 campaign progress.

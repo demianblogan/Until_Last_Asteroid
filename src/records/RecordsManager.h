@@ -22,6 +22,8 @@ public:
 	[[nodiscard]] int GetCampaignLevelScore(int level) const noexcept;
 	[[nodiscard]] const std::filesystem::path& GetFilePath() const noexcept;
 	bool SubmitCampaignLevelScore(int level, int score);
+	bool SubmitHordeResult(int waves, int score);
+	bool SubmitRunSeconds(int seconds);
 	bool MergeCampaignScores(const std::map<int, int>& scores);
 	bool Load();
 	[[nodiscard]] bool Save() const;

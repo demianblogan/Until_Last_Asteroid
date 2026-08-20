@@ -26,8 +26,10 @@ public:
         HighlightScore,
         HighlightArmor,
         HighlightShield,
+        HighlightParts,
         SpawnShooter,
         SpawnShield,
+        SpawnPart,
         Complete
     };
 
@@ -39,6 +41,7 @@ public:
         unsigned int smallMeteorsDestroyed{ 0u };
         unsigned int shootersDestroyed{ 0u };
         unsigned int shieldPickupsCollected{ 0u };
+        int partsCollected{ 0 };
     };
 
     TutorialDirector(
@@ -65,6 +68,8 @@ private:
         Collision,
         ShieldPickup,
         ShieldInfo,
+        PartPickup,
+        PartInfo,
         Finish,
         Complete
     };
@@ -97,6 +102,7 @@ private:
     unsigned int smallMeteorBaseline{ 0u };
     unsigned int shooterBaseline{ 0u };
     unsigned int shieldPickupBaseline{ 0u };
+    int partsBaseline{ 0 };
     float visibleAmount{ 0.f };
     float stepElapsed{ 0.f };
     bool conditionMet{ false };

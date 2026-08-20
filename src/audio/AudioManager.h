@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -56,6 +57,11 @@ public:
     void ResumeSounds(SoundGroup group);
     void StopSounds(SoundGroup group);
 	void SetGameplayPitch(float pitch);
+	void PlayGameplayMusic(Config::Music id, bool looping = true, float baseVolume = 100.f);
+	void StopGameplayMusic();
+	void PauseGameplayMusic();
+	void ResumeGameplayMusic();
+	[[nodiscard]] bool IsGameplayMusicPlaying() const;
 
     void PlayMusic(Config::Music id, bool looping = true, float baseVolume = 100.f);
     void StopMusic(Config::Music id);
@@ -73,7 +79,8 @@ private:
     SettingsManager& settings;
     AudioBalance balance;
     std::vector<std::unique_ptr<ActiveSound>> activeSounds;
-    std::unordered_map<Config::Music, float> musicBaseVolumes;
+	std::unordered_map<Config::Music, float> musicBaseVolumes;
+	std::optional<Config::Music> activeGameplayMusic;
 	float gameplayPitch{ 1.f };
 	std::uint64_t nextSoundHandle{ 1u };
 };

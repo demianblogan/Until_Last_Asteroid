@@ -144,11 +144,23 @@ void AssetStore::InitializeTextures()
 		"assets/backgrounds/gameplay/red_storm_region.jpg");
 	textures.LoadFromFile(Config::Texture::GameplayBackgroundDeepVoidRegion,
 		"assets/backgrounds/gameplay/deep_void_region.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundEmeraldRegion,
+		"assets/backgrounds/gameplay/emerald_aurora_region.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundRoseRegion,
+		"assets/backgrounds/gameplay/rose_nursery_region.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundFrozenRegion,
+		"assets/backgrounds/gameplay/frozen_expanse_region.jpg");
+	textures.LoadFromFile(Config::Texture::GameplayBackgroundIonRegion,
+		"assets/backgrounds/gameplay/ion_storm_region.jpg");
 	textures.Get(Config::Texture::GameplayBackgroundBlueRegion).setSmooth(true);
 	textures.Get(Config::Texture::GameplayBackgroundVioletRegion).setSmooth(true);
 	textures.Get(Config::Texture::GameplayBackgroundAsteroidRegion).setSmooth(true);
 	textures.Get(Config::Texture::GameplayBackgroundRedRegion).setSmooth(true);
 	textures.Get(Config::Texture::GameplayBackgroundDeepVoidRegion).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundEmeraldRegion).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundRoseRegion).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundFrozenRegion).setSmooth(true);
+	textures.Get(Config::Texture::GameplayBackgroundIonRegion).setSmooth(true);
 	textures.LoadFromFile(Config::Texture::MenuButtonIdle, "assets/sprites/ui/menu_button_idle.png");
 	textures.LoadFromFile(Config::Texture::MenuButtonSelected, "assets/sprites/ui/menu_button_selected.png");
 	textures.LoadFromFile(Config::Texture::MenuPointer, "assets/cursors/menu_pointer.png");
@@ -163,6 +175,8 @@ void AssetStore::InitializeTextures()
 		"assets/sprites/pickups/laser_pickup_v1_8.png");
 	textures.LoadFromFile(Config::Texture::TripleShotPickup,
 		"assets/sprites/pickups/triple_shot_pickup_v1_8.png");
+	textures.LoadFromFile(Config::Texture::HelperBotPickup,
+		"assets/sprites/pickups/helper_bot_pickup_v1_9.png");
 	textures.LoadFromFile(Config::Texture::PartToken,
 		"assets/sprites/pickups/part_token_v1_8.png");
 	textures.Get(Config::Texture::HealthPickup).setSmooth(true);
@@ -171,6 +185,7 @@ void AssetStore::InitializeTextures()
 	textures.Get(Config::Texture::TimeSlowdownPickup).setSmooth(true);
 	textures.Get(Config::Texture::LaserPickup).setSmooth(true);
 	textures.Get(Config::Texture::TripleShotPickup).setSmooth(true);
+	textures.Get(Config::Texture::HelperBotPickup).setSmooth(true);
 	textures.Get(Config::Texture::PartToken).setSmooth(true);
 
 	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship_v1_4.png");
@@ -218,12 +233,15 @@ void AssetStore::InitializeTextures()
 		"assets/sprites/enemies/laser_turret_v1_8.png");
 	textures.LoadFromFile(Config::Texture::ShooterStation,
 		"assets/sprites/enemies/shooter_station_v1_8.png");
+	textures.LoadFromFile(Config::Texture::ReflectorGunship,
+		"assets/sprites/enemies/reflector_gunship_v1_9.png");
 	textures.Get(Config::Texture::BigEnemySaucer).setSmooth(true);
 	textures.Get(Config::Texture::SmallEnemySaucer).setSmooth(true);
 	textures.Get(Config::Texture::SpinnerPlatform).setSmooth(true);
 	textures.Get(Config::Texture::MissileCarrier).setSmooth(true);
 	textures.Get(Config::Texture::LaserTurret).setSmooth(true);
 	textures.Get(Config::Texture::ShooterStation).setSmooth(true);
+	textures.Get(Config::Texture::ReflectorGunship).setSmooth(true);
 
 	textures.LoadFromFile(Config::Texture::BigMeteor1,
 		"assets/sprites/meteors/large_asteroid_01_v1_4.png");
@@ -294,6 +312,7 @@ void AssetStore::InitializeSounds()
 	sounds.LoadFromFile(Config::Sound::EnemyShot, "assets/audio/sounds/enemy_shot.ogg");
 	sounds.LoadFromFile(Config::Sound::EnemyLaserShot, "assets/audio/sounds/enemy_laser_shot.ogg");
 	sounds.LoadFromFile(Config::Sound::EnemyStationWorking, "assets/audio/sounds/enemy_station_working.ogg");
+	sounds.LoadFromFile(Config::Sound::PlayerLaserShot, "assets/audio/sounds/player_laser_shot.ogg");
 
 	sounds.LoadFromFile(Config::Sound::ShipExplosion, "assets/audio/sounds/enemy_saucer_explosion.ogg");
 	sounds.LoadFromFile(Config::Sound::AsteroidExplosion, "assets/audio/sounds/asteroid_explosion.ogg");
@@ -312,6 +331,8 @@ void AssetStore::InitializeMusic()
 	music.LoadFromFile(Config::Music::CompanySplash, "assets/audio/music/company_splash.ogg");
 	music.LoadFromFile(Config::Music::MainMenuBackground, "assets/audio/music/main_menu_background.ogg");
 	music.LoadFromFile(Config::Music::GameplayBackground1, "assets/audio/music/gameplay_background_1.ogg");
+	music.LoadFromFile(Config::Music::GameplayBackground2, "assets/audio/music/gameplay_background_2.ogg");
+	music.LoadFromFile(Config::Music::GameplayBackground3, "assets/audio/music/gameplay_background_3.ogg");
 }
 
 void AssetStore::InitializeShaders()
