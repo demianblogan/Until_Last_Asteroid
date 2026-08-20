@@ -77,6 +77,7 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 	, partsValue(context.assets.Fonts().Get(Config::Font::MenuSemibold), "0", 31)
 	, partsIcon(context.assets.Textures().Get(Config::Texture::ShipUpgradesPartsIcon))
 {
+	returnToLevelSelect = context.gameplayLaunch.upgradesReturnToLevelSelect;
 	context.window.setMouseCursorVisible(false);
 	const sf::Vector2u backgroundSize{ background.getTexture().getSize() };
 	const float backgroundScale{ std::max(
@@ -179,7 +180,8 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 	const sf::Texture& menuIdle{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
 	const sf::Texture& menuSelected{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 	buttons.emplace_back(menuFont, menuIdle, menuSelected,
-		"Continue", sf::Vector2f{ 540.f, 104.f });
+		returnToLevelSelect ? "Return to Level Select" : "Continue",
+		sf::Vector2f{ 540.f, 104.f });
 	buttons.emplace_back(menuFont, menuIdle, menuSelected,
 		"Return to Main Menu", sf::Vector2f{ 540.f, 104.f });
 	buttons[0].SetPosition({ 1010.f, 885.f });
@@ -203,7 +205,8 @@ void ShipUpgradesState::HandleEvent(const sf::Event& event)
 	case Left: MoveSelection(-1); return;
 	case Right: MoveSelection(1); return;
 	case Confirm: ActivateSelected(); return;
-	case Back: BeginExit(ExitTarget::MainMenu); return;
+	case Back: BeginExit(returnToLevelSelect
+		? ExitTarget::LevelSelect : ExitTarget::MainMenu); return;
 	default: break;
 	}
 	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
@@ -223,7 +226,8 @@ void ShipUpgradesState::HandleEvent(const sf::Event& event)
 		case sf::Keyboard::Key::Left: case sf::Keyboard::Key::A: MoveSelection(-1); return;
 		case sf::Keyboard::Key::Right: case sf::Keyboard::Key::D: MoveSelection(1); return;
 		case sf::Keyboard::Key::Enter: case sf::Keyboard::Key::Space: ActivateSelected(); return;
-		case sf::Keyboard::Key::Escape: BeginExit(ExitTarget::MainMenu); return;
+		case sf::Keyboard::Key::Escape: BeginExit(returnToLevelSelect
+			? ExitTarget::LevelSelect : ExitTarget::MainMenu); return;
 		default: break;
 		}
 	}
@@ -246,7 +250,15 @@ void ShipUpgradesState::Update(float deltaTime)
 	const ExitTarget target{ exitTarget }; exitTarget = ExitTarget::None;
 	RequestClear();
 	if (target == ExitTarget::Gameplay) RequestPush(StateId::Gameplay);
-	else if (target == ExitTarget::LevelSelect) { RequestPush(StateId::CampaignMenu); RequestPush(StateId::LevelSelect); }
+	else if (target == ExitTarget::LevelSelect)
+	{
+		// Rebuild the complete menu hierarchy after Gameplay cleared the old
+		// stack. Level Select returns to Campaign Menu, which must still have the
+		// real Main Menu beneath it.
+		RequestPush(StateId::MainMenu);
+		RequestPush(StateId::CampaignMenu);
+		RequestPush(StateId::LevelSelect);
+	}
 	else RequestPush(StateId::MainMenu);
 }
 
@@ -344,11 +356,18 @@ void ShipUpgradesState::ActivateSelected()
 	}
 	else if (selectedIndex == upgradeRows.size())
 	{
+		if (returnToLevelSelect)
+		{
+			BeginExit(ExitTarget::LevelSelect);
+			return;
+		}
 		CampaignProgress* progress{ GetContext().campaignSave.EditProgress() };
 		if (progress == nullptr) { BeginExit(ExitTarget::MainMenu); return; }
 		const int availableLevels{ GetContext().assets.GetGameplayData().GetLevelCount() };
-		if (progress->currentLevel >= availableLevels &&
-			std::ranges::find(progress->completedLevels, progress->currentLevel) != progress->completedLevels.end())
+		const bool currentLevelCompleted{
+			std::ranges::find(progress->completedLevels, progress->currentLevel) !=
+				progress->completedLevels.end() };
+		if (progress->currentLevel >= availableLevels && currentLevelCompleted)
 		{
 			progress->phase = CampaignPhase::ContentComplete;
 			static_cast<void>(GetContext().campaignSave.Save());
@@ -356,6 +375,12 @@ void ShipUpgradesState::ActivateSelected()
 		}
 		else
 		{
+			if (currentLevelCompleted)
+			{
+				++progress->currentLevel;
+				progress->highestUnlockedLevel = std::max(
+					progress->highestUnlockedLevel, progress->currentLevel);
+			}
 			progress->phase = CampaignPhase::Playing;
 			static_cast<void>(GetContext().campaignSave.Save());
 			GetContext().gameplayLaunch.mode = GameplayLaunchMode::ContinueCampaign;
@@ -435,6 +460,7 @@ void ShipUpgradesState::LayoutPartsPanel()
 
 void ShipUpgradesState::BeginExit(ExitTarget target)
 {
+	GetContext().gameplayLaunch.upgradesReturnToLevelSelect = false;
 	exitTarget = target; fade.StartFadeOut(.38f);
 }
 

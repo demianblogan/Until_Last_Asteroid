@@ -200,6 +200,15 @@ std::optional<TutorialDirector::Action> TutorialDirector::EnterStep(
         SetInstruction("You collected a shield. Its meter is shown above your armor.\n"
             "It absorbs damage, but its energy continuously drains.");
         return Action::HighlightShield;
+    case Step::PartPickup:
+        partsBaseline = snapshot.partsCollected;
+        SetInstruction("Enemies sometimes drop special Parts that disappear quickly.\n"
+            "One has appeared in front of you. Collect it.");
+        return Action::SpawnPart;
+    case Step::PartInfo:
+        SetInstruction("Parts are used to upgrade your ship between levels.\n"
+            "Parts collected during this level are shown in the lower-right corner.");
+        return Action::HighlightParts;
     case Step::Finish:
         SetInstruction("Tutorial complete. Good luck on your adventure!");
         break;
@@ -276,7 +285,19 @@ std::optional<TutorialDirector::Action> TutorialDirector::UpdateCurrentStep(
             RequestStep(Step::ShieldInfo);
         break;
     case Step::ShieldInfo:
-        if (stepElapsed >= ShieldMessageDuration) RequestStep(Step::Finish);
+        if (stepElapsed >= ShieldMessageDuration) RequestStep(Step::PartPickup);
+        break;
+    case Step::PartPickup:
+        if (snapshot.partsCollected > partsBaseline)
+            RequestStep(Step::PartInfo);
+        else if (stepElapsed >= 5.5f)
+        {
+            stepElapsed = 0.f;
+            return Action::SpawnPart;
+        }
+        break;
+    case Step::PartInfo:
+        if (stepElapsed >= StandardMessageDuration) RequestStep(Step::Finish);
         break;
     case Step::Finish:
         if (stepElapsed >= StandardMessageDuration) RequestStep(Step::Complete);

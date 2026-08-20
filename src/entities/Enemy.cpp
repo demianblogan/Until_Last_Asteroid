@@ -62,11 +62,23 @@ std::optional<GameplayData::PickupKind> Enemy::RollPickupDrop() const
 	return pickupDrop->pool.back().kind;
 }
 
+void Enemy::SetOrderedPickupDropCount(int count) noexcept
+{
+	orderedPickupDropCount = std::max(0, count);
+}
+
+int Enemy::GetOrderedPickupDropCount() const noexcept
+{
+	return orderedPickupDropCount;
+}
+
 void Enemy::SetPartDropId(std::string id) { partDropId = std::move(id); }
 const std::string& Enemy::GetPartDropId() const noexcept { return partDropId; }
 void Enemy::SetRewardsEnabled(bool enabled) noexcept { rewardsEnabled = enabled; }
 bool Enemy::AreRewardsEnabled() const noexcept { return rewardsEnabled; }
 bool Enemy::AcceptsKnockback() const noexcept { return true; }
+bool Enemy::IsProjectileReflectionActive() const noexcept { return false; }
+bool Enemy::BlocksPlayerLaser() const noexcept { return false; }
 bool Enemy::CollidesWithPlayerProjectile(const Entity& projectile) const
 {
 	return CheckCollision(projectile);

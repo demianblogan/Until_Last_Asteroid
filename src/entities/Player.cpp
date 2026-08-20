@@ -13,10 +13,10 @@
 
 namespace
 {
-	constexpr float PlayerLaserPitch{ 1.25f };
-	constexpr float PlayerLaserLoopStart{ 1.f };
-	constexpr float PlayerLaserLoopEnd{ 4.8f };
-	constexpr float PlayerLaserOutroStart{ 4.8f };
+	constexpr float PlayerLaserPitch{ 1.f };
+	constexpr float PlayerLaserLoopStart{ 0.f };
+	constexpr float PlayerLaserLoopEnd{ 0.63f };
+	constexpr float PlayerLaserOutroStart{ 0.63f };
 }
 
 Player::Player(AssetStore& assets, World& world, InputHandler<Config::PlayerAction>& input,
@@ -33,7 +33,7 @@ Player::Player(AssetStore& assets, World& world, InputHandler<Config::PlayerActi
 
 Player::~Player()
 {
-	GetWorld().StopSound(laserSoundHandle);
+	StopLaserSounds();
 	input.UnsubscribeAll(Config::PlayerAction::Up);
 	input.UnsubscribeAll(Config::PlayerAction::Down);
 	input.UnsubscribeAll(Config::PlayerAction::Left);
@@ -88,8 +88,7 @@ void Player::SetControlEnabled(bool enabled) noexcept
 	controlEnabled = enabled;
 	if (!controlEnabled)
 	{
-		GetWorld().StopSound(laserSoundHandle);
-		laserSoundHandle = 0u;
+		StopLaserSounds();
 		moveInput = { 0.f, 0.f };
 		laserRequested = false;
 		laserFiring = false;
@@ -99,8 +98,7 @@ void Player::SetControlEnabled(bool enabled) noexcept
 
 void Player::OnDestroy()
 {
-	GetWorld().StopSound(laserSoundHandle);
-	laserSoundHandle = 0u;
+	StopLaserSounds();
 	SetVisible(true);
 	GetWorld().AddEffectEvent({
 		World::EffectEventType::ShipExplosion,
@@ -160,6 +158,18 @@ std::array<sf::Vector2f, 2> Player::GetEngineEmitterPositions() const
 		result[i] = sprite.getTransform().transformPoint(localPosition);
 	}
 	return result;
+}
+
+void Player::SetFiringEnabled(bool enabled) noexcept
+{
+	firingEnabled = enabled;
+	if (!firingEnabled)
+	{
+		laserRequested = false;
+		laserFiring = false;
+		laserDamageTimer = 0.f;
+		StopLaserSounds();
+	}
 }
 
 sf::Vector2f Player::GetMuzzlePosition() const
@@ -297,16 +307,27 @@ sf::Vector2f Player::GetAimDirection() const noexcept
 void Player::UpdateLaser(float dt)
 {
 	const auto& pickupConfig{ GetAssets().GetGameplayData().GetPickups() };
+	const bool bonusActive{ GetWorld().GetSession().IsLaserActive() };
 	const bool wasFiring{ laserFiring };
-	laserFiring = controlEnabled && laserRequested &&
-		GetWorld().GetSession().IsLaserActive();
+	laserFiring = controlEnabled && laserRequested && bonusActive;
 	laserRequested = false;
+	if (!bonusActive)
+	{
+		StopLaserSounds();
+		laserFiring = false;
+		laserDamageTimer = 0.f;
+		return;
+	}
 	if (!laserFiring)
 	{
 		if (wasFiring)
 		{
-			if (controlEnabled && GetWorld().GetSession().IsLaserActive())
+			if (controlEnabled)
+			{
+				GetWorld().StopSound(laserOutroSoundHandle);
 				GetWorld().ReleaseSound(laserSoundHandle);
+				laserOutroSoundHandle = laserSoundHandle;
+			}
 			else
 				GetWorld().StopSound(laserSoundHandle);
 			laserSoundHandle = 0u;
@@ -319,9 +340,11 @@ void Player::UpdateLaser(float dt)
 	laserDamageTimer += dt;
 	if (!wasFiring)
 	{
+		GetWorld().StopSound(laserOutroSoundHandle);
+		laserOutroSoundHandle = 0u;
 		laserDamageTimer = pickupConfig.laserDamageInterval;
 		laserSoundHandle = GetWorld().AddSustainedSound(
-			Config::Sound::EnemyLaserShot,
+			Config::Sound::PlayerLaserShot,
 			PlayerLaserPitch,
 			PlayerLaserLoopStart,
 			PlayerLaserLoopEnd,
@@ -339,9 +362,17 @@ void Player::UpdateLaser(float dt)
 	}
 }
 
+void Player::StopLaserSounds()
+{
+	GetWorld().StopSound(laserSoundHandle);
+	GetWorld().StopSound(laserOutroSoundHandle);
+	laserSoundHandle = 0u;
+	laserOutroSoundHandle = 0u;
+}
+
 void Player::Shoot()
 {
-	if (!controlEnabled)
+	if (!controlEnabled || !firingEnabled)
 		return;
 	if (GetWorld().GetSession().IsLaserActive())
 	{

@@ -126,14 +126,14 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     }
     Select(0, false);
 
-    musicWasPlaying = context.audio.IsMusicPlaying(Config::Music::GameplayBackground1);
-    context.audio.PauseMusic(Config::Music::GameplayBackground1);
+    musicWasPlaying = context.audio.IsGameplayMusicPlaying();
+    context.audio.PauseGameplayMusic();
 }
 
 PauseState::~PauseState()
 {
     if (musicWasPlaying && !returningToMainMenu)
-        GetContext().audio.ResumeMusic(Config::Music::GameplayBackground1);
+        GetContext().audio.ResumeGameplayMusic();
 
     if (GetContext().window.isOpen())
         GetContext().window.setMouseCursorVisible(false);
@@ -217,7 +217,7 @@ void PauseState::Update(float deltaTime)
     {
         if (!screenFade.IsActive())
         {
-            GetContext().audio.StopMusic(Config::Music::GameplayBackground1);
+            GetContext().audio.StopGameplayMusic();
             RequestClear();
             RequestPush(StateId::MainMenu);
         }

@@ -17,6 +17,7 @@ public:
 
     bool Load();
     bool StartNewCampaign();
+	bool UnlockNewContent(int availableLevels);
     [[nodiscard]] bool Save() const;
     bool DeleteSave();
 

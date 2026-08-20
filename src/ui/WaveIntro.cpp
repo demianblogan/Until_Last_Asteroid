@@ -1,7 +1,6 @@
 #include "WaveIntro.h"
 
 #include <algorithm>
-#include <array>
 #include <cstdint>
 #include <string>
 
@@ -18,12 +17,8 @@ namespace
     constexpr float TitleHoldDuration{ 0.55f };
     constexpr float FadeDuration{ 0.30f };
     constexpr float TotalDuration{ SlideDuration + TitleHoldDuration + FadeDuration };
-    constexpr float TitleTargetY{ 390.f };
+    constexpr float TitleTargetY{ 540.f };
     constexpr sf::Color Cyan{ 25, 220, 255 };
-    const std::array<std::string, 3> WaveTitles{
-        "WAVE 1", "WAVE 2", "FINAL WAVE"
-    };
-
     float SmoothStep(float value)
     {
         value = std::clamp(value, 0.f, 1.f);
@@ -40,9 +35,11 @@ WaveIntro::WaveIntro(AssetStore& assets)
     title.setLetterSpacing(1.1f);
 }
 
-void WaveIntro::Start(int waveNumber)
+void WaveIntro::Start(int waveNumber, bool finalWave)
 {
-    title.setString(WaveTitles.at(static_cast<std::size_t>(waveNumber - 1)));
+    title.setString(finalWave
+        ? "FINAL WAVE"
+        : "WAVE " + std::to_string(std::max(1, waveNumber)));
     elapsed = 0.f;
     active = true;
     titleGlow.Invalidate();

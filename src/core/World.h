@@ -100,6 +100,9 @@ public:
 		std::uint64_t attackId,
 		bool playSound = true,
 		bool tripleShotVisual = false);
+	void SpawnHelperShot(const sf::Vector2f& pos, const Entity* target);
+	[[nodiscard]] bool SpawnHelperPickup(const sf::Vector2f& pos);
+	void SpawnHelperBot();
 	void DamageEnemiesWithPlayerLaser(
 		const sf::Vector2f& start,
 		const sf::Vector2f& end,
@@ -145,6 +148,8 @@ public:
 	void StopActiveSounds();
 	void ClearProjectiles();
 	void ClearPickups();
+	void ConfigureCampaignPickupSequence(
+		const std::vector<GameplayData::PickupKind>& sequence);
 
 	[[nodiscard]] sf::Vector2f GetPlayerPosition() const noexcept;
 	[[nodiscard]] const Entity* FindHomingTarget(
@@ -173,6 +178,7 @@ public:
 	void HandlePlayerEvent(const sf::Event& event);
 	void HandlePlayerRealtime();
 	void SetPlayerControlEnabled(bool enabled) noexcept;
+	void SetPlayerFiringEnabled(bool enabled) noexcept;
 
 private:
 	void Wrap(Entity& e) const;
@@ -201,4 +207,8 @@ private:
 	Statistics statistics;
 	std::uint64_t nextPlayerAttackId{ 1u };
 	std::unordered_set<std::uint64_t> successfulPlayerAttacks;
+	bool helperPickupSpawned{ false };
+	bool helperBotSpawned{ false };
+	std::vector<GameplayData::PickupKind> campaignPickupSequence;
+	std::size_t nextCampaignPickup{ 0u };
 };

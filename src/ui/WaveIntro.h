@@ -13,7 +13,7 @@ class WaveIntro
 public:
     explicit WaveIntro(AssetStore& assets);
 
-    void Start(int waveNumber);
+    void Start(int waveNumber, bool finalWave = false);
     bool Update(float deltaTime);
     void Draw(sf::RenderTarget& target);
 

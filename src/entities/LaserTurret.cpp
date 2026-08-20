@@ -70,6 +70,7 @@ float LaserTurret::GetBeamPulse() const noexcept
 }
 float LaserTurret::GetBeamAnimationTime() const noexcept { return beamTime; }
 bool LaserTurret::IsBeamActive() const noexcept { return phase == Phase::Traversing; }
+bool LaserTurret::IsArriving() const noexcept { return phase == Phase::Arriving; }
 bool LaserTurret::AcceptsKnockback() const noexcept { return false; }
 Entity::Type LaserTurret::GetType() const noexcept { return Type::Enemy; }
 
@@ -77,6 +78,7 @@ bool LaserTurret::IsCollideWith(const Entity& other) const
 {
 	return (other.GetType() == Type::Player ||
 		other.GetType() == Type::Projectile_Player ||
+		other.GetType() == Type::Projectile_Ally ||
 		other.GetType() == Type::EnemyMissile) && CheckCollision(other);
 }
 

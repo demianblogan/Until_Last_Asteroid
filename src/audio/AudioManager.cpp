@@ -9,6 +9,16 @@
 #include "assets/AssetStore.h"
 #include "settings/SettingsManager.h"
 
+namespace
+{
+	bool IsGameplayMusic(Config::Music id) noexcept
+	{
+		return id == Config::Music::GameplayBackground1 ||
+			id == Config::Music::GameplayBackground2 ||
+			id == Config::Music::GameplayBackground3;
+	}
+}
+
 struct AudioManager::ActiveSound
 {
 	ActiveSound(std::uint64_t handle, Config::Sound id, SoundGroup group,
@@ -223,7 +233,49 @@ void AudioManager::SetGameplayPitch(float pitch)
 		if (activeSound->group == SoundGroup::Gameplay)
 			activeSound->sound.setPitch(activeSound->basePitch * gameplayPitch);
 	}
-	assets.Music().Get(Config::Music::GameplayBackground1).setPitch(gameplayPitch);
+	for (const Config::Music id : {
+		Config::Music::GameplayBackground1,
+		Config::Music::GameplayBackground2,
+		Config::Music::GameplayBackground3 })
+	{
+		assets.Music().Get(id).setPitch(gameplayPitch);
+	}
+}
+
+void AudioManager::PlayGameplayMusic(
+	Config::Music id, bool looping, float baseVolume)
+{
+	if (!IsGameplayMusic(id))
+		return;
+	if (activeGameplayMusic && *activeGameplayMusic != id)
+		StopMusic(*activeGameplayMusic);
+	activeGameplayMusic = id;
+	PlayMusic(id, looping, baseVolume);
+}
+
+void AudioManager::StopGameplayMusic()
+{
+	if (!activeGameplayMusic)
+		return;
+	StopMusic(*activeGameplayMusic);
+	activeGameplayMusic.reset();
+}
+
+void AudioManager::PauseGameplayMusic()
+{
+	if (activeGameplayMusic)
+		PauseMusic(*activeGameplayMusic);
+}
+
+void AudioManager::ResumeGameplayMusic()
+{
+	if (activeGameplayMusic)
+		ResumeMusic(*activeGameplayMusic);
+}
+
+bool AudioManager::IsGameplayMusicPlaying() const
+{
+	return activeGameplayMusic && IsMusicPlaying(*activeGameplayMusic);
 }
 
 void AudioManager::PlayMusic(Config::Music id, bool looping, float baseVolume)
@@ -232,7 +284,7 @@ void AudioManager::PlayMusic(Config::Music id, bool looping, float baseVolume)
     musicBaseVolumes[id] = baseVolume;
     music.setLooping(looping);
     music.setVolume(GetMusicVolume(id, baseVolume));
-	music.setPitch(id == Config::Music::GameplayBackground1 ? gameplayPitch : 1.f);
+	music.setPitch(IsGameplayMusic(id) ? gameplayPitch : 1.f);
     if (music.getStatus() != sf::SoundSource::Status::Playing)
         music.play();
 }

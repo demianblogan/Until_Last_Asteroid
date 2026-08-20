@@ -9,7 +9,8 @@
     "fragment_speed": 150.0,
     "sound_pitch": 0.82,
     "visual_scale": 0.46,
-    "collision_radius": 45.0
+    "collision_radius": 45.0,
+    "rotation_speed": 18.0
   },
   "small_meteor": {
     "maximum_health": 30,
@@ -21,7 +22,8 @@
     "fragment_speed": 0.0,
     "sound_pitch": 1.0,
     "visual_scale": 0.38,
-    "collision_radius": 20.0
+    "collision_radius": 20.0,
+    "rotation_speed": 32.0
   },
   "kamikaze": {
     "maximum_health": 20,
@@ -47,6 +49,7 @@
     "sound_pitch": 1.0,
     "visual_scale": 0.6,
     "collision_radius": 42.0,
+	"rotation_speed": 360.0,
     "collision_circles": [
       { "x": -42.0, "y": 0.0, "radius": 25.0 },
       { "x": 0.0, "y": 0.0, "radius": 30.0 },
@@ -94,6 +97,7 @@
     "sound_pitch": 0.9,
     "visual_scale": 0.16,
     "collision_radius": 72.0,
+	"rotation_speed": 240.0,
     "collision_circles": [
       { "x": 0.0, "y": -38.0, "radius": 30.0 },
       { "x": 0.0, "y": 12.0, "radius": 40.0 },
@@ -142,5 +146,31 @@
     ],
     "shield_duration": 3.0,
     "spawn_animation_duration": 3.0
+  },
+  "reflector_gunship": {
+    "maximum_health": 150,
+    "contact_damage": 40,
+    "score": 750,
+    "speed": 560.0,
+    "collision_impulse": 720.0,
+    "action_interval": 0.5,
+    "fragment_speed": 0.0,
+    "sound_pitch": 0.72,
+    "visual_scale": 0.12,
+    "collision_radius": 68.0,
+	"rotation_speed": 420.0,
+    "collision_circles": [
+      { "x": 0.0, "y": 5.0, "radius": 48.0 },
+      { "x": -47.0, "y": -18.0, "radius": 29.0 },
+      { "x": 47.0, "y": -18.0, "radius": 29.0 },
+      { "x": 0.0, "y": 56.0, "radius": 31.0 }
+    ],
+    "sine_amplitude": 350.0,
+    "sine_frequency": 1.1,
+    "shield_duration": 3.0,
+    "weapon_emitters": [
+      { "x": 0.27, "y": 0.18 },
+      { "x": 0.73, "y": 0.18 }
+    ]
   }
 }

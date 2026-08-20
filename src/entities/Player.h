@@ -30,6 +30,7 @@ public:
 	void HandleEvent(const sf::Event& event);
 	void HandleRealtime();
 	void SetControlEnabled(bool enabled) noexcept;
+	void SetFiringEnabled(bool enabled) noexcept;
 	void OnDestroy() override;
 
 	[[nodiscard]] bool TakeDamage(int damage);
@@ -51,6 +52,7 @@ private:
 	void UpdateRotation();
 	void UpdateInvulnerability(float dt);
 	void UpdateLaser(float dt);
+	void StopLaserSounds();
 	[[nodiscard]] sf::Vector2f GetAimDirection() const noexcept;
 
 	InputHandler<Config::PlayerAction>& input;
@@ -62,6 +64,7 @@ private:
 	float laserDamageTimer{ 0.f };
 	float laserVisualTime{ 0.f };
 	std::uint64_t laserSoundHandle{ 0u };
+	std::uint64_t laserOutroSoundHandle{ 0u };
 	bool laserRequested{ false };
 	bool laserFiring{ false };
 	bool blinkDuringInvulnerability{ false };
@@ -69,4 +72,5 @@ private:
 	bool isThrusting{ false };
 	bool aimingWithGamepad{ false };
 	bool controlEnabled{ true };
+	bool firingEnabled{ true };
 };

@@ -6,6 +6,13 @@
     "visual_scale": 0.5,
     "collision_radius": 6.5
   },
+  "helper_bot_shot": {
+    "damage": 10,
+    "speed": 750.0,
+    "knockback": 80.0,
+    "visual_scale": 0.42,
+    "collision_radius": 6.0
+  },
   "enemy_shot": {
     "damage": 25,
     "speed": 750.0,

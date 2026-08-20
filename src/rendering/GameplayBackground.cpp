@@ -37,6 +37,8 @@ GameplayBackground::GameplayBackground(AssetStore& assets, sf::Vector2f logicalS
 
 void GameplayBackground::SetTheme(std::string_view theme, float brightness)
 {
+	constexpr float GlobalBrightnessMultiplier{ 1.1f };
+	brightness *= GlobalBrightnessMultiplier;
 	farBackground.reset();
 	std::optional<Config::Texture> backgroundTexture;
 	if (theme == "blue_nebula_region")
@@ -49,6 +51,14 @@ void GameplayBackground::SetTheme(std::string_view theme, float brightness)
 		backgroundTexture = Config::Texture::GameplayBackgroundRedRegion;
 	else if (theme == "deep_void_region")
 		backgroundTexture = Config::Texture::GameplayBackgroundDeepVoidRegion;
+	else if (theme == "emerald_aurora_region")
+		backgroundTexture = Config::Texture::GameplayBackgroundEmeraldRegion;
+	else if (theme == "rose_nursery_region")
+		backgroundTexture = Config::Texture::GameplayBackgroundRoseRegion;
+	else if (theme == "frozen_expanse_region")
+		backgroundTexture = Config::Texture::GameplayBackgroundFrozenRegion;
+	else if (theme == "ion_storm_region")
+		backgroundTexture = Config::Texture::GameplayBackgroundIonRegion;
 
 	if (backgroundTexture)
 	{
@@ -72,26 +82,55 @@ void GameplayBackground::SetTheme(std::string_view theme, float brightness)
     {
         topColor = { 3, 7, 19 };
         bottomColor = { 35, 16, 63 };
+		starColor = { 230, 195, 255 };
     }
     else if (theme == "asteroid_belt_region")
     {
         topColor = { 5, 8, 14 };
         bottomColor = { 33, 29, 29 };
+		starColor = { 255, 220, 170 };
     }
     else if (theme == "red_storm_region")
     {
         topColor = { 8, 5, 16 };
         bottomColor = { 55, 12, 27 };
+		starColor = { 255, 190, 180 };
     }
     else if (theme == "deep_void_region")
     {
         topColor = { 1, 3, 10 };
         bottomColor = { 5, 11, 23 };
+		starColor = { 175, 255, 235 };
+	}
+	else if (theme == "emerald_aurora_region")
+	{
+		topColor = { 1, 12, 8 };
+		bottomColor = { 6, 40, 20 };
+		starColor = { 185, 255, 205 };
+	}
+	else if (theme == "rose_nursery_region")
+	{
+		topColor = { 15, 3, 10 };
+		bottomColor = { 55, 10, 30 };
+		starColor = { 255, 190, 215 };
+	}
+	else if (theme == "frozen_expanse_region")
+	{
+		topColor = { 4, 6, 11 };
+		bottomColor = { 24, 29, 38 };
+		starColor = { 230, 240, 255 };
+	}
+	else if (theme == "ion_storm_region")
+	{
+		topColor = { 10, 11, 2 };
+		bottomColor = { 42, 45, 5 };
+		starColor = { 240, 255, 160 };
     }
     else
     {
         topColor = { 2, 7, 19 };
         bottomColor = { 7, 25, 52 };
+		starColor = { 185, 220, 255 };
     }
 
     BuildGradient();
@@ -140,7 +179,8 @@ void GameplayBackground::GenerateStars(std::uint32_t seed)
             { xDistribution(random), yDistribution(random) },
             size,
             speed,
-            { 185, 220, 255, static_cast<std::uint8_t>(alpha) }
+			{ starColor.r, starColor.g, starColor.b,
+				static_cast<std::uint8_t>(alpha) }
         };
     } };
 

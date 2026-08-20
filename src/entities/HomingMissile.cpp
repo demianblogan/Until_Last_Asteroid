@@ -46,6 +46,7 @@ bool HomingMissile::IsCollideWith(const Entity& other) const
 	const Type type{ other.GetType() };
 	return (type == Type::Player || type == Type::Enemy ||
 		type == Type::Asteroid || type == Type::Projectile_Player ||
+		type == Type::Projectile_Ally ||
 		type == Type::EnemyMissile) && CheckCollision(other);
 }
 

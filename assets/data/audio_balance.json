@@ -2,7 +2,9 @@
     "music": {
         "company_splash": 100.0,
         "main_menu_background": 100.0,
-        "gameplay_background_1": 100.0
+        "gameplay_background_1": 100.0,
+        "gameplay_background_2": 100.0,
+        "gameplay_background_3": 100.0
     },
     "sounds": {
         "character_typing": 34.0,
@@ -22,6 +24,7 @@
         "game_over": 100.0,
         "bonus_touched": 100.0,
 		"part_picked_up": 100.0,
-        "level_complete": 100.0
+        "level_complete": 100.0,
+		"player_laser_shot": 50.0
     }
 }

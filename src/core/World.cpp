@@ -13,12 +13,14 @@
 #include "assets/AssetStore.h"
 #include "audio/AudioManager.h"
 #include "entities/Enemy.h"
+#include "entities/HelperBot.h"
 #include "entities/HomingMissile.h"
 #include "entities/LaserTurret.h"
 #include "entities/Meteor.h"
 #include "entities/Part.h"
 #include "entities/Player.h"
 #include "entities/Pickup.h"
+#include "entities/ReflectorGunship.h"
 #include "entities/Saucer.h"
 #include "entities/ShooterStation.h"
 #include "entities/Shot.h"
@@ -62,6 +64,9 @@ namespace
 			break;
 		case Pickup::Kind::TripleShot:
 			color = sf::Color(255, 175, 28);
+			break;
+		case Pickup::Kind::HelperBot:
+			color = sf::Color(70, 240, 255);
 			break;
 		}
 		const float pulse{ 0.78f + 0.22f * std::sin(visualTime * 4.5f) };
@@ -112,7 +117,11 @@ namespace
 		float hexOpacity,
 		sf::RenderStates states)
 	{
-		sf::CircleShape shell(radius, 96u);
+		// Shield geometry is rebuilt with animated colors, but kept to a handful of
+		// draw calls. The old implementation submitted every hexagon separately;
+		// a station-sized shield could issue hundreds of draws per frame.
+		constexpr std::size_t ShieldCirclePoints{ 64u };
+		sf::CircleShape shell(radius, ShieldCirclePoints);
 		shell.setOrigin({ radius, radius });
 		shell.setPosition(center);
 		shell.setFillColor(sf::Color(shellColor.r, shellColor.g, shellColor.b,
@@ -127,7 +136,7 @@ namespace
 		for (int layer{ 0 }; layer < 3; ++layer)
 		{
 			const float glowRadius{ radius + 2.f + layer * 3.f };
-			sf::CircleShape glow(glowRadius, 96u);
+			sf::CircleShape glow(glowRadius, ShieldCirclePoints);
 			glow.setOrigin({ glowRadius, glowRadius });
 			glow.setPosition(center);
 			glow.setFillColor(sf::Color::Transparent);
@@ -142,6 +151,12 @@ namespace
 		constexpr float VerticalSpacing{ 14.f };
 		const int maximumRow{ static_cast<int>(std::ceil(radius / VerticalSpacing)) };
 		const int maximumColumn{ static_cast<int>(std::ceil(radius / HorizontalSpacing)) };
+		sf::VertexArray hexGrid(sf::PrimitiveType::Lines);
+		const sf::Color hexColor{
+			outlineColor.r,
+			outlineColor.g,
+			outlineColor.b,
+			static_cast<std::uint8_t>(hexOpacity * pulse) };
 		for (int row{ -maximumRow }; row <= maximumRow; ++row)
 		{
 			for (int column{ -maximumColumn }; column <= maximumColumn; ++column)
@@ -152,17 +167,25 @@ namespace
 					(radius - HexRadius - 3.f) * (radius - HexRadius - 3.f))
 					continue;
 
-				sf::CircleShape hex(HexRadius, 6u);
-				hex.setOrigin({ HexRadius, HexRadius });
-				hex.setPosition(center + sf::Vector2f{ x, y });
-				hex.setRotation(sf::degrees(30.f));
-				hex.setFillColor(sf::Color::Transparent);
-				hex.setOutlineColor(sf::Color(outlineColor.r, outlineColor.g, outlineColor.b,
-					static_cast<std::uint8_t>(hexOpacity * pulse)));
-				hex.setOutlineThickness(1.f);
-				target.draw(hex, additiveStates);
+				const sf::Vector2f hexCenter{ center + sf::Vector2f{ x, y } };
+				std::array<sf::Vector2f, 6> corners;
+				for (std::size_t corner{ 0u }; corner < corners.size(); ++corner)
+				{
+					const float angle{ std::numbers::pi_v<float> / 6.f +
+						static_cast<float>(corner) * std::numbers::pi_v<float> / 3.f };
+					corners[corner] = hexCenter + sf::Vector2f{
+						std::cos(angle) * HexRadius,
+						std::sin(angle) * HexRadius };
+				}
+				for (std::size_t corner{ 0u }; corner < corners.size(); ++corner)
+				{
+					hexGrid.append({ corners[corner], hexColor });
+					hexGrid.append({ corners[(corner + 1u) % corners.size()], hexColor });
+				}
 			}
 		}
+		if (hexGrid.getVertexCount() > 0u)
+			target.draw(hexGrid, additiveStates);
 	}
 
 	void DrawShieldOverlay(
@@ -371,14 +394,21 @@ void World::Update(float deltaTime, float worldTimeScale)
 		const Entity::Type type{ entity->GetType() };
 		const bool usesPlayerTime{
 			type == Entity::Type::Player ||
+			type == Entity::Type::Companion ||
 			type == Entity::Type::Projectile_Player ||
+			type == Entity::Type::Projectile_Ally ||
 			type == Entity::Type::Pickup };
 		const float entityDeltaTime{ usesPlayerTime
 			? deltaTime
 			: deltaTime * worldTimeScale };
 		entity->UpdateEffects(entityDeltaTime);
 		entity->Update(entityDeltaTime);
-		if (entity->GetType() != Entity::Type::Projectile_Player &&
+		const auto* station{ dynamic_cast<const ShooterStation*>(entity.get()) };
+		const auto* turret{ dynamic_cast<const LaserTurret*>(entity.get()) };
+		if ((station == nullptr || !station->IsArriving()) &&
+			(turret == nullptr || !turret->IsArriving()) &&
+			entity->GetType() != Entity::Type::Projectile_Player &&
+			entity->GetType() != Entity::Type::Projectile_Ally &&
 			entity->GetType() != Entity::Type::Projectile_Enemy &&
 			entity->GetType() != Entity::Type::EnemyMissile)
 		{
@@ -447,6 +477,7 @@ bool World::IsCleared() const noexcept
 			return entity->IsAlive() &&
 				(entity->GetType() == Entity::Type::Enemy ||
 				 entity->GetType() == Entity::Type::Asteroid ||
+				 entity->GetType() == Entity::Type::EnemyMissile ||
 				 entity->GetType() == Entity::Type::Part);
 		});
 	};
@@ -474,6 +505,12 @@ void World::SetPlayerControlEnabled(bool enabled) noexcept
 		player->SetControlEnabled(enabled);
 }
 
+void World::SetPlayerFiringEnabled(bool enabled) noexcept
+{
+	if (player != nullptr)
+		player->SetFiringEnabled(enabled);
+}
+
 std::uint64_t World::BeginPlayerAttack() noexcept
 {
 	++statistics.playerAttacksFired;
@@ -494,6 +531,32 @@ void World::SpawnPlayerShot(
 {
 	Spawn(std::make_unique<PlayerShot>(
 		assets, *this, pos, rotation, attackId, playSound, tripleShotVisual));
+}
+
+void World::SpawnHelperShot(const sf::Vector2f& pos, const Entity* target)
+{
+	Spawn(std::make_unique<HelperShot>(assets, *this, pos, target));
+}
+
+bool World::SpawnHelperPickup(const sf::Vector2f& pos)
+{
+	if (helperPickupSpawned || session.IsHelperBotActive())
+		return false;
+
+	auto pickup{ std::make_unique<Pickup>(
+		assets, *this, Pickup::Kind::HelperBot) };
+	pickup->SetPosition(pos);
+	Spawn(std::move(pickup));
+	helperPickupSpawned = true;
+	return true;
+}
+
+void World::SpawnHelperBot()
+{
+	if (helperBotSpawned || !session.IsHelperBotActive())
+		return;
+	helperBotSpawned = true;
+	Spawn(std::make_unique<HelperBot>(assets, *this));
 }
 
 void World::SpawnSaucerShot(
@@ -568,6 +631,8 @@ void World::DamageEnemiesWithPlayerLaser(
 		}
 
 		Enemy& enemy{ static_cast<Enemy&>(*entity) };
+		if (enemy.BlocksPlayerLaser())
+			continue;
 		if (enemy.TakeDamage(damage))
 			AwardScore(enemy);
 	}
@@ -713,6 +778,7 @@ void World::ClearProjectiles()
 	const auto isProjectile{ [](const auto& entity)
 	{
 		return entity->GetType() == Entity::Type::Projectile_Player ||
+			entity->GetType() == Entity::Type::Projectile_Ally ||
 			entity->GetType() == Entity::Type::Projectile_Enemy ||
 			entity->GetType() == Entity::Type::EnemyMissile;
 	} };
@@ -729,6 +795,13 @@ void World::ClearPickups()
 	} };
 	std::erase_if(entities, isPickup);
 	std::erase_if(pendingEntities, isPickup);
+}
+
+void World::ConfigureCampaignPickupSequence(
+	const std::vector<GameplayData::PickupKind>& sequence)
+{
+	campaignPickupSequence = sequence;
+	nextCampaignPickup = 0u;
 }
 
 sf::Vector2f World::GetPlayerPosition() const noexcept
@@ -815,6 +888,10 @@ void World::Clear()
 	statistics = {};
 	nextPlayerAttackId = 1u;
 	successfulPlayerAttacks.clear();
+	helperPickupSpawned = false;
+	helperBotSpawned = false;
+	campaignPickupSequence.clear();
+	nextCampaignPickup = 0u;
 }
 
 void World::Wrap(Entity& entity) const
@@ -870,6 +947,8 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 			AddSound(Config::Sound::BonusTouched);
 			if (pickup.GetKind() == Pickup::Kind::Shield)
 				++statistics.shieldPickupsCollected;
+			else if (pickup.GetKind() == Pickup::Kind::HelperBot)
+				SpawnHelperBot();
 			pickup.Destroy();
 		}
 		return;
@@ -881,7 +960,8 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		auto& missile{ static_cast<HomingMissile&>(
 			first.GetType() == Entity::Type::EnemyMissile ? first : second) };
 		Entity& other{ first.GetType() == Entity::Type::EnemyMissile ? second : first };
-		if (other.GetType() == Entity::Type::Projectile_Player)
+		if (other.GetType() == Entity::Type::Projectile_Player ||
+			other.GetType() == Entity::Type::Projectile_Ally)
 		{
 			auto& shot{ static_cast<Shot&>(other) };
 			RegisterPlayerAttackHit(shot.GetPlayerAttackId());
@@ -900,17 +980,28 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		return;
 	}
 
-	auto handlePlayerShot = [this](Shot& shot, Enemy& enemy)
+	auto handleFriendlyShot = [this](Shot& shot, Enemy& enemy)
 	{
 		RegisterPlayerAttackHit(shot.GetPlayerAttackId());
 		const sf::Vector2f impactDirection{ Normalize(shot.GetVelocity()) };
+		const sf::Vector2f impactPosition{
+			enemy.GetPlayerProjectileImpactPosition(shot) };
 		AddEffectEvent({
 			enemy.GetType() == Entity::Type::Asteroid
 				? EffectEventType::AsteroidHit
 				: EffectEventType::ShipHit,
-			enemy.GetPlayerProjectileImpactPosition(shot),
+			impactPosition,
 			impactDirection,
 			std::clamp(enemy.GetCollisionRadius() / 45.f, 0.55f, 1.15f) });
+		if (enemy.IsProjectileReflectionActive())
+		{
+			const sf::Vector2f reflectedDirection{
+				Normalize(GetPlayerPosition() - impactPosition) };
+			shot.ReflectToward(GetPlayerPosition());
+			shot.Translate(reflectedDirection * 12.f);
+			AddSound(Config::Sound::EnemyShot, 0.72f);
+			return;
+		}
 		shot.Destroy();
 		const bool killed{ enemy.TakeDamage(shot.GetDamage()) };
 		if (enemy.AcceptsKnockback())
@@ -925,12 +1016,18 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 
 	if (first.GetType() == Entity::Type::Projectile_Player)
 	{
-		handlePlayerShot(static_cast<Shot&>(first), static_cast<Enemy&>(second));
+		handleFriendlyShot(static_cast<Shot&>(first), static_cast<Enemy&>(second));
 		return;
 	}
-	if (second.GetType() == Entity::Type::Projectile_Player)
+	if (first.GetType() == Entity::Type::Projectile_Ally)
 	{
-		handlePlayerShot(static_cast<Shot&>(second), static_cast<Enemy&>(first));
+		handleFriendlyShot(static_cast<Shot&>(first), static_cast<Enemy&>(second));
+		return;
+	}
+	if (second.GetType() == Entity::Type::Projectile_Player ||
+		second.GetType() == Entity::Type::Projectile_Ally)
+	{
+		handleFriendlyShot(static_cast<Shot&>(second), static_cast<Enemy&>(first));
 		return;
 	}
 
@@ -1067,11 +1164,40 @@ void World::AwardScore(const Enemy& enemy)
 		1.f,
 		points });
 
-	if (const auto pickupKind{ enemy.RollPickupDrop() })
+	std::vector<GameplayData::PickupKind> pickupKinds;
+	const int orderedDropCount{ enemy.GetOrderedPickupDropCount() };
+	if (orderedDropCount > 0)
 	{
-		auto pickup{ std::make_unique<Pickup>(assets, *this, *pickupKind) };
-		pickup->SetPosition(enemy.GetPosition());
-		Spawn(std::move(pickup));
+		for (int index{ 0 };
+			index < orderedDropCount &&
+			nextCampaignPickup < campaignPickupSequence.size();
+			++index)
+		{
+			pickupKinds.push_back(campaignPickupSequence[nextCampaignPickup++]);
+		}
+	}
+	else if (const auto pickupKind{ enemy.RollPickupDrop() })
+	{
+		pickupKinds.push_back(*pickupKind);
+	}
+	for (std::size_t index{ 0u }; index < pickupKinds.size(); ++index)
+	{
+		const float angle{ pickupKinds.size() > 1u
+			? 2.f * std::numbers::pi_v<float> *
+				static_cast<float>(index) / static_cast<float>(pickupKinds.size())
+			: 0.f };
+		const float radius{ pickupKinds.size() > 1u ? 72.f : 0.f };
+		const sf::Vector2f position{ enemy.GetPosition() + sf::Vector2f{
+			std::cos(angle) * radius, std::sin(angle) * radius } };
+		if (pickupKinds[index] == Pickup::Kind::HelperBot)
+			static_cast<void>(SpawnHelperPickup(position));
+		else
+		{
+			auto pickup{ std::make_unique<Pickup>(
+				assets, *this, pickupKinds[index]) };
+			pickup->SetPosition(position);
+			Spawn(std::move(pickup));
+		}
 	}
 
 	if (!enemy.GetPartDropId().empty() &&
@@ -1129,6 +1255,13 @@ void World::draw(sf::RenderTarget& target, sf::RenderStates states) const
 		target.draw(*entity, states);
 		if (const auto* station{ dynamic_cast<const ShooterStation*>(entity.get()) })
 			DrawStationEffects(target, *station, states);
+		if (const auto* reflector{ dynamic_cast<const ReflectorGunship*>(entity.get()) };
+			reflector != nullptr && reflector->IsShieldActive())
+		{
+			DrawEnergyShield(target, reflector->GetPosition(),
+				reflector->GetShieldRadius(), reflector->GetShieldPulse(),
+				{ 205, 20, 35 }, { 255, 65, 75 }, { 255, 35, 45 }, 58.f, states);
+		}
 		if (entity->GetType() == Entity::Type::Enemy ||
 			entity->GetType() == Entity::Type::EnemyMissile)
 		{
@@ -1137,7 +1270,8 @@ void World::draw(sf::RenderTarget& target, sf::RenderStates states) const
 			emissionStates.blendMode = sf::BlendAdd;
 			target.draw(entity->GetSprite(), emissionStates);
 		}
-		else if (entity->GetType() == Entity::Type::Player)
+		else if (entity->GetType() == Entity::Type::Player ||
+			entity->GetType() == Entity::Type::Companion)
 		{
 			sf::RenderStates emissionStates{ states };
 			emissionStates.shader = &playerEmissionShader;

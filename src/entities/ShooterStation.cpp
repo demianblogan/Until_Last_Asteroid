@@ -18,7 +18,8 @@ ShooterStation::ShooterStation(AssetStore& assets, World& world)
 		assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::ShooterStation) };
 	spawnAnimationDuration = config.spawnAnimationDuration;
 	shieldDuration = spawnAnimationDuration;
-	spawnElapsed = std::max(0.f, GetActionInterval() - 1.f);
+	creationRemaining = shieldDuration;
+	spawnElapsed = 0.f;
 }
 
 void ShooterStation::ConfigurePath(sf::Vector2f first, sf::Vector2f second)
@@ -55,6 +56,8 @@ float ShooterStation::GetSpawnChargeRatio() const noexcept
 		? 1.f - creationRemaining / spawnAnimationDuration
 		: 0.f;
 }
+
+bool ShooterStation::IsArriving() const noexcept { return arriving; }
 
 bool ShooterStation::TakeDamage(int damage)
 {
@@ -101,7 +104,8 @@ bool ShooterStation::IsCollideWith(const Entity& other) const
 {
 	if (destructionActive)
 		return false;
-	if (other.GetType() == Type::Projectile_Player)
+	if (other.GetType() == Type::Projectile_Player ||
+		other.GetType() == Type::Projectile_Ally)
 		return CollidesWithPlayerProjectile(other);
 	return (other.GetType() == Type::Player ||
 		other.GetType() == Type::EnemyMissile) && CheckCollision(other);
@@ -146,6 +150,12 @@ void ShooterStation::Update(float deltaTime)
 		{
 			arriving = false;
 			targetPoint = pathEnd;
+			creationRemaining = shieldDuration;
+			weldingAccumulator = 0.f;
+			workingSoundHandle = GetWorld().AddSound(
+				Config::Sound::EnemyStationWorking);
+			GetWorld().SpawnStationShooter(
+				GetPosition(), spawnAnimationDuration, this);
 		}
 		else
 		{

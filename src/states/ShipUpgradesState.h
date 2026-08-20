@@ -63,4 +63,5 @@ private:
 	std::array<bool, 4> maximumRanks{};
 	std::size_t selectedIndex{ 0u };
 	ExitTarget exitTarget{ ExitTarget::None };
+	bool returnToLevelSelect{ false };
 };

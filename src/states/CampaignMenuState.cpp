@@ -104,8 +104,8 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     {
         addButton("Start New Campaign", MenuAction::StartNewCampaign, true);
     }
-    addButton("Horde Mode", MenuAction::HordeMode, false);
-    addButton("Run Mode", MenuAction::RunMode, false);
+    addButton("Horde Mode", MenuAction::HordeMode, true);
+    addButton("Run Mode", MenuAction::RunMode, true);
     addButton("Back to Main Menu", MenuAction::Back, true);
     Select(0u, false);
 
@@ -421,7 +421,10 @@ void CampaignMenuState::ActivateSelected()
 		RequestPush(StateId::LevelSelect);
 		break;
     case MenuAction::HordeMode:
+        BeginGameplay(GameplayLaunchMode::Horde);
+        break;
     case MenuAction::RunMode:
+        BeginGameplay(GameplayLaunchMode::Run);
         break;
     }
 }
@@ -443,7 +446,8 @@ void CampaignMenuState::OpenTutorialChoice()
 {
     dialogMode = DialogMode::TutorialChoice;
     dialogTitle.setString("PLAY THE TUTORIAL?");
-    dialogMessage.setString("Learn movement, combat, armor, scoring, and pickups before Level 1.");
+    dialogMessage.setString(
+        "Learn the basics, Parts, and ship upgrades before Level 1.");
     CenterText(dialogTitle, { 960.f, 410.f });
     CenterText(dialogMessage, { 960.f, 495.f });
     dialogButtons[0].SetLabel("Play");

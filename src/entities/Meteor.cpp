@@ -11,7 +11,15 @@
 Meteor::Meteor(AssetStore& assets, World& world, Size size)
 	: Enemy(assets, world, GetRandomTexture(assets, size), GetConfig(assets, size)), size(size)
 {
-	// No code
+	const float direction{ Random::Int(0, 1) == 0 ? -1.f : 1.f };
+	angularVelocity = GetRotationSpeed() * Random::Float(0.65f, 1.35f) * direction;
+	SetRotation(sf::degrees(Random::Float(0.f, 360.f)));
+}
+
+void Meteor::Update(float deltaTime)
+{
+	Enemy::Update(deltaTime);
+	SetRotation(GetRotation() + sf::degrees(angularVelocity * deltaTime));
 }
 
 Entity::Type Meteor::GetType() const noexcept

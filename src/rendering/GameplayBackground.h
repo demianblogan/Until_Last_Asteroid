@@ -41,6 +41,7 @@ private:
     sf::Vector2f logicalSize;
     sf::Color topColor;
     sf::Color bottomColor;
+	sf::Color starColor{ 185, 220, 255 };
     sf::VertexArray gradient{ sf::PrimitiveType::Triangles };
     sf::VertexArray middleStarVertices{ sf::PrimitiveType::Triangles };
     sf::VertexArray nearDustVertices{ sf::PrimitiveType::Triangles };

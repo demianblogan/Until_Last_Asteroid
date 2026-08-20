@@ -14,7 +14,9 @@ namespace
     constexpr std::array<const char*, static_cast<std::size_t>(Config::Music::Count)> MusicNames{
         "company_splash",
         "main_menu_background",
-        "gameplay_background_1"
+        "gameplay_background_1",
+        "gameplay_background_2",
+        "gameplay_background_3"
     };
     constexpr std::array<const char*, static_cast<std::size_t>(Config::Sound::Count)> SoundNames{
         "character_typing",
@@ -34,7 +36,8 @@ namespace
         "game_over",
         "bonus_touched",
 		"part_picked_up",
-        "level_complete"
+        "level_complete",
+		"player_laser_shot"
     };
 
     template <std::size_t Size>

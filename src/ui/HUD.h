@@ -22,6 +22,10 @@ public:
 	void HighlightScore(float duration) noexcept;
 	void HighlightHealth(float duration) noexcept;
 	void HighlightShield(float duration) noexcept;
+	void HighlightParts(float duration) noexcept;
+	void SetRunMode(bool enabled) noexcept;
+	void SetPartsVisible(bool visible) noexcept;
+	void SetSurvivalTime(float seconds) noexcept;
 
 private:
 	void UpdateScore(float deltaTime);
@@ -72,11 +76,14 @@ private:
 	NeonGlow timeSlowdownGlow;
 	int displayedScore{ 0 };
 	int displayedParts{ 0 };
+	int displayedTimeSeconds{ -1 };
+	float survivalSeconds{ 0.f };
 	float scorePulseRemaining{ 0.f };
 	float partsPulseRemaining{ 0.f };
 	float tutorialScoreHighlightRemaining{ 0.f };
 	float tutorialHealthHighlightRemaining{ 0.f };
 	float tutorialShieldHighlightRemaining{ 0.f };
+	float tutorialPartsHighlightRemaining{ 0.f };
 	float criticalWarningRemaining{ 0.f };
 	float blinkTimer{ 0.f };
 	bool criticalWarningArmed{ true };
@@ -85,6 +92,8 @@ private:
 	bool homingVisible{ false };
 	bool weaponVisible{ false };
 	bool timeSlowdownVisible{ false };
+	bool runMode{ false };
+	bool partsVisible{ true };
 
 	static constexpr float CriticalThreshold{ 0.3f };
 	static constexpr float CriticalWarningDuration{ 3.f };
