@@ -2,10 +2,10 @@
 
 #include <cmath>
 #include <numbers>
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "utils/Random.h"
 
-Enemy::Enemy(AssetStore& assets, World& world, sf::Texture& texture,
+Enemy::Enemy(Assets& assets, World& world, sf::Texture& texture,
 	const GameplayData::EnemyConfig& config)
 	: Entity(assets, world, texture, config.visualScale, config.collisionRadius,
 		config.collisionCircles)
@@ -72,10 +72,24 @@ int Enemy::GetOrderedPickupDropCount() const noexcept
 	return orderedPickupDropCount;
 }
 
-void Enemy::SetPartDropId(std::string id) { partDropId = std::move(id); }
-const std::string& Enemy::GetPartDropId() const noexcept { return partDropId; }
-void Enemy::SetRewardsEnabled(bool enabled) noexcept { rewardsEnabled = enabled; }
-bool Enemy::AreRewardsEnabled() const noexcept { return rewardsEnabled; }
+void Enemy::SetPartDropID(std::string id) { partDropID = std::move(id); }
+const std::string& Enemy::GetPartDropID() const noexcept { return partDropID; }
+void Enemy::SetRewardsEnabled(bool enabled) noexcept
+{
+	scoreRewardEnabled = enabled;
+	pickupRewardsEnabled = enabled;
+	partRewardEnabled = enabled;
+}
+bool Enemy::AreRewardsEnabled() const noexcept
+{
+	return scoreRewardEnabled || pickupRewardsEnabled || partRewardEnabled;
+}
+void Enemy::SetScoreRewardEnabled(bool enabled) noexcept { scoreRewardEnabled = enabled; }
+void Enemy::SetPickupRewardsEnabled(bool enabled) noexcept { pickupRewardsEnabled = enabled; }
+void Enemy::SetPartRewardEnabled(bool enabled) noexcept { partRewardEnabled = enabled; }
+bool Enemy::IsScoreRewardEnabled() const noexcept { return scoreRewardEnabled; }
+bool Enemy::ArePickupRewardsEnabled() const noexcept { return pickupRewardsEnabled; }
+bool Enemy::IsPartRewardEnabled() const noexcept { return partRewardEnabled; }
 bool Enemy::AcceptsKnockback() const noexcept { return true; }
 bool Enemy::IsProjectileReflectionActive() const noexcept { return false; }
 bool Enemy::BlocksPlayerLaser() const noexcept { return false; }

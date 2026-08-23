@@ -5,10 +5,10 @@
 #include <optional>
 
 #include "core/Entity.h"
-#include "systems/InputHandler.h"
+#include "input/InputHandler.h"
 #include "utils/ConfigEnums.h"
 
-class AssetStore;
+class Assets;
 class World;
 class GamepadManager;
 
@@ -20,7 +20,7 @@ namespace sf
 class Player final : public Entity
 {
 public:
-	Player(AssetStore& assets, World& world, InputHandler<Config::PlayerAction>& input,
+	Player(Assets& assets, World& world, InputHandler<Config::PlayerAction>& input,
 		GamepadManager& gamepad);
 	~Player();
 
@@ -31,6 +31,7 @@ public:
 	void HandleRealtime();
 	void SetControlEnabled(bool enabled) noexcept;
 	void SetFiringEnabled(bool enabled) noexcept;
+	void SetCinematicInvulnerable(bool enabled) noexcept;
 	void OnDestroy() override;
 
 	[[nodiscard]] bool TakeDamage(int damage);
@@ -64,7 +65,6 @@ private:
 	float laserDamageTimer{ 0.f };
 	float laserVisualTime{ 0.f };
 	std::uint64_t laserSoundHandle{ 0u };
-	std::uint64_t laserOutroSoundHandle{ 0u };
 	bool laserRequested{ false };
 	bool laserFiring{ false };
 	bool blinkDuringInvulnerability{ false };
@@ -73,4 +73,5 @@ private:
 	bool aimingWithGamepad{ false };
 	bool controlEnabled{ true };
 	bool firingEnabled{ true };
+	bool cinematicInvulnerable{ false };
 };

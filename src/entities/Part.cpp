@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <cmath>
 
-#include "assets/AssetStore.h"
-#include "game/GameplayData.h"
+#include "assets/Assets.h"
+#include "gameplay/GameplayData.h"
 #include "utils/ConfigEnums.h"
 
-Part::Part(AssetStore& assets, World& world, std::string id)
+Part::Part(Assets& assets, World& world, std::string id)
 	: Entity(assets, world, assets.Textures().Get(Config::Texture::PartToken),
 		assets.GetGameplayData().GetParts().visualScale,
 		assets.GetGameplayData().GetParts().collisionRadius)
@@ -17,7 +17,7 @@ Part::Part(AssetStore& assets, World& world, std::string id)
 	SetPresentation(1.f, 1.f);
 }
 
-const std::string& Part::GetId() const noexcept { return id; }
+const std::string& Part::GetID() const noexcept { return id; }
 Entity::Type Part::GetType() const noexcept { return Type::Part; }
 
 void Part::Update(float deltaTime)

@@ -2,7 +2,7 @@
 
 #include "Enemy.h"
 
-class AssetStore;
+class Assets;
 class World;
 
 namespace sf
@@ -19,7 +19,7 @@ public:
 		Shooter
 	};
 
-	Saucer(AssetStore& assets, World& world, Mode mode);
+	Saucer(Assets& assets, World& world, Mode mode);
 	[[nodiscard]] Mode GetMode() const noexcept;
 	void BeginMaterialization(float duration, const Entity* anchor = nullptr) noexcept;
 	void ConfigureApproachTarget(sf::Vector2f target) noexcept;
@@ -30,8 +30,8 @@ public:
 	void OnDestroy() override;
 
 private:
-	static const GameplayData::EnemyConfig& GetConfig(AssetStore& assets, Mode mode);
-	static sf::Texture& GetTexture(AssetStore& assets, Mode mode);
+	static const GameplayData::EnemyConfig& GetConfig(Assets& assets, Mode mode);
+	static sf::Texture& GetTexture(Assets& assets, Mode mode);
 
 	void UpdateMovement(float deltaTime, const sf::Vector2f& target);
 	[[nodiscard]] bool MoveToTarget(float deltaTime, const sf::Vector2f& target);

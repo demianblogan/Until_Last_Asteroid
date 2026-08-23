@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "core/World.h"
 #include "utils/ConfigEnums.h"
 
 HomingMissile::HomingMissile(
-	AssetStore& assets,
+	Assets& assets,
 	World& world,
 	const sf::Vector2f& position,
 	const sf::Vector2f& target)
@@ -59,9 +59,9 @@ void HomingMissile::Update(float deltaTime)
 		return;
 	}
 
-	const sf::Vector2f velocity{ GetVelocity() };
+	const sf::Vector2f currentVelocity{ GetVelocity() };
 	const sf::Vector2f toPlayer{ GetWorld().GetPlayerPosition() - GetPosition() };
-	const float currentAngle{ std::atan2(velocity.y, velocity.x) };
+	const float currentAngle{ std::atan2(currentVelocity.y, currentVelocity.x) };
 	const float targetAngle{ std::atan2(toPlayer.y, toPlayer.x) };
 	const float angleDifference{ std::atan2(
 		std::sin(targetAngle - currentAngle),

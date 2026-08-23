@@ -170,6 +170,6 @@ This project was created as a **portfolio piece** to demonstrate:
 
 ## 🧑‍💻 Author
 
-Demian Kozachuk
+Demian Blogan
 - 📧 Email: demianblogan@gmail.com
 

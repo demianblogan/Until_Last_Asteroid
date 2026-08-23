@@ -4,10 +4,10 @@
 #include <numbers>
 #include "utils/Random.h"
 #include "utils/ConfigEnums.h"
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "core/World.h"
 
-Saucer::Saucer(AssetStore& assets, World& world, Mode mode)
+Saucer::Saucer(Assets& assets, World& world, Mode mode)
 	: Enemy(assets, world, GetTexture(assets, mode), GetConfig(assets, mode))
 	, mode(mode)
 {
@@ -163,18 +163,18 @@ void Saucer::Shoot(const sf::Vector2f& playerPosition)
 
 sf::Vector2f Saucer::GetWeaponEmitterPosition(std::size_t index) const
 {
-	const sf::Sprite& sprite{ GetSprite() };
-	const sf::IntRect textureRect{ sprite.getTextureRect() };
+	const sf::Sprite& entitySprite{ GetSprite() };
+	const sf::IntRect textureRect{ entitySprite.getTextureRect() };
 	const GameplayData::NormalizedPoint& emitter{ GetWeaponEmitters().at(index) };
 	const sf::Vector2f localPosition{
 		static_cast<float>(textureRect.position.x) +
 			static_cast<float>(textureRect.size.x) * emitter.x,
 		static_cast<float>(textureRect.position.y) +
 			static_cast<float>(textureRect.size.y) * emitter.y };
-	return sprite.getTransform().transformPoint(localPosition);
+	return entitySprite.getTransform().transformPoint(localPosition);
 }
 
-const GameplayData::EnemyConfig& Saucer::GetConfig(AssetStore& assets, Mode mode)
+const GameplayData::EnemyConfig& Saucer::GetConfig(Assets& assets, Mode mode)
 {
 	using Kind = GameplayData::EnemyKind;
 	switch (mode)
@@ -188,7 +188,7 @@ const GameplayData::EnemyConfig& Saucer::GetConfig(AssetStore& assets, Mode mode
 	}
 }
 
-sf::Texture& Saucer::GetTexture(AssetStore& assets, Mode mode)
+sf::Texture& Saucer::GetTexture(Assets& assets, Mode mode)
 {
 	switch (mode)
 	{

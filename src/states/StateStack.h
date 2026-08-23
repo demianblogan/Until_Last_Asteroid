@@ -5,6 +5,7 @@
 #include <optional>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -16,10 +17,10 @@ public:
     explicit StateStack(StateContext context);
 
     template <typename StateType, typename... Arguments>
-    void RegisterState(StateId stateId, Arguments... arguments)
+    void RegisterState(StateID stateID, Arguments... arguments)
     {
         auto capturedArguments{ std::make_tuple(std::move(arguments)...) };
-        factories[stateId] = [this, capturedArguments = std::move(capturedArguments)]
+        factories[stateID] = [this, capturedArguments = std::move(capturedArguments)]
         {
             return std::apply(
                 [this](const auto&... unpacked)
@@ -30,13 +31,20 @@ public:
         };
     }
 
+    // Marks a state id as cacheable: instead of being destroyed on pop and
+    // rebuilt from scratch on the next push, the instance is kept alive and
+    // reused, with State::OnReactivated() called to refresh transient/dynamic
+    // state. Use this only for states whose content doesn't need to change
+    // while off-stack in a way OnReactivated() can't cheaply refresh.
+    void EnableStateCaching(StateID stateID);
+
     void HandleEvent(const sf::Event& event);
     void HandleRealtime();
     void Update(float deltaTime);
     void Render();
     void RenderOverlay();
 
-    void PushState(StateId stateId);
+    void PushState(StateID stateID);
     void PopState();
     void ClearStates();
     void ApplyPendingChanges();
@@ -54,15 +62,23 @@ private:
     struct PendingChange
     {
         Action action;
-        std::optional<StateId> stateId;
+        std::optional<StateID> stateID;
+    };
+
+    struct StackEntry
+    {
+        StateID id;
+        std::unique_ptr<State> state;
     };
 
     using StateFactory = std::function<std::unique_ptr<State>()>;
 
-    [[nodiscard]] std::unique_ptr<State> CreateState(StateId stateId);
+    [[nodiscard]] std::unique_ptr<State> CreateState(StateID stateID);
 
-    std::vector<std::unique_ptr<State>> states;
+    std::vector<StackEntry> states;
+    std::unordered_map<StateID, std::unique_ptr<State>> cachedStates;
+    std::unordered_set<StateID> cacheableStates;
     std::vector<PendingChange> pendingChanges;
-    std::unordered_map<StateId, StateFactory> factories;
+    std::unordered_map<StateID, StateFactory> factories;
     StateContext context;
 };

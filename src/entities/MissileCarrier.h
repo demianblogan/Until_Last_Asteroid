@@ -2,13 +2,13 @@
 
 #include "Enemy.h"
 
-class AssetStore;
+class Assets;
 class World;
 
 class MissileCarrier final : public Enemy
 {
 public:
-	MissileCarrier(AssetStore& assets, World& world);
+	MissileCarrier(Assets& assets, World& world);
 	void ConfigureApproachTarget(sf::Vector2f target) noexcept;
 
 	Type GetType() const noexcept override;

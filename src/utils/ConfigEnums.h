@@ -1,131 +1,164 @@
 #pragma once
 
 // Centralized identifiers for game resources and actions.
-// Used as keys in systems like AssetStorage and input handling to avoid string-based lookups
+// Used as keys in systems like AssetCache and input handling to avoid string-based lookups
 // and provide type safety.
 namespace Config
 {
-	enum class Texture
-	{
-		CompanyLogo,
-		MainMenuBackground,
-		ShipUpgradesBackground,
-		ShipUpgradesHeaderDivider,
-		ShipUpgradesPartsIcon,
-		ShipUpgradesRowFrame,
-		ShipUpgradesRowFrameSelected,
-		ShipUpgradeArmorIcon,
-		ShipUpgradeEnginesIcon,
-		ShipUpgradeFireRateIcon,
-		ShipUpgradeBonusDurationIcon,
-		ShipUpgradeArmorIconSelected,
-		ShipUpgradeEnginesIconSelected,
-		ShipUpgradeFireRateIconSelected,
-		ShipUpgradeBonusDurationIconSelected,
-		GameplayBackgroundBlueRegion,
-		GameplayBackgroundVioletRegion,
-		GameplayBackgroundAsteroidRegion,
-		GameplayBackgroundRedRegion,
-		GameplayBackgroundDeepVoidRegion,
-		MenuButtonIdle,
-		MenuButtonSelected,
-		MenuPointer,
-		GameplayCrosshair,
-		HealthPickup,
-		ShieldPickup,
-		HomingBulletsPickup,
-		TimeSlowdownPickup,
-		LaserPickup,
-		TripleShotPickup,
-		HelperBotPickup,
-		PartToken,
+    enum class Texture
+    {
+        // Splash / main menu
+        CompanyLogo,
+        MainMenuBackground,
+        MenuButtonIdle,
+        MenuButtonSelected,
+        MenuPointer,
 
-		PlayerShip,
-		PlayerLife,
-		HealthBarFrame,
-		HealthBarFill,
-		ScorePanelFrame,
-		GameOverTitleFrame,
-		ResultTitleFrame,
-		XboxLeftStick,
-		XboxRightStick,
-		XboxRightTrigger,
-		XboxDpad,
-		XboxConfirm,
-		XboxBack,
-		XboxMenu,
-		PlayStationLeftStick,
-		PlayStationRightStick,
-		PlayStationRightTrigger,
-		PlayStationDpad,
-		PlayStationConfirm,
-		PlayStationBack,
-		PlayStationOptions,
+        // Ship Upgrades screen
+        ShipUpgradesBackground,
+        ShipUpgradesHeaderDivider,
+        ShipUpgradesPartsIcon,
+        ShipUpgradesRowFrame,
+        ShipUpgradesRowFrameSelected,
+        ShipUpgradeArmorIcon,
+        ShipUpgradeEnginesIcon,
+        ShipUpgradeFireRateIcon,
+        ShipUpgradeBonusDurationIcon,
+        ShipUpgradeArmorIconSelected,
+        ShipUpgradeEnginesIconSelected,
+        ShipUpgradeFireRateIconSelected,
+        ShipUpgradeBonusDurationIconSelected,
 
-		BigEnemySaucer,
-		SmallEnemySaucer,
-		SpinnerPlatform,
-		MissileCarrier,
-		LaserTurret,
-		ShooterStation,
-		ReflectorGunship,
+        // Gameplay level backgrounds (one per campaign region)
+        GameplayBackgroundBlueRegion,
+        GameplayBackgroundVioletRegion,
+        GameplayBackgroundAsteroidRegion,
+        GameplayBackgroundRedRegion,
+        GameplayBackgroundDeepVoidRegion,
+        GameplayBackgroundEmeraldRegion,
+        GameplayBackgroundRoseRegion,
+        GameplayBackgroundFrozenRegion,
+        GameplayBackgroundIonRegion,
+        GameplayBackgroundLastHorizon,
 
-		BigMeteor1,
-		BigMeteor2,
-		BigMeteor3,
-		BigMeteor4,
+        // In-gameplay HUD / player
+        GameplayCrosshair,
+        PlayerShip,
+        HealthBarFrame,
+        HealthBarFill,
+        ScorePanelFrame,
+        GameOverTitleFrame,
+        ResultTitleFrame,
+        CampaignCompleteTitleFrame,
+        CampaignCompletePanelFrame,
 
-		SmallMeteor1,
-		SmallMeteor2,
-		SmallMeteor3,
-		SmallMeteor4,
+        // Pickups
+        HealthPickup,
+        ShieldPickup,
+        HomingBulletsPickup,
+        TimeSlowdownPickup,
+        LaserPickup,
+        TripleShotPickup,
+        HelperBotPickup,
+        PartToken,
 
-		PlayerShot,
-		EnemySaucerShot,
-		HomingMissile,
+        // Gamepad button prompts (Xbox / PlayStation)
+        XboxLeftStick,
+        XboxRightStick,
+        XboxRightTrigger,
+        XboxDpad,
+        XboxConfirm,
+        XboxBack,
+        XboxMenu,
+        PlayStationLeftStick,
+        PlayStationRightStick,
+        PlayStationRightTrigger,
+        PlayStationDpad,
+        PlayStationConfirm,
+        PlayStationBack,
+        PlayStationOptions,
 
-		// Append new texture identifiers here. Existing enum values are used as
-		// resource keys and must remain stable across incremental builds.
-		GameplayBackgroundEmeraldRegion,
-		GameplayBackgroundRoseRegion,
-		GameplayBackgroundFrozenRegion,
-		GameplayBackgroundIonRegion
-	};
+        // Enemies
+        BigEnemySaucer,
+        SmallEnemySaucer,
+        SpinnerPlatform,
+        MissileCarrier,
+        LaserTurret,
+        ShooterStation,
+        ReflectorGunship,
+
+        // Meteors (variants for visual variety)
+        BigMeteor1,
+        BigMeteor2,
+        BigMeteor3,
+        BigMeteor4,
+        SmallMeteor1,
+        SmallMeteor2,
+        SmallMeteor3,
+        SmallMeteor4,
+
+        // Projectiles
+        PlayerShot,
+        EnemySaucerShot,
+        HomingMissile,
+
+        // Boss (Level 10)
+        BossCore,
+        BossDiamond,
+        BossOuterRing,
+
+        // Achievement icons
+        AchievementFirstStep,
+        AchievementHalfwayThere,
+        AchievementCampaignComplete,
+        AchievementRunSurvivor,
+        AchievementHordeSurvivor,
+        AchievementFullyUpgraded,
+        AchievementTutorialSkipped,
+        AchievementFlawlessCampaign,
+        AchievementBossUntouched
+    };
 
 	enum class Font
 	{
-		GUI,
 		BodyRegular,
 		MenuRegular,
-		MenuSemibold
+		MenuSemibold,
+		LocalizedRegular,
+		LocalizedBold,
+		ArabicRegular,
+		ArabicBold
 	};
 
-	enum class Sound
-	{
-		CharacterTyping,
-		InterfaceActivation,
-		ItemSelect,
-		ItemPress,
+    enum class Sound
+    {
+        // UI / menu feedback
+        CharacterTyping,
+        InterfaceActivation,
+        ItemSelect,
+        ItemPress,
 
-		PlayerShot,
-		EnemyShot,
-		EnemyLaserShot,
-		EnemyStationWorking,
+        // Weapon fire (player and enemy)
+        PlayerShot,
+        PlayerLaserShot,
+        EnemyShot,
+        EnemyLaserShot,
+        EnemyStationWorking,
 
-		ShipExplosion,
-		AsteroidExplosion,
-		BulletHitAsteroid,
-		HitAsteroid,
-		HitEnemySaucer,
-		MetalHit,
-		GameOver,
-		BonusTouched,
-		PartPickedUp,
-		LevelComplete,
-		PlayerLaserShot,
+        // Impacts and gameplay events
+        ShipExplosion,
+        AsteroidExplosion,
+        BulletHitAsteroid,
+        HitAsteroid,
+        HitEnemySaucer,
+        MetalHit,
+        GameOver,
+        BonusTouched,
+        PartPickedUp,
+        LevelComplete,
 
-		Count
-	};
+        Count
+    };
 
 	enum class Music
 	{
@@ -134,6 +167,8 @@ namespace Config
 		GameplayBackground1,
 		GameplayBackground2,
 		GameplayBackground3,
+		BossFight,
+		CampaignVictory,
 
 		Count
 	};

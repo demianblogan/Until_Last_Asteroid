@@ -1,11 +1,14 @@
 #pragma once
 
+#include <cstddef>
+
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include "ui/NeonGlow.h"
 
-class AssetStore;
+class Assets;
 class GameplaySession;
+class LocalizationManager;
 
 namespace sf
 {
@@ -15,7 +18,7 @@ namespace sf
 class HUD
 {
 public:
-	HUD(AssetStore& assets, const GameplaySession& session);
+	HUD(Assets& assets, const GameplaySession& session, LocalizationManager& localization);
 
 	void Update(float deltaTime);
 	void Draw(sf::RenderTarget& target);
@@ -25,6 +28,7 @@ public:
 	void HighlightParts(float duration) noexcept;
 	void SetRunMode(bool enabled) noexcept;
 	void SetPartsVisible(bool visible) noexcept;
+	void SetScoreVisible(bool visible) noexcept;
 	void SetSurvivalTime(float seconds) noexcept;
 
 private:
@@ -45,8 +49,11 @@ private:
 	void CenterPartsText();
 	void DrawScorePanel(sf::RenderTarget& target, const sf::RenderStates& states) const;
 	void DrawPartsPanel(sf::RenderTarget& target, const sf::RenderStates& states) const;
+	void RefreshLocalizedFonts();
 
+	Assets& assets;
 	const GameplaySession& session;
+	LocalizationManager& localization;
 	sf::Text scoreText;
 	sf::Sprite scorePanel;
 	NeonGlow scoreGlow;
@@ -74,6 +81,7 @@ private:
 	sf::Sprite timeSlowdownFrame;
 	sf::Sprite timeSlowdownFill;
 	NeonGlow timeSlowdownGlow;
+	std::size_t localizationRevision{ 0u };
 	int displayedScore{ 0 };
 	int displayedParts{ 0 };
 	int displayedTimeSeconds{ -1 };
@@ -94,6 +102,7 @@ private:
 	bool timeSlowdownVisible{ false };
 	bool runMode{ false };
 	bool partsVisible{ true };
+	bool scoreVisible{ true };
 
 	static constexpr float CriticalThreshold{ 0.3f };
 	static constexpr float CriticalWarningDuration{ 3.f };

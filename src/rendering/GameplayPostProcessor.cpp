@@ -9,7 +9,7 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/View.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -34,7 +34,7 @@ namespace
     }
 }
 
-GameplayPostProcessor::GameplayPostProcessor(AssetStore& assets, sf::Vector2f logicalSize)
+GameplayPostProcessor::GameplayPostProcessor(Assets& assets, sf::Vector2f logicalSize)
     : logicalSize(logicalSize)
     , brightPassShader(assets.GetShader(Config::Shader::SceneBrightPass))
     , blurShader(assets.GetShader(Config::Shader::GaussianBlur))
@@ -59,7 +59,22 @@ void GameplayPostProcessor::Render(
     renderScene(scene);
     scene.display();
 
-    ApplyBloom(scene.getTexture());
+    // Bloom is a 5-pass, half-resolution effect (bright-pass + two blur
+    // iterations). Levels with bloomIntensity at ~0 don't need it redone
+    // every frame -- clear the (now unused) bloom texture once and reuse
+    // that empty result until bloom is actually needed again.
+    constexpr float MinimumBloomIntensity{ 0.01f };
+    if (config.bloomIntensity > MinimumBloomIntensity)
+    {
+        ApplyBloom(scene.getTexture());
+        bloomTextureCleared = false;
+    }
+    else if (!bloomTextureCleared)
+    {
+        bloom.clear(sf::Color::Transparent);
+        bloom.display();
+        bloomTextureCleared = true;
+    }
 
     compositeShader.setUniform("source", sf::Shader::CurrentTexture);
     compositeShader.setUniform("bloomTexture", bloom.getTexture());

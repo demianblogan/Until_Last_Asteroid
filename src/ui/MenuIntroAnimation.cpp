@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <utility>
 
-MenuIntroAnimation::MenuIntroAnimation(std::string titleText, std::vector<std::string> itemTexts)
+MenuIntroAnimation::MenuIntroAnimation(sf::String titleText, std::vector<sf::String> itemTexts)
     : title(std::move(titleText))
     , menuItems(std::move(itemTexts))
     , visibleMenuCharacters(menuItems.size(), 0)
@@ -51,9 +51,9 @@ MenuIntroAnimation::Events MenuIntroAnimation::Skip()
     if (phase == Phase::Interactive)
         return events;
 
-    visibleTitleCharacters = title.size();
+    visibleTitleCharacters = title.getSize();
     for (std::size_t index{ 0 }; index < menuItems.size(); ++index)
-        visibleMenuCharacters[index] = menuItems[index].size();
+        visibleMenuCharacters[index] = menuItems[index].getSize();
 
     titleMoveProgress = 1.f;
     frameOpacity = 1.f;
@@ -64,17 +64,17 @@ MenuIntroAnimation::Events MenuIntroAnimation::Skip()
     return events;
 }
 
-std::string_view MenuIntroAnimation::GetVisibleTitle() const noexcept
+sf::String MenuIntroAnimation::GetVisibleTitle() const
 {
-    return std::string_view(title).substr(0, visibleTitleCharacters);
+    return title.substring(0, visibleTitleCharacters);
 }
 
-std::string_view MenuIntroAnimation::GetVisibleMenuItem(std::size_t index) const noexcept
+sf::String MenuIntroAnimation::GetVisibleMenuItem(std::size_t index) const
 {
     if (index >= menuItems.size())
         return {};
 
-    return std::string_view(menuItems[index]).substr(0, visibleMenuCharacters[index]);
+    return menuItems[index].substring(0, visibleMenuCharacters[index]);
 }
 
 float MenuIntroAnimation::GetTitleMoveProgress() const noexcept
@@ -96,16 +96,16 @@ void MenuIntroAnimation::UpdateTypingTitle(float deltaTime, Events& events)
 {
     characterTimer += deltaTime;
 
-    while (characterTimer >= TITLE_CHARACTER_INTERVAL && visibleTitleCharacters < title.size())
+    while (characterTimer >= TITLE_CHARACTER_INTERVAL && visibleTitleCharacters < title.getSize())
     {
         characterTimer -= TITLE_CHARACTER_INTERVAL;
-        if (title[visibleTitleCharacters] != ' ')
+        if (title[visibleTitleCharacters] != U' ')
             ++events.typedCharacters;
 
         ++visibleTitleCharacters;
     }
 
-    if (visibleTitleCharacters >= title.size())
+    if (visibleTitleCharacters >= title.getSize())
     {
         phase = Phase::MovingTitle;
         phaseTimer = 0.f;
@@ -136,23 +136,23 @@ void MenuIntroAnimation::UpdateTypingMenuItems(float deltaTime, Events& events)
         return;
     }
 
-    const std::string& item{ menuItems[currentMenuItem] };
+    const sf::String& item{ menuItems[currentMenuItem] };
     std::size_t& visibleCharacters{ visibleMenuCharacters[currentMenuItem] };
 
-    if (visibleCharacters < item.size())
+    if (visibleCharacters < item.getSize())
     {
         characterTimer += deltaTime;
 
-        while (characterTimer >= MENU_CHARACTER_INTERVAL && visibleCharacters < item.size())
+        while (characterTimer >= MENU_CHARACTER_INTERVAL && visibleCharacters < item.getSize())
         {
             characterTimer -= MENU_CHARACTER_INTERVAL;
-            if (item[visibleCharacters] != ' ')
+            if (item[visibleCharacters] != U' ')
                 ++events.typedCharacters;
 
             ++visibleCharacters;
         }
 
-        if (visibleCharacters >= item.size())
+        if (visibleCharacters >= item.getSize())
         {
             phaseTimer = 0.f;
             if (currentMenuItem + 1 >= menuItems.size())

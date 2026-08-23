@@ -14,9 +14,10 @@
 #include "ui/MenuButton.h"
 #include "ui/NeonGlow.h"
 
-class AssetStore;
+class Assets;
 class AudioManager;
 class GamepadManager;
+class LocalizationManager;
 
 namespace sf
 {
@@ -34,7 +35,8 @@ public:
         MainMenu
     };
 
-    GameOverScreen(AssetStore& assets, AudioManager& audio, GamepadManager& gamepad,
+    GameOverScreen(Assets& assets, AudioManager& audio, GamepadManager& gamepad,
+        LocalizationManager& localization,
         sf::Vector2f logicalSize);
 
     void Start(int finalScore);
@@ -50,7 +52,8 @@ public:
     [[nodiscard]] bool IsActive() const noexcept;
 
 private:
-    void StartWithSummary(std::string summary, std::string_view restartLabel);
+    void StartWithSummary(sf::String summary, const sf::String& restartLabel);
+    void RefreshLocalizedContent();
     void SkipAnimation();
     void ApplyVisualState();
     void Select(std::size_t index, bool playSound = true);
@@ -60,8 +63,10 @@ private:
     [[nodiscard]] std::optional<Action> ActivateSelected();
     void CenterText(sf::Text& text, sf::Vector2f position);
 
+    Assets& assets;
     AudioManager& audio;
     GamepadManager& gamepad;
+    LocalizationManager& localization;
     sf::Vector2f logicalSize;
     sf::RectangleShape shade;
     sf::Sprite titleFrame;
@@ -72,6 +77,7 @@ private:
     GlowingCursor menuCursor;
     std::vector<MenuButton> buttons;
     std::size_t selectedIndex{ 0u };
+    std::size_t localizationRevision{ 0u };
     float elapsed{ 0.f };
     bool active{ false };
     bool interactive{ false };

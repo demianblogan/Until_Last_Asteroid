@@ -8,16 +8,17 @@
 
 #include "core/World.h"
 #include "entities/Pickup.h"
-#include "game/GameplayData.h"
-#include "game/GameplaySession.h"
-#include "game/TutorialDirector.h"
-#include "game/WaveDirector.h"
+#include "gameplay/GameplayData.h"
+#include "gameplay/BossEncounter.h"
+#include "gameplay/GameplaySession.h"
+#include "gameplay/TutorialDirector.h"
+#include "gameplay/WaveDirector.h"
 #include "rendering/GameplayBackground.h"
 #include "rendering/GameplayEffects.h"
 #include "rendering/GameplayPostProcessor.h"
 #include "states/State.h"
-#include "systems/ActionMap.h"
-#include "systems/InputHandler.h"
+#include "input/ActionMap.h"
+#include "input/InputHandler.h"
 #include "ui/GlowingCursor.h"
 #include "ui/GameOverScreen.h"
 #include "ui/HUD.h"
@@ -49,7 +50,8 @@ private:
 		TutorialComplete,
 		ShipUpgrades,
 		LevelSelect,
-		MainMenu
+		MainMenu,
+		CampaignComplete
 	};
 
 	void SetupInput();
@@ -64,7 +66,13 @@ private:
 	void SpawnConfiguredEnemy(
 		const GameplayData::SpawnGroup& spawn,
 		std::size_t spawnIndex,
-		bool materialize = false);
+		bool materialize = false,
+		bool bossReinforcement = false,
+		std::optional<sf::Vector2f> forcedPosition = std::nullopt);
+	void SpawnBossReinforcement(
+		GameplayData::EnemyKind kind,
+		std::optional<sf::Vector2f> position,
+		std::optional<GameplayData::PickupKind> guaranteedPickup);
 	void SpawnPickup(Pickup::Kind kind, sf::Vector2f position);
 	void StartTutorial();
 	void UpdateTutorial(float deltaTime);
@@ -76,6 +84,8 @@ private:
 	void Reset();
 	void RestoreCampaignProgress();
 	void SaveCompletedLevel();
+	void EvaluateEntryAchievements();
+	void UnlockCompletionAchievements(int completedLevel);
 	[[nodiscard]] ResultScreen::Statistics FinalizeLevelStatistics();
 	void CompleteCurrentLevel();
 #ifdef _DEBUG
@@ -114,6 +124,7 @@ private:
 	const GameplayData& gameplayData;
 	GameplaySession session;
 	WaveDirector waveDirector;
+	std::optional<BossEncounter> bossEncounter;
 	ActionMap<Config::PlayerAction> actions;
 	InputHandler<Config::PlayerAction> input;
 	GameplayBackground background;
@@ -163,5 +174,9 @@ private:
 	int runShootersSpawned{ 0 };
 	bool runLaserTurretSpawned{ false };
 	bool runReflectorSpawned{ false };
+	bool bossVictorySequenceStarted{ false };
+	bool preserveGameplayMusicOnDestruction{ false };
+	bool mainCampaignRun{ false };
+	bool debugAchievementSuppressed{ false };
 	std::vector<Entity*> materializingEnemies;
 };

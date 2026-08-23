@@ -3,12 +3,12 @@
 #include <array>
 #include <cmath>
 #include <numbers>
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
 #include "core/World.h"
 
-Meteor::Meteor(AssetStore& assets, World& world, Size size)
+Meteor::Meteor(Assets& assets, World& world, Size size)
 	: Enemy(assets, world, GetRandomTexture(assets, size), GetConfig(assets, size)), size(size)
 {
 	const float direction{ Random::Int(0, 1) == 0 ? -1.f : 1.f };
@@ -44,6 +44,9 @@ void Meteor::OnDestroy()
 		GetVelocity(),
 		size == Size::Big ? 1.f : 0.62f });
 
+	if (!fragmentSpawningEnabled)
+		return;
+
 	Size newSize;
 
 	switch (size)
@@ -71,7 +74,7 @@ void Meteor::OnDestroy()
 	}
 }
 
-const GameplayData::EnemyConfig& Meteor::GetConfig(AssetStore& assets, Meteor::Size size)
+const GameplayData::EnemyConfig& Meteor::GetConfig(Assets& assets, Meteor::Size size)
 {
 	using Kind = GameplayData::EnemyKind;
 	switch (size)
@@ -91,7 +94,12 @@ Meteor::Size Meteor::GetSize() const noexcept
 	return size;
 }
 
-sf::Texture& Meteor::GetRandomTexture(AssetStore& assets, Meteor::Size size)
+void Meteor::SetFragmentSpawningEnabled(bool enabled) noexcept
+{
+	fragmentSpawningEnabled = enabled;
+}
+
+sf::Texture& Meteor::GetRandomTexture(Assets& assets, Meteor::Size size)
 {
 	using Texture = Config::Texture;
 

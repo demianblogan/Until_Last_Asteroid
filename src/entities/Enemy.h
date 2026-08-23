@@ -1,12 +1,12 @@
 #pragma once
 
 #include "core/Entity.h"
-#include "game/GameplayData.h"
-#include "game/Health.h"
+#include "gameplay/GameplayData.h"
+#include "gameplay/Health.h"
 
 #include <string>
 
-class AssetStore;
+class Assets;
 class World;
 
 namespace sf
@@ -17,7 +17,7 @@ namespace sf
 class Enemy : public Entity
 {
 public:
-	Enemy(AssetStore& assets, World& world, sf::Texture& texture,
+	Enemy(Assets& assets, World& world, sf::Texture& texture,
 		const GameplayData::EnemyConfig& config);
 
 	[[nodiscard]] int GetScoreValue() const noexcept;
@@ -30,10 +30,16 @@ public:
 	[[nodiscard]] std::optional<GameplayData::PickupKind> RollPickupDrop() const;
 	void SetOrderedPickupDropCount(int count) noexcept;
 	[[nodiscard]] int GetOrderedPickupDropCount() const noexcept;
-	void SetPartDropId(std::string id);
-	[[nodiscard]] const std::string& GetPartDropId() const noexcept;
+	void SetPartDropID(std::string id);
+	[[nodiscard]] const std::string& GetPartDropID() const noexcept;
 	void SetRewardsEnabled(bool enabled) noexcept;
 	[[nodiscard]] bool AreRewardsEnabled() const noexcept;
+	void SetScoreRewardEnabled(bool enabled) noexcept;
+	void SetPickupRewardsEnabled(bool enabled) noexcept;
+	void SetPartRewardEnabled(bool enabled) noexcept;
+	[[nodiscard]] bool IsScoreRewardEnabled() const noexcept;
+	[[nodiscard]] bool ArePickupRewardsEnabled() const noexcept;
+	[[nodiscard]] bool IsPartRewardEnabled() const noexcept;
 	[[nodiscard]] virtual bool AcceptsKnockback() const noexcept;
 	[[nodiscard]] virtual bool IsProjectileReflectionActive() const noexcept;
 	[[nodiscard]] virtual bool BlocksPlayerLaser() const noexcept;
@@ -70,6 +76,8 @@ private:
 	std::vector<GameplayData::NormalizedPoint> engineEmitters;
 	std::optional<GameplayData::SpawnGroup::PickupDropConfig> pickupDrop;
 	int orderedPickupDropCount{ 0 };
-	std::string partDropId;
-	bool rewardsEnabled{ true };
+	std::string partDropID;
+	bool scoreRewardEnabled{ true };
+	bool pickupRewardsEnabled{ true };
+	bool partRewardEnabled{ true };
 };

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Code">
@@ -9,23 +9,23 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="src\assets\AssetStore.cpp" />
+    <ClCompile Include="src\assets\Assets.cpp" />
     <ClCompile Include="src\app\DisplayManager.cpp" />
     <ClCompile Include="src\audio\AudioManager.cpp" />
     <ClCompile Include="src\audio\AudioBalance.cpp" />
     <ClCompile Include="src\campaign\CampaignSaveManager.cpp" />
 	<ClCompile Include="src\records\RecordsManager.cpp" />
-    <ClCompile Include="src\systems\Collision.cpp" />
+    <ClCompile Include="src\core\Collision.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
     <ClCompile Include="src\entities\Pickup.cpp" />
     <ClCompile Include="src\core\Entity.cpp" />
     <ClCompile Include="src\app\Application.cpp" />
-    <ClCompile Include="src\game\GameplaySession.cpp" />
-    <ClCompile Include="src\game\GameplayData.cpp" />
-    <ClCompile Include="src\game\Health.cpp" />
-    <ClCompile Include="src\game\Shield.cpp" />
-    <ClCompile Include="src\game\TutorialDirector.cpp" />
-    <ClCompile Include="src\game\WaveDirector.cpp" />
+    <ClCompile Include="src\gameplay\GameplaySession.cpp" />
+    <ClCompile Include="src\gameplay\GameplayData.cpp" />
+    <ClCompile Include="src\gameplay\Health.cpp" />
+    <ClCompile Include="src\gameplay\Shield.cpp" />
+    <ClCompile Include="src\gameplay\TutorialDirector.cpp" />
+    <ClCompile Include="src\gameplay\WaveDirector.cpp" />
     <ClCompile Include="src\rendering\GameplayBackground.cpp" />
     <ClCompile Include="src\rendering\GameplayEffects.cpp" />
     <ClCompile Include="src\rendering\GameplayPostProcessor.cpp" />
@@ -38,17 +38,18 @@
     <ClCompile Include="src\states\MainMenuState.cpp" />
     <ClCompile Include="src\states\OptionsState.cpp" />
     <ClCompile Include="src\states\PauseState.cpp" />
-    <ClCompile Include="src\states\PlaceholderStates.cpp" />
     <ClCompile Include="src\states\State.cpp" />
     <ClCompile Include="src\states\StateStack.cpp" />
-    <ClCompile Include="src\systems\InputAction.cpp" />
+    <ClCompile Include="src\input\InputBinding.cpp" />
     <ClCompile Include="src\entities\Meteor.cpp" />
 	<ClCompile Include="src\entities\HomingMissile.cpp" />
 	<ClCompile Include="src\entities\HelperBot.cpp" />
 	<ClCompile Include="src\entities\MissileCarrier.cpp" />
 	<ClCompile Include="src\entities\ReflectorGunship.cpp" />
     <ClCompile Include="src\entities\Player.cpp" />
+    <ClCompile Include="src\utils\AppDataPath.cpp" />
     <ClCompile Include="src\utils\Random.cpp" />
+    <ClCompile Include="src\utils\SafeFileWrite.cpp" />
     <ClCompile Include="src\core\World.cpp" />
     <ClCompile Include="src\entities\Saucer.cpp" />
 	<ClCompile Include="src\entities\Spinner.cpp" />
@@ -62,26 +63,29 @@
     <ClCompile Include="src\ui\NeonGlow.cpp" />
     <ClCompile Include="src\ui\RoundedRectangleShape.cpp" />
     <ClCompile Include="src\ui\ScreenFade.cpp" />
+    <ClCompile Include="src\ui\TextWarmup.cpp" />
     <ClCompile Include="src\ui\WaveIntro.cpp" />
     <ClCompile Include="src\ui\GameOverScreen.cpp" />
     <ClCompile Include="src\ui\ResultScreen.cpp" />
     <ClCompile Include="src\settings\SettingsManager.cpp" />
-    <ClCompile Include="src\systems\GamepadManager.cpp" />
+    <ClCompile Include="src\input\GamepadManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\utils\AppDataPath.h" />
     <ClInclude Include="src\utils\Random.h" />
+    <ClInclude Include="src\utils\SafeFileWrite.h" />
     <ClInclude Include="src\audio\AudioManager.h" />
     <ClInclude Include="src\audio\AudioBalance.h" />
     <ClInclude Include="src\campaign\CampaignProgress.h" />
     <ClInclude Include="src\campaign\CampaignSaveManager.h" />
 	<ClInclude Include="src\records\RecordsManager.h" />
     <ClInclude Include="src\app\DisplayManager.h" />
-    <ClInclude Include="src\assets\AssetStorage.h" />
-    <ClInclude Include="src\systems\Collision.h" />
-    <ClInclude Include="src\systems\InputAction.h" />
-    <ClInclude Include="src\systems\ActionMap.h" />
-    <ClInclude Include="src\systems\InputHandler.h" />
-    <ClInclude Include="src\systems\GamepadManager.h" />
+    <ClInclude Include="src\assets\AssetCache.h" />
+    <ClInclude Include="src\core\Collision.h" />
+    <ClInclude Include="src\input\InputBinding.h" />
+    <ClInclude Include="src\input\ActionMap.h" />
+    <ClInclude Include="src\input\InputHandler.h" />
+    <ClInclude Include="src\input\GamepadManager.h" />
     <ClInclude Include="src\core\World.h" />
     <ClInclude Include="src\entities\Shot.h" />
     <ClInclude Include="src\entities\Saucer.h" />
@@ -95,20 +99,20 @@
 	<ClInclude Include="src\entities\MissileCarrier.h" />
 	<ClInclude Include="src\entities\ReflectorGunship.h" />
     <ClInclude Include="src\entities\Player.h" />
-    <ClInclude Include="src\game\GameplaySession.h" />
-    <ClInclude Include="src\game\GameplayData.h" />
-    <ClInclude Include="src\game\Health.h" />
-    <ClInclude Include="src\game\Shield.h" />
-    <ClInclude Include="src\game\GameplayLaunch.h" />
-    <ClInclude Include="src\game\TutorialDirector.h" />
-    <ClInclude Include="src\game\WaveDirector.h" />
+    <ClInclude Include="src\gameplay\GameplaySession.h" />
+    <ClInclude Include="src\gameplay\GameplayData.h" />
+    <ClInclude Include="src\gameplay\Health.h" />
+    <ClInclude Include="src\gameplay\Shield.h" />
+    <ClInclude Include="src\gameplay\GameplayLaunch.h" />
+    <ClInclude Include="src\gameplay\TutorialDirector.h" />
+    <ClInclude Include="src\gameplay\WaveDirector.h" />
     <ClInclude Include="src\rendering\GameplayBackground.h" />
     <ClInclude Include="src\rendering\GameplayEffects.h" />
     <ClInclude Include="src\rendering\GameplayPostProcessor.h" />
     <ClInclude Include="src\rendering\ParticleSystem.h" />
     <ClInclude Include="src\core\GameVersion.h" />
     <ClInclude Include="src\utils\ConfigEnums.h" />
-    <ClInclude Include="src\assets\AssetStore.h" />
+    <ClInclude Include="src\assets\Assets.h" />
     <ClInclude Include="src\app\Application.h" />
     <ClInclude Include="src\states\GameplayState.h" />
 	<ClInclude Include="src\states\LevelSelectState.h" />
@@ -118,7 +122,6 @@
     <ClInclude Include="src\states\MainMenuState.h" />
     <ClInclude Include="src\states\OptionsState.h" />
     <ClInclude Include="src\states\PauseState.h" />
-    <ClInclude Include="src\states\PlaceholderStates.h" />
     <ClInclude Include="src\states\State.h" />
     <ClInclude Include="src\states\StateId.h" />
     <ClInclude Include="src\states\StateStack.h" />
@@ -131,6 +134,7 @@
     <ClInclude Include="src\ui\NeonGlow.h" />
     <ClInclude Include="src\ui\RoundedRectangleShape.h" />
     <ClInclude Include="src\ui\ScreenFade.h" />
+    <ClInclude Include="src\ui\TextWarmup.h" />
     <ClInclude Include="src\ui\WaveIntro.h" />
     <ClInclude Include="src\ui\GameOverScreen.h" />
     <ClInclude Include="src\ui\ResultScreen.h" />

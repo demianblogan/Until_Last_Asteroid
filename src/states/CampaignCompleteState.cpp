@@ -1,0 +1,186 @@
+#include "CampaignCompleteState.h"
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <string>
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Window/Event.hpp>
+#include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window/Mouse.hpp>
+#include "assets/Assets.h"
+#include "audio/AudioManager.h"
+#include "localization/LocalizationManager.h"
+#include "states/StateID.h"
+#include "input/GamepadManager.h"
+#include "ui/TextLayout.h"
+#include "utils/ConfigEnums.h"
+
+namespace
+{
+	constexpr sf::FloatRect TitleBounds{ { 210.f, 30.f }, { 1500.f, 260.f } };
+	constexpr sf::FloatRect MessageBounds{ { 80.f, 285.f }, { 1760.f, 590.f } };
+	constexpr float TitleBorder{ 85.f };
+	constexpr float MessageBorder{ 100.f };
+	constexpr sf::Vector2f ButtonSize{ 500.f, 98.f };
+	constexpr sf::Vector2f ButtonPosition{ 710.f, 888.f };
+	constexpr sf::Color Gold{ 255, 188, 62 };
+	constexpr sf::Color Cyan{ 52, 225, 255 };
+	constexpr float RevealDuration{ 0.9f };
+	constexpr float FadeDuration{ 0.55f };
+}
+
+CampaignCompleteState::CampaignCompleteState(StateStack& stack, StateContext context)
+	: State(stack, context), background(context.assets, context.logicalSize)
+	, titleFrame(context.assets.Textures().Get(Config::Texture::CampaignCompleteTitleFrame),
+		TitleBounds, 220u, { TitleBorder, TitleBorder })
+	, messageFrame(context.assets.Textures().Get(Config::Texture::CampaignCompletePanelFrame),
+		MessageBounds, 190u, { MessageBorder, MessageBorder })
+	, title(context.assets.Fonts().Get(context.localization.BoldFont()),
+		context.localization.Get("campaign_complete.title"), 60u)
+	, button(context.assets.Fonts().Get(context.localization.RegularFont()),
+		context.assets.Textures().Get(Config::Texture::MenuButtonIdle),
+		context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
+		context.localization.Get("campaign_complete.thanks"), ButtonSize)
+	, titleGlow(context.assets), buttonGlow(context.assets)
+	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Gold)
+	, screenFade(context.logicalSize)
+{
+	context.window.setMouseCursorVisible(false);
+	title.setOutlineThickness(3.f);
+	CenterText(title, { 960.f, 160.f });
+	TextLayout::FitWidth(title, TitleBounds.size.x - 240.f, 38u);
+	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.RegularFont(false)) };
+	const std::array mainCopy{ "campaign_complete.line_1", "campaign_complete.line_2",
+		"campaign_complete.line_3", "campaign_complete.line_4" };
+	messageLines.reserve(mainCopy.size());
+	for (std::size_t index{ 0u }; index < mainCopy.size(); ++index)
+	{
+		messageLines.emplace_back(bodyFont, context.localization.Get(mainCopy[index]), 36u);
+		TextLayout::FitWidth(messageLines.back(), MessageBounds.size.x - 220.f, 24u);
+		messageLines.back().setOutlineThickness(1.5f);
+		CenterText(messageLines.back(), { 960.f, 405.f + 58.f * static_cast<float>(index) });
+	}
+	const std::array postscriptCopy{ "campaign_complete.postscript_1", "campaign_complete.postscript_2" };
+	postscriptLines.reserve(postscriptCopy.size());
+	for (std::size_t index{ 0u }; index < postscriptCopy.size(); ++index)
+	{
+		postscriptLines.emplace_back(bodyFont, context.localization.Get(postscriptCopy[index]), 31u);
+		TextLayout::FitWidth(postscriptLines.back(), MessageBounds.size.x - 220.f, 21u);
+		postscriptLines.back().setOutlineThickness(1.f);
+		CenterText(postscriptLines.back(), { 960.f, 700.f + 48.f * static_cast<float>(index) });
+	}
+	button.SetPosition(ButtonPosition);
+	button.SetSelected(true);
+	button.SetLabelOutline(sf::Color(45, 18, 0, 220), 1.5f);
+	screenFade.StartFadeIn(FadeDuration);
+	ApplyReveal();
+}
+
+CampaignCompleteState::~CampaignCompleteState()
+{
+	GetContext().audio.StopGameplayMusic();
+}
+
+void CampaignCompleteState::HandleEvent(const sf::Event& event)
+{
+	if (!interactive || leaving || screenFade.IsActive()) return;
+	using enum GamepadManager::NavigationAction;
+	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
+	if (navigation == Confirm || navigation == Back) { Activate(); return; }
+	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
+	{
+		const auto position{ GetContext().window.mapPixelToCoords(moved->position) };
+		background.SetMousePosition(position);
+		button.SetSelected(button.Contains(position));
+		return;
+	}
+	if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
+	{
+		if (key->code == sf::Keyboard::Key::Enter || key->code == sf::Keyboard::Key::Space ||
+			key->code == sf::Keyboard::Key::Escape) Activate();
+		return;
+	}
+	if (const auto* pressed{ event.getIf<sf::Event::MouseButtonPressed>() })
+		if (pressed->button == sf::Mouse::Button::Left && button.Contains(
+			GetContext().window.mapPixelToCoords(pressed->position))) Activate();
+}
+
+void CampaignCompleteState::Update(float dt)
+{
+	background.Update(dt); titleGlow.Update(dt); buttonGlow.Update(dt);
+	cursor.Update(dt); screenFade.Update(dt);
+	if (!interactive)
+	{
+		revealElapsed = std::min(RevealDuration, revealElapsed + dt);
+		ApplyReveal();
+		interactive = revealElapsed >= RevealDuration;
+	}
+	if (!leaving) return;
+	activationDelay -= dt;
+	if (activationDelay <= 0.f && !screenFade.IsActive())
+	{
+		RequestClear();
+		RequestPush(StateID::MainMenu);
+	}
+}
+
+void CampaignCompleteState::Render()
+{
+	auto& window{ GetContext().window };
+	background.Draw(window);
+	titleGlow.DrawBloom(window, titleFrame.GetBounds(),
+		[this](sf::RenderTarget& target, const sf::RenderStates& states)
+		{ titleFrame.Draw(target, states); target.draw(title, states); }, Gold, false);
+	titleFrame.Draw(window); messageFrame.Draw(window);
+	window.draw(title);
+	for (const sf::Text& line : messageLines) window.draw(line);
+	for (const sf::Text& line : postscriptLines) window.draw(line);
+	if (interactive)
+		buttonGlow.DrawBloom(window, button.GetBounds(),
+			[this](sf::RenderTarget& target, const sf::RenderStates& states)
+			{ button.Draw(target, states); }, Gold);
+	button.Draw(window);
+	if (interactive) buttonGlow.DrawHighlight(window, button.GetBounds(), Cyan);
+}
+
+void CampaignCompleteState::RenderOverlay()
+{
+	if (interactive && !GetContext().gamepad.IsInUse()) cursor.Draw(GetContext().window);
+	screenFade.Draw(GetContext().window);
+}
+
+void CampaignCompleteState::Activate()
+{
+	if (leaving) return;
+	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI,
+		100.f, 1.f, SoundPlayback::StopPrevious);
+	leaving = true;
+	activationDelay = 0.12f;
+	screenFade.StartFadeOut(FadeDuration);
+}
+
+void CampaignCompleteState::ApplyReveal()
+{
+	const float p{ std::clamp(revealElapsed / RevealDuration, 0.f, 1.f) };
+	const float eased{ p * p * (3.f - 2.f * p) };
+	const auto alpha{ static_cast<std::uint8_t>(255.f * eased) };
+	titleFrame.SetColor({ 255, 255, 255, alpha });
+	messageFrame.SetColor({ 255, 255, 255, alpha });
+	auto set = [alpha](sf::Text& text, sf::Color fill, sf::Color outline)
+	{ fill.a = alpha; outline.a = alpha; text.setFillColor(fill); text.setOutlineColor(outline); };
+	set(title, { 255, 236, 186 }, { 68, 25, 0 });
+	for (sf::Text& line : messageLines)
+		set(line, { 218, 238, 244 }, { 0, 9, 17 });
+	for (sf::Text& line : postscriptLines)
+		set(line, { 151, 219, 235 }, { 0, 9, 17 });
+	button.SetFrameOpacity(eased);
+	button.SetLabelOpacity(eased);
+}
+
+void CampaignCompleteState::CenterText(sf::Text& text, sf::Vector2f position)
+{
+	const sf::FloatRect bounds{ text.getLocalBounds() };
+	text.setOrigin(bounds.position + bounds.size * 0.5f);
+	text.setPosition(position);
+}

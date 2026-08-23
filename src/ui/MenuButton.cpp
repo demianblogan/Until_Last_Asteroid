@@ -20,7 +20,7 @@ MenuButton::MenuButton(
     const sf::Font& font,
     const sf::Texture& idleTexture,
     const sf::Texture& selectedTexture,
-    std::string labelText,
+    sf::String labelText,
     sf::Vector2f buttonSize)
     : idleTexture(idleTexture)
     , selectedTexture(selectedTexture)
@@ -52,15 +52,15 @@ MenuButton::MenuButton(
     CenterLabel();
 }
 
-void MenuButton::SetPosition(sf::Vector2f position)
+void MenuButton::SetPosition(sf::Vector2f newPosition)
 {
-	this->position = position;
+	position = newPosition;
 	const float capWidth{ leftFrame.getGlobalBounds().size.x };
-	leftFrame.setPosition(position);
-	centerFrame.setPosition({ position.x + capWidth, position.y });
+	leftFrame.setPosition(newPosition);
+	centerFrame.setPosition({ newPosition.x + capWidth, newPosition.y });
 	rightFrame.setPosition({
-		position.x + size.x - rightFrame.getGlobalBounds().size.x,
-		position.y });
+		newPosition.x + size.x - rightFrame.getGlobalBounds().size.x,
+		newPosition.y });
     CenterLabel();
 }
 
@@ -78,9 +78,10 @@ void MenuButton::SetEnabled(bool isEnabled)
     ApplyVisualState();
 }
 
-void MenuButton::SetLabel(std::string_view text)
+void MenuButton::SetLabel(const sf::String& text)
 {
-    label.setString(std::string(text));
+	label.setCharacterSize(38u);
+    label.setString(text);
     CenterLabel();
 }
 
@@ -88,6 +89,18 @@ void MenuButton::SetFrameOpacity(float opacity)
 {
     frameOpacity = std::clamp(opacity, 0.f, 1.f);
     ApplyVisualState();
+}
+
+void MenuButton::SetLabelOpacity(float opacity)
+{
+    labelOpacity = std::clamp(opacity, 0.f, 1.f);
+    ApplyVisualState();
+}
+
+void MenuButton::SetFont(const sf::Font& font)
+{
+	label.setFont(font);
+	CenterLabel();
 }
 
 void MenuButton::SetFrameColor(sf::Color color)
@@ -139,6 +152,26 @@ void MenuButton::Draw(sf::RenderTarget& target, const sf::RenderStates& states) 
 
 void MenuButton::CenterLabel()
 {
+	// Shrinking by changing characterSize forces a brand new glyph atlas
+	// page per size it steps through -- on this SFML/driver combination that
+	// first-touch cost is severe (tens of ms per distinct size), so a loop
+	// walking down one point at a time could burn the better part of a
+	// second on a single label. Measure once at the original size and scale
+	// down instead, the same technique TextLayout::FitWidth already uses.
+	constexpr unsigned int OriginalSize{ 38u };
+	constexpr unsigned int MinimumSize{ 18u };
+	if (label.getCharacterSize() != OriginalSize)
+		label.setCharacterSize(OriginalSize);
+	label.setScale({ 1.f, 1.f });
+	const float maximumWidth{ std::max(40.f, size.x - 48.f) };
+	const float originalWidth{ label.getLocalBounds().size.x };
+	if (originalWidth > maximumWidth && originalWidth > 0.f)
+	{
+		const float minimumScale{
+			static_cast<float>(MinimumSize) / static_cast<float>(OriginalSize) };
+		const float scale{ std::clamp(maximumWidth / originalWidth, minimumScale, 1.f) };
+		label.setScale({ scale, scale });
+	}
     const sf::FloatRect bounds{ label.getLocalBounds() };
     label.setOrigin({
         bounds.position.x + bounds.size.x * 0.5f,
@@ -151,6 +184,7 @@ void MenuButton::CenterLabel()
 void MenuButton::ApplyVisualState()
 {
     const auto alpha{ static_cast<std::uint8_t>(frameOpacity * 255.f) };
+	const auto textAlpha{ static_cast<std::uint8_t>(labelOpacity * 255.f) };
     if (!enabled)
     {
 		leftFrame.setTexture(idleTexture, false);
@@ -168,7 +202,7 @@ void MenuButton::ApplyVisualState()
             DisabledTextColor.r,
             DisabledTextColor.g,
             DisabledTextColor.b,
-            alpha));
+            textAlpha));
         return;
     }
 
@@ -183,5 +217,5 @@ void MenuButton::ApplyVisualState()
 	rightFrame.setColor(frameColor);
 	const sf::Color textColor{ customLabelColor ? labelTint :
 		(selected ? SelectedTextColor : sf::Color::White) };
-    label.setFillColor(sf::Color(textColor.r, textColor.g, textColor.b, alpha));
+    label.setFillColor(sf::Color(textColor.r, textColor.g, textColor.b, textAlpha));
 }

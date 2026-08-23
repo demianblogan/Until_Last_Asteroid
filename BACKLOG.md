@@ -745,14 +745,421 @@ result layout, and removal of cumulative campaign score.
 
 ## In development
 
-- No active version. Level 10 and the campaign finale remain planned for v2.0.
+### v2.0 — Final completion
+
+#### Approved scope and implementation rules
+
+- Add Level 10, titled `THE LAST HORIZON`, as the campaign's wave-free final
+  boss encounter. Levels 1-9 continue to contain exactly three waves.
+- Implement the final boss as a dedicated encounter state machine instead of
+  extending `WaveDirector`. Keep boss timing, health, damage, spawn intervals,
+  and phase thresholds in validated gameplay data.
+- Give the boss three exact health ranges: outer ring from 100 to 70 percent,
+  four inner teleporters from 70 to 30 percent, and the exposed core from 30 to
+  zero percent. Award exactly 10,000 score when the boss is destroyed.
+- Boss reinforcements do not award score or Parts, but may drop bonuses to help
+  the player. Keep score, pickup, and Part reward permissions independent.
+- Do not show wave titles or the normal level-results table during Level 10.
+  Finish the destruction cinematic before opening the campaign-completion
+  screen.
+- Preserve v1.8/v1.9 schema-3 campaign saves through an explicit migration.
+  Migrated campaigns retain progress, Parts, upgrades, and scores, but only a
+  campaign started in v2.0 is eligible for the no-death achievement.
+- Keep `records.json` independent and unchanged when starting a new campaign.
+  Store permanent achievement unlocks separately from the active campaign.
+- Localize all player-facing text into English, Spanish, Russian, Ukrainian,
+  and Arabic. Language changes are immediate. The owner will provide suitable
+  fonts before the localization-font stage. Complete and approve the entire
+  English version first; localization is a later v2.0 stage.
+- Add nine achievements. Remove the proposed no-upgrades achievement. Use a
+  provisional target of three minutes for Run Mode and ten completed waves for
+  Horde Mode, subject to final balance testing.
+- Add localized Credits and consistent repository authorship for Demian Blogan.
+- Build only x64 Debug during implementation. Build x64 Release only after the
+  complete version is approved for release-candidate preparation.
+- After every implementation stage, report the exact changes and verification
+  result, then wait for owner review before continuing.
+
+#### Stage 1 — Technical contracts
+
+- Added an explicit `waves` / `boss` encounter kind to gameplay level data.
+  Wave encounters require exactly three waves; only Level 10 may be a boss
+  encounter, and a boss encounter must contain no waves.
+- Advanced campaign saves to schema 4 while accepting schema-3 v1.8/v1.9
+  files. New v2.0 campaigns begin eligible for the no-death achievement;
+  migrated campaigns remain compatible but are not retroactively eligible.
+- Split enemy reward permission into score, pickup, and Part controls so Level
+  10 reinforcements can drop helpful bonuses without granting score or Parts.
+
+#### Stage 2 — Final-boss visual concept
+
+- Approved the top-down assembled silhouette and created three separate RGBA
+  production sprites: the mechanical brain and obelisk core, the diamond frame
+  with four working teleporters, and the outer ring with six integrated guns.
+- Match the existing dark-metal, red-emissive enemy art direction. Keep the
+  orange retaliatory shield as a separate runtime effect rather than baking it
+  into the boss sprites.
+- Keep the modules independently scalable in gameplay so their assembled size
+  can be tuned against the 1920x1080 playfield without resampling source art.
+
+#### Stage 3 — Level 10 presentation foundation
+
+- Added `THE LAST HORIZON` to gameplay data as the only wave-free boss
+  encounter and added its dedicated red-black final-space background.
+- Added a dedicated `BossEncounter` presentation component. After the level
+  title, the player materializes, `boss_fight.ogg` starts, and the assembled
+  three-layer boss enters from above over four seconds under a pulsing orange
+  shield. It then holds the shield for two seconds before reaching the future
+  Phase 1 ready state.
+- Kept player firing disabled for this presentation-only stage. Damage,
+  retaliatory lightning, boss health, and Phase 1 combat belong to the next
+  reviewed stage.
+- Presentation review: reduced the diamond from 505 to 455 logical pixels and
+  the core from 330 to 280 pixels to separate all three silhouettes. Anchored
+  the core explicitly at source coordinate `(628, 628)`, hid the Parts HUD on
+  Level 10, and replaced the temporary circle with the shared hex-grid enemy
+  energy shield rendered in an orange palette.
+- Follow-up visual alignment: shifted only the core sprite 37 logical pixels
+  upward so the circular brain, rather than the full brain-and-obelisk image
+  bounds, is centered inside the diamond.
+
+#### Stage 4 — Intro shield retaliation
+
+- Enabled player movement and firing during the boss arrival. Player bullets
+  now collide with the orange shield surface, count as accurate hits, disappear
+  on impact, and produce the normal shield-impact feedback.
+- Each shield impact creates a short jagged orange lightning bolt from the exact
+  impact point to the player's current position and applies 10 damage through
+  the normal player shield/health pipeline. Existing damage invulnerability
+  prevents overlapping bullets from multiplying damage in a single instant.
+- The retaliatory shield remains active during the four-second arrival and the
+  two-second post-arrival suspense delay only. Phase shield cycles will reuse
+  this behaviour in the combat stages.
+
+#### Stage 5 — Phase 1 base combat
+
+- Added validated `boss.json` tuning for total health, the Phase 1 end ratio,
+  ring collision radii, rotation speed, cannon orbit, fire interval, stagger,
+  and the exact six-cannon count.
+- When the intro shield drops, a long red `BOSS ARMOR` bar appears, the outer
+  ring rotates at 8 degrees per second, and its six guns fire in a repeating
+  sequence: each gun fires every 0.6 seconds and adjacent guns are offset by
+  0.1 seconds.
+- Player bullets damage only the annular outer-ring hit region. The inner
+  diamond and core remain protected, and health is clamped at 70 percent until
+  the Phase 1 destruction transition is implemented.
+- Phase 1 visual review: replaced the stretched source art with new symmetric
+  production sprites: a mathematically circular outer ring and an equal-sided
+  diamond. The ring is assembled by repeating one mirrored 60-degree sector,
+  so all six rail segments and guns are rotationally identical. Both sprites use
+  uniform runtime scaling, eliminating rotational squeeze and wobble. Guns fire
+  strictly along their outward radial axes from the six equidistant muzzle
+  centers. Ring collision feedback is projected onto its visible 264-pixel rail
+  boundary, successful hits trigger the standard enemy white flash,
+  and the bar label displays `Boss Armor: XX%`.
+
+#### Stage 6 — Phase 1 shield cycles and ring destruction
+
+- Clamp each exposed damage window at exactly 90, 80, and 70 percent boss
+  armor. At the first two thresholds, restore the retaliatory orange shield for
+  ten seconds while the ring keeps rotating and all six guns keep firing.
+- During the first shield cycle, spawn one kamikaze every two seconds. During
+  the second, also spawn one shooter every three seconds. Boss reinforcements
+  award no score or Parts. Phase 1 guarantees exactly one health pickup and one
+  homing-bullets pickup, distributed as one reward in each shield cycle instead
+  of attaching both rewards to the first reinforcements.
+- At 70 percent, stop the ring and its guns, shake it under repeated small
+  explosions for two seconds, then remove it with a large explosion. Leave the
+  diamond and core ready for the separately reviewed Phase 2 implementation.
+- Before each combat shield cycle, blink its orange projection for 1.5 seconds
+  while the ring is damage-clamped but retaliation remains disabled. This lets
+  already-fired bullets expire safely and warns the player to release fire.
+  During both the warning and active shield, keep enemy ships completely outside
+  the shield volume, including their collision radius and an additional margin.
+
+#### Stage 7 — Phase 2 teleporter combat
+
+- Rotate the inner diamond continuously and treat its four portals as separate
+  300-HP targets. Diamond walls absorb player fire without taking damage; each
+  destroyed portal removes exactly ten percent of total boss armor and receives
+  an immediate explosion plus a dark destroyed-state overlay. Measure each
+  portal center from the production sprite rather than assuming a perfectly
+  symmetric orbit, and reuse those aligned positions for collision, destroyed
+  masks, reinforcement origins, and player homing-bullet targets.
+- Cycle portal deployments in vertex order: kamikaze, shooter, spinner, and
+  missile carrier. Phase 2 does not spawn reflector gunships. Spawn immediately
+  from the first portal, then every four, three, two, or one seconds according
+  to the number of surviving portals. Add one ordinary edge-spawned shooter
+  every three seconds throughout Phase 2.
+- Guarantee exactly four Phase 2 rewards in order: shield, helper bot, health,
+  and triple shot. Unlock one reward at each surviving-portal tier so they are
+  spread across the phase instead of all dropping near its start. Keep all later
+  reinforcements reward-free. Increase the helper bot's global firing rate from
+  one shot per second to one shot every 0.5 seconds so the Phase 2 reward remains
+  useful under boss-level pressure.
+- After each of the first three portal destructions, use the shared 1.5-second
+  shield warning followed by five seconds of retaliatory orange shielding while
+  the diamond and surviving portals continue operating. After the fourth portal,
+  stop the diamond, shake it under small explosions for two seconds, then remove
+  it in a large explosion and leave the core ready for Phase 3.
+- Use a 225-pixel diamond shield instead of retaining the 355-pixel ring shield.
+  Keep the portal origin for teleport deployments, permanently exclude inward-
+  moving enemies from the current boss body, and relocate any reward that would
+  otherwise land inside that exclusion volume. Hide both Score and Parts panels
+  on Level 10. Add scaled muzzle flashes to all six ring cannons and additive
+  orange-white neon bloom to retaliatory lightning.
+
+#### Stage 8 — Phase 3 core combat
+
+- After the diamond is destroyed, leave only the mechanical brain and start a
+  full-screen obelisk beam rotating clockwise. The beam damages the player on
+  contact, renders above the brain sprite, and accelerates at each ten-percent
+  armor threshold. Use phase speeds of 14, 22, and 32 degrees per second. Match
+  the existing laser-turret beam language with a wider feathered core, additive
+  glow, and moving energy markers, recolored orange for the obelisk.
+- Protect the core with an orange shield and place four laser turrets in the
+  arena corners. Aim them clockwise along the arena edges—right, down, left,
+  and up—to form a rectangular laser boundary. Destroying all four turrets
+  removes the shield and exposes the core. At 20 and 10 percent armor, use the
+  shared 1.5-second shield warning before restoring the shield and a fresh set.
+- At 20 percent armor, begin spawning one large asteroid per second from the
+  arena boundary. Give each asteroid an inward velocity plus a visible teleport
+  materialization effect instead of letting it pop into view. At 10 percent,
+  keep the asteroid pressure and have four shooter stations simultaneously move
+  slowly inward from their corresponding screen edges to the side midpoints,
+  then remain there. Clamp core damage at 20, 10, and zero percent so every
+  defensive cycle must be completed.
+- Add two Phase 3 rewards in separate escalation cycles: laser on the first
+  laser turret after 20 percent, then time slowdown on the first laser turret
+  after 10 percent. Phase 3 asteroids never carry guaranteed rewards.
+- Treat every visible boss body and active shield as a solid contact boundary.
+  Push the player outside the current ring, diamond, core, or shield radius and
+  apply the standard invulnerability-aware enemy contact damage. Center the
+  Phase 3 shield on the visual brain and reduce it to a 140-pixel radius.
+- Update mid-combat materialization continuously, not only while a wave intro is
+  active, so Phase 3 asteroids fade into view instead of remaining invisible.
+- In Debug x64, use F2 to advance from the outer ring to the diamond and from
+  the diamond to the core, clearing active projectiles at each transition. Keep
+  this testing shortcut excluded from non-Debug builds. Remove the former F1
+  level-completion and F3 reflector-spawn shortcuts.
+- Keep the final destruction cinematic, HUD shutdown, 10,000-point boss reward,
+  campaign victory transition, and completion screen in the next separately
+  reviewed stage.
+
+#### Stage 9 — Boss destruction sequence
+
+- Route each player-laser damage tick into the exposed core collision and reuse
+  the same 20, 10, and zero-percent damage clamps, hit feedback, and phase
+  transitions as ordinary player projectiles.
+- Spawn every core laser turret fully outside its corresponding screen edge and
+  move it to a stationary corner destination. Extend the obelisk beam 180 pixels
+  beyond its screen intersection so its flat geometry edge is never visible.
+- At zero armor, stop the boss beam and combat music, disable player firing,
+  crosshair, HUD, pickups, companions, and temporary bonuses while preserving
+  player movement. Award the fixed 10,000-point boss score once.
+- Destroy remaining enemies, missiles, and asteroids one at a time at 0.1-second
+  intervals with their effects and rewards disabled. Cover the core with small
+  explosions for three seconds, then hide it behind the largest boss explosion
+  and leave the player alone in space for three seconds.
+- Make the player cinematically invulnerable as soon as the sequence starts.
+  Include active and pending hostiles in cleanup, suppress meteor fragments, and
+  force-clear any remainder before the three-second solitude shot.
+- Shake the camera for one second during ring and diamond destruction. Start a
+  continuous 3.5-second shake when core destruction begins, covering the full
+  three-second cascade and the half-second following the final explosion.
+
+#### Stage 10 — Campaign victory transition
+
+- After the solitude shot, fade out over 1.8 seconds while starting the supplied
+  non-looping `campaign_victory.ogg` track. Do not show Level 10 statistics.
+- Present a dedicated English campaign-completion message with the requested
+  Horde Mode, Run Mode, and achievements postscript plus a single `Thank You`
+  button. The button persists Level 10 completion and its 10,000-point boss
+  score, then returns directly to the main menu.
+- Replace the temporary results overlay with a dedicated state over the animated
+  main-menu background. Render separate generated transparent title and body
+  frames through reusable nine-slice geometry, highlight the continuing-journey
+  message, reveal the modal smoothly, and activate its single button only after
+  the entrance animation. Preserve the victory track across this transition.
+- Keep panel shading strictly inside each frame's transparent opening. Preserve
+  nine-slice corner proportions, give the body copy enough horizontal room,
+  and use one consistent Exo2 body style with `Good Luck!` on its own line.
+- Replace the transparent-frame-plus-shade composition entirely with generated
+  nine-slice panels whose dark opaque center is part of each source texture.
+  Keep only the exterior transparent, with self-contained corner slices and
+  straight stretchable edge segments.
+- Increase completion-panel copy by approximately 1.3x and center every line
+  independently; SFML's multiline text bounds do not provide paragraph-level
+  center alignment by themselves.
+- Reset the completed-campaign level-select transition after its single push so
+  returning from Level Select cannot reveal duplicate stacked copies.
+- In Debug x64, allow F1 to begin the final boss defeat sequence immediately so
+  the completion transition and screen can be reviewed without replaying combat.
+
+#### Stage 11 — Achievement foundation
+
+- Define nine stable achievement identifiers and external English metadata in
+  `assets/data/achievements.json`, including display order, provisional Run and
+  Horde thresholds, descriptions, and future icon paths.
+- Store permanent unlocks independently in Local AppData `achievements.json`.
+  New campaigns must not clear this file or `records.json`. Use versioned JSON,
+  atomic temporary-file replacement, rollback on failed writes, deterministic
+  serialization, and preservation of corrupt files.
+- Add an application-owned `AchievementManager` and expose it through
+  `StateContext`. Validate that all nine definitions and display positions are
+  present exactly once. Gameplay conditions, notifications, icons, and the 3x3
+  menu remain in the next separately reviewed stages.
+
+#### Stage 12 — Achievement conditions and presentation
+
+- Evaluate all nine achievements at authoritative gameplay events: Levels 1,
+  5, and 10 completion; 180 live Run Mode seconds; ten completed Horde waves;
+  all four upgrade categories at rank four; a persisted tutorial-skip choice;
+  a new schema-4 campaign completed without a death; and Level 10 completed
+  without accepted shield or health damage.
+- Persist loss of no-death eligibility immediately on a main-campaign death.
+  Ignore tutorial, selected-level, Horde, and Run deaths. Reset per-level damage
+  tracking on level start and restart. Suppress boss completion achievements for
+  any Debug run that used F1 or F2.
+- Generate nine square production icons and load them as normal texture assets.
+  Queue each new unlock in the application-owned manager and display a global
+  five-second slide-down notification that survives state transitions. Reuse
+  `level_complete.ogg` until a distinct achievement sound is present in assets.
+- Add an English `Achievements` main-menu entry and dedicated animated-menu-
+  background state. Present nine non-interactive tiles in a 3x3 grid, with gray
+  locked art and normal gold/cyan treatment for unlocked achievements, plus one
+  controller-compatible `Return to Main Menu` button.
+
+#### Stage 13 — Credits
+
+- Add `Credits` as a sixth main-menu entry and reflow all menu buttons to fit
+  the 1920x1080 logical viewport without overlap. Place it below `Options`.
+- Present a dedicated Credits state over the animated main-menu background.
+  Reuse the opaque campaign-completion nine-slice panel, centered Exo2 copy,
+  and the standard glowing menu treatment.
+- Credit only `Demian Blogan`. Include the supplied contact address
+  `demianblognan@gmail.com`, the `Blogan Programming` YouTube channel, and the
+  `github.com/demianblogan/Until_Last_Asteroid` source repository. Provide one
+  mouse-, keyboard-, and controller-compatible `Return to Main Menu` button.
+- Pass bloom render states through every nine-slice segment so the panel and its
+  glow share the same render-texture origin instead of appearing offset.
+
+#### Stage 14 — Localization foundation
+
+- Added a versioned localization section to `settings.json` with stable `en`,
+  `es`, `ru`, `uk`, and `ar` identifiers plus a separate first-run selection
+  flag. Existing settings migrate to English without losing any options.
+- Registered Noto Sans regular/bold for Latin and Cyrillic UI and Noto Sans
+  Arabic regular/bold for Arabic UI. Retain Exo 2 Regular for existing body
+  styling and remove only its seventeen unused bundled variants.
+- Added five validated UTF-8 JSON catalogs with identical key contracts and a
+  central `LocalizationManager` that provides English fallback, native language
+  names, language persistence, and RTL metadata.
+- Added a controller-, keyboard-, and mouse-compatible first-run language screen
+  after the company splash. A successful selection is saved atomically before
+  entering the main menu, so the screen appears only until a language is chosen.
+- Fixed first-run input explicitly: accept clicks on any language row, handle
+  arrows/W/S plus Enter/Space directly, and support
+  both the controller D-pad and left stick for menu navigation.
+- Keep the native cursor hidden and render the shared glowing game cursor at the
+  actual mouse position; use the selected-row pointer only for controller input.
+- Separate menu-button frame and label opacity. This restores character-by-
+  character main-menu typing while preserving the campaign-completion button's
+  intentionally unified fade-in.
+- Convert the main-menu intro typer from byte-counted `std::string` slices to
+  Unicode code-point slices, so accented Spanish and Cyrillic never expose a
+  partial UTF-8 sequence during the character animation.
+- Add a dedicated `Language` page to Options with all five native language
+  names. Persist changes immediately, refresh the current Options typography,
+  and notify the already-open main menu to replace both its font and labels
+  without restarting or rebuilding the state stack.
+- Add an internal Arabic presentation pass for joined contextual letter forms
+  and visual RTL line order, using the supplied Noto Sans Arabic fonts. Compile
+  x64 source files explicitly as UTF-8 so Arabic literals remain deterministic.
+- Preserve the chosen language when `Restore Defaults` resets graphics, audio,
+  gameplay, and controls; resetting ordinary options must never reopen the
+  first-run language screen.
+- Localize the campaign menu, overwrite/tutorial dialogs, Level Select, all ten
+  campaign level titles, Pause, and Records. Keep gameplay level JSON as the
+  authoritative structural data while resolving player-facing level names by
+  stable level-number keys in each language catalog.
+- Centralize regular/bold localized font selection so English retains the
+  established Orbitron/Exo presentation while Spanish and Cyrillic use Noto
+  Sans and Arabic uses Noto Sans Arabic consistently.
+- Complete the five-language pass across every Options subpage and display
+  dialog, ship upgrades, achievements and unlock toasts, Credits, campaign
+  completion, gameplay HUD, boss armor, level/wave introductions, Horde and
+  Run objectives, Game Over, level results, and the full tutorial sequence.
+- Localize the displayed game title and preserve the original English title as
+  the English catalog value. Keep external URLs, the e-mail address, and the
+  permanent `Demian Blogan` credit intact in every language.
+- Add width-aware typography for shared menu buttons and constrained Options,
+  achievement, Credits, completion, intro, and tutorial text. Long Spanish,
+  Cyrillic, and Arabic strings reduce their character size within safe minimums
+  instead of extending beyond their panels.
+- Preserve left-to-right ASCII runs such as scores, percentages, URLs, e-mail
+  addresses, and version numbers inside the Arabic visual-order shaping pass.
+- Validate all five catalogs as JSON and enforce an identical 212-key contract
+  at startup, with English fallback retained for missing runtime lookups.
+
+#### Stage 15 — Final polish and profiling
+
+- Remove the menu-transition stalls caused by eagerly building several
+  full-resolution blur chains. Render bloom at reduced internal resolution and
+  cache the static controller-layout page instead of rebuilding it every frame.
+- Start normal-wave asteroid materialization together with the asteroid spawn,
+  including while the `Wave X` introduction is still active.
+- Keep the player's laser loop alive for the entire held-fire interval and stop
+  it immediately when firing ends.
+- Remove proven dead state scaffolding, duplicate UI APIs, unused resource IDs,
+  obsolete resource accessors, an unused localization key, and superseded or
+  unreferenced legacy assets. Keep dynamically loaded data and user files
+  untouched unless their lack of use is demonstrated.
+- Profile and review remaining runtime hot paths before making architectural
+  optimization changes. Evaluate threading separately; do not add concurrency
+  unless measured work can be isolated safely from SFML graphics and game state.
+- Replace the blank native startup window with a responsive dark loading screen,
+  staged progress, and close/resize event handling while assets, localization,
+  achievements, and save-backed systems initialize on the render thread.
+- Remove Credits' full-panel shader blur and replace it with two cheap aligned
+  nine-slice border halos. Raise the shared bloom resolution from 35% to 50%
+  while reducing its outer iterations, improving Full HD quality without
+  restoring the Credits transition stall.
+- Resolve the runtime asset root from the executable location before settings,
+  saves, audio, and rendering systems are constructed. Direct Debug/Release
+  executable launches must not depend on the shell or IDE working directory.
+- Remove all lazy shader bloom and the decorative frame halo from Credits and
+  Achievements. Their return buttons now start idle and use the shared menu
+  button selected texture only after mouse/controller navigation, eliminating
+  first-entry stalls and the false initial hover state.
+- Let a selected-level completion advance the campaign without reopening an
+  obsolete unfinished tutorial flag from an older save. Tutorial recovery is
+  now limited to campaigns that have not completed any level yet.
+- Redesign startup loading as a black screen with a near-full-width bottom bar,
+  a five-language `Loading` label and a slow opacity pulse. Repaint only at
+  coarse loading stages: per-resource `display()` calls were measured at up to
+  73 seconds for textures and must not serialize every GPU upload.
+- Disable VSync/frame limiting only during startup, then restore the configured
+  values before the normal game loop.
+- Register the ten 4K gameplay backgrounds for lazy first-use loading. They
+  account for roughly 316 MiB decoded and are not needed by startup or menus;
+  the main-menu background remains eager.
+- Replace point-by-point localized text fitting with a proportional size jump
+  implemented as reuse-preserving text scaling. Text-heavy screens no longer
+  rasterize the same glyphs at many intermediate font sizes; Credits uses one
+  body-font atlas while retaining its designed visual size hierarchy.
+- Cache dropdown `sf::Text` objects for the lifetime of an open Options list.
+  Profiling reduced steady dropdown rendering from about 1.35 seconds per frame
+  to 0.23-2.87 milliseconds. Remove shader bloom from dropdown rows.
+- Replace the cursor's five-render-target blur chain with two small additive
+  sprite halos. A cursor no longer allocates a full `NeonGlow` instance for
+  every newly opened state.
 
 ## Deferred / needs design
 
 - Add controller vibration after the input layer has a dedicated haptics
   backend. SFML 3.1 exposes controller input but no rumble API, XInput covers
   only Xbox controllers, and DualSense needs a separate USB/Bluetooth HID path.
-- Add localization with externalized UI text and language selection in Options.
 - Review collision behaviour across wrapped screen edges only if the current
   collision style becomes a gameplay problem.
 - Decide whether slow motion improves major explosions after the visual-effects

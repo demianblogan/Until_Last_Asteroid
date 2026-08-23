@@ -9,84 +9,89 @@
 
 namespace
 {
-    using Json = nlohmann::json;
+	using Json = nlohmann::json;
 
-    constexpr std::array<const char*, static_cast<std::size_t>(Config::Music::Count)> MusicNames{
-        "company_splash",
-        "main_menu_background",
-        "gameplay_background_1",
-        "gameplay_background_2",
-        "gameplay_background_3"
-    };
-    constexpr std::array<const char*, static_cast<std::size_t>(Config::Sound::Count)> SoundNames{
-        "character_typing",
-        "interface_activation",
-        "item_select",
-        "item_press",
-        "player_normal_shot",
-        "enemy_shot",
+	constexpr std::array<const char*, static_cast<std::size_t>(Config::Music::Count)> MusicNames =
+	{
+		"company_splash",
+		"main_menu_background",
+		"gameplay_background_1",
+		"gameplay_background_2",
+		"gameplay_background_3",
+		"boss_fight",
+		"campaign_victory"
+	};
+
+	constexpr std::array<const char*, static_cast<std::size_t>(Config::Sound::Count)> SoundNames =
+	{
+		"character_typing",
+		"interface_activation",
+		"item_select",
+		"item_press",
+		"player_normal_shot",
+		"enemy_shot",
 		"enemy_laser_shot",
 		"enemy_station_working",
-        "ship_explosion",
-        "asteroid_explosion",
-        "bullet_hit_asteroid",
-        "hit_asteroid",
-        "hit_enemy_saucer",
-        "metal_hit",
-        "game_over",
-        "bonus_touched",
+		"ship_explosion",
+		"asteroid_explosion",
+		"bullet_hit_asteroid",
+		"hit_asteroid",
+		"hit_enemy_saucer",
+		"metal_hit",
+		"game_over",
+		"bonus_touched",
 		"part_picked_up",
-        "level_complete",
+		"level_complete",
 		"player_laser_shot"
-    };
+	};
 
-    template <std::size_t Size>
-    void ReadVolumes(
-        const Json& parent,
-        const char* category,
-        const std::array<const char*, Size>& names,
-        std::array<float, Size>& volumes)
-    {
-        const auto object{ parent.find(category) };
-        if (object == parent.end() || !object->is_object())
-            throw std::runtime_error(std::string("Missing audio balance category: ") + category);
+	template <std::size_t Size>
+	void ReadVolumes(
+		const Json& root,
+		const char* category,
+		const std::array<const char*, Size>& names,
+		std::array<float, Size>& volumes)
+	{
+		const auto object = root.find(category);
+		if (object == root.end() || !object->is_object())
+			throw std::runtime_error(std::string("Missing audio balance category: ") + category);
 
-        for (std::size_t index{ 0u }; index < Size; ++index)
-        {
-            const auto value{ object->find(names[index]) };
-            if (value == object->end() || !value->is_number())
-                throw std::runtime_error(std::string("Missing audio balance value: ") + names[index]);
+		for (std::size_t index = 0u; index < Size; index++)
+		{
+			const auto value = object->find(names[index]);
+			if (value == object->end() || !value->is_number())
+				throw std::runtime_error(std::string("Missing audio balance value: ") + names[index]);
 
-            volumes[index] = std::clamp(value->get<float>(), 0.f, 100.f);
-        }
-    }
+			volumes[index] = std::clamp(value->get<float>(), 0.f, 100.f);
+		}
+	}
 }
 
 AudioBalance::AudioBalance(const std::filesystem::path& path)
 {
-    std::ifstream file(path);
-    if (!file)
-        throw std::runtime_error("Failed to load audio balance: " + path.string());
+	std::ifstream file(path);
+	if (!file.is_open())
+		throw std::runtime_error("Failed to load audio balance: " + path.string());
 
-    try
-    {
-        const Json data{ Json::parse(file) };
-        ReadVolumes(data, "music", MusicNames, musicVolumes);
-        ReadVolumes(data, "sounds", SoundNames, soundVolumes);
-    }
-    catch (const Json::exception& exception)
-    {
-        throw std::runtime_error(
-            "Invalid audio balance file " + path.string() + ": " + exception.what());
-    }
+	try
+	{
+		const Json data = Json::parse(file);
+
+		ReadVolumes(data, "music", MusicNames, musicVolumes);
+		ReadVolumes(data, "sounds", SoundNames, soundVolumes);
+	}
+	catch (const Json::exception& exception)
+	{
+		throw std::runtime_error("Invalid audio balance file " + path.string() + ": " + exception.what());
+	}
 }
 
 float AudioBalance::GetMusicVolume(Config::Music id) const noexcept
 {
-    return musicVolumes[static_cast<std::size_t>(id)];
+	return musicVolumes[static_cast<std::size_t>(id)];
 }
 
 float AudioBalance::GetSoundVolume(Config::Sound id) const noexcept
 {
-    return soundVolumes[static_cast<std::size_t>(id)];
+	return soundVolumes[static_cast<std::size_t>(id)];
 }

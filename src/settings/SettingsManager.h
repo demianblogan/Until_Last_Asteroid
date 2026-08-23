@@ -9,14 +9,13 @@ class SettingsManager
 public:
     SettingsManager();
 
-    [[nodiscard]] const GameSettings& Get() const noexcept;
+    [[nodiscard]] const GameSettings& GetSettings() const noexcept;
     [[nodiscard]] const GameSettings& GetDefaults() const noexcept;
-    [[nodiscard]] GameSettings& Edit() noexcept;
-    [[nodiscard]] const std::filesystem::path& GetFilePath() const noexcept;
+    [[nodiscard]] GameSettings& EditSettings() noexcept;
+    bool LoadSettings();
+    [[nodiscard]] bool SaveSettings() const;
 
-    bool Load();
-    [[nodiscard]] bool Save() const;
-    bool ResetToDefaults();
+    bool ResetSettingsToDefaults();
 
 private:
     [[nodiscard]] static GameSettings CreateDefaults();
@@ -24,5 +23,5 @@ private:
 
     GameSettings defaults;
     GameSettings settings;
-    std::filesystem::path filePath;
+    std::filesystem::path settingsFilePath;
 };

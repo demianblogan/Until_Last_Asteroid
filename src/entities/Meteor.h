@@ -2,7 +2,7 @@
 
 #include "Enemy.h"
 
-class AssetStore;
+class Assets;
 class World;
 
 namespace sf
@@ -19,8 +19,9 @@ public:
 		Big
 	};
 
-	Meteor(AssetStore& assets, World& world, Size size);
+	Meteor(Assets& assets, World& world, Size size);
 	[[nodiscard]] Size GetSize() const noexcept;
+	void SetFragmentSpawningEnabled(bool enabled) noexcept;
 
 	Type GetType() const noexcept override;
 
@@ -29,9 +30,10 @@ public:
 
 private:
 	void Update(float deltaTime) override;
-	static const GameplayData::EnemyConfig& GetConfig(AssetStore& assets, Size size);
-	static sf::Texture& GetRandomTexture(AssetStore& assets, Size size);
+	static const GameplayData::EnemyConfig& GetConfig(Assets& assets, Size size);
+	static sf::Texture& GetRandomTexture(Assets& assets, Size size);
 
 	Size size;
+	bool fragmentSpawningEnabled{ true };
 	float angularVelocity{ 0.f };
 };

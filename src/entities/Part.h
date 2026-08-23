@@ -7,9 +7,9 @@
 class Part final : public Entity
 {
 public:
-	Part(AssetStore& assets, World& world, std::string id);
+	Part(Assets& assets, World& world, std::string id);
 
-	[[nodiscard]] const std::string& GetId() const noexcept;
+	[[nodiscard]] const std::string& GetID() const noexcept;
 	Type GetType() const noexcept override;
 
 private:

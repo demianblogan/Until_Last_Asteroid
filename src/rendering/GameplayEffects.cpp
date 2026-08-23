@@ -9,7 +9,7 @@
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "core/World.h"
 #include "utils/ConfigEnums.h"
 
@@ -46,7 +46,7 @@ GameplayEffects::ScorePopup::ScorePopup(
     text.setPosition(position);
 }
 
-GameplayEffects::GameplayEffects(const GameplayData::EffectsConfig& config, AssetStore& assets)
+GameplayEffects::GameplayEffects(const GameplayData::EffectsConfig& config, Assets& assets)
     : config(config)
     , scorePopupFont(assets.Fonts().Get(Config::Font::MenuSemibold))
 {
@@ -116,10 +116,10 @@ void GameplayEffects::Update(
 			EmitStationChainExplosion(event.position, event.scale);
 			break;
         case World::EffectEventType::PlayerMuzzleFlash:
-            EmitMuzzleFlash(true, event.position, event.direction);
+			EmitMuzzleFlash(true, event.position, event.direction, event.scale);
             break;
         case World::EffectEventType::EnemyMuzzleFlash:
-            EmitMuzzleFlash(false, event.position, event.direction);
+			EmitMuzzleFlash(false, event.position, event.direction, event.scale);
             break;
         case World::EffectEventType::AsteroidHit:
             EmitStoneHit(event.position, event.direction, event.scale);
@@ -143,6 +143,10 @@ void GameplayEffects::Update(
 			break;
 		case World::EffectEventType::PlayerTeleport:
 			EmitPlayerTeleport(event.position, event.scale);
+			break;
+		case World::EffectEventType::BossDestructionShake:
+			StartCameraShake({
+				static_cast<float>(event.value) / 1000.f, event.scale }, 1.f);
 			break;
         case World::EffectEventType::ScorePopup:
             if (showScorePopups)
@@ -424,7 +428,7 @@ void GameplayEffects::EmitPlayerTeleport(
 }
 
 void GameplayEffects::EmitMuzzleFlash(bool playerProjectile,
-    const sf::Vector2f& position, const sf::Vector2f& direction)
+    const sf::Vector2f& position, const sf::Vector2f& direction, float scale)
 {
     const sf::Color coreColor{ playerProjectile
         ? sf::Color{ 185, 255, 255, 255 }
@@ -437,8 +441,8 @@ void GameplayEffects::EmitMuzzleFlash(bool playerProjectile,
         position + direction * 3.f,
         direction * RandomFloat(15.f, 35.f),
         RandomFloat(0.14f, 0.18f),
-        playerProjectile ? 58.f : 50.f,
-        5.f,
+		(playerProjectile ? 58.f : 50.f) * scale,
+		5.f * scale,
         coreColor,
         fadeColor,
         0.f,
@@ -450,20 +454,20 @@ void GameplayEffects::EmitMuzzleFlash(bool playerProjectile,
         position + direction * 7.f,
         direction * RandomFloat(35.f, 65.f),
         RandomFloat(0.1f, 0.14f),
-        playerProjectile ? 27.f : 24.f,
-        2.f,
+		(playerProjectile ? 27.f : 24.f) * scale,
+		2.f * scale,
         sf::Color::White,
         fadeColor });
 
-    for (int i{ 0 }; i < 8; ++i)
+	for (int i{ 0 }; i < ScaledCount(8, scale); ++i)
     {
         weaponParticles.Emit({
             position,
             direction * RandomFloat(80.f, 175.f) +
                 perpendicular * RandomFloat(-95.f, 95.f),
             RandomFloat(0.08f, 0.16f),
-            RandomFloat(5.f, 9.f),
-            RandomFloat(1.f, 2.5f),
+			RandomFloat(5.f, 9.f) * scale,
+			RandomFloat(1.f, 2.5f) * scale,
             coreColor,
             fadeColor,
             0.f,

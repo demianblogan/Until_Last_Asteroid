@@ -3,10 +3,10 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Mouse.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 
 GlowingCursor::GlowingCursor(
-    AssetStore& assets,
+    Assets& assets,
     Config::Texture texture,
     sf::Vector2f hotspot,
     sf::Color color)

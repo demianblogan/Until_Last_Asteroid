@@ -5,7 +5,7 @@
 class ReflectorGunship final : public Enemy
 {
 public:
-	ReflectorGunship(AssetStore& assets, World& world);
+	ReflectorGunship(Assets& assets, World& world);
 
 	void ConfigureApproachTarget(sf::Vector2f target) noexcept;
 	[[nodiscard]] bool IsShieldActive() const noexcept;

@@ -2,7 +2,7 @@
 
 #include <cmath>
 #include <numbers>
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "core/World.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
@@ -18,7 +18,7 @@ namespace
 	}
 }
 
-MissileCarrier::MissileCarrier(AssetStore& assets, World& world)
+MissileCarrier::MissileCarrier(Assets& assets, World& world)
 	: Enemy(
 		assets,
 		world,
@@ -125,12 +125,12 @@ void MissileCarrier::EmitEngineParticles(const sf::Vector2f& exhaustDirection)
 sf::Vector2f MissileCarrier::GetEmitterPosition(
 	const GameplayData::NormalizedPoint& emitter) const
 {
-	const sf::Sprite& sprite{ GetSprite() };
-	const sf::IntRect textureRect{ sprite.getTextureRect() };
+	const sf::Sprite& entitySprite{ GetSprite() };
+	const sf::IntRect textureRect{ entitySprite.getTextureRect() };
 	const sf::Vector2f localPosition{
 		static_cast<float>(textureRect.position.x) +
 			static_cast<float>(textureRect.size.x) * emitter.x,
 		static_cast<float>(textureRect.position.y) +
 			static_cast<float>(textureRect.size.y) * emitter.y };
-	return sprite.getTransform().transformPoint(localPosition);
+	return entitySprite.getTransform().transformPoint(localPosition);
 }

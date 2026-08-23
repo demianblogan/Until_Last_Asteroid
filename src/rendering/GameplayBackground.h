@@ -11,12 +11,12 @@
 #include <SFML/Graphics/VertexArray.hpp>
 #include <SFML/System/Vector2.hpp>
 
-class AssetStore;
+class Assets;
 
 class GameplayBackground final : public sf::Drawable
 {
 public:
-    GameplayBackground(AssetStore& assets, sf::Vector2f logicalSize);
+    GameplayBackground(Assets& assets, sf::Vector2f logicalSize);
 
     void SetTheme(std::string_view theme, float brightness = 1.f);
     void Update(float deltaTime);
@@ -37,7 +37,7 @@ private:
     void BuildStarVertices(const std::vector<Star>& layer, sf::VertexArray& vertices) const;
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
-    AssetStore& assets;
+    Assets& assets;
     sf::Vector2f logicalSize;
     sf::Color topColor;
     sf::Color bottomColor;

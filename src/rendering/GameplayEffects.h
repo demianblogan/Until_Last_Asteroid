@@ -7,11 +7,11 @@
 
 #include <SFML/Graphics/Text.hpp>
 
-#include "game/GameplayData.h"
+#include "gameplay/GameplayData.h"
 #include "ParticleSystem.h"
 
 class World;
-class AssetStore;
+class Assets;
 
 namespace sf
 {
@@ -33,7 +33,7 @@ public:
         float damageVignette{ 0.f };
     };
 
-    GameplayEffects(const GameplayData::EffectsConfig& config, AssetStore& assets);
+    GameplayEffects(const GameplayData::EffectsConfig& config, Assets& assets);
 
     void Update(float deltaTime, World& world, bool screenShakeEnabled, bool showScorePopups);
     void DrawBehindEntities(sf::RenderTarget& target, sf::RenderStates states) const;
@@ -74,7 +74,7 @@ private:
 	void EmitStationChainExplosion(const sf::Vector2f& position, float scale);
 	void EmitPlayerTeleport(const sf::Vector2f& position, float scale);
     void EmitMuzzleFlash(bool playerProjectile, const sf::Vector2f& position,
-        const sf::Vector2f& direction);
+		const sf::Vector2f& direction, float scale);
     void EmitStoneHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale);
     void EmitMetalHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale);
     void EmitAsteroidExplosion(const sf::Vector2f& position, float scale);

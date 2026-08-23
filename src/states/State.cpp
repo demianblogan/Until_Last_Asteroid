@@ -21,14 +21,18 @@ bool State::IsTransparent() const noexcept
     return false;
 }
 
+void State::OnReactivated()
+{
+}
+
 const StateContext& State::GetContext() const noexcept
 {
     return context;
 }
 
-void State::RequestPush(StateId stateId)
+void State::RequestPush(StateID stateID)
 {
-    stateStack.PushState(stateId);
+    stateStack.PushState(stateID);
 }
 
 void State::RequestPop()

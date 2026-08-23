@@ -8,7 +8,7 @@
 #include <SFML/System/Vector2.hpp>
 #include <span>
 #include <vector>
-#include "systems/Collision.h"
+#include "core/Collision.h"
 
 namespace sf
 {
@@ -18,7 +18,7 @@ namespace sf
 }
 
 class World;
-class AssetStore;
+class Assets;
 
 class Entity : public sf::Drawable
 {
@@ -37,7 +37,7 @@ public:
 		Part
 	};
 
-	Entity(AssetStore& assets, World& world, sf::Texture& texture,
+	Entity(Assets& assets, World& world, sf::Texture& texture,
 		float visualScale, float collisionRadius,
 		std::span<const Collision::LocalCircle> collisionCircles = {});
 
@@ -68,11 +68,17 @@ public:
 	[[nodiscard]] float GetCollisionRadius() const noexcept;
 	virtual Type GetType() const noexcept = 0;
 
+	// Overridden by entities (ShooterStation, LaserTurret) that stay outside
+	// normal wrap-around behavior while materializing. Defaulting to false
+	// here avoids a dynamic_cast check against every entity, every frame, in
+	// World::Update just to test this for the rare entities that care.
+	[[nodiscard]] virtual bool IsArriving() const noexcept { return false; }
+
 protected:
 	[[nodiscard]] World& GetWorld() noexcept;
 	[[nodiscard]] const World& GetWorld() const noexcept;
-	[[nodiscard]] AssetStore& GetAssets() noexcept;
-	[[nodiscard]] const AssetStore& GetAssets() const noexcept;
+	[[nodiscard]] Assets& GetAssets() noexcept;
+	[[nodiscard]] const Assets& GetAssets() const noexcept;
 
 	void SetRotation(sf::Angle angle) noexcept;
 	[[nodiscard]] sf::Angle GetRotation() const noexcept;
@@ -98,7 +104,7 @@ private:
 	sf::Vector2f velocity{ 0.f, 0.f };
 	sf::Vector2f impulseVelocity{ 0.f, 0.f };
 
-	AssetStore& assets;
+	Assets& assets;
 	World& world;
 	sf::Shader& hitFlashShader;
 

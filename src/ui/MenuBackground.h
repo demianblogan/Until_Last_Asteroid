@@ -7,7 +7,7 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/System/Vector2.hpp>
 
-class AssetStore;
+class Assets;
 
 namespace sf
 {
@@ -19,7 +19,7 @@ namespace sf
 class MenuBackground
 {
 public:
-    MenuBackground(AssetStore& assets, sf::Vector2f logicalSize);
+    MenuBackground(Assets& assets, sf::Vector2f logicalSize);
 
     void SetMousePosition(sf::Vector2f position);
     void Update(float deltaTime);
@@ -44,7 +44,7 @@ private:
     };
 
     void InitializeStars();
-    void InitializeAsteroids(AssetStore& assets);
+    void InitializeAsteroids(Assets& assets);
 
     sf::Sprite background;
     sf::RectangleShape vignette;

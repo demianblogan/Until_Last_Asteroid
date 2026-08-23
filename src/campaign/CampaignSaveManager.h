@@ -8,23 +8,22 @@
 class CampaignSaveManager
 {
 public:
-    CampaignSaveManager();
+	CampaignSaveManager();
 
-    [[nodiscard]] bool HasSave() const noexcept;
-    [[nodiscard]] const CampaignProgress* GetProgress() const noexcept;
-    [[nodiscard]] CampaignProgress* EditProgress() noexcept;
-    [[nodiscard]] const std::filesystem::path& GetFilePath() const noexcept;
+	[[nodiscard]] bool HasSave() const noexcept;
+	[[nodiscard]] const CampaignProgress* GetProgress() const noexcept;
+	[[nodiscard]] CampaignProgress* EditProgress() noexcept;
 
-    bool Load();
-    bool StartNewCampaign();
-	bool UnlockNewContent(int availableLevels);
-    [[nodiscard]] bool Save() const;
-    bool DeleteSave();
+	bool Load();
+	bool StartNewCampaign();
+	void UnlockNewLevel(int availableLevels);
+
+	[[nodiscard]] bool Save() const;
+	bool DeleteSave();
 
 private:
-    [[nodiscard]] static std::filesystem::path ResolveSavePath();
-    bool PreserveCorruptSave();
+	[[nodiscard]] static std::filesystem::path ResolveSavePath();
 
-    std::optional<CampaignProgress> progress;
-    std::filesystem::path filePath;
+	std::optional<CampaignProgress> progress;
+	std::filesystem::path saveFilePath;
 };

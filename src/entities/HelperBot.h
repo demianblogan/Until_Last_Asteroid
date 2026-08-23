@@ -5,7 +5,7 @@
 class HelperBot final : public Entity
 {
 public:
-	HelperBot(AssetStore& assets, World& world);
+	HelperBot(Assets& assets, World& world);
 
 	[[nodiscard]] Type GetType() const noexcept override;
 	[[nodiscard]] bool IsCollideWith(const Entity& other) const override;

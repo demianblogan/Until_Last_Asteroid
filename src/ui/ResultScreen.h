@@ -13,9 +13,10 @@
 #include "ui/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
 
-class AssetStore;
+class Assets;
 class AudioManager;
 class GamepadManager;
+class LocalizationManager;
 
 namespace sf
 {
@@ -59,7 +60,8 @@ public:
         MainMenu
     };
 
-    ResultScreen(AssetStore& assets, AudioManager& audio, GamepadManager& gamepad,
+    ResultScreen(Assets& assets, AudioManager& audio, GamepadManager& gamepad,
+        LocalizationManager& localization,
         sf::Vector2f logicalSize);
 
     void Start(Mode mode, int level, const Statistics& statistics);
@@ -75,6 +77,7 @@ public:
 
 private:
     void SkipAnimation();
+    void ApplyContent(Mode newMode, int level, const Statistics& resultStatistics);
     void ApplyVisualState();
     void Select(std::size_t index, bool playSound = true);
     void SelectPrevious();
@@ -83,8 +86,10 @@ private:
     [[nodiscard]] std::optional<Action> ActivateSelected();
     void CenterText(sf::Text& text, sf::Vector2f position);
 
+    Assets& assets;
     AudioManager& audio;
     GamepadManager& gamepad;
+	LocalizationManager& localization;
     sf::Vector2f logicalSize;
     sf::RectangleShape shade;
     sf::Sprite titleFrame;

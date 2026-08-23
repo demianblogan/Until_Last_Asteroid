@@ -9,12 +9,14 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "audio/AudioManager.h"
 #include "campaign/CampaignSaveManager.h"
-#include "game/GameplayLaunch.h"
-#include "states/StateId.h"
-#include "systems/GamepadManager.h"
+#include "gameplay/GameplayLaunch.h"
+#include "localization/LocalizationManager.h"
+#include "states/StateID.h"
+#include "input/GamepadManager.h"
+#include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -44,13 +46,11 @@ namespace
 		Config::Texture::ShipUpgradeEnginesIconSelected,
 		Config::Texture::ShipUpgradeFireRateIconSelected,
 		Config::Texture::ShipUpgradeBonusDurationIconSelected };
-	constexpr std::array<const char*, 4> Names{
-		"ARMOR", "FLIGHT ENGINES", "FIRE RATE", "BONUS DURATION"
-	};
-	constexpr std::array<const char*, 4> Effects{
-		"+25% maximum armor", "+10% speed and thrust",
-		"+15% shots per second", "+1 second to timed bonuses"
-	};
+	constexpr std::array<const char*, 4> NameKeys{
+		"upgrades.armor", "upgrades.engines", "upgrades.fire_rate", "upgrades.bonus_duration" };
+	constexpr std::array<const char*, 4> EffectKeys{
+		"upgrades.armor_effect", "upgrades.engines_effect",
+		"upgrades.fire_rate_effect", "upgrades.bonus_duration_effect" };
 
 	void CenterText(sf::Text& text, sf::Vector2f position)
 	{
@@ -68,13 +68,15 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 	, glow(context.assets)
 	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Cyan)
 	, fade(context.logicalSize)
-	, title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "SHIP UPGRADES", 72)
+	, title(context.assets.Fonts().Get(context.localization.BoldFont()),
+		context.localization.Get("upgrades.title"), 72)
 	, partsPanel(context.assets.Fonts().Get(Config::Font::MenuRegular),
 		context.assets.Textures().Get(Config::Texture::MenuButtonIdle),
 		context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
 		"", PartsPanelSize)
-	, partsLabel(context.assets.Fonts().Get(Config::Font::MenuSemibold), "PARTS:", 31)
-	, partsValue(context.assets.Fonts().Get(Config::Font::MenuSemibold), "0", 31)
+	, partsLabel(context.assets.Fonts().Get(context.localization.BoldFont()),
+		context.localization.Get("upgrades.parts"), 31)
+	, partsValue(context.assets.Fonts().Get(context.localization.BoldFont()), "0", 31)
 	, partsIcon(context.assets.Textures().Get(Config::Texture::ShipUpgradesPartsIcon))
 {
 	returnToLevelSelect = context.gameplayLaunch.upgradesReturnToLevelSelect;
@@ -110,8 +112,8 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 	partsIcon.setScale({ partsIconScale, partsIconScale });
 	LayoutPartsPanel();
 
-	const sf::Font& headingFont{ context.assets.Fonts().Get(Config::Font::MenuSemibold) };
-	const sf::Font& bodyFont{ context.assets.Fonts().Get(Config::Font::BodyRegular) };
+	const sf::Font& headingFont{ context.assets.Fonts().Get(context.localization.BoldFont()) };
+	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.RegularFont(false)) };
 	const sf::Texture& rowFrame{
 		context.assets.Textures().Get(Config::Texture::ShipUpgradesRowFrame) };
 	const sf::Texture& selectedRowFrame{
@@ -134,15 +136,17 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 			static_cast<float>(iconSize.y) * .5f });
 		upgradeIcons.back().setScale({ iconScale, iconScale });
 		upgradeIcons.back().setPosition(CardPositions[index] + sf::Vector2f{ 82.f, 70.f });
-		cardTitles.emplace_back(headingFont, Names[index], 29);
+		cardTitles.emplace_back(headingFont, context.localization.Get(NameKeys[index]), 29);
+		TextLayout::FitWidth(cardTitles.back(), 420.f, 20u);
 		cardTitles.back().setFillColor(Cyan);
 		cardTitles.back().setOutlineColor(sf::Color(0, 95, 145, 150));
 		cardTitles.back().setOutlineThickness(2.f);
 		cardTitles.back().setPosition(CardPositions[index] + sf::Vector2f{ 160.f, 24.f });
-		cardDetails.emplace_back(bodyFont, Effects[index], 29);
+		cardDetails.emplace_back(bodyFont, context.localization.Get(EffectKeys[index]), 29);
+		TextLayout::FitWidth(cardDetails.back(), 600.f, 19u);
 		cardDetails.back().setFillColor(sf::Color(145, 190, 202));
 		CenterText(cardDetails.back(), CardPositions[index] + sf::Vector2f{ 745.f, 70.f });
-		rankLabels.emplace_back(headingFont, "RANK", 22);
+		rankLabels.emplace_back(headingFont, context.localization.Get("upgrades.rank"), 22);
 		rankValues.emplace_back(headingFont, "0", 22);
 		rankMaximums.emplace_back(headingFont, "/ 4", 22);
 		rankLabels.back().setFillColor(sf::Color(225, 240, 246));
@@ -164,28 +168,29 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 		costIcons.back().setScale({ costIconScale, costIconScale });
 		costIcons.back().setPosition(CardPositions[index] + sf::Vector2f{ 1255.f, 42.f });
 		upgradeButtons.emplace_back(headingFont, rowFrame, selectedRowFrame,
-			"UPGRADE", sf::Vector2f{ 255.f, 54.f });
+			context.localization.Get("upgrades.upgrade"), sf::Vector2f{ 255.f, 54.f });
 		upgradeButtons.back().SetPosition(CardPositions[index] + sf::Vector2f{ 1090.f, 73.f });
 		upgradeButtons.back().SetFrameOpacity(.9f);
 		upgradeButtons.back().SetLabelColor(Cyan);
 		upgradeButtons.back().SetLabelOutline(sf::Color(0, 95, 145, 180), 2.f);
-		maximumLabels.emplace_back(headingFont, "MAX", 42);
+		maximumLabels.emplace_back(headingFont, context.localization.Get("upgrades.max"), 42);
 		maximumLabels.back().setFillColor(MaximumGreen);
 		maximumLabels.back().setOutlineColor(sf::Color(0, 100, 52, 190));
 		maximumLabels.back().setOutlineThickness(3.f);
 		CenterText(maximumLabels.back(), CardPositions[index] + sf::Vector2f{ 1210.f, 70.f });
 	}
 
-	const sf::Font& menuFont{ context.assets.Fonts().Get(Config::Font::MenuRegular) };
+	const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.RegularFont()) };
 	const sf::Texture& menuIdle{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
 	const sf::Texture& menuSelected{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 	buttons.emplace_back(menuFont, menuIdle, menuSelected,
-		returnToLevelSelect ? "Return to Level Select" : "Continue",
+		context.localization.Get(returnToLevelSelect ? "upgrades.back_levels" : "upgrades.continue"),
 		sf::Vector2f{ 540.f, 104.f });
 	buttons.emplace_back(menuFont, menuIdle, menuSelected,
-		"Return to Main Menu", sf::Vector2f{ 540.f, 104.f });
+		context.localization.Get("common.back_main"), sf::Vector2f{ 540.f, 104.f });
 	buttons[0].SetPosition({ 1010.f, 885.f });
 	buttons[1].SetPosition({ 370.f, 885.f });
+	localizationRevision = context.localization.GetRevision();
 	Refresh();
 	std::size_t initialSelection{ 0u };
 	while (initialSelection < upgradeRows.size() && maximumRanks[initialSelection])
@@ -194,16 +199,79 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 	fade.StartFadeIn(.3f);
 }
 
+void ShipUpgradesState::OnReactivated()
+{
+	GetContext().window.setMouseCursorVisible(false);
+	returnToLevelSelect = GetContext().gameplayLaunch.upgradesReturnToLevelSelect;
+	if (localizationRevision != GetContext().localization.GetRevision())
+		RefreshLocalizedContent();
+	Refresh();
+	std::size_t initialSelection{ 0u };
+	while (initialSelection < upgradeRows.size() && maximumRanks[initialSelection])
+		++initialSelection;
+	Select(initialSelection, false);
+	exitTarget = ExitTarget::None;
+	fade.StartFadeIn(.3f);
+}
+
+void ShipUpgradesState::RefreshLocalizedContent()
+{
+	const StateContext& context{ GetContext() };
+	localizationRevision = context.localization.GetRevision();
+
+	const sf::Font& headingFont{ context.assets.Fonts().Get(context.localization.BoldFont()) };
+	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.RegularFont(false)) };
+	const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.RegularFont()) };
+
+	title.setFont(headingFont);
+	title.setString(context.localization.Get("upgrades.title"));
+	CenterText(title, { 960.f, 58.f });
+
+	partsLabel.setFont(headingFont);
+	partsLabel.setString(context.localization.Get("upgrades.parts"));
+	LayoutPartsPanel();
+
+	for (std::size_t index{ 0u }; index < UpgradeTypes.size(); ++index)
+	{
+		cardTitles[index].setFont(headingFont);
+		cardTitles[index].setString(context.localization.Get(NameKeys[index]));
+		cardTitles[index].setScale({ 1.f, 1.f });
+		TextLayout::FitWidth(cardTitles[index], 420.f, 20u);
+
+		cardDetails[index].setFont(bodyFont);
+		cardDetails[index].setString(context.localization.Get(EffectKeys[index]));
+		cardDetails[index].setScale({ 1.f, 1.f });
+		TextLayout::FitWidth(cardDetails[index], 600.f, 19u);
+		CenterText(cardDetails[index], CardPositions[index] + sf::Vector2f{ 745.f, 70.f });
+
+		rankLabels[index].setFont(headingFont);
+		rankLabels[index].setString(context.localization.Get("upgrades.rank"));
+
+		upgradeButtons[index].SetFont(headingFont);
+		upgradeButtons[index].SetLabel(context.localization.Get("upgrades.upgrade"));
+
+		maximumLabels[index].setFont(headingFont);
+		maximumLabels[index].setString(context.localization.Get("upgrades.max"));
+		CenterText(maximumLabels[index], CardPositions[index] + sf::Vector2f{ 1210.f, 70.f });
+	}
+
+	buttons[0].SetFont(menuFont);
+	buttons[0].SetLabel(context.localization.Get(
+		returnToLevelSelect ? "upgrades.back_levels" : "upgrades.continue"));
+	buttons[1].SetFont(menuFont);
+	buttons[1].SetLabel(context.localization.Get("common.back_main"));
+}
+
 void ShipUpgradesState::HandleEvent(const sf::Event& event)
 {
 	if (exitTarget != ExitTarget::None || fade.IsActive()) return;
 	using enum GamepadManager::NavigationAction;
 	switch (GetContext().gamepad.GetNavigationAction(event))
 	{
-	case Up: MoveSelection(-1); return;
-	case Down: MoveSelection(1); return;
-	case Left: MoveSelection(-1); return;
-	case Right: MoveSelection(1); return;
+	case Up: MoveVertical(-1); return;
+	case Down: MoveVertical(1); return;
+	case Left: MoveHorizontal(-1); return;
+	case Right: MoveHorizontal(1); return;
 	case Confirm: ActivateSelected(); return;
 	case Back: BeginExit(returnToLevelSelect
 		? ExitTarget::LevelSelect : ExitTarget::MainMenu); return;
@@ -221,10 +289,10 @@ void ShipUpgradesState::HandleEvent(const sf::Event& event)
 	{
 		switch (key->code)
 		{
-		case sf::Keyboard::Key::Up: case sf::Keyboard::Key::W: MoveSelection(-1); return;
-		case sf::Keyboard::Key::Down: case sf::Keyboard::Key::S: MoveSelection(1); return;
-		case sf::Keyboard::Key::Left: case sf::Keyboard::Key::A: MoveSelection(-1); return;
-		case sf::Keyboard::Key::Right: case sf::Keyboard::Key::D: MoveSelection(1); return;
+		case sf::Keyboard::Key::Up: case sf::Keyboard::Key::W: MoveVertical(-1); return;
+		case sf::Keyboard::Key::Down: case sf::Keyboard::Key::S: MoveVertical(1); return;
+		case sf::Keyboard::Key::Left: case sf::Keyboard::Key::A: MoveHorizontal(-1); return;
+		case sf::Keyboard::Key::Right: case sf::Keyboard::Key::D: MoveHorizontal(1); return;
 		case sf::Keyboard::Key::Enter: case sf::Keyboard::Key::Space: ActivateSelected(); return;
 		case sf::Keyboard::Key::Escape: BeginExit(returnToLevelSelect
 			? ExitTarget::LevelSelect : ExitTarget::MainMenu); return;
@@ -249,17 +317,17 @@ void ShipUpgradesState::Update(float deltaTime)
 	if (exitTarget == ExitTarget::None || fade.IsActive()) return;
 	const ExitTarget target{ exitTarget }; exitTarget = ExitTarget::None;
 	RequestClear();
-	if (target == ExitTarget::Gameplay) RequestPush(StateId::Gameplay);
+	if (target == ExitTarget::Gameplay) RequestPush(StateID::Gameplay);
 	else if (target == ExitTarget::LevelSelect)
 	{
 		// Rebuild the complete menu hierarchy after Gameplay cleared the old
 		// stack. Level Select returns to Campaign Menu, which must still have the
 		// real Main Menu beneath it.
-		RequestPush(StateId::MainMenu);
-		RequestPush(StateId::CampaignMenu);
-		RequestPush(StateId::LevelSelect);
+		RequestPush(StateID::MainMenu);
+		RequestPush(StateID::CampaignMenu);
+		RequestPush(StateID::LevelSelect);
 	}
-	else RequestPush(StateId::MainMenu);
+	else RequestPush(StateID::MainMenu);
 }
 
 void ShipUpgradesState::Render()
@@ -313,7 +381,7 @@ void ShipUpgradesState::Render()
 
 void ShipUpgradesState::RenderOverlay()
 {
-	if (!GetContext().gamepad.IsUsingGamepad()) cursor.Draw(GetContext().window);
+	if (!GetContext().gamepad.IsInUse()) cursor.Draw(GetContext().window);
 	fade.Draw(GetContext().window);
 }
 
@@ -328,23 +396,65 @@ void ShipUpgradesState::Select(std::size_t index, bool playSound)
 	if (changed) glow.Invalidate();
 	Refresh();
 	if (changed && playSound)
-		GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f, SoundPlayback::Restart);
+		GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f, SoundPlayback::StopPrevious);
 }
 
-void ShipUpgradesState::MoveSelection(int delta)
+void ShipUpgradesState::MoveVertical(int direction)
 {
-	const int count{ static_cast<int>(upgradeRows.size() + buttons.size()) };
-	int candidate{ static_cast<int>(selectedIndex) };
-	for (int attempt{ 0 }; attempt < count; ++attempt)
+	// The upgrade cards form a single vertical column above one row of
+	// buttons, so Up/Down only ever needs to walk that column or drop
+	// straight into/out of the button row -- never sideways between the
+	// two buttons (that's MoveHorizontal's job).
+	if (selectedIndex < upgradeRows.size())
 	{
-		candidate = (candidate + delta + count) % count;
-		if (candidate >= static_cast<int>(upgradeRows.size()) ||
-			!maximumRanks[static_cast<std::size_t>(candidate)])
+		const int rowCount{ static_cast<int>(upgradeRows.size()) };
+		int candidate{ static_cast<int>(selectedIndex) };
+		for (int attempt{ 0 }; attempt < rowCount; ++attempt)
+		{
+			candidate += direction;
+			if (candidate < 0 || candidate >= rowCount)
+			{
+				// Walked off the top or bottom of the list -- the button
+				// row is the only thing left to land on.
+				Select(upgradeRows.size());
+				return;
+			}
+			if (!maximumRanks[static_cast<std::size_t>(candidate)])
+			{
+				Select(static_cast<std::size_t>(candidate));
+				return;
+			}
+		}
+		// Every card is already maxed out -- nothing in the column is
+		// selectable, so fall through to the buttons.
+		Select(upgradeRows.size());
+		return;
+	}
+
+	// Currently on a button: there's only one row of those, so any
+	// vertical move goes back up to the card list -- land on the last
+	// selectable card, since that's the one closest to the buttons.
+	for (int candidate{ static_cast<int>(upgradeRows.size()) - 1 }; candidate >= 0; --candidate)
+	{
+		if (!maximumRanks[static_cast<std::size_t>(candidate)])
 		{
 			Select(static_cast<std::size_t>(candidate));
 			return;
 		}
 	}
+}
+
+void ShipUpgradesState::MoveHorizontal(int direction)
+{
+	// The card column has no horizontal neighbor -- Left/Right only does
+	// something once the selection is already on the button row.
+	if (selectedIndex < upgradeRows.size())
+		return;
+
+	const int buttonCount{ static_cast<int>(buttons.size()) };
+	const int buttonIndex{ static_cast<int>(selectedIndex - upgradeRows.size()) };
+	const int nextButtonIndex{ (buttonIndex + direction + buttonCount) % buttonCount };
+	Select(upgradeRows.size() + static_cast<std::size_t>(nextButtonIndex));
 }
 
 void ShipUpgradesState::ActivateSelected()
@@ -369,7 +479,7 @@ void ShipUpgradesState::ActivateSelected()
 				progress->completedLevels.end() };
 		if (progress->currentLevel >= availableLevels && currentLevelCompleted)
 		{
-			progress->phase = CampaignPhase::ContentComplete;
+			progress->phase = CampaignPhase::Finished;
 			static_cast<void>(GetContext().campaignSave.Save());
 			BeginExit(ExitTarget::LevelSelect);
 		}
@@ -405,7 +515,7 @@ void ShipUpgradesState::Purchase(ShipUpgradeType type)
 	}
 	Refresh();
 	if (rank >= ShipUpgradeRules::MaximumRank && selectedIndex < upgradeRows.size())
-		MoveSelection(1);
+		MoveVertical(1);
 }
 
 void ShipUpgradesState::Refresh()
@@ -421,7 +531,8 @@ void ShipUpgradesState::Refresh()
 		maximumRanks[i] = maximum;
 		const int cost{ ShipUpgradeRules::GetNextCost(rank) };
 		rankValues[i].setString(std::to_string(rank));
-		cardCosts[i].setString("COST: " + std::to_string(cost));
+		cardCosts[i].setString(GetContext().localization.Format(
+			"upgrades.cost", "cost", std::to_string(cost)));
 		cardCosts[i].setFillColor(progress->partsBalance >= cost ?
 			sf::Color(225, 240, 246) : sf::Color(125, 135, 145));
 		upgradeRows[i].SetSelected(!maximum && selectedIndex == i);
@@ -466,5 +577,5 @@ void ShipUpgradesState::BeginExit(ExitTarget target)
 
 void ShipUpgradesState::PlayPressSound()
 {
-	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f, SoundPlayback::Restart);
+	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f, SoundPlayback::StopPrevious);
 }

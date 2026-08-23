@@ -4,12 +4,12 @@
 #include <cmath>
 #include <numbers>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "core/World.h"
-#include "game/GameplaySession.h"
+#include "gameplay/GameplaySession.h"
 #include "utils/ConfigEnums.h"
 
-HelperBot::HelperBot(AssetStore& assets, World& world)
+HelperBot::HelperBot(Assets& assets, World& world)
 	: Entity(
 		assets,
 		world,

@@ -28,7 +28,6 @@ private:
 
 	MenuBackground background;
 	NeonGlow titleGlow;
-	NeonGlow panelGlow;
 	NeonGlow buttonGlow;
 	GlowingCursor cursor;
 	ScreenFade fade;
@@ -47,4 +46,5 @@ private:
 	sf::Text runValue;
 	MenuButton returnButton;
 	bool returning{ false };
+	bool returnButtonSelected{ false };
 };

@@ -5,10 +5,10 @@
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/System/Vector2.hpp>
 
-#include "game/GameplayData.h"
+#include "gameplay/GameplayData.h"
 #include "rendering/GameplayEffects.h"
 
-class AssetStore;
+class Assets;
 
 namespace sf
 {
@@ -23,7 +23,7 @@ class GameplayPostProcessor
 public:
     using SceneRenderer = std::function<void(sf::RenderTarget&)>;
 
-    GameplayPostProcessor(AssetStore& assets, sf::Vector2f logicalSize);
+    GameplayPostProcessor(Assets& assets, sf::Vector2f logicalSize);
 
     void Render(
         sf::RenderWindow& window,
@@ -44,4 +44,5 @@ private:
     sf::Shader& brightPassShader;
     sf::Shader& blurShader;
     sf::Shader& compositeShader;
+    bool bloomTextureCleared{ false };
 };

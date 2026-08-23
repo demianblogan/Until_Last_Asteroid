@@ -3,21 +3,21 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 #include "core/World.h"
-#include "game/GameplaySession.h"
+#include "gameplay/GameplaySession.h"
 #include "entities/Enemy.h"
 
-Shot::Shot(AssetStore& assets, World& world, sf::Texture& texture,
+Shot::Shot(Assets& assets, World& world, sf::Texture& texture,
 	const GameplayData::ProjectileConfig& config, VisualKind visualKind,
-	std::uint64_t attackId)
+	std::uint64_t attackID)
 	: Entity(assets, world, texture, config.visualScale, config.collisionRadius)
 	, speed(config.speed)
 	, damage(config.damage)
 	, knockback(config.knockback)
 	, visualKind(visualKind)
-	, playerAttackId(attackId)
+	, playerAttackID(attackID)
 {
 }
 
@@ -26,10 +26,11 @@ void Shot::Update(float deltaTime)
 	Move(deltaTime);
 
 	const sf::Vector2f position{ GetPosition() };
-	const sf::Vector2f velocity{ GetVelocity() };
-	const float velocityLength{ std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y) };
+	const sf::Vector2f currentVelocity{ GetVelocity() };
+	const float velocityLength{ std::sqrt(
+		currentVelocity.x * currentVelocity.x + currentVelocity.y * currentVelocity.y) };
 	const sf::Vector2f direction{ velocityLength > 0.0001f
-		? velocity / velocityLength
+		? currentVelocity / velocityLength
 		: sf::Vector2f{ 0.f, -1.f } };
 	GetWorld().AddEffectEvent({
 		visualKind == VisualKind::Player
@@ -43,9 +44,9 @@ void Shot::Update(float deltaTime)
 				: World::EffectEventType::EnemyProjectileGlow,
 		position,
 		direction });
-	const World& world{ GetWorld() };
-	if (position.x < 0.f || position.x > world.GetWidth() ||
-		position.y < 0.f || position.y > world.GetHeight())
+	const World& currentWorld{ GetWorld() };
+	if (position.x < 0.f || position.x > currentWorld.GetWidth() ||
+		position.y < 0.f || position.y > currentWorld.GetHeight())
 	{
 		Destroy();
 	}
@@ -53,7 +54,7 @@ void Shot::Update(float deltaTime)
 
 int Shot::GetDamage() const noexcept { return damage; }
 float Shot::GetKnockback() const noexcept { return knockback; }
-std::uint64_t Shot::GetPlayerAttackId() const noexcept { return playerAttackId; }
+std::uint64_t Shot::GetPlayerAttackID() const noexcept { return playerAttackID; }
 
 void Shot::ReflectToward(const sf::Vector2f& targetPosition)
 {
@@ -73,8 +74,8 @@ void Shot::SetDirection(const sf::Vector2f& direction) noexcept
 	SetVelocity(direction * speed);
 }
 
-PlayerShot::PlayerShot(AssetStore& assets, World& world,
-	const sf::Vector2f& position, float rotationDegrees, std::uint64_t attackId,
+PlayerShot::PlayerShot(Assets& assets, World& world,
+	const sf::Vector2f& position, float rotationDegrees, std::uint64_t attackID,
 	bool playSound, bool tripleShotVisual)
 	: Shot(assets, world, assets.Textures().Get(Config::Texture::PlayerShot),
 		assets.GetGameplayData().GetProjectile(GameplayData::ProjectileKind::Player),
@@ -83,7 +84,7 @@ PlayerShot::PlayerShot(AssetStore& assets, World& world,
 			: world.GetSession().IsHomingBulletsActive()
 			? VisualKind::PlayerHoming
 			: VisualKind::Player,
-		attackId)
+		attackID)
 	, homingEnabled(world.GetSession().IsHomingBulletsActive())
 {
 	SetPosition(position);
@@ -124,24 +125,59 @@ void PlayerShot::AcquireHomingTarget()
 		config.homingConeDegrees * 0.5f * std::numbers::pi_v<float> / 180.f };
 	homingTarget = GetWorld().FindHomingTarget(
 		GetPosition(), GetVelocity(), std::cos(halfConeRadians));
+	bossHomingTarget = GetWorld().FindBossHomingTarget(
+		GetPosition(), GetVelocity(), std::cos(halfConeRadians));
+	if (homingTarget != nullptr && bossHomingTarget)
+	{
+		const auto bossPosition{
+			GetWorld().GetBossHomingTargetPosition(*bossHomingTarget) };
+		if (!bossPosition)
+			bossHomingTarget.reset();
+		else
+		{
+			const sf::Vector2f entityOffset{
+				homingTarget->GetPosition() - GetPosition() };
+			const sf::Vector2f bossOffset{ *bossPosition - GetPosition() };
+			const float entityDistanceSquared{
+				entityOffset.x * entityOffset.x + entityOffset.y * entityOffset.y };
+			const float bossDistanceSquared{
+				bossOffset.x * bossOffset.x + bossOffset.y * bossOffset.y };
+			if (bossDistanceSquared < entityDistanceSquared)
+				homingTarget = nullptr;
+			else
+				bossHomingTarget.reset();
+		}
+	}
 }
 
 void PlayerShot::UpdateHoming(float deltaTime)
 {
-	if (!GetWorld().IsEntityActive(homingTarget))
+	if (!GetWorld().IsEntityActive(homingTarget) &&
+		(!bossHomingTarget ||
+			!GetWorld().GetBossHomingTargetPosition(*bossHomingTarget)))
+	{
+		homingTarget = nullptr;
+		bossHomingTarget.reset();
 		AcquireHomingTarget();
-	if (homingTarget == nullptr)
+	}
+	const std::optional<sf::Vector2f> bossPosition{ bossHomingTarget
+		? GetWorld().GetBossHomingTargetPosition(*bossHomingTarget)
+		: std::nullopt };
+	if (homingTarget == nullptr && !bossPosition)
 		return;
 
-	const sf::Vector2f velocity{ GetVelocity() };
-	const sf::Vector2f toTarget{ homingTarget->GetPosition() - GetPosition() };
-	if ((velocity.x * velocity.x + velocity.y * velocity.y) <= 0.0001f ||
+	const sf::Vector2f currentVelocity{ GetVelocity() };
+	const sf::Vector2f targetPosition{ bossPosition
+		? *bossPosition
+		: homingTarget->GetPosition() };
+	const sf::Vector2f toTarget{ targetPosition - GetPosition() };
+	if ((currentVelocity.x * currentVelocity.x + currentVelocity.y * currentVelocity.y) <= 0.0001f ||
 		(toTarget.x * toTarget.x + toTarget.y * toTarget.y) <= 0.0001f)
 	{
 		return;
 	}
 
-	const float currentAngle{ std::atan2(velocity.y, velocity.x) };
+	const float currentAngle{ std::atan2(currentVelocity.y, currentVelocity.x) };
 	const float targetAngle{ std::atan2(toTarget.y, toTarget.x) };
 	const float angleDifference{ std::atan2(
 		std::sin(targetAngle - currentAngle),
@@ -171,7 +207,7 @@ bool PlayerShot::IsCollideWith(const Entity& other) const
 	return other.GetType() == Type::EnemyMissile && CheckCollision(other);
 }
 
-SaucerShot::SaucerShot(AssetStore& assets, World& world,
+SaucerShot::SaucerShot(Assets& assets, World& world,
 	const sf::Vector2f& position, const sf::Vector2f& targetPosition,
 	GameplayData::ProjectileKind projectileKind, bool playSound)
 	: Shot(assets, world, assets.Textures().Get(Config::Texture::EnemySaucerShot),
@@ -198,7 +234,7 @@ bool SaucerShot::IsCollideWith(const Entity& other) const
 		&& CheckCollision(other);
 }
 
-HelperShot::HelperShot(AssetStore& assets, World& world,
+HelperShot::HelperShot(Assets& assets, World& world,
 	const sf::Vector2f& position, const Entity* target)
 	: Shot(assets, world, assets.Textures().Get(Config::Texture::PlayerShot),
 		assets.GetGameplayData().GetProjectile(GameplayData::ProjectileKind::Helper),
@@ -255,15 +291,15 @@ void HelperShot::UpdateHoming(float deltaTime)
 	if (homingTarget == nullptr)
 		return;
 
-	const sf::Vector2f velocity{ GetVelocity() };
+	const sf::Vector2f currentVelocity{ GetVelocity() };
 	const sf::Vector2f toTarget{ homingTarget->GetPosition() - GetPosition() };
-	if ((velocity.x * velocity.x + velocity.y * velocity.y) <= 0.0001f ||
+	if ((currentVelocity.x * currentVelocity.x + currentVelocity.y * currentVelocity.y) <= 0.0001f ||
 		(toTarget.x * toTarget.x + toTarget.y * toTarget.y) <= 0.0001f)
 	{
 		return;
 	}
 
-	const float currentAngle{ std::atan2(velocity.y, velocity.x) };
+	const float currentAngle{ std::atan2(currentVelocity.y, currentVelocity.x) };
 	const float targetAngle{ std::atan2(toTarget.y, toTarget.x) };
 	const float angleDifference{ std::atan2(
 		std::sin(targetAngle - currentAngle),

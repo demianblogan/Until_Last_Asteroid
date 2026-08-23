@@ -2,13 +2,13 @@
 
 #include "Enemy.h"
 
-class AssetStore;
+class Assets;
 class World;
 
 class Spinner final : public Enemy
 {
 public:
-	Spinner(AssetStore& assets, World& world);
+	Spinner(Assets& assets, World& world);
 	void ConfigureApproachTarget(sf::Vector2f target) noexcept;
 
 	Type GetType() const noexcept override;

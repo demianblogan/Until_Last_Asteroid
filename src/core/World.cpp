@@ -5,12 +5,13 @@
 #include <cstdint>
 #include <limits>
 #include <numbers>
+#include <utility>
 #include <SFML/Graphics/BlendMode.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "audio/AudioManager.h"
 #include "entities/Enemy.h"
 #include "entities/HelperBot.h"
@@ -24,9 +25,10 @@
 #include "entities/Saucer.h"
 #include "entities/ShooterStation.h"
 #include "entities/Shot.h"
-#include "game/GameplaySession.h"
-#include "systems/Collision.h"
-#include "systems/GamepadManager.h"
+#include "gameplay/GameplaySession.h"
+#include "rendering/EnergyShield.h"
+#include "core/Collision.h"
+#include "input/GamepadManager.h"
 
 namespace
 {
@@ -106,88 +108,6 @@ namespace
 		}
 	}
 
-	void DrawEnergyShield(
-		sf::RenderTarget& target,
-		const sf::Vector2f& center,
-		float radius,
-		float pulse,
-		sf::Color shellColor,
-		sf::Color outlineColor,
-		sf::Color glowColor,
-		float hexOpacity,
-		sf::RenderStates states)
-	{
-		// Shield geometry is rebuilt with animated colors, but kept to a handful of
-		// draw calls. The old implementation submitted every hexagon separately;
-		// a station-sized shield could issue hundreds of draws per frame.
-		constexpr std::size_t ShieldCirclePoints{ 64u };
-		sf::CircleShape shell(radius, ShieldCirclePoints);
-		shell.setOrigin({ radius, radius });
-		shell.setPosition(center);
-		shell.setFillColor(sf::Color(shellColor.r, shellColor.g, shellColor.b,
-			static_cast<std::uint8_t>(27.f * pulse)));
-		shell.setOutlineColor(sf::Color(outlineColor.r, outlineColor.g, outlineColor.b,
-			static_cast<std::uint8_t>(58.f * pulse)));
-		shell.setOutlineThickness(4.f);
-		target.draw(shell, states);
-
-		sf::RenderStates additiveStates{ states };
-		additiveStates.blendMode = sf::BlendAdd;
-		for (int layer{ 0 }; layer < 3; ++layer)
-		{
-			const float glowRadius{ radius + 2.f + layer * 3.f };
-			sf::CircleShape glow(glowRadius, ShieldCirclePoints);
-			glow.setOrigin({ glowRadius, glowRadius });
-			glow.setPosition(center);
-			glow.setFillColor(sf::Color::Transparent);
-			glow.setOutlineColor(sf::Color(glowColor.r, glowColor.g, glowColor.b,
-				static_cast<std::uint8_t>((34.f - layer * 8.f) * pulse)));
-			glow.setOutlineThickness(7.f + layer * 3.f);
-			target.draw(glow, additiveStates);
-		}
-
-		constexpr float HexRadius{ 9.f };
-		constexpr float HorizontalSpacing{ 16.f };
-		constexpr float VerticalSpacing{ 14.f };
-		const int maximumRow{ static_cast<int>(std::ceil(radius / VerticalSpacing)) };
-		const int maximumColumn{ static_cast<int>(std::ceil(radius / HorizontalSpacing)) };
-		sf::VertexArray hexGrid(sf::PrimitiveType::Lines);
-		const sf::Color hexColor{
-			outlineColor.r,
-			outlineColor.g,
-			outlineColor.b,
-			static_cast<std::uint8_t>(hexOpacity * pulse) };
-		for (int row{ -maximumRow }; row <= maximumRow; ++row)
-		{
-			for (int column{ -maximumColumn }; column <= maximumColumn; ++column)
-			{
-				const float x{ column * HorizontalSpacing + (row % 2 == 0 ? 0.f : 8.f) };
-				const float y{ row * VerticalSpacing };
-				if (x * x + y * y >
-					(radius - HexRadius - 3.f) * (radius - HexRadius - 3.f))
-					continue;
-
-				const sf::Vector2f hexCenter{ center + sf::Vector2f{ x, y } };
-				std::array<sf::Vector2f, 6> corners;
-				for (std::size_t corner{ 0u }; corner < corners.size(); ++corner)
-				{
-					const float angle{ std::numbers::pi_v<float> / 6.f +
-						static_cast<float>(corner) * std::numbers::pi_v<float> / 3.f };
-					corners[corner] = hexCenter + sf::Vector2f{
-						std::cos(angle) * HexRadius,
-						std::sin(angle) * HexRadius };
-				}
-				for (std::size_t corner{ 0u }; corner < corners.size(); ++corner)
-				{
-					hexGrid.append({ corners[corner], hexColor });
-					hexGrid.append({ corners[(corner + 1u) % corners.size()], hexColor });
-				}
-			}
-		}
-		if (hexGrid.getVertexCount() > 0u)
-			target.draw(hexGrid, additiveStates);
-	}
-
 	void DrawShieldOverlay(
 		sf::RenderTarget& target,
 		const Player& player,
@@ -206,7 +126,7 @@ namespace
 			pulse = std::max(pulse, hitBlink * (1.f + hitFlashRatio * 0.55f));
 		}
 
-		DrawEnergyShield(target, player.GetPosition(),
+		Rendering::DrawEnergyShield(target, player.GetPosition(),
 			player.GetCollisionRadius() * 1.62f, pulse,
 			{ 20, 205, 235 }, { 70, 240, 255 }, { 45, 225, 255 }, 24.f, states);
 	}
@@ -369,13 +289,13 @@ namespace
 
 		if (!station.IsShieldActive())
 			return;
-		DrawEnergyShield(target, station.GetPosition(),
+		Rendering::DrawEnergyShield(target, station.GetPosition(),
 			station.GetShieldRadius(), station.GetShieldPulse(),
 			{ 220, 28, 38 }, { 255, 78, 62 }, { 255, 40, 35 }, 64.f, states);
 	}
 }
 
-World::World(unsigned int width, unsigned int height, AssetStore& assets,
+World::World(unsigned int width, unsigned int height, Assets& assets,
 	AudioManager& audio, GameplaySession& session, GamepadManager& gamepadManager)
 	: assets(assets), audio(audio), session(session), gamepad(gamepadManager),
 	  width(width), height(height)
@@ -385,6 +305,7 @@ World::World(unsigned int width, unsigned int height, AssetStore& assets,
 
 void World::Update(float deltaTime, float worldTimeScale)
 {
+	playerLaserDamageEvent.reset();
 	shieldVisualTime += deltaTime;
 	worldTimeScale = std::clamp(worldTimeScale, 0.f, 1.f);
 	CommitPendingEntities();
@@ -403,10 +324,7 @@ void World::Update(float deltaTime, float worldTimeScale)
 			: deltaTime * worldTimeScale };
 		entity->UpdateEffects(entityDeltaTime);
 		entity->Update(entityDeltaTime);
-		const auto* station{ dynamic_cast<const ShooterStation*>(entity.get()) };
-		const auto* turret{ dynamic_cast<const LaserTurret*>(entity.get()) };
-		if ((station == nullptr || !station->IsArriving()) &&
-			(turret == nullptr || !turret->IsArriving()) &&
+		if (!entity->IsArriving() &&
 			entity->GetType() != Entity::Type::Projectile_Player &&
 			entity->GetType() != Entity::Type::Projectile_Ally &&
 			entity->GetType() != Entity::Type::Projectile_Enemy &&
@@ -436,7 +354,7 @@ void World::Spawn(std::unique_ptr<Entity> entity)
 	pendingEntities.push_back(std::move(entity));
 }
 
-void World::SpawnPlayer(AssetStore& playerAssets, InputHandler<Config::PlayerAction>& input)
+void World::SpawnPlayer(Assets& playerAssets, InputHandler<Config::PlayerAction>& input)
 {
 	if (player != nullptr)
 		return;
@@ -514,23 +432,23 @@ void World::SetPlayerFiringEnabled(bool enabled) noexcept
 std::uint64_t World::BeginPlayerAttack() noexcept
 {
 	++statistics.playerAttacksFired;
-	return nextPlayerAttackId++;
+	return nextPlayerAttackID++;
 }
 
-void World::RegisterPlayerAttackHit(std::uint64_t attackId) noexcept
+void World::RegisterPlayerAttackHit(std::uint64_t attackID) noexcept
 {
-	if (attackId == 0u)
+	if (attackID == 0u)
 		return;
-	if (successfulPlayerAttacks.insert(attackId).second)
+	if (successfulPlayerAttacks.insert(attackID).second)
 		++statistics.playerAttacksHit;
 }
 
 void World::SpawnPlayerShot(
-	const sf::Vector2f& pos, float rotation, std::uint64_t attackId,
+	const sf::Vector2f& pos, float rotation, std::uint64_t attackID,
 	bool playSound, bool tripleShotVisual)
 {
 	Spawn(std::make_unique<PlayerShot>(
-		assets, *this, pos, rotation, attackId, playSound, tripleShotVisual));
+		assets, *this, pos, rotation, attackID, playSound, tripleShotVisual));
 }
 
 void World::SpawnHelperShot(const sf::Vector2f& pos, const Entity* target)
@@ -549,6 +467,13 @@ bool World::SpawnHelperPickup(const sf::Vector2f& pos)
 	Spawn(std::move(pickup));
 	helperPickupSpawned = true;
 	return true;
+}
+
+void World::SpawnPickupAt(GameplayData::PickupKind kind, const sf::Vector2f& pos)
+{
+	auto pickup{ std::make_unique<Pickup>(assets, *this, kind) };
+	pickup->SetPosition(pos);
+	Spawn(std::move(pickup));
 }
 
 void World::SpawnHelperBot()
@@ -591,12 +516,14 @@ void World::DamageEnemiesWithPlayerLaser(
 	const sf::Vector2f& end,
 	float laserWidth,
 	int damage,
-	std::uint64_t attackId)
+	std::uint64_t attackID)
 {
 	const sf::Vector2f segment{ end - start };
 	const float lengthSquared{ segment.x * segment.x + segment.y * segment.y };
 	if (lengthSquared <= 0.001f || damage <= 0)
 		return;
+	playerLaserDamageEvent = PlayerLaserDamageEvent{
+		start, end, laserWidth, damage, attackID };
 
 	for (const auto& entity : entities)
 	{
@@ -619,7 +546,7 @@ void World::DamageEnemiesWithPlayerLaser(
 		if (offset.x * offset.x + offset.y * offset.y > hitRadius * hitRadius)
 			continue;
 
-		RegisterPlayerAttackHit(attackId);
+		RegisterPlayerAttackHit(attackID);
 		AddEffectEvent({ EffectEventType::ShipHit,
 			impactPosition, Normalize(segment),
 			std::clamp(entity->GetCollisionRadius() / 45.f, 0.55f, 1.2f) });
@@ -746,7 +673,6 @@ std::uint64_t World::AddSustainedSound(
 		loopStartSeconds, loopEndSeconds, outroStartSeconds);
 }
 
-void World::ReleaseSound(std::uint64_t handle) { audio.ReleaseSound(handle); }
 void World::StopSound(std::uint64_t handle) { audio.StopSound(handle); }
 
 void World::CompleteDelayedEnemyDestruction(Enemy& enemy)
@@ -784,6 +710,274 @@ void World::ClearProjectiles()
 	} };
 	std::erase_if(entities, isProjectile);
 	std::erase_if(pendingEntities, isProjectile);
+}
+
+void World::SetPlayerCinematicInvulnerable(bool enabled) noexcept
+{
+	if (player != nullptr)
+		player->SetCinematicInvulnerable(enabled);
+}
+
+std::optional<World::PlayerLaserDamageEvent>
+World::ConsumePlayerLaserDamageEvent() noexcept
+{
+	return std::exchange(playerLaserDamageEvent, std::nullopt);
+}
+
+std::vector<World::PlayerProjectileImpact> World::ConsumePlayerProjectilesInCircle(
+	sf::Vector2f center, float radius)
+{
+	std::vector<PlayerProjectileImpact> impacts;
+	for (const auto& entity : entities)
+	{
+		if (!entity->IsAlive() ||
+			entity->GetType() != Entity::Type::Projectile_Player)
+		{
+			continue;
+		}
+
+		const sf::Vector2f offset{ entity->GetPosition() - center };
+		const float reach{ radius + entity->GetCollisionRadius() };
+		if (offset.x * offset.x + offset.y * offset.y > reach * reach)
+			continue;
+
+		const sf::Vector2f direction{ Normalize(offset) };
+		const Shot& shot{ static_cast<const Shot&>(*entity) };
+		impacts.push_back({ center + direction * radius, shot.GetDamage() });
+		RegisterPlayerAttackHit(shot.GetPlayerAttackID());
+		entity->Destroy();
+		AddEffectEvent({ EffectEventType::ShipHit,
+			impacts.back().position, direction, 1.25f });
+		AddSound(Config::Sound::MetalHit, 0.72f);
+	}
+	return impacts;
+}
+
+std::vector<World::PlayerProjectileImpact> World::ConsumePlayerProjectilesInAnnulus(
+	sf::Vector2f center, float innerRadius, float outerRadius)
+{
+	std::vector<PlayerProjectileImpact> impacts;
+	for (const auto& entity : entities)
+	{
+		if (!entity->IsAlive() ||
+			entity->GetType() != Entity::Type::Projectile_Player)
+		{
+			continue;
+		}
+
+		const sf::Vector2f offset{ entity->GetPosition() - center };
+		const float distanceSquared{ offset.x * offset.x + offset.y * offset.y };
+		const float outerReach{ outerRadius + entity->GetCollisionRadius() };
+		const float innerReach{ std::max(0.f, innerRadius - entity->GetCollisionRadius()) };
+		if (distanceSquared > outerReach * outerReach ||
+			distanceSquared < innerReach * innerReach)
+		{
+			continue;
+		}
+
+		const sf::Vector2f direction{ Normalize(offset) };
+		const Shot& shot{ static_cast<const Shot&>(*entity) };
+		impacts.push_back({ center + direction * outerRadius, shot.GetDamage() });
+		RegisterPlayerAttackHit(shot.GetPlayerAttackID());
+		entity->Destroy();
+		AddEffectEvent({ EffectEventType::ShipHit,
+			impacts.back().position, direction, 1.15f });
+		AddSound(Config::Sound::MetalHit, 0.82f);
+	}
+	return impacts;
+}
+
+void World::ConsumePlayerProjectilesInDiamondFrame(
+	sf::Vector2f center,
+	float rotationDegrees,
+	float vertexRadius,
+	float halfThickness)
+{
+	const float rotation{ -rotationDegrees * std::numbers::pi_v<float> / 180.f };
+	const float cosine{ std::cos(rotation) };
+	const float sine{ std::sin(rotation) };
+	for (const auto& entity : entities)
+	{
+		if (!entity->IsAlive() ||
+			entity->GetType() != Entity::Type::Projectile_Player)
+		{
+			continue;
+		}
+
+		const sf::Vector2f offset{ entity->GetPosition() - center };
+		const sf::Vector2f local{
+			offset.x * cosine - offset.y * sine,
+			offset.x * sine + offset.y * cosine };
+		const float diamondDistance{ std::abs(local.x) + std::abs(local.y) };
+		if (std::abs(diamondDistance - vertexRadius) >
+			halfThickness + entity->GetCollisionRadius())
+		{
+			continue;
+		}
+
+		const Shot& shot{ static_cast<const Shot&>(*entity) };
+		RegisterPlayerAttackHit(shot.GetPlayerAttackID());
+		entity->Destroy();
+		AddEffectEvent({ EffectEventType::ShipHit,
+			entity->GetPosition(), Normalize(offset), 0.9f });
+		AddSound(Config::Sound::MetalHit, 0.76f);
+	}
+}
+
+bool World::DamagePlayerFromBoss(int damage, sf::Vector2f sourcePosition)
+{
+	if (player == nullptr || !player->IsAlive() || damage <= 0)
+		return false;
+	if (!player->TakeDamage(damage))
+		return false;
+
+	const sf::Vector2f direction{ Normalize(player->GetPosition() - sourcePosition) };
+	if (player->DidLastDamageReachHealth())
+	{
+		AddEffectEvent({ EffectEventType::PlayerHit,
+			player->GetPosition(), direction, 1.2f });
+	}
+	AddSound(Config::Sound::MetalHit, 1.08f);
+	if (!player->IsAlive())
+		session.SetGameOver();
+	return true;
+}
+
+void World::KeepPlayerOutsideCircle(
+	sf::Vector2f center,
+	float radius,
+	int contactDamage)
+{
+	if (player == nullptr || !player->IsAlive())
+		return;
+	const float minimumDistance{ radius + player->GetCollisionRadius() };
+	const sf::Vector2f offset{ player->GetPosition() - center };
+	const float distanceSquared{ offset.x * offset.x + offset.y * offset.y };
+	if (distanceSquared >= minimumDistance * minimumDistance)
+		return;
+
+	const float distance{ std::sqrt(distanceSquared) };
+	const sf::Vector2f direction{ distance > 0.001f
+		? offset / distance
+		: sf::Vector2f{ 0.f, 1.f } };
+	player->SetPosition(center + direction * minimumDistance);
+	const sf::Vector2f velocity{ player->GetVelocity() };
+	const float inwardSpeed{ velocity.x * direction.x + velocity.y * direction.y };
+	if (inwardSpeed < 0.f)
+		player->SetVelocity(velocity - direction * inwardSpeed * 1.25f);
+	static_cast<void>(DamagePlayerFromBoss(contactDamage, center));
+}
+
+void World::KeepEnemiesOutsideCircle(
+	sf::Vector2f center,
+	float radius,
+	float clearance)
+{
+	const auto keepOutside{ [&](auto& list)
+	{
+		for (auto& entity : list)
+		{
+			if (!entity->IsAlive() || entity->GetType() != Entity::Type::Enemy)
+				continue;
+
+			const float minimumDistance{
+				radius + clearance + entity->GetCollisionRadius() };
+			const sf::Vector2f offset{ entity->GetPosition() - center };
+			const float distanceSquared{ offset.x * offset.x + offset.y * offset.y };
+			if (distanceSquared >= minimumDistance * minimumDistance)
+				continue;
+
+			const float distance{ std::sqrt(distanceSquared) };
+			const sf::Vector2f direction{ distance > 0.001f
+				? offset / distance
+				: sf::Vector2f{ 0.f, 1.f } };
+			const sf::Vector2f velocity{ entity->GetVelocity() };
+			const float inwardSpeed{
+				velocity.x * direction.x + velocity.y * direction.y };
+			if (inwardSpeed > 0.f)
+				continue;
+			entity->SetPosition(center + direction * minimumDistance);
+			if (inwardSpeed < 0.f)
+				entity->SetVelocity(velocity - direction * inwardSpeed);
+		}
+	} };
+	keepOutside(entities);
+	keepOutside(pendingEntities);
+}
+
+void World::SetRewardExclusionCircle(sf::Vector2f center, float radius) noexcept
+{
+	rewardExclusionCenter = center;
+	rewardExclusionRadius = std::max(0.f, radius);
+}
+
+std::size_t World::CountActiveLaserTurrets() const noexcept
+{
+	const auto countIn{ [](const auto& list)
+	{
+		return static_cast<std::size_t>(std::count_if(
+			list.begin(), list.end(), [](const auto& entity)
+			{
+				return entity->IsAlive() &&
+					dynamic_cast<const LaserTurret*>(entity.get()) != nullptr;
+			}));
+	} };
+	return countIn(entities) + countIn(pendingEntities);
+}
+
+bool World::DestroyNextBossVictoryTarget()
+{
+	const auto destroyNextIn{ [this](auto& list)
+	{
+		for (const auto& entity : list)
+		{
+			if (!entity->IsAlive())
+				continue;
+			const Entity::Type type{ entity->GetType() };
+			if (type != Entity::Type::Enemy && type != Entity::Type::Asteroid &&
+				type != Entity::Type::EnemyMissile)
+			{
+				continue;
+			}
+			if (type == Entity::Type::Enemy || type == Entity::Type::Asteroid)
+			{
+				Enemy& enemy{ static_cast<Enemy&>(*entity) };
+				enemy.SetScoreRewardEnabled(false);
+				enemy.SetPickupRewardsEnabled(false);
+				enemy.SetPartRewardEnabled(false);
+				if (auto* meteor{ dynamic_cast<Meteor*>(entity.get()) })
+					meteor->SetFragmentSpawningEnabled(false);
+			}
+			else
+			{
+				AddEffectEvent({ EffectEventType::ShipExplosion,
+					entity->GetPosition(), {}, 0.7f });
+			}
+			entity->Destroy();
+			return true;
+		}
+		return false;
+	} };
+	return destroyNextIn(entities) || destroyNextIn(pendingEntities);
+}
+
+void World::DestroyAllBossVictoryTargets()
+{
+	while (DestroyNextBossVictoryTarget())
+	{
+	}
+}
+
+void World::ClearBossVictoryPickupsAndCompanions()
+{
+	const auto remove{ [](const auto& entity)
+	{
+		const Entity::Type type{ entity->GetType() };
+		return type == Entity::Type::Pickup || type == Entity::Type::Part ||
+			type == Entity::Type::Companion;
+	} };
+	std::erase_if(entities, remove);
+	std::erase_if(pendingEntities, remove);
 }
 
 void World::ClearPickups()
@@ -847,6 +1041,52 @@ const Entity* World::FindHomingTarget(
 	return closestTarget;
 }
 
+void World::SetBossHomingTargets(
+	const std::array<std::optional<sf::Vector2f>, 4>& targets) noexcept
+{
+	bossHomingTargets = targets;
+}
+
+void World::ClearBossHomingTargets() noexcept
+{
+	bossHomingTargets.fill(std::nullopt);
+}
+
+std::optional<std::size_t> World::FindBossHomingTarget(
+	const sf::Vector2f& position,
+	const sf::Vector2f& direction,
+	float minimumDirectionDot) const noexcept
+{
+	const sf::Vector2f normalizedDirection{ Normalize(direction) };
+	std::optional<std::size_t> closestTarget;
+	float closestDistanceSquared{ std::numeric_limits<float>::max() };
+	for (std::size_t index{ 0u }; index < bossHomingTargets.size(); ++index)
+	{
+		if (!bossHomingTargets[index])
+			continue;
+		const sf::Vector2f offset{ *bossHomingTargets[index] - position };
+		const float distanceSquared{ offset.x * offset.x + offset.y * offset.y };
+		if (distanceSquared <= 0.0001f || distanceSquared >= closestDistanceSquared)
+			continue;
+		const float directionDot{
+			(offset.x * normalizedDirection.x + offset.y * normalizedDirection.y) /
+			std::sqrt(distanceSquared) };
+		if (directionDot < minimumDirectionDot)
+			continue;
+		closestTarget = index;
+		closestDistanceSquared = distanceSquared;
+	}
+	return closestTarget;
+}
+
+std::optional<sf::Vector2f> World::GetBossHomingTargetPosition(
+	std::size_t index) const noexcept
+{
+	return index < bossHomingTargets.size()
+		? bossHomingTargets[index]
+		: std::nullopt;
+}
+
 bool World::IsEntityActive(const Entity* entity) const noexcept
 {
 	return entity != nullptr && std::ranges::any_of(entities,
@@ -882,11 +1122,15 @@ void World::Clear()
 {
 	entities.clear();
 	pendingEntities.clear();
+	rewardExclusionCenter.reset();
+	rewardExclusionRadius = 0.f;
+	ClearBossHomingTargets();
+	playerLaserDamageEvent.reset();
 	effectEvents.clear();
 	player = nullptr;
 	shieldVisualTime = 0.f;
 	statistics = {};
-	nextPlayerAttackId = 1u;
+	nextPlayerAttackID = 1u;
 	successfulPlayerAttacks.clear();
 	helperPickupSpawned = false;
 	helperBotSpawned = false;
@@ -906,16 +1150,64 @@ void World::Wrap(Entity& entity) const
 
 void World::HandleCollisions()
 {
-	for (std::size_t i{ 0 }; i < entities.size(); ++i)
-	{
-		for (std::size_t j{ i + 1 }; j < entities.size(); ++j)
+	// Broad-phase: bucket entities into a uniform grid so only nearby pairs
+	// are narrow-phase tested, instead of every pair in the world (O(n^2)).
+	// The cell size must stay >= the largest possible sum of two entities'
+	// collision radii (biggest enemy is ~114 px, so ~230 px combined); with a
+	// 256 px cell, any two entities close enough to touch are guaranteed to
+	// land in the same cell or an immediately adjacent one, so scanning the
+	// 3x3 neighborhood around an entity's cell can't miss a real collision.
+	// The grid wraps toroidally to match World::Wrap's edge behavior.
+	constexpr float CellSize{ 256.f };
+	const int columns{ std::max(1, static_cast<int>(std::ceil(static_cast<float>(width) / CellSize))) };
+	const int rows{ std::max(1, static_cast<int>(std::ceil(static_cast<float>(height) / CellSize))) };
+
+	const auto cellIndex{ [columns, rows](int cx, int cy) -> std::size_t
 		{
-			Entity& first{ *entities[i] };
-			Entity& second{ *entities[j] };
-			if (first.IsAlive() && second.IsAlive() &&
-				first.IsCollideWith(second) && second.IsCollideWith(first))
+			const int wrappedX{ ((cx % columns) + columns) % columns };
+			const int wrappedY{ ((cy % rows) + rows) % rows };
+			return static_cast<std::size_t>(wrappedY) * static_cast<std::size_t>(columns) +
+				static_cast<std::size_t>(wrappedX);
+		} };
+
+	std::vector<std::vector<std::size_t>> grid(static_cast<std::size_t>(columns) * static_cast<std::size_t>(rows));
+	std::vector<std::pair<int, int>> entityCell(entities.size());
+	for (std::size_t index{ 0u }; index < entities.size(); ++index)
+	{
+		if (!entities[index]->IsAlive())
+			continue;
+		const sf::Vector2f position{ entities[index]->GetPosition() };
+		const int cx{ static_cast<int>(std::floor(position.x / CellSize)) };
+		const int cy{ static_cast<int>(std::floor(position.y / CellSize)) };
+		entityCell[index] = { cx, cy };
+		grid[cellIndex(cx, cy)].push_back(index);
+	}
+
+	for (std::size_t i{ 0u }; i < entities.size(); ++i)
+	{
+		if (!entities[i]->IsAlive())
+			continue;
+		const auto [cx, cy]{ entityCell[i] };
+		for (int dy{ -1 }; dy <= 1; ++dy)
+		{
+			for (int dx{ -1 }; dx <= 1; ++dx)
 			{
-				HandleCollisionPair(first, second);
+				for (const std::size_t j : grid[cellIndex(cx + dx, cy + dy)])
+				{
+					if (j <= i)
+						continue;
+
+					Entity& first{ *entities[i] };
+					Entity& second{ *entities[j] };
+					// Re-checked per pair (not hoisted) because handling an
+					// earlier pair in this same neighborhood scan may have
+					// destroyed `first` or `second` already.
+					if (first.IsAlive() && second.IsAlive() &&
+						first.IsCollideWith(second) && second.IsCollideWith(first))
+					{
+						HandleCollisionPair(first, second);
+					}
+				}
 			}
 		}
 	}
@@ -930,7 +1222,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		Entity& other{ first.GetType() == Entity::Type::Part ? second : first };
 		if (other.GetType() == Entity::Type::Player)
 		{
-			if (session.RecoverPart(part.GetId()))
+			if (session.RecoverPart(part.GetID()))
 				AddSound(Config::Sound::PartPickedUp);
 			part.Destroy();
 		}
@@ -964,7 +1256,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 			other.GetType() == Entity::Type::Projectile_Ally)
 		{
 			auto& shot{ static_cast<Shot&>(other) };
-			RegisterPlayerAttackHit(shot.GetPlayerAttackId());
+			RegisterPlayerAttackHit(shot.GetPlayerAttackID());
 			AddEffectEvent({ EffectEventType::ShipHit,
 				missile.GetPosition(), Normalize(shot.GetVelocity()), 0.55f });
 			shot.Destroy();
@@ -982,7 +1274,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 
 	auto handleFriendlyShot = [this](Shot& shot, Enemy& enemy)
 	{
-		RegisterPlayerAttackHit(shot.GetPlayerAttackId());
+		RegisterPlayerAttackHit(shot.GetPlayerAttackID());
 		const sf::Vector2f impactDirection{ Normalize(shot.GetVelocity()) };
 		const sf::Vector2f impactPosition{
 			enemy.GetPlayerProjectileImpactPosition(shot) };
@@ -1142,43 +1434,49 @@ void World::AwardScore(const Enemy& enemy)
 {
 	if (!enemy.AreRewardsEnabled())
 		return;
-	if (const auto* meteor{ dynamic_cast<const Meteor*>(&enemy) })
+	if (enemy.IsScoreRewardEnabled())
 	{
-		if (meteor->GetSize() == Meteor::Size::Big)
-			++statistics.bigMeteorsDestroyed;
-		else
-			++statistics.smallMeteorsDestroyed;
-	}
-	else if (const auto* saucer{ dynamic_cast<const Saucer*>(&enemy) };
-		saucer != nullptr && saucer->GetMode() == Saucer::Mode::Shooter)
-	{
-		++statistics.shootersDestroyed;
-	}
+		if (const auto* meteor{ dynamic_cast<const Meteor*>(&enemy) })
+		{
+			if (meteor->GetSize() == Meteor::Size::Big)
+				++statistics.bigMeteorsDestroyed;
+			else
+				++statistics.smallMeteorsDestroyed;
+		}
+		else if (const auto* saucer{ dynamic_cast<const Saucer*>(&enemy) };
+			saucer != nullptr && saucer->GetMode() == Saucer::Mode::Shooter)
+		{
+			++statistics.shootersDestroyed;
+		}
 
-	const int points{ enemy.GetScoreValue() };
-	session.AddScore(points);
-	AddEffectEvent({
-		EffectEventType::ScorePopup,
-		enemy.GetPosition(),
-		{},
-		1.f,
-		points });
+		const int points{ enemy.GetScoreValue() };
+		session.AddScore(points);
+		AddEffectEvent({
+			EffectEventType::ScorePopup,
+			enemy.GetPosition(),
+			{},
+			1.f,
+			points });
+	}
 
 	std::vector<GameplayData::PickupKind> pickupKinds;
-	const int orderedDropCount{ enemy.GetOrderedPickupDropCount() };
-	if (orderedDropCount > 0)
+	if (enemy.ArePickupRewardsEnabled())
 	{
-		for (int index{ 0 };
-			index < orderedDropCount &&
-			nextCampaignPickup < campaignPickupSequence.size();
-			++index)
+		const int orderedDropCount{ enemy.GetOrderedPickupDropCount() };
+		if (orderedDropCount > 0)
 		{
-			pickupKinds.push_back(campaignPickupSequence[nextCampaignPickup++]);
+			for (int index{ 0 };
+				index < orderedDropCount &&
+				nextCampaignPickup < campaignPickupSequence.size();
+				++index)
+			{
+				pickupKinds.push_back(campaignPickupSequence[nextCampaignPickup++]);
+			}
 		}
-	}
-	else if (const auto pickupKind{ enemy.RollPickupDrop() })
-	{
-		pickupKinds.push_back(*pickupKind);
+		else if (const auto pickupKind{ enemy.RollPickupDrop() })
+		{
+			pickupKinds.push_back(*pickupKind);
+		}
 	}
 	for (std::size_t index{ 0u }; index < pickupKinds.size(); ++index)
 	{
@@ -1187,8 +1485,18 @@ void World::AwardScore(const Enemy& enemy)
 				static_cast<float>(index) / static_cast<float>(pickupKinds.size())
 			: 0.f };
 		const float radius{ pickupKinds.size() > 1u ? 72.f : 0.f };
-		const sf::Vector2f position{ enemy.GetPosition() + sf::Vector2f{
+		sf::Vector2f position{ enemy.GetPosition() + sf::Vector2f{
 			std::cos(angle) * radius, std::sin(angle) * radius } };
+		if (rewardExclusionCenter && rewardExclusionRadius > 0.f)
+		{
+			const sf::Vector2f offset{ position - *rewardExclusionCenter };
+			const float distanceSquared{ offset.x * offset.x + offset.y * offset.y };
+			if (distanceSquared < rewardExclusionRadius * rewardExclusionRadius)
+			{
+				const sf::Vector2f direction{ Normalize(offset) };
+				position = *rewardExclusionCenter + direction * rewardExclusionRadius;
+			}
+		}
 		if (pickupKinds[index] == Pickup::Kind::HelperBot)
 			static_cast<void>(SpawnHelperPickup(position));
 		else
@@ -1200,10 +1508,10 @@ void World::AwardScore(const Enemy& enemy)
 		}
 	}
 
-	if (!enemy.GetPartDropId().empty() &&
-		!session.IsPartCollected(enemy.GetPartDropId()))
+	if (enemy.IsPartRewardEnabled() && !enemy.GetPartDropID().empty() &&
+		!session.IsPartCollected(enemy.GetPartDropID()))
 	{
-		auto part{ std::make_unique<Part>(assets, *this, enemy.GetPartDropId()) };
+		auto part{ std::make_unique<Part>(assets, *this, enemy.GetPartDropID()) };
 		part->SetPosition(enemy.GetPosition());
 		Spawn(std::move(part));
 	}
@@ -1258,7 +1566,7 @@ void World::draw(sf::RenderTarget& target, sf::RenderStates states) const
 		if (const auto* reflector{ dynamic_cast<const ReflectorGunship*>(entity.get()) };
 			reflector != nullptr && reflector->IsShieldActive())
 		{
-			DrawEnergyShield(target, reflector->GetPosition(),
+			Rendering::DrawEnergyShield(target, reflector->GetPosition(),
 				reflector->GetShieldRadius(), reflector->GetShieldPulse(),
 				{ 205, 20, 35 }, { 255, 65, 75 }, { 255, 35, 45 }, 58.f, states);
 		}

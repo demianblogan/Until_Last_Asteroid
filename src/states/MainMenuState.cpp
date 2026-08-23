@@ -11,21 +11,29 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "audio/AudioManager.h"
 #include "core/GameVersion.h"
-#include "states/StateId.h"
-#include "systems/GamepadManager.h"
+#include "localization/LocalizationManager.h"
+#include "states/StateID.h"
+#include "input/GamepadManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
 {
-    const std::string MenuTitle{ "Until Last Asteroid" };
-	const std::vector<std::string> MenuLabels{ "Start Game", "Records", "Options", "Quit" };
+	std::vector<sf::String> GetMenuLabels(const LocalizationManager& localization)
+	{
+		return { localization.Get("main_menu.start_game"),
+			localization.Get("main_menu.achievements"),
+			localization.Get("main_menu.records"),
+			localization.Get("main_menu.options"),
+			localization.Get("main_menu.credits"),
+			localization.Get("main_menu.quit") };
+	}
 
-    constexpr sf::Vector2f ButtonSize{ 540.f, 104.f };
-    constexpr sf::Vector2f FirstButtonPosition{ 90.f, 540.f };
-    constexpr float ButtonSpacing{ 112.f };
+	constexpr sf::Vector2f ButtonSize{ 540.f, 82.f };
+	constexpr sf::Vector2f FirstButtonPosition{ 90.f, 400.f };
+	constexpr float ButtonSpacing{ 92.f };
     constexpr float TitleStartY{ 540.f };
     constexpr float TitleEndY{ 125.f };
     constexpr float ActivationDelay{ 0.12f };
@@ -46,18 +54,19 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
         Config::Texture::MenuPointer,
         { 6.f, 2.f },
         InterfaceGlowColor)
-    , introAnimation(MenuTitle, MenuLabels)
+	, introAnimation(context.localization.Get("main_menu.title"), GetMenuLabels(context.localization))
     , screenFade(context.logicalSize)
-    , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "", 92)
+	, title(context.assets.Fonts().Get(context.localization.BoldFont()), "", 92)
     , version(context.assets.Fonts().Get(Config::Font::MenuRegular), std::string(GameVersion::Text), 20)
 {
     context.window.setMouseCursorVisible(false);
+	localizationRevision = context.localization.GetRevision();
 
     title.setFillColor(sf::Color(215, 247, 252));
     title.setOutlineColor(sf::Color(3, 18, 31, 235));
     title.setOutlineThickness(3.5f);
     title.setLetterSpacing(1.08f);
-    title.setString(MenuTitle);
+	title.setString(context.localization.Get("main_menu.title"));
     const sf::FloatRect fullTitleBounds{ title.getLocalBounds() };
     titleLeftPosition = context.logicalSize.x * 0.5f
         - fullTitleBounds.size.x * 0.5f
@@ -76,14 +85,20 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     });
     version.setPosition(context.logicalSize - sf::Vector2f{ 24.f, 20.f });
 
-    const sf::Font& menuFont{ context.assets.Fonts().Get(Config::Font::MenuRegular) };
+    const sf::Font& menuFont{ context.assets.Fonts().Get(
+		context.localization.GetLanguage() == Language::English
+		? Config::Font::MenuRegular
+		: (context.localization.GetLanguage() == Language::Arabic
+			? Config::Font::ArabicRegular : Config::Font::LocalizedRegular)) };
     const sf::Texture& idleTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
     const sf::Texture& selectedTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 
-    buttons.reserve(MenuLabels.size());
-    for (std::size_t index{ 0 }; index < MenuLabels.size(); ++index)
+    const std::vector<sf::String> menuLabels{ GetMenuLabels(context.localization) };
+    buttons.reserve(menuLabels.size());
+    for (std::size_t index{ 0 }; index < menuLabels.size(); ++index)
     {
-        buttons.emplace_back(menuFont, idleTexture, selectedTexture, MenuLabels[index], ButtonSize);
+        buttons.emplace_back(menuFont, idleTexture, selectedTexture, "", ButtonSize);
+		buttons.back().SetLabel(menuLabels[index]);
         buttons.back().SetPosition(
             FirstButtonPosition + sf::Vector2f{ 0.f, ButtonSpacing * static_cast<float>(index) });
         buttons.back().SetFrameOpacity(0.f);
@@ -209,6 +224,8 @@ void MainMenuState::HandleEvent(const sf::Event& event)
 
 void MainMenuState::Update(float deltaTime)
 {
+	if (localizationRevision != GetContext().localization.GetRevision())
+		RefreshLocalizedLabels();
     background.Update(deltaTime);
     neonGlow.Update(deltaTime);
     titleNeonGlow.Update(deltaTime);
@@ -231,6 +248,30 @@ void MainMenuState::Update(float deltaTime)
     const std::size_t activatedIndex{ pendingActivation.value() };
     pendingActivation.reset();
     CompleteActivation(activatedIndex);
+}
+
+void MainMenuState::RefreshLocalizedLabels()
+{
+	localizationRevision = GetContext().localization.GetRevision();
+	localizedLabelsOverride = true;
+	const Language language{ GetContext().localization.GetLanguage() };
+	const auto fontID{ language == Language::English ? Config::Font::MenuRegular
+		: (language == Language::Arabic ? Config::Font::ArabicRegular
+			: Config::Font::LocalizedRegular) };
+	const sf::Font& font{ GetContext().assets.Fonts().Get(fontID) };
+	const sf::Font& titleFont{ GetContext().assets.Fonts().Get(GetContext().localization.BoldFont()) };
+	title.setFont(titleFont);
+	title.setString(GetContext().localization.Get("main_menu.title"));
+	const sf::FloatRect fullTitleBounds{ title.getLocalBounds() };
+	titleLeftPosition = GetContext().logicalSize.x * 0.5f - fullTitleBounds.size.x * 0.5f - fullTitleBounds.position.x;
+	title.setOrigin({ 0.f, fullTitleBounds.position.y + fullTitleBounds.size.y * 0.5f });
+	const auto labels{ GetMenuLabels(GetContext().localization) };
+	for (std::size_t i{}; i < buttons.size() && i < labels.size(); ++i)
+	{
+		buttons[i].SetFont(font);
+		buttons[i].SetLabel(labels[i]);
+	}
+	neonGlow.Invalidate();
 }
 
 void MainMenuState::Render()
@@ -279,7 +320,7 @@ void MainMenuState::Render()
 
 void MainMenuState::RenderOverlay()
 {
-    if (!GetContext().gamepad.IsUsingGamepad())
+    if (!GetContext().gamepad.IsInUse())
         menuCursor.Draw(GetContext().window);
     screenFade.Draw(GetContext().window);
 }
@@ -310,7 +351,7 @@ void MainMenuState::Select(std::size_t index, bool playSound)
             SoundGroup::UI,
             100.f,
             1.f,
-            SoundPlayback::Restart);
+            SoundPlayback::StopPrevious);
 }
 
 void MainMenuState::UpdateMouseSelection(sf::Vector2i pixelPosition)
@@ -333,7 +374,7 @@ void MainMenuState::ActivateSelected()
         SoundGroup::UI,
         100.f,
         1.f,
-        SoundPlayback::Restart);
+        SoundPlayback::StopPrevious);
 
     pendingActivation = selectedIndex;
     activationDelayRemaining = ActivationDelay;
@@ -344,18 +385,26 @@ void MainMenuState::CompleteActivation(std::size_t index)
     switch (index)
     {
     case 0:
-        RequestPush(StateId::CampaignMenu);
+        RequestPush(StateID::CampaignMenu);
         break;
 
     case 1:
-		RequestPush(StateId::Records);
+		RequestPush(StateID::Achievements);
+		break;
+
+	case 2:
+		RequestPush(StateID::Records);
+		break;
+
+	case 3:
+		RequestPush(StateID::Options);
         break;
 
-    case 2:
-        RequestPush(StateId::Options);
+	case 4:
+		RequestPush(StateID::Credits);
         break;
 
-    case 3:
+	case 5:
         GetContext().window.close();
         break;
     }
@@ -363,8 +412,9 @@ void MainMenuState::CompleteActivation(std::size_t index)
 
 void MainMenuState::ApplyAnimationState()
 {
-    const std::string visibleTitle{ introAnimation.GetVisibleTitle() };
-    if (title.getString().toAnsiString() != visibleTitle)
+	const sf::String visibleTitle{ localizedLabelsOverride
+		? GetContext().localization.Get("main_menu.title") : introAnimation.GetVisibleTitle() };
+    if (title.getString() != visibleTitle)
     {
         title.setString(visibleTitle);
         titleNeonGlow.Invalidate();
@@ -379,7 +429,8 @@ void MainMenuState::ApplyAnimationState()
     const float frameOpacity{ introAnimation.GetFrameOpacity() };
     for (std::size_t index{ 0 }; index < buttons.size(); ++index)
     {
-        buttons[index].SetLabel(introAnimation.GetVisibleMenuItem(index));
+		if (!localizedLabelsOverride)
+			buttons[index].SetLabel(introAnimation.GetVisibleMenuItem(index));
         buttons[index].SetFrameOpacity(frameOpacity);
     }
 
@@ -397,7 +448,7 @@ void MainMenuState::HandleAnimationEvents(const MenuIntroAnimation::Events& even
             SoundGroup::UI,
             100.f,
             1.f,
-            SoundPlayback::Restart);
+            SoundPlayback::StopPrevious);
 
     if (events.becameInteractive)
     {

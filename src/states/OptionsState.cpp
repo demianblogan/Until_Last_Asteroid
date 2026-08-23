@@ -13,10 +13,12 @@
 #include <SFML/Window/Mouse.hpp>
 
 #include "app/DisplayManager.h"
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "audio/AudioManager.h"
+#include "localization/LocalizationManager.h"
 #include "settings/SettingsManager.h"
-#include "systems/GamepadManager.h"
+#include "input/GamepadManager.h"
+#include "ui/TextLayout.h"
 
 namespace
 {
@@ -46,67 +48,30 @@ namespace
     const sf::FloatRect DialogCancelBounds({ 980.f, 580.f }, { 250.f, 58.f });
     const sf::FloatRect BindingCancelBounds({ 835.f, 570.f }, { 250.f, 58.f });
 
-    std::string WindowModeName(WindowMode mode)
-    {
-        switch (mode)
-        {
-        case WindowMode::Fullscreen:
-            return "Fullscreen";
-        case WindowMode::Windowed:
-            return "Windowed";
-        case WindowMode::Borderless:
-            return "Borderless";
-        }
-        return "Unknown";
-    }
-
-    std::string MouseButtonName(sf::Mouse::Button button)
-    {
-        switch (button)
-        {
-        case sf::Mouse::Button::Left:
-            return "Left Mouse";
-        case sf::Mouse::Button::Right:
-            return "Right Mouse";
-        case sf::Mouse::Button::Middle:
-            return "Middle Mouse";
-        case sf::Mouse::Button::Extra1:
-            return "Mouse 4";
-        case sf::Mouse::Button::Extra2:
-            return "Mouse 5";
-        }
-        return "Mouse";
-    }
 }
 
 OptionsState::OptionsState(StateStack& stateStack, StateContext context, Origin optionsOrigin)
     : State(stateStack, context)
     , background(context.assets, context.logicalSize)
     , shade(context.logicalSize)
-    , titleGlow(context.assets.Fonts().Get(Config::Font::MenuSemibold), "OPTIONS", 76)
-    , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "OPTIONS", 76)
+    , title(context.assets.Fonts().Get(context.localization.BoldFont()), context.localization.Get("options.title"), 76)
+    , titleGlow(context.assets)
     , neonGlow(context.assets)
-    , dropdownGlow(context.assets)
     , dialogGlow(context.assets)
-    , xboxHeadingGlow(context.assets)
-    , playStationHeadingGlow(context.assets)
     , menuCursor(
         context.assets,
         Config::Texture::MenuPointer,
         { 6.f, 2.f },
         InterfaceGlowColor)
     , screenFade(context.logicalSize)
-    , toggleOnText(context.assets.Fonts().Get(Config::Font::MenuRegular), "ON", 23)
-    , toggleOffText(context.assets.Fonts().Get(Config::Font::MenuRegular), "OFF", 23)
-    , previousGraphics(context.settings.Get().graphics)
+    , toggleOnText(context.assets.Fonts().Get(context.localization.RegularFont()), context.localization.Get("common.on"), 23)
+    , toggleOffText(context.assets.Fonts().Get(context.localization.RegularFont()), context.localization.Get("common.off"), 23)
+    , previousGraphics(context.settings.GetSettings().graphics)
     , origin(optionsOrigin)
 {
-    context.window.setMouseCursorVisible(false);
+	context.window.setMouseCursorVisible(false);
     shade.setFillColor(sf::Color(0, 4, 10, 150));
 
-    titleGlow.setFillColor(sf::Color(80, 215, 245, 25));
-    titleGlow.setOutlineColor(sf::Color(45, 205, 245, 85));
-    titleGlow.setOutlineThickness(8.f);
     title.setFillColor(BrightCyan);
     title.setOutlineColor(sf::Color(2, 14, 25, 235));
     title.setOutlineThickness(3.f);
@@ -192,7 +157,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
             if (key->code == sf::Keyboard::Key::Escape)
                 pendingBinding.reset();
             else if (key->code != sf::Keyboard::Key::Unknown)
-                ApplyBinding({ InputDevice::Keyboard, static_cast<int>(key->code) });
+                ApplyBinding({ RebindableInputDevice::Keyboard, static_cast<int>(key->code) });
         }
         else if (const auto* mouse{ event.getIf<sf::Event::MouseButtonPressed>() })
         {
@@ -204,7 +169,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
             }
             else
             {
-                ApplyBinding({ InputDevice::Mouse, static_cast<int>(mouse->button) });
+                ApplyBinding({ RebindableInputDevice::Mouse, static_cast<int>(mouse->button) });
             }
         }
         return;
@@ -332,11 +297,9 @@ void OptionsState::HandleEvent(const sf::Event& event)
 void OptionsState::Update(float deltaTime)
 {
     background.Update(deltaTime);
+    titleGlow.Update(deltaTime);
     neonGlow.Update(deltaTime);
-    dropdownGlow.Update(deltaTime);
     dialogGlow.Update(deltaTime);
-    xboxHeadingGlow.Update(deltaTime);
-    playStationHeadingGlow.Update(deltaTime);
     menuCursor.Update(deltaTime);
 
     screenFade.Update(deltaTime);
@@ -368,21 +331,21 @@ void OptionsState::Update(float deltaTime)
 void OptionsState::Render()
 {
     sf::RenderWindow& window{ GetContext().window };
-    background.Draw(window);
+	background.Draw(window);
     window.draw(shade);
     DrawTitle(window);
     if (page == Page::GamepadControls)
         DrawGamepadLayouts(window);
-    DrawRows(window);
+	DrawRows(window);
     if (dropdownOpen)
-        DrawDropdown(window);
+		DrawDropdown(window);
     if (pendingBinding.has_value() || displayConfirmationOpen)
         DrawDialog(window);
 }
 
 void OptionsState::RenderOverlay()
 {
-    if (!screenFade.IsActive() && !GetContext().gamepad.IsUsingGamepad())
+    if (!screenFade.IsActive() && !GetContext().gamepad.IsInUse())
         menuCursor.Draw(GetContext().window);
     screenFade.Draw(GetContext().window);
 }
@@ -390,6 +353,7 @@ void OptionsState::RenderOverlay()
 void OptionsState::ApplyPage(Page newPage)
 {
     page = newPage;
+	gamepadLayoutCacheDirty = true;
     RefreshTitle();
     selectedIndex = 0u;
     dropdownOpen = false;
@@ -421,17 +385,23 @@ OptionsState::~OptionsState()
 
 void OptionsState::RefreshTitle()
 {
-    std::string value;
+	const auto& localize{ GetContext().localization };
+    sf::String value;
     switch (page)
     {
-    case Page::Root: value = "OPTIONS"; break;
-    case Page::Graphics: value = "GRAPHICS"; break;
-    case Page::Audio: value = "AUDIO"; break;
-    case Page::Gameplay: value = "GAMEPLAY"; break;
-    case Page::Controls: value = "CONTROLS"; break;
-    case Page::KeyboardControls: value = "KEYBOARD"; break;
-    case Page::GamepadControls: value = "GAMEPAD"; break;
+    case Page::Root: value = localize.Get("options.title"); break;
+    case Page::Graphics: value = localize.Get("options.graphics"); break;
+    case Page::Audio: value = localize.Get("options.audio"); break;
+    case Page::Gameplay: value = localize.Get("options.gameplay"); break;
+    case Page::Controls: value = localize.Get("options.controls"); break;
+	case Page::Language: value = localize.Get("options.language"); break;
+    case Page::KeyboardControls: value = localize.Get("options.keyboard"); break;
+    case Page::GamepadControls: value = localize.Get("options.gamepad"); break;
     }
+	const Language language{ localize.GetLanguage() };
+	const auto titleFont{ language == Language::English ? Config::Font::MenuSemibold
+		: (language == Language::Arabic ? Config::Font::ArabicBold : Config::Font::LocalizedBold) };
+	title.setFont(GetContext().assets.Fonts().Get(titleFont));
 
     const auto center{ [this, &value](sf::Text& text)
         {
@@ -441,14 +411,14 @@ void OptionsState::RefreshTitle()
                 bounds.position.y + bounds.size.y * 0.5f });
             text.setPosition({ GetContext().logicalSize.x * 0.5f, 105.f });
         } };
-    center(titleGlow);
     center(title);
+    titleGlow.Invalidate();
 }
 
 void OptionsState::RebuildRows()
 {
     rows.clear();
-    const auto add{ [this](std::string label, RowKind kind, Action action, bool enabled = true)
+    const auto add{ [this](sf::String label, RowKind kind, Action action, bool enabled = true)
         {
             const float y{ RowPosition.y + RowSpacing * static_cast<float>(rows.size()) };
             rows.push_back({ std::move(label), kind, action, enabled,
@@ -458,54 +428,64 @@ void OptionsState::RebuildRows()
     switch (page)
     {
     case Page::Root:
-        add("Graphics", RowKind::Button, Action::OpenGraphics);
-        add("Audio", RowKind::Button, Action::OpenAudio);
-        add("Gameplay", RowKind::Button, Action::OpenGameplay);
-        add("Controls", RowKind::Button, Action::OpenControls);
-        add("Restore Defaults", RowKind::Button, Action::ResetAll);
-        add(origin == Origin::PauseMenu ? "Back to Pause Menu" : "Back to Main Menu",
+        add(GetContext().localization.Get("options.graphics"), RowKind::Button, Action::OpenGraphics);
+        add(GetContext().localization.Get("options.audio"), RowKind::Button, Action::OpenAudio);
+        add(GetContext().localization.Get("options.gameplay"), RowKind::Button, Action::OpenGameplay);
+        add(GetContext().localization.Get("options.controls"), RowKind::Button, Action::OpenControls);
+		add(GetContext().localization.Get("options.language"), RowKind::Button, Action::OpenLanguage);
+        add(GetContext().localization.Get("options.restore_defaults"), RowKind::Button, Action::ResetAll);
+        add(GetContext().localization.Get(origin == Origin::PauseMenu
+			? "options.back_pause" : "options.back_main"),
             RowKind::Button, Action::Back);
         break;
+	case Page::Language:
+		add(LocalizationManager::NativeName(Language::English), RowKind::Button, Action::SetEnglish);
+		add(LocalizationManager::NativeName(Language::Spanish), RowKind::Button, Action::SetSpanish);
+		add(LocalizationManager::NativeName(Language::Russian), RowKind::Button, Action::SetRussian);
+		add(LocalizationManager::NativeName(Language::Ukrainian), RowKind::Button, Action::SetUkrainian);
+		add(LocalizationManager::NativeName(Language::Arabic), RowKind::Button, Action::SetArabic);
+		add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
+		break;
     case Page::Graphics:
-        add("Display Resolution", RowKind::Dropdown, Action::Resolution,
-            GetContext().settings.Get().graphics.windowMode != WindowMode::Borderless);
-        add("Window Mode", RowKind::Dropdown, Action::WindowMode);
-        add("Show FPS", RowKind::Toggle, Action::ShowFps);
-        add("Vertical Synchronization", RowKind::Toggle, Action::VerticalSync);
-        add("Frame Rate Limit", RowKind::Choice, Action::FrameRateLimit,
-            !GetContext().settings.Get().graphics.verticalSync);
-        add("Post Effects", RowKind::Toggle, Action::PostEffects);
-        add("Restore Graphics Defaults", RowKind::Button, Action::ResetGraphics);
-        add("Back", RowKind::Button, Action::Back);
+        add(GetContext().localization.Get("options.display_resolution"), RowKind::Dropdown, Action::Resolution,
+            GetContext().settings.GetSettings().graphics.windowMode != WindowMode::Borderless);
+        add(GetContext().localization.Get("options.window_mode"), RowKind::Dropdown, Action::WindowMode);
+        add(GetContext().localization.Get("options.show_fps"), RowKind::Toggle, Action::ShowFps);
+        add(GetContext().localization.Get("options.vsync"), RowKind::Toggle, Action::VerticalSync);
+        add(GetContext().localization.Get("options.frame_limit"), RowKind::Choice, Action::FrameRateLimit,
+            !GetContext().settings.GetSettings().graphics.isVSyncEnabled);
+        add(GetContext().localization.Get("options.post_effects"), RowKind::Toggle, Action::PostEffects);
+        add(GetContext().localization.Get("options.reset_graphics"), RowKind::Button, Action::ResetGraphics);
+        add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
         break;
     case Page::Gameplay:
-        add("Screen Shake", RowKind::Toggle, Action::ScreenShake);
-        add("Show Score Popups", RowKind::Toggle, Action::ShowScorePopups);
-        add("Restore Gameplay Defaults", RowKind::Button, Action::ResetGameplay);
-        add("Back", RowKind::Button, Action::Back);
+        add(GetContext().localization.Get("options.screen_shake"), RowKind::Toggle, Action::ScreenShake);
+        add(GetContext().localization.Get("options.score_popups"), RowKind::Toggle, Action::ShowScorePopups);
+        add(GetContext().localization.Get("options.reset_gameplay"), RowKind::Button, Action::ResetGameplay);
+        add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
         break;
     case Page::Audio:
-        add("Music", RowKind::Slider, Action::MusicVolume);
-        add("Sounds", RowKind::Slider, Action::SoundVolume);
-        add("Restore Audio Defaults", RowKind::Button, Action::ResetAudio);
-        add("Back", RowKind::Button, Action::Back);
+        add(GetContext().localization.Get("options.music"), RowKind::Slider, Action::MusicVolume);
+        add(GetContext().localization.Get("options.sounds"), RowKind::Slider, Action::SoundVolume);
+        add(GetContext().localization.Get("options.reset_audio"), RowKind::Button, Action::ResetAudio);
+        add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
         break;
     case Page::Controls:
-        add("Keyboard", RowKind::Button, Action::OpenKeyboardControls);
-        add("Gamepad", RowKind::Button, Action::OpenGamepadControls);
-        add("Back", RowKind::Button, Action::Back);
+        add(GetContext().localization.Get("options.keyboard"), RowKind::Button, Action::OpenKeyboardControls);
+        add(GetContext().localization.Get("options.gamepad"), RowKind::Button, Action::OpenGamepadControls);
+        add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
         break;
     case Page::KeyboardControls:
-        add("Move Up", RowKind::Binding, Action::MoveUp);
-        add("Move Down", RowKind::Binding, Action::MoveDown);
-        add("Move Left", RowKind::Binding, Action::MoveLeft);
-        add("Move Right", RowKind::Binding, Action::MoveRight);
-        add("Fire", RowKind::Binding, Action::Fire);
-        add("Restore Controls Defaults", RowKind::Button, Action::ResetControls);
-        add("Back", RowKind::Button, Action::Back);
+        add(GetContext().localization.Get("options.move_up"), RowKind::Binding, Action::MoveUp);
+        add(GetContext().localization.Get("options.move_down"), RowKind::Binding, Action::MoveDown);
+        add(GetContext().localization.Get("options.move_left"), RowKind::Binding, Action::MoveLeft);
+        add(GetContext().localization.Get("options.move_right"), RowKind::Binding, Action::MoveRight);
+        add(GetContext().localization.Get("options.fire"), RowKind::Binding, Action::Fire);
+        add(GetContext().localization.Get("options.reset_controls"), RowKind::Button, Action::ResetControls);
+        add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
         break;
     case Page::GamepadControls:
-        add("Return to Controls Options", RowKind::Button, Action::Back);
+        add(GetContext().localization.Get("options.back_controls"), RowKind::Button, Action::Back);
         rows.back().bounds.position.x = 580.f;
         rows.back().bounds.position.y = 880.f;
         rows.back().bounds.size.x = 760.f;
@@ -521,7 +501,15 @@ void OptionsState::RebuildRows()
 
 void OptionsState::RebuildRowTextCache()
 {
-    const sf::Font& font{ GetContext().assets.Fonts().Get(Config::Font::MenuRegular) };
+	const Language language{ GetContext().localization.GetLanguage() };
+	const auto defaultFontID{ language == Language::English ? Config::Font::MenuRegular
+		: (language == Language::Arabic ? Config::Font::ArabicRegular
+			: Config::Font::LocalizedRegular) };
+    const sf::Font& font{ GetContext().assets.Fonts().Get(defaultFontID) };
+	toggleOnText.setFont(font);
+	toggleOffText.setFont(font);
+	toggleOnText.setString(GetContext().localization.Get("common.on"));
+	toggleOffText.setString(GetContext().localization.Get("common.off"));
     rowLabels.clear();
     rowValues.clear();
     rowHints.clear();
@@ -531,7 +519,13 @@ void OptionsState::RebuildRowTextCache()
 
     for (const Row& row : rows)
     {
-        rowLabels.emplace_back(font, row.label, 30);
+		const bool arabicLanguageRow{ page == Page::Language && row.action == Action::SetArabic };
+		const bool nativeLanguageRow{ page == Page::Language && row.action != Action::Back };
+		const sf::Font& rowFont{ GetContext().assets.Fonts().Get(arabicLanguageRow
+			? Config::Font::ArabicRegular
+			: (nativeLanguageRow ? Config::Font::LocalizedRegular : defaultFontID)) };
+        rowLabels.emplace_back(rowFont, row.label, 30);
+		TextLayout::FitWidth(rowLabels.back(), 760.f, 19u);
         rowLabels.back().setPosition(row.bounds.position + sf::Vector2f{ 34.f, 20.f });
 
         rowValues.emplace_back(font, GetRowValue(row), 28);
@@ -540,11 +534,13 @@ void OptionsState::RebuildRowTextCache()
         {
             const sf::FloatRect bounds{ GetValueBoxBounds(row) };
             rowValues.back().setCharacterSize(row.enabled ? 25u : 21u);
+			TextLayout::FitWidth(rowValues.back(), bounds.size.x - 40.f, 16u);
             rowValues.back().setPosition(
                 bounds.position + sf::Vector2f{ 20.f, row.enabled ? 13.f : 5.f });
             if (!row.enabled)
             {
-                rowHints.back().setString("Controlled by desktop in Borderless mode");
+                rowHints.back().setString(GetContext().localization.Get("options.desktop_controlled"));
+				TextLayout::FitWidth(rowHints.back(), bounds.size.x - 40.f, 11u);
                 rowHints.back().setPosition(bounds.position + sf::Vector2f{ 20.f, 33.f });
                 rowHints.back().setFillColor(Red);
             }
@@ -581,7 +577,11 @@ void OptionsState::RefreshRowTextValues()
     }
 
     for (std::size_t index{ 0u }; index < rows.size(); ++index)
+	{
         rowValues[index].setString(GetRowValue(rows[index]));
+		if (rows[index].kind == RowKind::Dropdown)
+			TextLayout::FitWidth(rowValues[index], GetValueBoxBounds(rows[index]).size.x - 40.f, 16u);
+	}
 
     neonGlow.Invalidate();
 }
@@ -596,7 +596,7 @@ void OptionsState::Select(std::size_t index, bool playSound)
         neonGlow.Invalidate();
     if (changed && playSound)
         GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f,
-            SoundPlayback::Restart);
+            SoundPlayback::StopPrevious);
 }
 
 void OptionsState::SelectPrevious()
@@ -628,7 +628,7 @@ void OptionsState::ActivateSelected()
     if (!IsSelectedRowEnabled())
         return;
     GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f,
-        SoundPlayback::Restart);
+        SoundPlayback::StopPrevious);
 
     const Row& row{ rows[selectedIndex] };
     if (row.kind == RowKind::Toggle || row.kind == RowKind::Choice)
@@ -647,7 +647,7 @@ void OptionsState::AdjustSelected(int direction)
         return;
 
     const Action action{ rows[selectedIndex].action };
-    GameSettings& settings{ GetContext().settings.Edit() };
+    GameSettings& settings{ GetContext().settings.EditSettings() };
     if (action == Action::MusicVolume || action == Action::SoundVolume)
     {
         float& value{ action == Action::MusicVolume
@@ -658,28 +658,28 @@ void OptionsState::AdjustSelected(int direction)
     }
     else if (action == Action::ShowFps)
     {
-        settings.graphics.showFps = !settings.graphics.showFps;
+        settings.graphics.needToShowFPS = !settings.graphics.needToShowFPS;
         SaveAndApplyLiveGraphics();
     }
     else if (action == Action::VerticalSync)
     {
-        settings.graphics.verticalSync = !settings.graphics.verticalSync;
+        settings.graphics.isVSyncEnabled = !settings.graphics.isVSyncEnabled;
         SaveAndApplyLiveGraphics();
         RebuildRows();
     }
     else if (action == Action::PostEffects)
     {
-        settings.graphics.postEffects = !settings.graphics.postEffects;
+        settings.graphics.arePostEffectsEnabled = !settings.graphics.arePostEffectsEnabled;
         SaveSettings();
     }
     else if (action == Action::ScreenShake)
     {
-        settings.gameplay.screenShake = !settings.gameplay.screenShake;
+        settings.gameplay.isScreenShakeEnabled = !settings.gameplay.isScreenShakeEnabled;
         SaveSettings();
     }
     else if (action == Action::ShowScorePopups)
     {
-        settings.gameplay.showScorePopups = !settings.gameplay.showScorePopups;
+        settings.gameplay.needToShowScorePopups = !settings.gameplay.needToShowScorePopups;
         SaveSettings();
     }
     else if (action == Action::FrameRateLimit)
@@ -747,7 +747,7 @@ void OptionsState::UpdateSliderFromMouse(sf::Vector2f position)
         return;
 
     const float value{ std::clamp((position.x - SliderLeft) / SliderWidth, 0.f, 1.f) * 100.f };
-    GameSettings& settings{ GetContext().settings.Edit() };
+    GameSettings& settings{ GetContext().settings.EditSettings() };
     if (action == Action::MusicVolume)
         settings.audio.musicVolume = std::round(value);
     else
@@ -761,12 +761,17 @@ void OptionsState::OpenDropdown(Action action)
     dropdownAction = action;
     dropdownIndex = action == Action::Resolution
         ? FindCurrentResolution()
-        : static_cast<std::size_t>(GetContext().settings.Get().graphics.windowMode);
+        : static_cast<std::size_t>(GetContext().settings.GetSettings().graphics.windowMode);
     dropdownFirstVisible = 0u;
     dropdownOpen = true;
     dropdownScrollbarDragging = false;
+	dropdownLabels.clear();
+	dropdownLabels.reserve(GetDropdownItemCount());
+	const sf::Font& font{ GetContext().assets.Fonts().Get(
+		GetContext().localization.RegularFont()) };
+	for (std::size_t index{}; index < GetDropdownItemCount(); ++index)
+		dropdownLabels.emplace_back(font, GetDropdownItemLabel(index), 24u);
     EnsureDropdownSelectionVisible();
-    dropdownGlow.Invalidate();
 }
 
 void OptionsState::CloseDropdown()
@@ -790,13 +795,12 @@ void OptionsState::MoveDropdownSelection(int direction)
     if (dropdownIndex != previous)
     {
         EnsureDropdownSelectionVisible();
-        dropdownGlow.Invalidate();
         GetContext().audio.PlaySound(
             Config::Sound::ItemSelect,
             SoundGroup::UI,
             100.f,
             1.f,
-            SoundPlayback::Restart);
+            SoundPlayback::StopPrevious);
     }
 }
 
@@ -832,13 +836,12 @@ void OptionsState::HandleDropdownMouseMove(sf::Vector2f position)
         if (hovered != dropdownIndex)
         {
             dropdownIndex = hovered;
-            dropdownGlow.Invalidate();
             GetContext().audio.PlaySound(
                 Config::Sound::ItemSelect,
                 SoundGroup::UI,
                 100.f,
                 1.f,
-                SoundPlayback::Restart);
+                SoundPlayback::StopPrevious);
         }
         return;
     }
@@ -886,7 +889,6 @@ void OptionsState::HandleMouseWheel(float delta)
         dropdownIndex,
         dropdownFirstVisible,
         dropdownFirstVisible + MaximumVisibleDropdownItems - 1u);
-    dropdownGlow.Invalidate();
     if (dropdownIndex != previousSelection)
     {
         GetContext().audio.PlaySound(
@@ -894,7 +896,7 @@ void OptionsState::HandleMouseWheel(float delta)
             SoundGroup::UI,
             100.f,
             1.f,
-            SoundPlayback::Restart);
+            SoundPlayback::StopPrevious);
     }
 }
 
@@ -918,7 +920,6 @@ void OptionsState::UpdateDropdownScrollbar(sf::Vector2f position)
         dropdownIndex,
         dropdownFirstVisible,
         dropdownFirstVisible + MaximumVisibleDropdownItems - 1u);
-    dropdownGlow.Invalidate();
     if (dropdownIndex != previousSelection)
     {
         GetContext().audio.PlaySound(
@@ -926,7 +927,7 @@ void OptionsState::UpdateDropdownScrollbar(sf::Vector2f position)
             SoundGroup::UI,
             100.f,
             1.f,
-            SoundPlayback::Restart);
+            SoundPlayback::StopPrevious);
     }
 }
 
@@ -937,7 +938,7 @@ void OptionsState::ApplyDropdownSelection()
         SoundGroup::UI,
         100.f,
         1.f,
-        SoundPlayback::Restart);
+        SoundPlayback::StopPrevious);
 
     if (dropdownAction == Action::Resolution)
         ApplyResolution(dropdownIndex);
@@ -963,6 +964,9 @@ void OptionsState::Execute(Action action)
     case Action::OpenControls:
         BeginPageTransition(Page::Controls);
         break;
+	case Action::OpenLanguage:
+		BeginPageTransition(Page::Language);
+		break;
     case Action::OpenKeyboardControls:
         BeginPageTransition(Page::KeyboardControls);
         break;
@@ -979,10 +983,12 @@ void OptionsState::Execute(Action action)
         break;
     case Action::ResetAll:
     {
-        const GraphicsSettings previous{ GetContext().settings.Get().graphics };
-        GetContext().settings.Edit() = GetContext().settings.GetDefaults();
+        const GraphicsSettings previous{ GetContext().settings.GetSettings().graphics };
+		const LocalizationSettings localization{ GetContext().settings.GetSettings().localization };
+        GetContext().settings.EditSettings() = GetContext().settings.GetDefaults();
+		GetContext().settings.EditSettings().localization = localization;
         SaveAndApplyAudio();
-        if (RequiresWindowRecreation(previous, GetContext().settings.Get().graphics))
+        if (RequiresWindowRecreation(previous, GetContext().settings.GetSettings().graphics))
             BeginDisplayChange(previous);
         else
             SaveAndApplyLiveGraphics();
@@ -991,9 +997,9 @@ void OptionsState::Execute(Action action)
     }
     case Action::ResetGraphics:
     {
-        const GraphicsSettings previous{ GetContext().settings.Get().graphics };
-        GetContext().settings.Edit().graphics = GetContext().settings.GetDefaults().graphics;
-        if (RequiresWindowRecreation(previous, GetContext().settings.Get().graphics))
+        const GraphicsSettings previous{ GetContext().settings.GetSettings().graphics };
+        GetContext().settings.EditSettings().graphics = GetContext().settings.GetDefaults().graphics;
+        if (RequiresWindowRecreation(previous, GetContext().settings.GetSettings().graphics))
             BeginDisplayChange(previous);
         else
             SaveAndApplyLiveGraphics();
@@ -1001,20 +1007,36 @@ void OptionsState::Execute(Action action)
         break;
     }
     case Action::ResetAudio:
-        GetContext().settings.Edit().audio = GetContext().settings.GetDefaults().audio;
+        GetContext().settings.EditSettings().audio = GetContext().settings.GetDefaults().audio;
         SaveAndApplyAudio();
         RefreshRowTextValues();
         break;
     case Action::ResetGameplay:
-        GetContext().settings.Edit().gameplay = GetContext().settings.GetDefaults().gameplay;
+        GetContext().settings.EditSettings().gameplay = GetContext().settings.GetDefaults().gameplay;
         SaveSettings();
         RefreshRowTextValues();
         break;
     case Action::ResetControls:
-        GetContext().settings.Edit().controls = GetContext().settings.GetDefaults().controls;
+        GetContext().settings.EditSettings().controls = GetContext().settings.GetDefaults().controls;
         SaveSettings();
         RefreshRowTextValues();
         break;
+	case Action::SetEnglish:
+	case Action::SetSpanish:
+	case Action::SetRussian:
+	case Action::SetUkrainian:
+	case Action::SetArabic:
+	{
+		Language language{ Language::English };
+		if (action == Action::SetSpanish) language = Language::Spanish;
+		else if (action == Action::SetRussian) language = Language::Russian;
+		else if (action == Action::SetUkrainian) language = Language::Ukrainian;
+		else if (action == Action::SetArabic) language = Language::Arabic;
+		saveFailed = !GetContext().localization.SetLanguage(language);
+		RefreshTitle();
+		RebuildRows();
+		break;
+	}
     default:
         break;
     }
@@ -1022,7 +1044,7 @@ void OptionsState::Execute(Action action)
 
 void OptionsState::SaveSettings()
 {
-    saveFailed = !GetContext().settings.Save();
+    saveFailed = !GetContext().settings.SaveSettings();
 }
 
 void OptionsState::SaveAndApplyAudio()
@@ -1034,14 +1056,14 @@ void OptionsState::SaveAndApplyAudio()
 void OptionsState::SaveAndApplyLiveGraphics()
 {
     SaveSettings();
-    GetContext().display.ApplyLiveSettings(GetContext().settings.Get().graphics);
+    GetContext().display.ApplyLiveSettings(GetContext().settings.GetSettings().graphics);
 }
 
 void OptionsState::BeginDisplayChange(const GraphicsSettings& previous)
 {
     previousGraphics = previous;
     SaveSettings();
-    GetContext().display.ApplyDisplaySettings(GetContext().settings.Get().graphics);
+    GetContext().display.ApplyDisplaySettings(GetContext().settings.GetSettings().graphics);
     GetContext().window.setMouseCursorVisible(false);
     displayConfirmationRemaining = DisplayConfirmationDuration;
     dialogSelectedIndex = 0u;
@@ -1076,7 +1098,7 @@ void OptionsState::ConfirmDisplayChange()
 
 void OptionsState::RevertDisplayChange()
 {
-    GetContext().settings.Edit().graphics = previousGraphics;
+    GetContext().settings.EditSettings().graphics = previousGraphics;
     SaveSettings();
     GetContext().display.ApplyDisplaySettings(previousGraphics);
     GetContext().window.setMouseCursorVisible(false);
@@ -1089,27 +1111,27 @@ void OptionsState::ApplyResolution(std::size_t resolutionIndex)
     const auto& resolutions{ GetContext().display.GetSupportedResolutions() };
     if (resolutionIndex >= resolutions.size())
         return;
-    const GraphicsSettings previous{ GetContext().settings.Get().graphics };
+    const GraphicsSettings previous{ GetContext().settings.GetSettings().graphics };
     if (previous.resolution == resolutions[resolutionIndex])
     {
         CloseDropdown();
         return;
     }
-    GetContext().settings.Edit().graphics.resolution = resolutions[resolutionIndex];
+    GetContext().settings.EditSettings().graphics.resolution = resolutions[resolutionIndex];
     CloseDropdown();
     BeginDisplayChange(previous);
 }
 
 void OptionsState::ApplyWindowMode(WindowMode mode)
 {
-    const GraphicsSettings previous{ GetContext().settings.Get().graphics };
+    const GraphicsSettings previous{ GetContext().settings.GetSettings().graphics };
     if (previous.windowMode == mode)
     {
         CloseDropdown();
         return;
     }
 
-    GetContext().settings.Edit().graphics.windowMode = mode;
+    GetContext().settings.EditSettings().graphics.windowMode = mode;
     CloseDropdown();
     BeginDisplayChange(previous);
     RebuildRows();
@@ -1138,7 +1160,7 @@ void OptionsState::ApplyBinding(ControlBinding binding)
     if (ControlBinding* target{ GetBinding(*pendingBinding) })
     {
         const ControlBinding previous{ *target };
-        ControlSettings& controls{ GetContext().settings.Edit().controls };
+        ControlSettings& controls{ GetContext().settings.EditSettings().controls };
         const std::array<ControlBinding*, 5> allBindings{
             &controls.moveUp,
             &controls.moveDown,
@@ -1169,7 +1191,7 @@ void OptionsState::ApplyBinding(ControlBinding binding)
 
 ControlBinding* OptionsState::GetBinding(Action action)
 {
-    ControlSettings& controls{ GetContext().settings.Edit().controls };
+    ControlSettings& controls{ GetContext().settings.EditSettings().controls };
     switch (action)
     {
     case Action::MoveUp: return &controls.moveUp;
@@ -1183,7 +1205,7 @@ ControlBinding* OptionsState::GetBinding(Action action)
 
 const ControlBinding* OptionsState::GetBinding(Action action) const
 {
-    const ControlSettings& controls{ GetContext().settings.Get().controls };
+    const ControlSettings& controls{ GetContext().settings.GetSettings().controls };
     switch (action)
     {
     case Action::MoveUp: return &controls.moveUp;
@@ -1195,32 +1217,38 @@ const ControlBinding* OptionsState::GetBinding(Action action) const
     }
 }
 
-std::string OptionsState::GetRowValue(const Row& row) const
+sf::String OptionsState::GetRowValue(const Row& row) const
 {
-    const GameSettings& settings{ GetContext().settings.Get() };
+    const GameSettings& settings{ GetContext().settings.GetSettings() };
     switch (row.action)
     {
     case Action::Resolution:
         if (!row.enabled)
-            return "Desktop resolution";
+            return GetContext().localization.Get("options.desktop_resolution");
         return std::to_string(settings.graphics.resolution.x) + " x " +
             std::to_string(settings.graphics.resolution.y);
     case Action::WindowMode:
-        return WindowModeName(settings.graphics.windowMode);
+        switch (settings.graphics.windowMode)
+		{
+		case WindowMode::Fullscreen: return GetContext().localization.Get("options.fullscreen");
+		case WindowMode::Windowed: return GetContext().localization.Get("options.windowed");
+		case WindowMode::Borderless: return GetContext().localization.Get("options.borderless");
+		}
+		return GetContext().localization.Get("common.unknown");
     case Action::ShowFps:
-        return settings.graphics.showFps ? "ON" : "OFF";
+        return GetContext().localization.Get(settings.graphics.needToShowFPS ? "common.on" : "common.off");
     case Action::VerticalSync:
-        return settings.graphics.verticalSync ? "ON" : "OFF";
+        return GetContext().localization.Get(settings.graphics.isVSyncEnabled ? "common.on" : "common.off");
     case Action::PostEffects:
-        return settings.graphics.postEffects ? "ON" : "OFF";
+        return GetContext().localization.Get(settings.graphics.arePostEffectsEnabled ? "common.on" : "common.off");
     case Action::ScreenShake:
-        return settings.gameplay.screenShake ? "ON" : "OFF";
+        return GetContext().localization.Get(settings.gameplay.isScreenShakeEnabled ? "common.on" : "common.off");
     case Action::ShowScorePopups:
-        return settings.gameplay.showScorePopups ? "ON" : "OFF";
+        return GetContext().localization.Get(settings.gameplay.needToShowScorePopups ? "common.on" : "common.off");
     case Action::FrameRateLimit:
         return settings.graphics.frameRateLimit == 0u
-            ? "Unlimited"
-            : std::to_string(settings.graphics.frameRateLimit);
+            ? GetContext().localization.Get("options.unlimited")
+            : sf::String(std::to_string(settings.graphics.frameRateLimit));
     case Action::MusicVolume:
         return std::to_string(static_cast<int>(std::round(settings.audio.musicVolume))) + "%";
     case Action::SoundVolume:
@@ -1232,20 +1260,30 @@ std::string OptionsState::GetRowValue(const Row& row) const
     }
 }
 
-std::string OptionsState::GetBindingName(const ControlBinding& binding) const
+sf::String OptionsState::GetBindingName(const ControlBinding& binding) const
 {
-    if (binding.device == InputDevice::Mouse)
-        return MouseButtonName(static_cast<sf::Mouse::Button>(binding.code));
+    if (binding.device == RebindableInputDevice::Mouse)
+	{
+		switch (static_cast<sf::Mouse::Button>(binding.code))
+		{
+		case sf::Mouse::Button::Left: return GetContext().localization.Get("options.mouse_left");
+		case sf::Mouse::Button::Right: return GetContext().localization.Get("options.mouse_right");
+		case sf::Mouse::Button::Middle: return GetContext().localization.Get("options.mouse_middle");
+		case sf::Mouse::Button::Extra1: return GetContext().localization.Get("options.mouse_4");
+		case sf::Mouse::Button::Extra2: return GetContext().localization.Get("options.mouse_5");
+		}
+		return GetContext().localization.Get("options.mouse");
+	}
 
     const auto key{ static_cast<sf::Keyboard::Key>(binding.code) };
-    return sf::Keyboard::getDescription(sf::Keyboard::delocalize(key)).toAnsiString();
+    return sf::Keyboard::getDescription(sf::Keyboard::delocalize(key));
 }
 
 std::size_t OptionsState::FindCurrentResolution() const
 {
     const auto& resolutions{ GetContext().display.GetSupportedResolutions() };
     const auto iterator{ std::ranges::find(resolutions,
-        GetContext().settings.Get().graphics.resolution) };
+        GetContext().settings.GetSettings().graphics.resolution) };
     return iterator == resolutions.end()
         ? 0u
         : static_cast<std::size_t>(std::distance(resolutions.begin(), iterator));
@@ -1260,7 +1298,7 @@ std::size_t OptionsState::GetDropdownItemCount() const
     return 0u;
 }
 
-std::string OptionsState::GetDropdownItemLabel(std::size_t index) const
+sf::String OptionsState::GetDropdownItemLabel(std::size_t index) const
 {
     if (dropdownAction == Action::Resolution)
     {
@@ -1271,7 +1309,8 @@ std::string OptionsState::GetDropdownItemLabel(std::size_t index) const
     }
     else if (dropdownAction == Action::WindowMode && index < 3u)
     {
-        return WindowModeName(static_cast<WindowMode>(index));
+        const std::array keys{ "options.fullscreen", "options.windowed", "options.borderless" };
+		return GetContext().localization.Get(keys[index]);
     }
     return {};
 }
@@ -1325,20 +1364,38 @@ bool OptionsState::IsSelectedRowEnabled() const
     return selectedIndex < rows.size() && rows[selectedIndex].enabled;
 }
 
-void OptionsState::DrawTitle(sf::RenderTarget& target) const
+void OptionsState::DrawTitle(sf::RenderTarget& target)
 {
-    target.draw(titleGlow);
+    titleGlow.DrawBloom(target, title.getGlobalBounds(),
+        [this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+        { glowTarget.draw(title, states); }, Cyan);
     target.draw(title);
 }
 
 void OptionsState::DrawGamepadLayouts(sf::RenderTarget& target)
 {
+	if (gamepadLayoutCacheDirty)
+	{
+		const sf::Vector2u size{
+			static_cast<unsigned int>(GetContext().logicalSize.x),
+			static_cast<unsigned int>(GetContext().logicalSize.y) };
+		if (gamepadLayoutCache.getSize() != size && !gamepadLayoutCache.resize(size))
+			return;
+		gamepadLayoutCache.clear(sf::Color::Transparent);
+		DrawGamepadLayoutsContent(gamepadLayoutCache);
+		gamepadLayoutCache.display();
+		gamepadLayoutCacheDirty = false;
+	}
+	target.draw(sf::Sprite(gamepadLayoutCache.getTexture()));
+}
+
+void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
+{
     const auto drawPanel{ [this, &target](
-        const std::string& heading,
+        const sf::String& heading,
         float top,
         const std::array<Config::Texture, 7>& icons,
-        const std::array<std::string, 7>& actions,
-        NeonGlow& headingGlow)
+        const std::array<sf::String, 7>& actions)
     {
         RoundedRectangleShape panel({ 1400.f, 310.f }, 18.f, 12u);
         panel.setPosition({ 260.f, top });
@@ -1348,7 +1405,7 @@ void OptionsState::DrawGamepadLayouts(sf::RenderTarget& target)
         target.draw(panel);
 
         sf::Text headingText(
-            GetContext().assets.Fonts().Get(Config::Font::MenuSemibold), heading, 34u);
+            GetContext().assets.Fonts().Get(GetContext().localization.BoldFont()), heading, 34u);
         const sf::FloatRect headingLocalBounds{ headingText.getLocalBounds() };
         headingText.setOrigin({
             headingLocalBounds.position.x + headingLocalBounds.size.x * 0.5f,
@@ -1357,18 +1414,7 @@ void OptionsState::DrawGamepadLayouts(sf::RenderTarget& target)
         headingText.setFillColor(BrightCyan);
         headingText.setOutlineColor(sf::Color(3, 18, 31, 240));
         headingText.setOutlineThickness(2.f);
-        const sf::FloatRect headingBounds{ headingText.getGlobalBounds() };
-        headingGlow.DrawBloom(
-            target,
-            headingBounds,
-            [&headingText](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
-            {
-                glowTarget.draw(headingText, states);
-            },
-            Cyan,
-            false);
         target.draw(headingText);
-        headingGlow.DrawHighlight(target, headingBounds, Cyan);
 
         sf::RectangleShape dividerGlow({ 1300.f, 7.f });
         dividerGlow.setPosition({ 310.f, top + 71.f });
@@ -1431,13 +1477,15 @@ void OptionsState::DrawGamepadLayouts(sf::RenderTarget& target)
         Config::Texture::PlayStationBack,
         Config::Texture::PlayStationOptions
     };
-    const std::array<std::string, 7> actions{
-        "Move", "Aim", "Fire", "Menu Navigation", "Confirm", "Back", "Pause"
+    const std::array<sf::String, 7> actions{
+        GetContext().localization.Get("options.move"), GetContext().localization.Get("options.aim"),
+		GetContext().localization.Get("options.fire"), GetContext().localization.Get("options.menu_navigation"),
+		GetContext().localization.Get("common.confirm"), GetContext().localization.Get("options.back"),
+		GetContext().localization.Get("pause.title")
     };
 
-    drawPanel("XBOX CONTROLLER", 190.f, xboxIcons, actions, xboxHeadingGlow);
-    drawPanel("PLAYSTATION CONTROLLER", 515.f, playStationIcons, actions,
-        playStationHeadingGlow);
+    drawPanel(GetContext().localization.Get("options.xbox_controller"), 190.f, xboxIcons, actions);
+    drawPanel(GetContext().localization.Get("options.playstation_controller"), 515.f, playStationIcons, actions);
 }
 
 void OptionsState::DrawRows(sf::RenderTarget& target)
@@ -1463,7 +1511,7 @@ void OptionsState::DrawRows(sf::RenderTarget& target)
 
     if (saveFailed)
     {
-        DrawText(target, "Settings could not be saved. Check folder permissions.",
+        DrawText(target, GetContext().localization.Get("options.save_error"),
             { 570.f, 930.f }, 23, Red);
     }
 }
@@ -1489,8 +1537,8 @@ void OptionsState::DrawRow(
     if (row.kind == RowKind::Slider)
     {
         const float value{ row.action == Action::MusicVolume
-            ? GetContext().settings.Get().audio.musicVolume
-            : GetContext().settings.Get().audio.soundVolume };
+            ? GetContext().settings.GetSettings().audio.musicVolume
+            : GetContext().settings.GetSettings().audio.soundVolume };
         DrawSlider(target, row, value, states);
         rowValues[index].setFillColor(Cyan);
         target.draw(rowValues[index], states);
@@ -1499,15 +1547,15 @@ void OptionsState::DrawRow(
     {
         bool value{ false };
         if (row.action == Action::ShowFps)
-            value = GetContext().settings.Get().graphics.showFps;
+            value = GetContext().settings.GetSettings().graphics.needToShowFPS;
         else if (row.action == Action::VerticalSync)
-            value = GetContext().settings.Get().graphics.verticalSync;
+            value = GetContext().settings.GetSettings().graphics.isVSyncEnabled;
         else if (row.action == Action::PostEffects)
-            value = GetContext().settings.Get().graphics.postEffects;
+            value = GetContext().settings.GetSettings().graphics.arePostEffectsEnabled;
         else if (row.action == Action::ScreenShake)
-            value = GetContext().settings.Get().gameplay.screenShake;
+            value = GetContext().settings.GetSettings().gameplay.isScreenShakeEnabled;
         else if (row.action == Action::ShowScorePopups)
-            value = GetContext().settings.Get().gameplay.showScorePopups;
+            value = GetContext().settings.GetSettings().gameplay.needToShowScorePopups;
         DrawToggle(target, row, value, states);
     }
     else if (row.kind == RowKind::Dropdown)
@@ -1619,15 +1667,6 @@ void OptionsState::DrawDropdown(sf::RenderTarget& target)
         itemCount - dropdownFirstVisible) };
     const std::size_t selectedVisibleIndex{ dropdownIndex - dropdownFirstVisible };
     const sf::FloatRect selectedBounds{ GetDropdownItemBounds(selectedVisibleIndex) };
-    dropdownGlow.DrawBloom(
-        target,
-        selectedBounds,
-        [this, selectedBounds](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
-        {
-            DrawDropdownItem(glowTarget, selectedBounds, dropdownIndex, true, states);
-        },
-        SelectionGlowColor);
-
     for (std::size_t visibleIndex{ 0u }; visibleIndex < visibleCount; ++visibleIndex)
     {
         const std::size_t itemIndex{ dropdownFirstVisible + visibleIndex };
@@ -1659,7 +1698,6 @@ void OptionsState::DrawDropdown(sf::RenderTarget& target)
         target.draw(thumb);
     }
 
-    dropdownGlow.DrawHighlight(target, selectedBounds, SelectionGlowColor);
 }
 
 void OptionsState::DrawDropdownItem(
@@ -1667,22 +1705,20 @@ void OptionsState::DrawDropdownItem(
     const sf::FloatRect& bounds,
     std::size_t itemIndex,
     bool selected,
-    const sf::RenderStates& states) const
+    const sf::RenderStates& states)
 {
-    RoundedRectangleShape item(bounds.size, 7.f, 6u);
-    item.setPosition(bounds.position);
-    item.setFillColor(selected ? sf::Color(12, 58, 76, 250) : sf::Color(3, 16, 28, 248));
-    item.setOutlineColor(selected ? Cyan : sf::Color(50, 78, 94));
-    item.setOutlineThickness(1.f);
-    target.draw(item, states);
+	RoundedRectangleShape item(bounds.size, 7.f, 6u);
+	item.setPosition(bounds.position);
+	item.setFillColor(selected ? sf::Color(12, 58, 76, 250) : sf::Color(3, 16, 28, 248));
+	item.setOutlineColor(selected ? Cyan : sf::Color(50, 78, 94));
+	item.setOutlineThickness(1.f);
+	target.draw(item, states);
 
-    sf::Text label(
-        GetContext().assets.Fonts().Get(Config::Font::MenuRegular),
-        GetDropdownItemLabel(itemIndex),
-        24);
-    label.setPosition(bounds.position + sf::Vector2f{ 20.f, 13.f });
-    label.setFillColor(selected ? Orange : BrightCyan);
-    target.draw(label, states);
+	if (itemIndex >= dropdownLabels.size()) return;
+	sf::Text& label{ dropdownLabels[itemIndex] };
+	label.setPosition(bounds.position + sf::Vector2f{ 20.f, 13.f });
+	label.setFillColor(selected ? Orange : BrightCyan);
+	target.draw(label, states);
 }
 
 void OptionsState::DrawDialog(sf::RenderTarget& target)
@@ -1699,14 +1735,14 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
 
     if (displayConfirmationOpen)
     {
-        DrawCenteredText(target, "Keep these display settings?", 960.f, 465.f, 36, BrightCyan);
-        DrawCenteredText(target, "Reverting in " +
-            std::to_string(static_cast<int>(std::ceil(displayConfirmationRemaining))) + " seconds",
+        DrawCenteredText(target, GetContext().localization.Get("options.keep_display"), 960.f, 465.f, 36, BrightCyan);
+        DrawCenteredText(target, GetContext().localization.Format("options.reverting", "seconds",
+			std::to_string(static_cast<int>(std::ceil(displayConfirmationRemaining)))),
             960.f, 520.f, 24, Orange);
 
-        const std::array<std::pair<sf::FloatRect, std::string>, 2> buttons{
-            std::pair{ DialogConfirmBounds, std::string{ "Confirm" } },
-            std::pair{ DialogCancelBounds, std::string{ "Cancel" } }
+        const std::array<std::pair<sf::FloatRect, sf::String>, 2> buttons{
+            std::pair{ DialogConfirmBounds, GetContext().localization.Get("common.confirm") },
+            std::pair{ DialogCancelBounds, GetContext().localization.Get("common.cancel") }
         };
         const auto& [selectedBounds, selectedLabel]{ buttons[dialogSelectedIndex] };
         dialogGlow.DrawBloom(
@@ -1738,8 +1774,8 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
     }
     else
     {
-        DrawCenteredText(target, "Press a key or mouse button", 960.f, 475.f, 34, BrightCyan);
-        const std::string cancelLabel{ "Cancel" };
+        DrawCenteredText(target, GetContext().localization.Get("options.press_binding"), 960.f, 475.f, 34, BrightCyan);
+        const sf::String cancelLabel{ GetContext().localization.Get("common.cancel") };
         dialogGlow.DrawBloom(
             target,
             BindingCancelBounds,
@@ -1766,7 +1802,7 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
 void OptionsState::DrawDialogButton(
     sf::RenderTarget& target,
     const sf::FloatRect& bounds,
-    const std::string& labelValue,
+    const sf::String& labelValue,
     bool selected,
     const sf::RenderStates& states) const
 {
@@ -1778,7 +1814,7 @@ void OptionsState::DrawDialogButton(
     target.draw(button, states);
 
     sf::Text label(
-        GetContext().assets.Fonts().Get(Config::Font::MenuRegular),
+        GetContext().assets.Fonts().Get(GetContext().localization.RegularFont()),
         labelValue,
         25);
     const sf::FloatRect textBounds{ label.getLocalBounds() };
@@ -1793,13 +1829,13 @@ void OptionsState::DrawDialogButton(
 
 void OptionsState::DrawCenteredText(
     sf::RenderTarget& target,
-    const std::string& value,
+    const sf::String& value,
     float centerX,
     float y,
     unsigned int size,
     sf::Color color) const
 {
-    sf::Text text(GetContext().assets.Fonts().Get(Config::Font::MenuRegular), value, size);
+    sf::Text text(GetContext().assets.Fonts().Get(GetContext().localization.RegularFont()), value, size);
     const sf::FloatRect bounds{ text.getLocalBounds() };
     text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y });
     text.setPosition({ centerX, y });
@@ -1809,12 +1845,12 @@ void OptionsState::DrawCenteredText(
 
 void OptionsState::DrawText(
     sf::RenderTarget& target,
-    const std::string& value,
+    const sf::String& value,
     sf::Vector2f position,
     unsigned int size,
     sf::Color color) const
 {
-    sf::Text text(GetContext().assets.Fonts().Get(Config::Font::MenuRegular), value, size);
+    sf::Text text(GetContext().assets.Fonts().Get(GetContext().localization.RegularFont()), value, size);
     text.setPosition(position);
     text.setFillColor(color);
     target.draw(text);

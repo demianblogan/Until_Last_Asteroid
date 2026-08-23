@@ -1,9 +1,12 @@
 #pragma once
 
-enum class StateId
+enum class StateID
 {
     CompanySplash,
+    LanguageSelect,
     MainMenu,
+	Achievements,
+	Credits,
     CampaignMenu,
 	LevelSelect,
 	ShipUpgrades,
@@ -11,5 +14,6 @@ enum class StateId
     Options,
     PauseOptions,
     Gameplay,
+	CampaignComplete,
     Pause
 };

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/Entity.h"
-#include "game/GameplayData.h"
+#include "gameplay/GameplayData.h"
 
 class GameplaySession;
 
@@ -10,7 +10,7 @@ class Pickup final : public Entity
 public:
 	using Kind = GameplayData::PickupKind;
 
-    Pickup(AssetStore& assets, World& world, Kind kind);
+    Pickup(Assets& assets, World& world, Kind kind);
 
     [[nodiscard]] Type GetType() const noexcept override;
     [[nodiscard]] bool IsCollideWith(const Entity& other) const override;

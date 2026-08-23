@@ -4,12 +4,12 @@
 #include <cmath>
 #include <numbers>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "core/World.h"
-#include "systems/Collision.h"
+#include "core/Collision.h"
 #include "utils/ConfigEnums.h"
 
-ReflectorGunship::ReflectorGunship(AssetStore& assets, World& world)
+ReflectorGunship::ReflectorGunship(Assets& assets, World& world)
 	: Enemy(assets, world, assets.Textures().Get(Config::Texture::ReflectorGunship),
 		assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::ReflectorGunship))
 {
@@ -181,13 +181,13 @@ void ReflectorGunship::ShootDoubleVolley(const sf::Vector2f& playerPosition)
 
 sf::Vector2f ReflectorGunship::GetWeaponEmitterPosition(std::size_t index) const
 {
-	const sf::Sprite& sprite{ GetSprite() };
-	const sf::IntRect textureRect{ sprite.getTextureRect() };
+	const sf::Sprite& entitySprite{ GetSprite() };
+	const sf::IntRect textureRect{ entitySprite.getTextureRect() };
 	const GameplayData::NormalizedPoint& emitter{ GetWeaponEmitters().at(index) };
 	const sf::Vector2f localPosition{
 		static_cast<float>(textureRect.position.x) +
 			static_cast<float>(textureRect.size.x) * emitter.x,
 		static_cast<float>(textureRect.position.y) +
 			static_cast<float>(textureRect.size.y) * emitter.y };
-	return sprite.getTransform().transformPoint(localPosition);
+	return entitySprite.getTransform().transformPoint(localPosition);
 }

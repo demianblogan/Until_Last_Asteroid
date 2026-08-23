@@ -6,7 +6,7 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
 
-#include "game/GameplayLaunch.h"
+#include "gameplay/GameplayLaunch.h"
 #include "states/State.h"
 #include "ui/GlowingCursor.h"
 #include "ui/MenuBackground.h"

@@ -36,6 +36,7 @@ private:
     void HandleAnimationEvents(const MenuIntroAnimation::Events& events);
     void PlayTypingSounds(std::size_t count);
     void StartMenuMusic();
+	void RefreshLocalizedLabels();
 
     MenuBackground background;
     NeonGlow neonGlow;
@@ -51,4 +52,6 @@ private:
     std::size_t typingSoundIndex{ 0 };
     float activationDelayRemaining{ 0.f };
     float titleLeftPosition{ 0.f };
+	std::size_t localizationRevision{ 0u };
+	bool localizedLabelsOverride{ false };
 };

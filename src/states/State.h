@@ -2,14 +2,16 @@
 
 #include <SFML/System/Vector2.hpp>
 
-#include "StateId.h"
+#include "StateID.h"
 
-class AssetStore;
+class Assets;
+class AchievementManager;
 class AudioManager;
 class CampaignSaveManager;
 class DisplayManager;
 class SettingsManager;
 class GamepadManager;
+class LocalizationManager;
 class RecordsManager;
 class StateStack;
 struct GameplayLaunchRequest;
@@ -23,10 +25,12 @@ namespace sf
 struct StateContext
 {
     sf::RenderWindow& window;
-    AssetStore& assets;
+    Assets& assets;
     SettingsManager& settings;
     CampaignSaveManager& campaignSave;
 	RecordsManager& records;
+	AchievementManager& achievements;
+    LocalizationManager& localization;
     AudioManager& audio;
     DisplayManager& display;
     sf::Vector2f logicalSize;
@@ -53,10 +57,16 @@ public:
     virtual void RenderOverlay();
     [[nodiscard]] virtual bool IsTransparent() const noexcept;
 
+    // Called when a cached state (see StateStack::EnableStateCaching) is
+    // pushed again instead of being freshly constructed. Override to reset
+    // per-visit transient state (fade-in, selection, etc.) and refresh any
+    // data that may have changed while the state was cached away.
+    virtual void OnReactivated();
+
 protected:
     [[nodiscard]] const StateContext& GetContext() const noexcept;
 
-    void RequestPush(StateId stateId);
+    void RequestPush(StateID stateID);
     void RequestPop();
     void RequestClear();
 

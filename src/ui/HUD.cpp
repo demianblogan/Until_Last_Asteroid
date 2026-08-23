@@ -8,8 +8,9 @@
 #include <string>
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
-#include "assets/AssetStore.h"
-#include "game/GameplaySession.h"
+#include "assets/Assets.h"
+#include "gameplay/GameplaySession.h"
+#include "localization/LocalizationManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -24,6 +25,21 @@ namespace
 	constexpr sf::Vector2f FillOffset{ 27.f * HealthBarScale, 19.f * HealthBarScale };
 	constexpr sf::Vector2f FrameSize{ 640.f * HealthBarScale, 100.f * HealthBarScale };
 
+	// Bar fills shrink/grow continuously (health, timers), and NeonGlow
+	// rebuilds its blur render textures whenever the bounds passed to it
+	// change size at all. Quantizing the width to whole steps means the
+	// glow only rebuilds when the visible size actually crosses a step
+	// boundary -- a handful of times, not every single frame -- while the
+	// drawn content and its position stay exactly as before.
+	constexpr float GlowSizeStep{ 8.f };
+
+	sf::FloatRect QuantizedGlowBounds(const sf::Sprite& fillSprite)
+	{
+		sf::FloatRect bounds{ fillSprite.getGlobalBounds() };
+		bounds.size.x = std::ceil(bounds.size.x / GlowSizeStep) * GlowSizeStep;
+		return bounds;
+	}
+
 	sf::Color LerpColor(const sf::Color& from, const sf::Color& to, float amount)
 	{
 		amount = std::clamp(amount, 0.f, 1.f);
@@ -35,32 +51,32 @@ namespace
 	}
 }
 
-HUD::HUD(AssetStore& assets, const GameplaySession& session)
-	: session(session)
-	, scoreText(assets.Fonts().Get(Config::Font::MenuRegular))
+HUD::HUD(Assets& assets, const GameplaySession& session, LocalizationManager& localize)
+	: assets(assets), session(session), localization(localize)
+	, scoreText(assets.Fonts().Get(localize.RegularFont()))
 	, scorePanel(assets.Textures().Get(Config::Texture::ScorePanelFrame))
 	, scoreGlow(assets)
-	, partsText(assets.Fonts().Get(Config::Font::MenuRegular))
+	, partsText(assets.Fonts().Get(localize.RegularFont()))
 	, partsPanel(assets.Textures().Get(Config::Texture::ScorePanelFrame))
 	, partsIcon(assets.Textures().Get(Config::Texture::PartToken))
 	, partsGlow(assets)
-	, healthText(assets.Fonts().Get(Config::Font::MenuSemibold))
+	, healthText(assets.Fonts().Get(localize.BoldFont()))
 	, healthFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, healthFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, healthGlow(assets)
-	, shieldText(assets.Fonts().Get(Config::Font::MenuSemibold))
+	, shieldText(assets.Fonts().Get(localize.BoldFont()))
 	, shieldFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, shieldFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, shieldGlow(assets)
-	, homingText(assets.Fonts().Get(Config::Font::MenuSemibold))
+	, homingText(assets.Fonts().Get(localize.BoldFont()))
 	, homingFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, homingFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, homingGlow(assets)
-	, weaponText(assets.Fonts().Get(Config::Font::MenuSemibold))
+	, weaponText(assets.Fonts().Get(localize.BoldFont()))
 	, weaponFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, weaponFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, weaponGlow(assets)
-	, timeSlowdownText(assets.Fonts().Get(Config::Font::MenuSemibold))
+	, timeSlowdownText(assets.Fonts().Get(localize.BoldFont()))
 	, timeSlowdownFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, timeSlowdownFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, timeSlowdownGlow(assets)
@@ -74,7 +90,7 @@ HUD::HUD(AssetStore& assets, const GameplaySession& session)
 	scoreText.setOutlineColor(sf::Color(4, 24, 38, 230));
 	scoreText.setOutlineThickness(2.f);
 	displayedScore = session.GetScore();
-	scoreText.setString("Score: " + std::to_string(displayedScore));
+	scoreText.setString(localization.Format("hud.score", "value", std::to_string(displayedScore)));
 	CenterScoreText();
 
 	partsPanel.setPosition(PartsPanelPosition);
@@ -93,7 +109,7 @@ HUD::HUD(AssetStore& assets, const GameplaySession& session)
 	partsText.setOutlineColor(sf::Color(4, 24, 38, 230));
 	partsText.setOutlineThickness(2.f);
 	displayedParts = session.GetDisplayedParts();
-	partsText.setString("PARTS: " + std::to_string(displayedParts));
+	partsText.setString(localization.Format("hud.parts", "value", std::to_string(displayedParts)));
 	CenterPartsText();
 
 	healthFrame.setPosition(FramePosition);
@@ -143,6 +159,20 @@ HUD::HUD(AssetStore& assets, const GameplaySession& session)
 
 void HUD::Update(float deltaTime)
 {
+	// scoreText/partsText only reformat when their underlying value changes,
+	// so a language switch alone (e.g. from the pause menu) wouldn't update
+	// their label word until the next score/parts change. Forcing the
+	// "last known value" sentinels to mismatch makes UpdateScore/UpdateParts
+	// reformat through their normal path instead of duplicating it here.
+	if (localizationRevision != localization.GetRevision())
+	{
+		localizationRevision = localization.GetRevision();
+		displayedScore = -1;
+		displayedParts = -1;
+		displayedTimeSeconds = -1;
+		RefreshLocalizedFonts();
+	}
+
 	tutorialScoreHighlightRemaining = std::max(
 		0.f, tutorialScoreHighlightRemaining - deltaTime);
 	tutorialHealthHighlightRemaining = std::max(
@@ -191,6 +221,11 @@ void HUD::SetPartsVisible(bool visible) noexcept
 	partsVisible = visible;
 }
 
+void HUD::SetScoreVisible(bool visible) noexcept
+{
+	scoreVisible = visible;
+}
+
 void HUD::SetSurvivalTime(float seconds) noexcept
 {
 	survivalSeconds = std::max(0.f, seconds);
@@ -234,7 +269,7 @@ void HUD::UpdateShieldBar(float deltaTime)
 	shieldFill.setColor(color);
 
 	const int percentage{ static_cast<int>(std::ceil(ratio * 100.f)) };
-	shieldText.setString("SHIELD " + std::to_string(percentage) + "%");
+	shieldText.setString(localization.Format("hud.shield", "value", std::to_string(percentage)));
 }
 
 void HUD::UpdateHomingBar(float deltaTime)
@@ -255,7 +290,7 @@ void HUD::UpdateHomingBar(float deltaTime)
 	homingFill.setColor(sf::Color(255, 190, 40));
 
 	const int percentage{ static_cast<int>(std::ceil(ratio * 100.f)) };
-	homingText.setString("HOMING " + std::to_string(percentage) + "%");
+	homingText.setString(localization.Format("hud.homing", "value", std::to_string(percentage)));
 }
 
 void HUD::UpdateWeaponBar(float deltaTime)
@@ -280,13 +315,13 @@ void HUD::UpdateWeaponBar(float deltaTime)
 	{
 		weaponFill.setColor(sf::Color(255, 55, 28));
 		weaponText.setFillColor(sf::Color(255, 218, 200));
-		weaponText.setString("LASER " + std::to_string(percentage) + "%");
+		weaponText.setString(localization.Format("hud.laser", "value", std::to_string(percentage)));
 	}
 	else
 	{
 		weaponFill.setColor(sf::Color(255, 170, 30));
 		weaponText.setFillColor(sf::Color(255, 238, 185));
-		weaponText.setString("TRIPLE SHOT " + std::to_string(percentage) + "%");
+		weaponText.setString(localization.Format("hud.triple", "value", std::to_string(percentage)));
 	}
 }
 
@@ -308,7 +343,7 @@ void HUD::UpdateTimeSlowdownBar(float deltaTime)
 	timeSlowdownFill.setColor(sf::Color(180, 75, 255));
 
 	const int percentage{ static_cast<int>(std::ceil(ratio * 100.f)) };
-	timeSlowdownText.setString("TIME SLOW " + std::to_string(percentage) + "%");
+	timeSlowdownText.setString(localization.Format("hud.time_slow", "value", std::to_string(percentage)));
 }
 
 void HUD::UpdateBonusBarLayout()
@@ -353,11 +388,12 @@ void HUD::UpdateScore(float deltaTime)
 		{
 			displayedTimeSeconds = totalSeconds;
 			std::ostringstream text;
-			text << "TIME " << std::setfill('0') << std::setw(2)
+			text << std::setfill('0') << std::setw(2)
 				<< totalSeconds / 60 << ':' << std::setw(2)
 				<< totalSeconds % 60;
-			scoreText.setString(text.str());
+			scoreText.setString(localization.Format("hud.time", "value", text.str()));
 			CenterScoreText();
+			scoreGlow.Invalidate();
 		}
 		return;
 	}
@@ -368,7 +404,7 @@ void HUD::UpdateScore(float deltaTime)
 			scorePulseRemaining = ScorePulseDuration;
 
 		displayedScore = currentScore;
-		scoreText.setString("Score: " + std::to_string(displayedScore));
+		scoreText.setString(localization.Format("hud.score", "value", std::to_string(displayedScore)));
 		CenterScoreText();
 		scoreGlow.Invalidate();
 	}
@@ -385,7 +421,7 @@ void HUD::UpdateParts(float deltaTime)
 		if (currentParts > displayedParts)
 			partsPulseRemaining = PartsPulseDuration;
 		displayedParts = currentParts;
-		partsText.setString("PARTS: " + std::to_string(displayedParts));
+		partsText.setString(localization.Format("hud.parts", "value", std::to_string(displayedParts)));
 		CenterPartsText();
 		partsGlow.Invalidate();
 	}
@@ -432,8 +468,26 @@ void HUD::UpdateHealthBar(float deltaTime)
 
 	const int percentage{ static_cast<int>(std::round(
 		ratio * 100.f * session.GetArmorMultiplier())) };
-	healthText.setString("ARMOR " + std::to_string(percentage) + "%");
+	healthText.setString(localization.Format("hud.armor", "value", std::to_string(percentage)));
 	CenterHealthText();
+}
+
+void HUD::RefreshLocalizedFonts()
+{
+	scoreText.setFont(assets.Fonts().Get(localization.RegularFont()));
+	partsText.setFont(assets.Fonts().Get(localization.RegularFont()));
+	healthText.setFont(assets.Fonts().Get(localization.BoldFont()));
+	shieldText.setFont(assets.Fonts().Get(localization.BoldFont()));
+	homingText.setFont(assets.Fonts().Get(localization.BoldFont()));
+	weaponText.setFont(assets.Fonts().Get(localization.BoldFont()));
+	timeSlowdownText.setFont(assets.Fonts().Get(localization.BoldFont()));
+	scoreGlow.Invalidate();
+	partsGlow.Invalidate();
+	healthGlow.Invalidate();
+	shieldGlow.Invalidate();
+	homingGlow.Invalidate();
+	weaponGlow.Invalidate();
+	timeSlowdownGlow.Invalidate();
 }
 
 void HUD::CenterHealthText()
@@ -511,7 +565,8 @@ void HUD::DrawPartsPanel(sf::RenderTarget& target, const sf::RenderStates& state
 
 void HUD::Draw(sf::RenderTarget& target)
 {
-	if (scorePulseRemaining > 0.f || tutorialScoreHighlightRemaining > 0.f)
+	if (scoreVisible &&
+		(scorePulseRemaining > 0.f || tutorialScoreHighlightRemaining > 0.f))
 	{
 		const float normalized{ scorePulseRemaining / ScorePulseDuration };
 		const float tutorialFlash{ tutorialScoreHighlightRemaining > 0.f
@@ -532,8 +587,10 @@ void HUD::Draw(sf::RenderTarget& target)
 			flashColor,
 			false);
 	}
-	DrawScorePanel(target, sf::RenderStates::Default);
-	if (scorePulseRemaining > 0.f || tutorialScoreHighlightRemaining > 0.f)
+	if (scoreVisible)
+		DrawScorePanel(target, sf::RenderStates::Default);
+	if (scoreVisible &&
+		(scorePulseRemaining > 0.f || tutorialScoreHighlightRemaining > 0.f))
 	{
 		const float normalized{ scorePulseRemaining / ScorePulseDuration };
 		const float tutorialFlash{ tutorialScoreHighlightRemaining > 0.f
@@ -605,7 +662,7 @@ void HUD::Draw(sf::RenderTarget& target)
 	{
 		healthGlow.DrawBloom(
 			target,
-			healthFill.getGlobalBounds(),
+			QuantizedGlowBounds(healthFill),
 			[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
 			{
 				sf::Sprite glowSource{ healthFill };
@@ -643,7 +700,7 @@ void HUD::Draw(sf::RenderTarget& target)
 		{
 			shieldGlow.DrawBloom(
 				target,
-				shieldFill.getGlobalBounds(),
+				QuantizedGlowBounds(shieldFill),
 				[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
 				{
 					sf::Sprite glowSource{ shieldFill };
@@ -664,7 +721,7 @@ void HUD::Draw(sf::RenderTarget& target)
 		{
 			homingGlow.DrawBloom(
 				target,
-				homingFill.getGlobalBounds(),
+				QuantizedGlowBounds(homingFill),
 				[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
 				{
 					sf::Sprite glowSource{ homingFill };
@@ -685,7 +742,7 @@ void HUD::Draw(sf::RenderTarget& target)
 		{
 			weaponGlow.DrawBloom(
 				target,
-				weaponFill.getGlobalBounds(),
+				QuantizedGlowBounds(weaponFill),
 				[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
 				{
 					sf::Sprite glowSource{ weaponFill };
@@ -706,7 +763,7 @@ void HUD::Draw(sf::RenderTarget& target)
 		{
 			timeSlowdownGlow.DrawBloom(
 				target,
-				timeSlowdownFill.getGlobalBounds(),
+				QuantizedGlowBounds(timeSlowdownFill),
 				[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
 				{
 					sf::Sprite glowSource{ timeSlowdownFill };

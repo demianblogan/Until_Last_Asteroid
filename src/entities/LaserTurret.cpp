@@ -5,7 +5,7 @@
 #include <numbers>
 #include <SFML/Audio/SoundBuffer.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "core/World.h"
 #include "utils/ConfigEnums.h"
 
@@ -18,7 +18,7 @@ namespace
 	}
 }
 
-LaserTurret::LaserTurret(AssetStore& assets, World& world)
+LaserTurret::LaserTurret(Assets& assets, World& world)
 	: Enemy(assets, world, assets.Textures().Get(Config::Texture::LaserTurret),
 		assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::LaserTurret))
 {
@@ -39,6 +39,25 @@ void LaserTurret::ConfigurePath(
 	targetCorner = pathStart;
 	const sf::Vector2f routeDirection{ Normalize(pathEnd - pathStart) };
 	SetPosition(pathStart - routeDirection * (GetCollisionRadius() * 2.5f));
+	SetVelocity(routeDirection * GetMovementSpeed());
+	phase = Phase::Arriving;
+	atFirstCorner = false;
+	const float angle{ std::atan2(inward.y, inward.x) +
+		std::numbers::pi_v<float> * 0.5f };
+	SetRotation(sf::radians(angle));
+}
+
+void LaserTurret::ConfigureStationaryArrival(
+	sf::Vector2f start,
+	sf::Vector2f destination,
+	sf::Vector2f beamDirection)
+{
+	pathStart = destination;
+	pathEnd = destination;
+	inward = Normalize(beamDirection);
+	targetCorner = destination;
+	SetPosition(start);
+	const sf::Vector2f routeDirection{ Normalize(destination - start) };
 	SetVelocity(routeDirection * GetMovementSpeed());
 	phase = Phase::Arriving;
 	atFirstCorner = false;
@@ -141,8 +160,8 @@ void LaserTurret::BeginTraversal()
 bool LaserTurret::ReachedTarget(sf::Vector2f target) const noexcept
 {
 	const sf::Vector2f remaining{ target - GetPosition() };
-	const sf::Vector2f velocity{ GetVelocity() };
-	return remaining.x * velocity.x + remaining.y * velocity.y <= 0.f;
+	const sf::Vector2f currentVelocity{ GetVelocity() };
+	return remaining.x * currentVelocity.x + remaining.y * currentVelocity.y <= 0.f;
 }
 
 void LaserTurret::OnDestroy()

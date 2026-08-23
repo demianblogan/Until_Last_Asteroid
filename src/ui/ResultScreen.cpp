@@ -12,9 +12,11 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "audio/AudioManager.h"
-#include "systems/GamepadManager.h"
+#include "localization/LocalizationManager.h"
+#include "ui/TextLayout.h"
+#include "input/GamepadManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -86,17 +88,20 @@ namespace
 }
 
 ResultScreen::ResultScreen(
-    AssetStore& assets, AudioManager& gameAudio, GamepadManager& gamepadManager,
+    Assets& assets, AudioManager& gameAudio, GamepadManager& gamepadManager,
+    LocalizationManager& localizationManager,
     sf::Vector2f screenSize)
-    : audio(gameAudio)
+    : assets(assets)
+    , audio(gameAudio)
     , gamepad(gamepadManager)
+	, localization(localizationManager)
     , logicalSize(screenSize)
     , shade(screenSize)
     , titleFrame(assets.Textures().Get(Config::Texture::ResultTitleFrame))
-    , title(assets.Fonts().Get(Config::Font::MenuSemibold), "LEVEL COMPLETE", 86u)
+	, title(assets.Fonts().Get(localizationManager.BoldFont()), "", 86u)
 	, statisticsPanel(StatisticsPanelSize, 22.f, 12u)
 	, statisticsSeparator({ StatisticsPanelSize.x - 100.f, 2.f })
-	, statisticsTitle(assets.Fonts().Get(Config::Font::MenuSemibold), "STATISTICS", 36u)
+	, statisticsTitle(assets.Fonts().Get(localizationManager.BoldFont()), localizationManager.Get("results.statistics"), 36u)
     , titleGlow(assets)
     , buttonGlow(assets)
     , menuCursor(assets, Config::Texture::MenuPointer, { 6.f, 2.f }, SelectionGlowColor)
@@ -113,8 +118,8 @@ ResultScreen::ResultScreen(
     title.setLetterSpacing(1.05f);
 	CenterText(title, { logicalSize.x * 0.5f, 190.f });
 
-	const sf::Font& regularFont{ assets.Fonts().Get(Config::Font::MenuRegular) };
-	const sf::Font& bodyFont{ assets.Fonts().Get(Config::Font::BodyRegular) };
+	const sf::Font& regularFont{ assets.Fonts().Get(localizationManager.RegularFont()) };
+	const sf::Font& bodyFont{ assets.Fonts().Get(localizationManager.RegularFont(false)) };
 	statisticsPanel.setPosition(StatisticsPanelPosition);
 	statisticsPanel.setFillColor(sf::Color(2, 13, 27, 230));
 	statisticsPanel.setOutlineColor(sf::Color(25, 205, 240));
@@ -151,63 +156,92 @@ ResultScreen::ResultScreen(
 			static_cast<float>(index) * (ButtonSize.x + ButtonGap), 860.f });
 	}
 
+	// Force the real, full-sentence localized content through its first
+	// (expensive) layout pass right now, while the level is still starting
+	// up, instead of at the dramatic moment the level is actually cleared.
+	// An empty/placeholder string would not have primed anything (there are
+	// no real glyphs to lay out), so this uses the exact same content Start()
+	// will use for a level-complete screen, just with placeholder numbers.
+	ApplyContent(Mode::LevelComplete, 1, Statistics{});
+
     Reset();
 }
 
 void ResultScreen::Start(
-	Mode newMode, int level, const Statistics& statistics)
+	Mode newMode, int level, const Statistics& resultStatistics)
 {
-    mode = newMode;
-	this->statistics = statistics;
     active = true;
     interactive = false;
     elapsed = 0.f;
     selectedIndex = 0u;
-
-    if (mode == Mode::Victory)
-    {
-        title.setString("VICTORY");
-        buttons[0].SetLabel("Play Again");
-    }
-	else if (mode == Mode::LevelReplay)
-	{
-		title.setString("LEVEL " + std::to_string(level) + " COMPLETE");
-		buttons[0].SetLabel("Return to Levels");
-	}
-	else if (mode == Mode::ContentComplete)
-	{
-		title.setString("LEVEL " + std::to_string(level) + " COMPLETE");
-		buttons[0].SetLabel("Continue");
-	}
-    else
-    {
-        title.setString("LEVEL " + std::to_string(level) + " COMPLETE");
-        buttons[0].SetLabel("Continue");
-    }
-	statisticLabels[0].setString("Destroyed enemies");
-	statisticLabels[1].setString(
-		"Armor " + std::to_string(statistics.armorPercent) + "%  (75% required)");
-	statisticLabels[2].setString(
-		"Accuracy " + std::to_string(statistics.accuracyPercent) + "%  (" +
-		std::to_string(statistics.targetAccuracyPercent) + "% required)");
-	statisticLabels[3].setString(
-		"Parts collected  " + std::to_string(statistics.partsCollected) + " / " +
-		std::to_string(statistics.partsTotal));
-	statisticLabels[4].setString("LEVEL SCORE");
-	for (std::size_t index{ 0u }; index < statisticLabels.size(); ++index)
-	{
-		AlignLeft(statisticLabels[index], LabelPositions[index]);
-		AlignRight(statisticValues[index], ValuePositions[index]);
-	}
-	buttons[1].SetLabel("Restart Level");
-	buttons[2].SetLabel("Main Menu");
-	CenterText(title, { logicalSize.x * 0.5f, 190.f });
+	ApplyContent(newMode, level, resultStatistics);
     Select(0u, false);
     titleGlow.Invalidate();
     buttonGlow.Invalidate();
     ApplyVisualState();
     audio.PlaySound(Config::Sound::InterfaceActivation, SoundGroup::UI, 80.f, 1.f,
-        SoundPlayback::Restart);
+        SoundPlayback::StopPrevious);
+}
+
+void ResultScreen::ApplyContent(
+	Mode newMode, int level, const Statistics& resultStatistics)
+{
+	mode = newMode;
+	statistics = resultStatistics;
+
+	title.setFont(assets.Fonts().Get(localization.BoldFont()));
+	statisticsTitle.setFont(assets.Fonts().Get(localization.BoldFont()));
+	statisticsTitle.setString(localization.Get("results.statistics"));
+	CenterText(statisticsTitle, { logicalSize.x * .5f, StatisticsPanelPosition.y + 52.f });
+	const sf::Font& regularFont{ assets.Fonts().Get(localization.RegularFont()) };
+	const sf::Font& bodyFont{ assets.Fonts().Get(localization.RegularFont(false)) };
+	for (sf::Text& label : statisticLabels)
+		label.setFont(bodyFont);
+	for (sf::Text& value : statisticValues)
+		value.setFont(regularFont);
+	for (MenuButton& button : buttons)
+		button.SetFont(regularFont);
+
+	if (mode == Mode::Victory)
+	{
+		title.setString(localization.Get("results.victory"));
+		buttons[0].SetLabel(localization.Get("results.play_again"));
+	}
+	else if (mode == Mode::LevelReplay)
+	{
+		title.setString(localization.Format("results.level_complete", "value", std::to_string(level)));
+		buttons[0].SetLabel(localization.Get("results.back_levels"));
+	}
+	else if (mode == Mode::ContentComplete)
+	{
+		title.setString(localization.Format("results.level_complete", "value", std::to_string(level)));
+		buttons[0].SetLabel(localization.Get("results.continue"));
+	}
+	else
+	{
+		title.setString(localization.Format("results.level_complete", "value", std::to_string(level)));
+		buttons[0].SetLabel(localization.Get("results.continue"));
+	}
+	statisticLabels[0].setString(localization.Get("results.destroyed"));
+	statisticLabels[1].setString(
+		localization.Format("results.armor", "value", std::to_string(statistics.armorPercent)));
+	statisticLabels[2].setString(
+		localization.Format("results.accuracy", "value", std::to_string(statistics.accuracyPercent)) +
+		sf::String("  (") + localization.Format("results.required", "value",
+			std::to_string(statistics.targetAccuracyPercent)) + sf::String(")"));
+	statisticLabels[3].setString(
+		localization.Format("results.parts", "value", std::to_string(statistics.partsCollected)) +
+		sf::String(" / ") + sf::String(std::to_string(statistics.partsTotal)));
+	statisticLabels[4].setString(localization.Get("results.level_score"));
+	for (std::size_t index{ 0u }; index < statisticLabels.size(); ++index)
+	{
+		AlignLeft(statisticLabels[index], LabelPositions[index]);
+		AlignRight(statisticValues[index], ValuePositions[index]);
+	}
+	buttons[1].SetLabel(localization.Get("game_over.restart_level"));
+	buttons[2].SetLabel(localization.Get("common.back_main"));
+	TextLayout::FitWidth(title, TitleFrameSize.x - 140.f, 48u);
+	CenterText(title, { logicalSize.x * 0.5f, 190.f });
 }
 
 void ResultScreen::Reset()
@@ -266,8 +300,10 @@ std::optional<ResultScreen::Action> ResultScreen::HandleEvent(
     using enum GamepadManager::NavigationAction;
     switch (navigation)
     {
-    case Up: SelectPrevious(); return std::nullopt;
-    case Down: SelectNext(); return std::nullopt;
+    // The buttons below are laid out in a horizontal row, so navigation
+    // between them is Left/Right, not Up/Down.
+    case Left: SelectPrevious(); return std::nullopt;
+    case Right: SelectNext(); return std::nullopt;
     case Confirm: return ActivateSelected();
 	case Back: Select(2u, false); return ActivateSelected();
     default: break;
@@ -275,9 +311,9 @@ std::optional<ResultScreen::Action> ResultScreen::HandleEvent(
 
     if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
     {
-        if (key->code == sf::Keyboard::Key::Up || key->code == sf::Keyboard::Key::W)
+        if (key->code == sf::Keyboard::Key::Left || key->code == sf::Keyboard::Key::A)
             SelectPrevious();
-        else if (key->code == sf::Keyboard::Key::Down || key->code == sf::Keyboard::Key::S)
+        else if (key->code == sf::Keyboard::Key::Right || key->code == sf::Keyboard::Key::D)
             SelectNext();
         else if (key->code == sf::Keyboard::Key::Enter || key->code == sf::Keyboard::Key::Space)
             return ActivateSelected();
@@ -350,7 +386,7 @@ void ResultScreen::Draw(sf::RenderTarget& target)
 
 void ResultScreen::DrawCursor(sf::RenderWindow& window)
 {
-    if (active && interactive && !gamepad.IsUsingGamepad())
+    if (active && interactive && !gamepad.IsInUse())
         menuCursor.Draw(window);
 }
 
@@ -424,7 +460,7 @@ void ResultScreen::Select(std::size_t index, bool playSound)
         buttonGlow.Invalidate();
     if (changed && playSound)
         audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f,
-            SoundPlayback::Restart);
+            SoundPlayback::StopPrevious);
 }
 
 void ResultScreen::SelectPrevious()
@@ -447,7 +483,7 @@ void ResultScreen::UpdateMouseSelection(sf::Vector2f position)
 std::optional<ResultScreen::Action> ResultScreen::ActivateSelected()
 {
     audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f,
-        SoundPlayback::Restart);
+        SoundPlayback::StopPrevious);
 	if (selectedIndex == 0u) return Action::Primary;
 	if (selectedIndex == 1u) return Action::Restart;
 	return Action::MainMenu;

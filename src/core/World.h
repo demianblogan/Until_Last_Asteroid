@@ -9,11 +9,11 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "Entity.h"
-#include "game/GameplayData.h"
+#include "gameplay/GameplayData.h"
 #include "utils/ConfigEnums.h"
-#include "systems/InputHandler.h"
+#include "input/InputHandler.h"
 
-class AssetStore;
+class Assets;
 class AudioManager;
 class Enemy;
 class GameplaySession;
@@ -36,6 +36,15 @@ class SaucerShot;
 class World : public sf::Drawable
 {
 public:
+	struct PlayerLaserDamageEvent
+	{
+		sf::Vector2f start;
+		sf::Vector2f end;
+		float width{ 0.f };
+		int damage{ 0 };
+		std::uint64_t attackID{ 0u };
+	};
+
 	enum class EffectEventType
 	{
 		PlayerProjectileGlow,
@@ -55,6 +64,7 @@ public:
 		ShipExplosion,
 		StationExplosion,
 		PlayerTeleport,
+		BossDestructionShake,
 		ScorePopup
 	};
 
@@ -75,6 +85,12 @@ public:
 		bool isThrusting{ false };
 	};
 
+	struct PlayerProjectileImpact
+	{
+		sf::Vector2f position;
+		int damage{ 0 };
+	};
+
 	struct Statistics
 	{
 		unsigned int playerAttacksFired{ 0u };
@@ -85,7 +101,7 @@ public:
 		unsigned int shieldPickupsCollected{ 0u };
 	};
 
-	World(unsigned int width, unsigned int height, AssetStore& assets, AudioManager& audio,
+	World(unsigned int width, unsigned int height, Assets& assets, AudioManager& audio,
 		GameplaySession& session, GamepadManager& gamepad);
 
 	void Update(float deltaTime, float worldTimeScale = 1.f);
@@ -93,22 +109,25 @@ public:
 
 	void Spawn(std::unique_ptr<Entity> entity);
 	[[nodiscard]] std::uint64_t BeginPlayerAttack() noexcept;
-	void RegisterPlayerAttackHit(std::uint64_t attackId) noexcept;
+	void RegisterPlayerAttackHit(std::uint64_t attackID) noexcept;
 	void SpawnPlayerShot(
 		const sf::Vector2f& pos,
 		float rotation,
-		std::uint64_t attackId,
+		std::uint64_t attackID,
 		bool playSound = true,
 		bool tripleShotVisual = false);
 	void SpawnHelperShot(const sf::Vector2f& pos, const Entity* target);
 	[[nodiscard]] bool SpawnHelperPickup(const sf::Vector2f& pos);
 	void SpawnHelperBot();
+	void SpawnPickupAt(GameplayData::PickupKind kind, const sf::Vector2f& pos);
 	void DamageEnemiesWithPlayerLaser(
 		const sf::Vector2f& start,
 		const sf::Vector2f& end,
 		float width,
 		int damage,
-		std::uint64_t attackId);
+		std::uint64_t attackID);
+	[[nodiscard]] std::optional<PlayerLaserDamageEvent>
+		ConsumePlayerLaserDamageEvent() noexcept;
 	void SpawnSaucerShot(
 		const sf::Vector2f& pos,
 		const sf::Vector2f& target,
@@ -137,7 +156,6 @@ public:
 		float loopStartSeconds,
 		float loopEndSeconds,
 		float outroStartSeconds);
-	void ReleaseSound(std::uint64_t handle);
 	void StopSound(std::uint64_t handle);
 	void CompleteDelayedEnemyDestruction(Enemy& enemy);
 	void AddEffectEvent(const EffectEvent& event);
@@ -147,6 +165,25 @@ public:
 	void ResumePausedSounds();
 	void StopActiveSounds();
 	void ClearProjectiles();
+	[[nodiscard]] std::vector<PlayerProjectileImpact> ConsumePlayerProjectilesInCircle(
+		sf::Vector2f center, float radius);
+	[[nodiscard]] std::vector<PlayerProjectileImpact> ConsumePlayerProjectilesInAnnulus(
+		sf::Vector2f center, float innerRadius, float outerRadius);
+	void ConsumePlayerProjectilesInDiamondFrame(
+		sf::Vector2f center,
+		float rotationDegrees,
+		float vertexRadius,
+		float halfThickness);
+	bool DamagePlayerFromBoss(int damage, sf::Vector2f sourcePosition);
+	void KeepPlayerOutsideCircle(
+		sf::Vector2f center, float radius, int contactDamage);
+	void KeepEnemiesOutsideCircle(
+		sf::Vector2f center, float radius, float clearance);
+	void SetRewardExclusionCircle(sf::Vector2f center, float radius) noexcept;
+	[[nodiscard]] std::size_t CountActiveLaserTurrets() const noexcept;
+	[[nodiscard]] bool DestroyNextBossVictoryTarget();
+	void DestroyAllBossVictoryTargets();
+	void ClearBossVictoryPickupsAndCompanions();
 	void ClearPickups();
 	void ConfigureCampaignPickupSequence(
 		const std::vector<GameplayData::PickupKind>& sequence);
@@ -156,6 +193,15 @@ public:
 		const sf::Vector2f& position,
 		const sf::Vector2f& direction,
 		float minimumDirectionDot) const noexcept;
+	void SetBossHomingTargets(
+		const std::array<std::optional<sf::Vector2f>, 4>& targets) noexcept;
+	void ClearBossHomingTargets() noexcept;
+	[[nodiscard]] std::optional<std::size_t> FindBossHomingTarget(
+		const sf::Vector2f& position,
+		const sf::Vector2f& direction,
+		float minimumDirectionDot) const noexcept;
+	[[nodiscard]] std::optional<sf::Vector2f> GetBossHomingTargetPosition(
+		std::size_t index) const noexcept;
 	[[nodiscard]] bool IsEntityActive(const Entity* entity) const noexcept;
 	[[nodiscard]] std::optional<PlayerEffectState> GetPlayerEffectState() const;
 	[[nodiscard]] std::optional<sf::Vector2f> GetPlayerGamepadAimPoint() const;
@@ -171,7 +217,7 @@ public:
 	bool IsCleared() const noexcept;
 
 	bool HasPlayer() const noexcept;
-	void SpawnPlayer(AssetStore& assets, InputHandler<Config::PlayerAction>& input);
+	void SpawnPlayer(Assets& assets, InputHandler<Config::PlayerAction>& input);
 	void SetPlayerSpawnPresentation(float progress) noexcept;
 	void TeleportPlayerToCenter() noexcept;
 
@@ -179,6 +225,7 @@ public:
 	void HandlePlayerRealtime();
 	void SetPlayerControlEnabled(bool enabled) noexcept;
 	void SetPlayerFiringEnabled(bool enabled) noexcept;
+	void SetPlayerCinematicInvulnerable(bool enabled) noexcept;
 
 private:
 	void Wrap(Entity& e) const;
@@ -193,7 +240,11 @@ private:
 	std::vector<std::unique_ptr<Entity>> entities;
 	std::vector<std::unique_ptr<Entity>> pendingEntities;
 	std::vector<EffectEvent> effectEvents;
-	AssetStore& assets;
+	std::optional<sf::Vector2f> rewardExclusionCenter;
+	std::array<std::optional<sf::Vector2f>, 4> bossHomingTargets{};
+	std::optional<PlayerLaserDamageEvent> playerLaserDamageEvent;
+	float rewardExclusionRadius{ 0.f };
+	Assets& assets;
 	AudioManager& audio;
 	GameplaySession& session;
 	GamepadManager& gamepad;
@@ -205,7 +256,7 @@ private:
 	unsigned int height;
 	float shieldVisualTime{ 0.f };
 	Statistics statistics;
-	std::uint64_t nextPlayerAttackId{ 1u };
+	std::uint64_t nextPlayerAttackID{ 1u };
 	std::unordered_set<std::uint64_t> successfulPlayerAttacks;
 	bool helperPickupSpawned{ false };
 	bool helperBotSpawned{ false };

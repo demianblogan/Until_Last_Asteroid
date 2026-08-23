@@ -9,10 +9,10 @@
 #include <SFML/Graphics/Shader.hpp>
 #include <SFML/Graphics/Texture.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 
-Entity::Entity(AssetStore& assets, World& world, sf::Texture& texture,
+Entity::Entity(Assets& assets, World& world, sf::Texture& texture,
 	float visualScale, float collisionRadius,
 	std::span<const Collision::LocalCircle> configuredCollisionCircles)
 	: sprite(texture)
@@ -42,9 +42,9 @@ sf::Vector2f Entity::GetPosition() const noexcept
 	return sprite.getPosition();
 }
 
-void Entity::SetVelocity(const sf::Vector2f& velocity) noexcept
+void Entity::SetVelocity(const sf::Vector2f& newVelocity) noexcept
 {
-	this->velocity = velocity;
+	velocity = newVelocity;
 }
 
 const sf::Vector2f& Entity::GetVelocity() const noexcept
@@ -86,7 +86,7 @@ World& Entity::GetWorld() noexcept
 	return world;
 }
 
-AssetStore& Entity::GetAssets() noexcept
+Assets& Entity::GetAssets() noexcept
 {
 	return assets;
 }
@@ -96,7 +96,7 @@ const World& Entity::GetWorld() const noexcept
 	return world;
 }
 
-const AssetStore& Entity::GetAssets() const noexcept
+const Assets& Entity::GetAssets() const noexcept
 {
 	return assets;
 }

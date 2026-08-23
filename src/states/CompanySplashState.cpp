@@ -7,9 +7,10 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Event.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "audio/AudioManager.h"
-#include "states/StateId.h"
+#include "states/StateID.h"
+#include "settings/SettingsManager.h"
 #include "utils/ConfigEnums.h"
 
 CompanySplashState::CompanySplashState(StateStack& stateStack, StateContext context)
@@ -95,7 +96,9 @@ void CompanySplashState::Finish()
     isFinishing = true;
     GetContext().audio.StopMusic(Config::Music::CompanySplash);
     RequestClear();
-    RequestPush(StateId::MainMenu);
+    RequestPush(GetContext().settings.GetSettings().localization.isLanguageChosen
+        ? StateID::MainMenu
+        : StateID::LanguageSelect);
 }
 
 void CompanySplashState::UpdateOpacity()

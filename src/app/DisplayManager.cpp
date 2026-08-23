@@ -102,8 +102,8 @@ void DisplayManager::ConfigureExistingWindow(const GraphicsSettings& settings)
 
 void DisplayManager::ApplyLiveSettings(const GraphicsSettings& settings)
 {
-    window.setVerticalSyncEnabled(settings.verticalSync);
-    window.setFramerateLimit(settings.verticalSync ? 0u : settings.frameRateLimit);
+    window.setVerticalSyncEnabled(settings.isVSyncEnabled);
+    window.setFramerateLimit(settings.isVSyncEnabled ? 0u : settings.frameRateLimit);
 }
 
 void DisplayManager::ApplyDisplaySettings(const GraphicsSettings& settings)

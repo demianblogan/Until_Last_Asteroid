@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
-#include "assets/AssetStore.h"
-#include "game/GameplaySession.h"
+#include "assets/Assets.h"
+#include "gameplay/GameplaySession.h"
 
 namespace
 {
@@ -31,7 +31,7 @@ namespace
     }
 }
 
-Pickup::Pickup(AssetStore& assets, World& world, Kind pickupKind)
+Pickup::Pickup(Assets& assets, World& world, Kind pickupKind)
     : Entity(
         assets,
         world,

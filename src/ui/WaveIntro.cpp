@@ -8,7 +8,8 @@
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderTarget.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
+#include "localization/LocalizationManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -26,9 +27,9 @@ namespace
     }
 }
 
-WaveIntro::WaveIntro(AssetStore& assets)
-    : titleGlow(assets)
-    , title(assets.Fonts().Get(Config::Font::MenuSemibold), "", 76)
+WaveIntro::WaveIntro(Assets& assets, LocalizationManager& localize)
+    : titleGlow(assets), assets(assets), localization(localize)
+    , title(assets.Fonts().Get(localize.BoldFont()), "", 76)
 {
     title.setOutlineColor(sf::Color(2, 12, 24, 235));
     title.setOutlineThickness(4.f);
@@ -37,9 +38,9 @@ WaveIntro::WaveIntro(AssetStore& assets)
 
 void WaveIntro::Start(int waveNumber, bool finalWave)
 {
-    title.setString(finalWave
-        ? "FINAL WAVE"
-        : "WAVE " + std::to_string(std::max(1, waveNumber)));
+    title.setFont(assets.Fonts().Get(localization.BoldFont()));
+    title.setString(finalWave ? localization.Get("intro.final_wave")
+		: localization.Format("intro.wave", "value", std::to_string(std::max(1, waveNumber))));
     elapsed = 0.f;
     active = true;
     titleGlow.Invalidate();
@@ -76,6 +77,12 @@ void WaveIntro::Draw(sf::RenderTarget& target)
         Cyan);
     target.draw(title);
     titleGlow.DrawHighlight(target, title.getGlobalBounds(), Cyan);
+}
+
+void WaveIntro::Reset() noexcept
+{
+    active = false;
+    elapsed = 0.f;
 }
 
 bool WaveIntro::IsActive() const noexcept

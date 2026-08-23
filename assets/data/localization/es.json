@@ -1,0 +1,93 @@
+{
+  "loading": { "title": "Cargando", "data": "Cargando datos", "textures": "Cargando texturas", "sounds": "Cargando sonidos", "music": "Cargando música", "shaders": "Cargando shaders", "interface": "Preparando interfaz", "finalizing": "Finalizando", "preparing_game": "Preparando el juego", "preparing_text": "Preparando texto", "ready": "Listo" },
+  "language": {
+    "select_title": "SELECCIONAR IDIOMA",
+    "select_hint": "Puedes cambiar el idioma más tarde en Opciones"
+  },
+  "main_menu": {
+    "title": "Hasta el Último Asteroide",
+    "start_game": "Iniciar juego",
+    "achievements": "Logros",
+    "records": "Récords",
+    "options": "Opciones",
+    "credits": "Créditos",
+    "quit": "Salir"
+  },
+  "options": {
+    "title": "OPCIONES", "graphics": "Gráficos", "audio": "Audio",
+    "gameplay": "Juego", "controls": "Controles", "language": "Idioma",
+    "keyboard": "Teclado", "gamepad": "Mando",
+    "restore_defaults": "Restaurar valores", "back_main": "Volver al menú principal",
+    "back_pause": "Volver al menú de pausa", "back": "Volver",
+    "display_resolution": "Resolución", "window_mode": "Modo de ventana", "show_fps": "Mostrar FPS",
+    "vsync": "Sincronización vertical", "frame_limit": "Límite de fotogramas", "post_effects": "Efectos visuales",
+    "reset_graphics": "Restaurar gráficos", "screen_shake": "Vibración de pantalla", "score_popups": "Mostrar puntos emergentes",
+    "reset_gameplay": "Restaurar juego", "music": "Música", "sounds": "Sonidos",
+    "reset_audio": "Restaurar audio", "move_up": "Mover arriba", "move_down": "Mover abajo",
+    "move_left": "Mover a la izquierda", "move_right": "Mover a la derecha", "fire": "Disparar",
+    "reset_controls": "Restaurar controles", "back_controls": "Volver a controles",
+    "desktop_controlled": "Controlado por el escritorio en modo sin bordes", "desktop_resolution": "Resolución del escritorio",
+    "fullscreen": "Pantalla completa", "windowed": "Ventana", "borderless": "Sin bordes", "unlimited": "Ilimitado",
+    "mouse_left": "Ratón izquierdo", "mouse_right": "Ratón derecho", "mouse_middle": "Ratón central",
+    "mouse_4": "Ratón 4", "mouse_5": "Ratón 5", "mouse": "Ratón", "move": "Mover", "aim": "Apuntar",
+    "menu_navigation": "Navegación del menú", "xbox_controller": "MANDO XBOX",
+    "playstation_controller": "MANDO PLAYSTATION", "save_error": "No se pudieron guardar los ajustes. Comprueba los permisos.",
+    "keep_display": "¿Conservar estos ajustes de pantalla?", "reverting": "Se revertirán en {seconds} segundos",
+    "press_binding": "Pulsa una tecla o botón del ratón"
+  },
+  "common": { "back_main": "Volver al menú principal", "confirm": "Confirmar", "cancel": "Cancelar", "play": "Jugar", "skip": "Omitir", "on": "SÍ", "off": "NO", "unknown": "Desconocido" },
+  "campaign_menu": {
+    "title": "CAMPAÑA", "continue": "Continuar campaña", "new": "Iniciar nueva campaña",
+    "select_level": "Seleccionar nivel", "horde": "Modo Horda", "run": "Modo Carrera",
+    "new_title": "¿INICIAR NUEVA CAMPAÑA?", "overwrite_message": "El progreso de la campaña actual será reemplazado permanentemente.",
+    "tutorial_title": "¿JUGAR EL TUTORIAL?", "tutorial_message": "Aprende los fundamentos, las piezas y las mejoras antes del nivel 1.",
+    "save_error": "No se pudo crear el guardado. Comprueba el acceso a Local AppData."
+  },
+  "level_select": { "title": "NIVELES", "locked": "BLOQUEADO", "back_game_menu": "Volver al menú de juego" },
+  "levels": {
+    "title_1": "FRONTERA AZUL", "title_2": "CRUCE ESMERALDA", "title_3": "CINTURÓN DESTROZADO",
+    "title_4": "ASEDIO ROSA", "title_5": "ESTELA DE ASTEROIDES", "title_6": "CEMENTERIO HELADO",
+    "title_7": "ENTRADA CARMESÍ", "title_8": "TORMENTA IÓNICA", "title_9": "UMBRAL DEL VACÍO",
+    "title_10": "EL ÚLTIMO HORIZONTE"
+  },
+  "pause": { "title": "PAUSA", "resume": "Continuar", "restart_level": "Reiniciar nivel", "restart_tutorial": "Reiniciar tutorial", "skip_tutorial": "Omitir tutorial" },
+  "records": { "title": "RÉCORDS", "level": "NIVEL", "waves_survived": "OLEADAS SUPERADAS", "best_score": "MEJOR PUNTUACIÓN", "best_time": "MEJOR TIEMPO DE SUPERVIVENCIA" },
+  "upgrades": {
+    "title": "MEJORAS DE LA NAVE", "parts": "PIEZAS:", "armor": "BLINDAJE", "engines": "MOTORES DE VUELO", "fire_rate": "CADENCIA DE TIRO", "bonus_duration": "DURACIÓN DE BONOS",
+    "armor_effect": "+25% de blindaje máximo", "engines_effect": "+10% de velocidad y empuje", "fire_rate_effect": "+15% de disparos por segundo", "bonus_duration_effect": "+1 segundo a los bonos temporales",
+    "rank": "RANGO", "upgrade": "MEJORAR", "max": "MÁX.", "continue": "Continuar", "back_levels": "Volver a la selección de niveles", "cost": "COSTE: {cost}"
+  },
+  "achievements": {
+    "title": "LOGROS", "unlocked": "LOGRO DESBLOQUEADO", "items": {
+      "first_step": { "title": "¡En marcha!", "description": "Completa el nivel 1." }, "halfway_there": { "title": "Cruzando el ecuador", "description": "Completa el nivel 5." },
+      "campaign_complete": { "title": "¡Eso es todo!", "description": "Completa el nivel 10." }, "run_survivor": { "title": "¡Basta, por favor!", "description": "Sobrevive 1 minuto\nen el modo Carrera." },
+      "horde_survivor": { "title": "Nada puede detenerme", "description": "Sobrevive 5 oleadas\nen el modo Horda." }, "fully_upgraded": { "title": "Con mucho estilo", "description": "Mejora todos los sistemas\nde la nave al máximo." },
+      "tutorial_skipped": { "title": "Demasiada confianza", "description": "Omite el tutorial." }, "flawless_campaign": { "title": "No es mi primera vez", "description": "Completa una campaña nueva\nsin morir de principio a fin." },
+      "boss_untouched": { "title": "¡Aquí mando yo!", "description": "Completa el nivel 10\nsin recibir daño." }
+    }
+  },
+  "credits": {
+    "title": "CRÉDITOS", "line_1": "Este juego fue desarrollado por mí, Demian Blogan.", "line_2": "Fue mi primer proyecto de portafolio en el mundo de la informática.",
+    "line_3": "La versión 1.0 era un juego sencillo, más parecido a una tarea.", "line_4": "Con muchas actualizaciones, lo mejoré hasta llegar a la versión 2.0,",
+    "line_5": "añadiendo más mecánicas, modos, pulido y contenido.", "line_6": "Lo que ves ahora es el juego completamente terminado.", "contact": "Si quieres contactar conmigo:",
+    "email": "demianblognan@gmail.com", "youtube": "Mi canal de YouTube: https://www.youtube.com/@BloganProgrammer", "source": "Código fuente:", "repository": "github.com/demianblogan/Until_Last_Asteroid"
+  },
+  "campaign_complete": {
+    "title": "¡HAS TERMINADO LA CAMPAÑA!", "thanks": "Gracias", "line_1": "¡Enhorabuena! Espero que hayas disfrutado del juego y lo hayas pasado muy bien.",
+    "line_2": "Sigue jugando, descubriendo mundos maravillosos y viviendo grandes aventuras.", "line_3": "Has terminado este viaje, pero tu viaje por los videojuegos continúa.",
+    "line_4": "¡Buena suerte!", "postscript_1": "P. D. Prueba los modos Horda y Carrera si quieres poner a prueba tus habilidades,", "postscript_2": "o intenta conseguir los logros que aún no hayas desbloqueado."
+  },
+  "hud": { "score": "Puntuación: {value}", "parts": "PIEZAS: {value}", "armor": "BLINDAJE {value}%", "shield": "ESCUDO {value}%", "homing": "GUIADO {value}%", "laser": "LÁSER {value}%", "triple": "DISPARO TRIPLE {value}%", "time_slow": "RALENTIZACIÓN {value}%", "time": "TIEMPO {value}", "boss_armor": "Blindaje del jefe: {value}%" },
+  "intro": { "level": "NIVEL {value}", "wave": "OLEADA {value}", "final_wave": "OLEADA FINAL", "horde": "MODO HORDA", "horde_objective": "SOBREVIVE TANTAS OLEADAS COMO PUEDAS", "run": "MODO CARRERA", "run_objective": "SIGUE MOVIÉNDOTE. UN GOLPE TERMINA LA CARRERA" },
+  "game_over": { "title": "FIN DE LA PARTIDA", "final_score": "Puntuación final: {value}", "horde_summary": "Puntuación: {value}", "waves": "Oleadas superadas: {value}", "time": "Tiempo: {value}", "record": "Récord: {value}", "restart_level": "Reiniciar nivel", "restart_horde": "Reiniciar Horda", "restart_run": "Reiniciar Carrera" },
+  "results": { "statistics": "ESTADÍSTICAS", "victory": "VICTORIA", "play_again": "Jugar de nuevo", "back_levels": "Volver a los niveles", "continue": "Continuar", "level_complete": "NIVEL {value} COMPLETADO", "destroyed": "Enemigos destruidos", "armor": "Blindaje {value}%  (se requiere 75%)", "accuracy": "Precisión {value}%", "required": "se requiere {value}%", "parts": "Piezas recogidas  {value}", "level_score": "PUNTUACIÓN DEL NIVEL" },
+  "tutorial": {
+    "movement": "Pulsa {bindings} para mover la nave.\nTambién puedes usar el stick izquierdo del mando.", "fire": "Mantén {binding} o el gatillo derecho del mando para disparar.",
+    "asteroid": "Ha aparecido un asteroide delante. Destrúyelo.", "fragments": "Los asteroides grandes se dividen en fragmentos pequeños.\nDestruye ambos fragmentos.",
+    "score": "Destruir asteroides y enemigos otorga puntos.\nLa puntuación total aparece arriba a la izquierda.", "armor": "El blindaje aparece abajo a la izquierda.\nSi llega al 0%, tu nave será destruida.",
+    "enemies": "Los asteroides no son la única amenaza.\nLas naves enemigas te perseguirán.", "shooter": "Ha aparecido una nave artillera. Destrúyela y esquiva sus ataques.",
+    "collision": "Ten cuidado al tocar asteroides o naves enemigas.\nLas colisiones dañan a ambos.", "shield_pickup": "Los enemigos derrotados pueden soltar bonos útiles.\nRecoge el escudo que ha aparecido.",
+    "shield_info": "Has recogido un escudo. Su medidor está sobre el blindaje.\nAbsorbe daño, pero pierde energía constantemente.", "part_pickup": "A veces los enemigos sueltan piezas especiales que desaparecen pronto.\nRecoge la pieza que tienes delante.",
+    "part_info": "Las piezas mejoran tu nave entre niveles.\nLas recogidas aparecen abajo a la derecha.", "complete": "Tutorial completado. ¡Buena suerte en tu aventura!"
+  }
+}

@@ -7,13 +7,14 @@
 class ShooterStation final : public Enemy
 {
 public:
-	ShooterStation(AssetStore& assets, World& world);
+	ShooterStation(Assets& assets, World& world);
 	void ConfigurePath(sf::Vector2f first, sf::Vector2f second);
+	void ConfigureStationaryArrival(sf::Vector2f start, sf::Vector2f destination);
 
 	[[nodiscard]] bool IsShieldActive() const noexcept;
 	[[nodiscard]] float GetShieldPulse() const noexcept;
 	[[nodiscard]] float GetSpawnChargeRatio() const noexcept;
-	[[nodiscard]] bool IsArriving() const noexcept;
+	[[nodiscard]] bool IsArriving() const noexcept override;
 	[[nodiscard]] bool TakeDamage(int damage) override;
 	[[nodiscard]] bool AcceptsKnockback() const noexcept override;
 	[[nodiscard]] bool CollidesWithPlayerProjectile(

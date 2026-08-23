@@ -8,13 +8,14 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "audio/AudioManager.h"
 #include "campaign/CampaignSaveManager.h"
-#include "game/GameplayData.h"
-#include "game/GameplayLaunch.h"
-#include "states/StateId.h"
-#include "systems/GamepadManager.h"
+#include "gameplay/GameplayData.h"
+#include "gameplay/GameplayLaunch.h"
+#include "localization/LocalizationManager.h"
+#include "states/StateID.h"
+#include "input/GamepadManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -48,7 +49,8 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 	, partsGlow(context.assets)
 	, menuCursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Cyan)
 	, screenFade(context.logicalSize)
-	, title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "LEVELS", 72u)
+	, title(context.assets.Fonts().Get(context.localization.BoldFont()),
+		context.localization.Get("level_select.title"), 72u)
 {
 	context.window.setMouseCursorVisible(false);
 	title.setFillColor(sf::Color(215, 247, 252));
@@ -63,7 +65,7 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 		? std::max(1, progress->highestUnlockedLevel)
 		: 1 };
 	const int implementedLevels{ gameplayData.GetLevelCount() };
-	const sf::Font& menuFont{ context.assets.Fonts().Get(Config::Font::MenuRegular) };
+	const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.RegularFont()) };
 	const sf::Texture& idle{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
 	const sf::Texture& selected{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 
@@ -81,7 +83,8 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 	{
 		const bool implemented{ level <= implementedLevels };
 		const bool enabled{ implemented && level <= highestUnlocked };
-		std::string label{ std::to_string(level) + "  -  LOCKED" };
+		sf::String label{ std::to_string(level) + "  -  " };
+		label += context.localization.Get("level_select.locked");
 		int collected{ 0 };
 		std::size_t total{ 0u };
 		if (implemented)
@@ -91,15 +94,20 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 			collected = progress == nullptr ? 0 : static_cast<int>(
 				std::ranges::count_if(levelConfig.partIds, [progress](const std::string& id)
 				{
-					return std::ranges::find(progress->collectedPartIds, id) !=
-						progress->collectedPartIds.end();
+					return std::ranges::find(progress->collectedPartIDs, id) !=
+						progress->collectedPartIDs.end();
 				}));
 			if (enabled)
-				label = std::to_string(level) + "  -  " + levelConfig.title;
+			{
+				label = sf::String(std::to_string(level) + "  -  ");
+				label += context.localization.Get(
+					"levels.title_" + std::to_string(level));
+			}
 		}
 		const sf::Vector2f rowPosition{ FirstButtonPosition +
 			sf::Vector2f{ 0.f, ButtonSpacing * static_cast<float>(level - 1) } };
-		buttons.emplace_back(menuFont, idle, selected, label, LevelButtonSize);
+		buttons.emplace_back(menuFont, idle, selected, "", LevelButtonSize);
+		buttons.back().SetLabel(label);
 		buttons.back().SetPosition(rowPosition);
 		buttons.back().SetEnabled(enabled);
 
@@ -132,7 +140,8 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 	}
 
 	buttons.emplace_back(
-		menuFont, idle, selected, "Return to Game Menu", ReturnButtonSize);
+		menuFont, idle, selected, "", ReturnButtonSize);
+	buttons.back().SetLabel(context.localization.Get("level_select.back_game_menu"));
 	buttons.back().SetPosition({
 		(context.logicalSize.x - ReturnButtonSize.x) * 0.5f, 900.f });
 	buttonLevels.push_back(0);
@@ -207,7 +216,7 @@ void LevelSelectState::Update(float deltaTime)
 	if (launchingLevel && !screenFade.IsActive())
 	{
 		RequestClear();
-		RequestPush(StateId::Gameplay);
+		RequestPush(StateID::Gameplay);
 	}
 }
 
@@ -252,7 +261,7 @@ void LevelSelectState::Render()
 
 void LevelSelectState::RenderOverlay()
 {
-	if (!GetContext().gamepad.IsUsingGamepad())
+	if (!GetContext().gamepad.IsInUse())
 		menuCursor.Draw(GetContext().window);
 	screenFade.Draw(GetContext().window);
 }
@@ -295,7 +304,7 @@ void LevelSelectState::Select(std::size_t index, bool playSound)
 	if (changed && playSound)
 		GetContext().audio.PlaySound(
 			Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f,
-			SoundPlayback::Restart);
+			SoundPlayback::StopPrevious);
 }
 
 void LevelSelectState::UpdateMouseSelection(sf::Vector2f position)
@@ -317,7 +326,7 @@ void LevelSelectState::ActivateSelected()
 {
 	GetContext().audio.PlaySound(
 		Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f,
-		SoundPlayback::Restart);
+		SoundPlayback::StopPrevious);
 	const int level{ buttonLevels[selectedIndex] };
 	if (level == 0)
 	{

@@ -8,7 +8,7 @@
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/System/Vector2.hpp>
 
-class AssetStore;
+class Assets;
 
 namespace sf
 {
@@ -22,7 +22,7 @@ class NeonGlow
 public:
     using SourceRenderer = std::function<void(sf::RenderTarget&, const sf::RenderStates&)>;
 
-    explicit NeonGlow(AssetStore& assets);
+    explicit NeonGlow(Assets& assets);
 
     void Update(float deltaTime);
     void Invalidate() noexcept;

@@ -13,9 +13,10 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "audio/AudioManager.h"
-#include "systems/GamepadManager.h"
+#include "localization/LocalizationManager.h"
+#include "input/GamepadManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -53,15 +54,18 @@ namespace
 }
 
 GameOverScreen::GameOverScreen(
-    AssetStore& assets, AudioManager& gameAudio, GamepadManager& gamepadManager,
+    Assets& assets, AudioManager& gameAudio, GamepadManager& gamepadManager,
+    LocalizationManager& localizationManager,
     sf::Vector2f screenSize)
-    : audio(gameAudio)
+    : assets(assets)
+    , audio(gameAudio)
     , gamepad(gamepadManager)
+    , localization(localizationManager)
     , logicalSize(screenSize)
     , shade(screenSize)
     , titleFrame(assets.Textures().Get(Config::Texture::GameOverTitleFrame))
-    , title(assets.Fonts().Get(Config::Font::MenuSemibold), "GAME OVER", 104u)
-    , finalScore(assets.Fonts().Get(Config::Font::MenuRegular), "Final Score: 0", 38u)
+    , title(assets.Fonts().Get(localizationManager.BoldFont()), localizationManager.Get("game_over.title"), 104u)
+    , finalScore(assets.Fonts().Get(localizationManager.RegularFont()), "", 38u)
     , titleGlow(assets)
     , buttonGlow(assets)
     , menuCursor(
@@ -87,12 +91,17 @@ GameOverScreen::GameOverScreen(
     finalScore.setFillColor(sf::Color(225, 245, 250));
     finalScore.setOutlineColor(sf::Color(2, 14, 25, 230));
     finalScore.setOutlineThickness(2.f);
+    // Prime with the real localized content (not an empty string -- an
+    // empty string has no glyphs to lay out and primes nothing) so the
+    // first, expensive layout pass happens now instead of the moment the
+    // player actually dies.
+    finalScore.setString(localizationManager.Format("game_over.final_score", "value", "0"));
     CenterText(finalScore, { logicalSize.x * 0.5f, 448.f });
 
-    const sf::Font& menuFont{ assets.Fonts().Get(Config::Font::MenuRegular) };
+    const sf::Font& menuFont{ assets.Fonts().Get(localizationManager.RegularFont()) };
     const sf::Texture& idle{ assets.Textures().Get(Config::Texture::MenuButtonIdle) };
     const sf::Texture& selected{ assets.Textures().Get(Config::Texture::MenuButtonSelected) };
-    const std::array<std::string, 2> labels{ "Restart Level", "Go to Main Menu" };
+    const std::array<sf::String, 2> labels{ localization.Get("game_over.restart_level"), localization.Get("common.back_main") };
     buttons.reserve(labels.size());
     for (std::size_t index{ 0u }; index < labels.size(); ++index)
     {
@@ -102,31 +111,32 @@ GameOverScreen::GameOverScreen(
             520.f + static_cast<float>(index) * 132.f });
     }
 
+    localizationRevision = localizationManager.GetRevision();
     Reset();
 }
 
 void GameOverScreen::Start(int score)
 {
-    StartWithSummary("Final Score: " + std::to_string(score), "Restart Level");
+    StartWithSummary(localization.Format("game_over.final_score", "value", std::to_string(score)), localization.Get("game_over.restart_level"));
 }
 
 void GameOverScreen::StartHorde(int score, int wavesSurvived)
 {
     StartWithSummary(
-        "Score: " + std::to_string(score) + "   Waves Survived: " +
-        std::to_string(wavesSurvived),
-        "Restart Horde");
+        localization.Format("game_over.horde_summary", "value", std::to_string(score)) +
+		sf::String("   ") + localization.Format("game_over.waves", "value", std::to_string(wavesSurvived)),
+        localization.Get("game_over.restart_horde"));
 }
 
 void GameOverScreen::StartRun(int survivalSeconds, int recordSeconds)
 {
     StartWithSummary(
-        "Time: " + FormatDuration(survivalSeconds) + "   Record: " +
-        FormatDuration(recordSeconds),
-        "Restart Run");
+        localization.Format("game_over.time", "value", FormatDuration(survivalSeconds)) + sf::String("   ") +
+		localization.Format("game_over.record", "value", FormatDuration(recordSeconds)),
+        localization.Get("game_over.restart_run"));
 }
 
-void GameOverScreen::StartWithSummary(std::string summary, std::string_view restartLabel)
+void GameOverScreen::StartWithSummary(sf::String summary, const sf::String& restartLabel)
 {
     if (active)
         return;
@@ -147,7 +157,27 @@ void GameOverScreen::StartWithSummary(std::string summary, std::string_view rest
         SoundGroup::UI,
         100.f,
         1.f,
-        SoundPlayback::Restart);
+        SoundPlayback::StopPrevious);
+}
+
+void GameOverScreen::RefreshLocalizedContent()
+{
+    localizationRevision = localization.GetRevision();
+
+    title.setFont(assets.Fonts().Get(localization.BoldFont()));
+    title.setString(localization.Get("game_over.title"));
+    CenterText(title, { logicalSize.x * 0.5f, 308.f });
+
+    const sf::Font& menuFont{ assets.Fonts().Get(localization.RegularFont()) };
+    finalScore.setFont(menuFont);
+    CenterText(finalScore, { logicalSize.x * 0.5f, 448.f });
+
+    buttons[0].SetFont(menuFont);
+    buttons[1].SetFont(menuFont);
+    buttons[1].SetLabel(localization.Get("common.back_main"));
+
+    titleGlow.Invalidate();
+    buttonGlow.Invalidate();
 }
 
 void GameOverScreen::Reset()
@@ -165,6 +195,9 @@ void GameOverScreen::Reset()
 
 void GameOverScreen::Update(float deltaTime)
 {
+    if (localizationRevision != localization.GetRevision())
+        RefreshLocalizedContent();
+
     if (!active)
         return;
 
@@ -293,7 +326,7 @@ void GameOverScreen::Draw(sf::RenderTarget& target)
 
 void GameOverScreen::DrawCursor(sf::RenderWindow& window)
 {
-    if (active && interactive && !gamepad.IsUsingGamepad())
+    if (active && interactive && !gamepad.IsInUse())
         menuCursor.Draw(window);
 }
 
@@ -335,7 +368,7 @@ void GameOverScreen::Select(std::size_t index, bool playSound)
         buttonGlow.Invalidate();
     if (changed && playSound)
         audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f,
-            SoundPlayback::Restart);
+            SoundPlayback::StopPrevious);
 }
 
 void GameOverScreen::SelectPrevious()
@@ -363,7 +396,7 @@ void GameOverScreen::UpdateMouseSelection(sf::Vector2f position)
 std::optional<GameOverScreen::Action> GameOverScreen::ActivateSelected()
 {
     audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f,
-        SoundPlayback::Restart);
+        SoundPlayback::StopPrevious);
     return selectedIndex == 0u ? Action::RestartLevel : Action::MainMenu;
 }
 

@@ -7,7 +7,7 @@
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/Vertex.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -28,7 +28,7 @@ namespace
 
 }
 
-GameplayBackground::GameplayBackground(AssetStore& assets, sf::Vector2f logicalSize)
+GameplayBackground::GameplayBackground(Assets& assets, sf::Vector2f logicalSize)
     : assets(assets)
     , logicalSize(logicalSize)
 {
@@ -59,6 +59,8 @@ void GameplayBackground::SetTheme(std::string_view theme, float brightness)
 		backgroundTexture = Config::Texture::GameplayBackgroundFrozenRegion;
 	else if (theme == "ion_storm_region")
 		backgroundTexture = Config::Texture::GameplayBackgroundIonRegion;
+	else if (theme == "last_horizon_region")
+		backgroundTexture = Config::Texture::GameplayBackgroundLastHorizon;
 
 	if (backgroundTexture)
 	{
@@ -125,6 +127,12 @@ void GameplayBackground::SetTheme(std::string_view theme, float brightness)
 		topColor = { 10, 11, 2 };
 		bottomColor = { 42, 45, 5 };
 		starColor = { 240, 255, 160 };
+	}
+	else if (theme == "last_horizon_region")
+	{
+		topColor = { 12, 2, 2 };
+		bottomColor = { 2, 1, 7 };
+		starColor = { 255, 175, 145 };
     }
     else
     {

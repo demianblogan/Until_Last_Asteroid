@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cstddef>
-#include <string>
-#include <string_view>
 #include <vector>
+
+#include <SFML/System/String.hpp>
 
 class MenuIntroAnimation
 {
@@ -15,13 +15,13 @@ public:
         bool becameInteractive{ false };
     };
 
-    MenuIntroAnimation(std::string title, std::vector<std::string> menuItems);
+    MenuIntroAnimation(sf::String title, std::vector<sf::String> menuItems);
 
     [[nodiscard]] Events Update(float deltaTime);
     [[nodiscard]] Events Skip();
 
-    [[nodiscard]] std::string_view GetVisibleTitle() const noexcept;
-    [[nodiscard]] std::string_view GetVisibleMenuItem(std::size_t index) const noexcept;
+    [[nodiscard]] sf::String GetVisibleTitle() const;
+    [[nodiscard]] sf::String GetVisibleMenuItem(std::size_t index) const;
     [[nodiscard]] float GetTitleMoveProgress() const noexcept;
     [[nodiscard]] float GetFrameOpacity() const noexcept;
     [[nodiscard]] bool IsInteractive() const noexcept;
@@ -47,8 +47,8 @@ private:
     static constexpr float MENU_ITEM_PAUSE{ 0.06f };
     static constexpr float FRAME_REVEAL_DURATION{ 0.28f };
 
-    std::string title;
-    std::vector<std::string> menuItems;
+    sf::String title;
+    std::vector<sf::String> menuItems;
     std::vector<std::size_t> visibleMenuCharacters;
 
     Phase phase{ Phase::TypingTitle };

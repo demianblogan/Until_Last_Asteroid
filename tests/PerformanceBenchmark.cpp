@@ -9,7 +9,7 @@
 #include <SFML/Graphics/RenderTexture.hpp>
 
 #include "rendering/ParticleSystem.h"
-#include "systems/Collision.h"
+#include "core/Collision.h"
 
 namespace
 {

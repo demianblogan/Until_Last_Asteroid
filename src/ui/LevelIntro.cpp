@@ -5,7 +5,9 @@
 #include <string>
 #include <SFML/Graphics/RenderTarget.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
+#include "localization/LocalizationManager.h"
+#include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -31,17 +33,15 @@ namespace
 	}
 }
 
-LevelIntro::LevelIntro(AssetStore& assets, sf::Vector2f screenSize)
-	: levelGlow(assets)
+LevelIntro::LevelIntro(Assets& assets, LocalizationManager& localize, sf::Vector2f screenSize)
+	: levelGlow(assets), assets(assets), localization(localize)
 	, titleGlow(assets)
 	, shade(screenSize)
 	, panel(PanelSize, 28.f, 12u)
 	, upperLine({ 760.f, 3.f })
 	, lowerLine({ 420.f, 2.f })
-	, levelTitleFont(assets.Fonts().Get(Config::Font::MenuRegular))
-	, modeObjectiveFont(assets.Fonts().Get(Config::Font::BodyRegular))
-	, levelLabel(assets.Fonts().Get(Config::Font::MenuSemibold), "LEVEL 1", 72u)
-	, title(levelTitleFont, "", 46u)
+	, levelLabel(assets.Fonts().Get(localize.BoldFont()), "", 72u)
+	, title(assets.Fonts().Get(localize.RegularFont()), "", 46u)
 	, logicalSize(screenSize)
 {
 	shade.setFillColor(sf::Color::Transparent);
@@ -64,22 +64,29 @@ LevelIntro::LevelIntro(AssetStore& assets, sf::Vector2f screenSize)
 	Reset();
 }
 
-void LevelIntro::Start(int levelNumber, std::string_view levelTitle)
+void LevelIntro::Start(int levelNumber)
 {
-	title.setFont(levelTitleFont);
-	StartWithText("LEVEL " + std::to_string(levelNumber), levelTitle);
+	levelLabel.setFont(assets.Fonts().Get(localization.BoldFont()));
+	title.setFont(assets.Fonts().Get(localization.RegularFont()));
+	titleGlowEnabled = true;
+	StartWithText(localization.Format("intro.level", "value", std::to_string(levelNumber)),
+		localization.Get("levels.title_" + std::to_string(levelNumber)));
 }
 
-void LevelIntro::StartMode(std::string_view modeName, std::string_view objective)
+void LevelIntro::StartMode(const sf::String& modeName, const sf::String& objective)
 {
-	title.setFont(modeObjectiveFont);
+	levelLabel.setFont(assets.Fonts().Get(localization.BoldFont()));
+	title.setFont(assets.Fonts().Get(localization.RegularFont(false)));
+	titleGlowEnabled = false;
 	StartWithText(modeName, objective);
 }
 
-void LevelIntro::StartWithText(std::string_view heading, std::string_view subtitle)
+void LevelIntro::StartWithText(const sf::String& heading, const sf::String& subtitle)
 {
-	levelLabel.setString(std::string(heading));
-	title.setString(std::string(subtitle));
+	levelLabel.setString(heading);
+	title.setString(subtitle);
+	TextLayout::FitWidth(levelLabel, PanelSize.x - 100.f, 42u);
+	TextLayout::FitWidth(title, PanelSize.x - 120.f, 28u);
 	elapsed = 0.f;
 	active = true;
 	levelGlow.Invalidate();
@@ -113,9 +120,10 @@ void LevelIntro::Draw(sf::RenderTarget& target)
 	levelGlow.DrawBloom(target, levelLabel.getGlobalBounds(),
 		[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
 		{ glowTarget.draw(levelLabel, states); }, Cyan, false);
-	titleGlow.DrawBloom(target, title.getGlobalBounds(),
-		[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
-		{ glowTarget.draw(title, states); }, Amber, false);
+	if (titleGlowEnabled)
+		titleGlow.DrawBloom(target, title.getGlobalBounds(),
+			[this](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+			{ glowTarget.draw(title, states); }, Amber, false);
 	target.draw(levelLabel);
 	target.draw(title);
 }

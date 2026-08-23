@@ -4,13 +4,13 @@
 #include <cmath>
 #include <numbers>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "core/World.h"
-#include "systems/Collision.h"
+#include "core/Collision.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
 
-ShooterStation::ShooterStation(AssetStore& assets, World& world)
+ShooterStation::ShooterStation(Assets& assets, World& world)
 	: Enemy(assets, world, assets.Textures().Get(Config::Texture::ShooterStation),
 		assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::ShooterStation))
 {
@@ -36,6 +36,23 @@ void ShooterStation::ConfigurePath(sf::Vector2f first, sf::Vector2f second)
 	const sf::Vector2f delta{ targetPoint - GetPosition() };
 	const float length{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
 	SetVelocity(length > 0.001f ? delta / length * GetMovementSpeed() : sf::Vector2f{});
+	pathConfigured = true;
+	arriving = true;
+}
+
+void ShooterStation::ConfigureStationaryArrival(
+	sf::Vector2f start,
+	sf::Vector2f destination)
+{
+	pathStart = destination;
+	pathEnd = destination;
+	targetPoint = destination;
+	SetPosition(start);
+	const sf::Vector2f delta{ destination - start };
+	const float length{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+	SetVelocity(length > 0.001f
+		? delta / length * GetMovementSpeed()
+		: sf::Vector2f{});
 	pathConfigured = true;
 	arriving = true;
 }
@@ -219,8 +236,8 @@ void ShooterStation::BeginDestruction()
 bool ShooterStation::ReachedTarget() const noexcept
 {
 	const sf::Vector2f remaining{ targetPoint - GetPosition() };
-	const sf::Vector2f velocity{ GetVelocity() };
-	return remaining.x * velocity.x + remaining.y * velocity.y <= 0.f;
+	const sf::Vector2f currentVelocity{ GetVelocity() };
+	return remaining.x * currentVelocity.x + remaining.y * currentVelocity.y <= 0.f;
 }
 
 void ShooterStation::OnDestroy()

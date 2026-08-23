@@ -1,16 +1,16 @@
 #pragma once
 
 #include "core/Entity.h"
-#include "game/Health.h"
+#include "gameplay/Health.h"
 
-class AssetStore;
+class Assets;
 class World;
 
 class HomingMissile final : public Entity
 {
 public:
 	HomingMissile(
-		AssetStore& assets,
+		Assets& assets,
 		World& world,
 		const sf::Vector2f& position,
 		const sf::Vector2f& target);

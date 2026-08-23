@@ -1,8 +1,5 @@
 #pragma once
 
-#include <string>
-#include <string_view>
-
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Text.hpp>
@@ -23,14 +20,16 @@ public:
         const sf::Font& font,
         const sf::Texture& idleTexture,
         const sf::Texture& selectedTexture,
-        std::string label,
+        sf::String label,
         sf::Vector2f size);
 
     void SetPosition(sf::Vector2f position);
     void SetSelected(bool isSelected);
     void SetEnabled(bool isEnabled);
-    void SetLabel(std::string_view text);
+	void SetLabel(const sf::String& text);
+	void SetFont(const sf::Font& font);
     void SetFrameOpacity(float opacity);
+	void SetLabelOpacity(float opacity);
 	void SetFrameColor(sf::Color color);
 	void SetLabelColor(sf::Color color);
 	void SetLabelOutline(sf::Color color, float thickness);
@@ -56,6 +55,7 @@ private:
     bool selected{ false };
     bool enabled{ true };
 	float frameOpacity{ 1.f };
+	float labelOpacity{ 1.f };
 	sf::Color frameTint{ sf::Color::White };
 	bool customLabelColor{ false };
 	sf::Color labelTint{ sf::Color::White };

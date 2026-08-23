@@ -1,0 +1,78 @@
+{
+	"format_version": 1,
+	"achievements":
+	[
+		{
+			"persistent_id": "first_step",
+			"grid_position": 0,
+			"title": "Off We Go!",
+			"description": "Complete Level 1.",
+			"threshold": 1,
+			"icon": "assets/sprites/ui/achievements/first_step_v2_0.png"
+		},
+		{
+			"persistent_id": "halfway_there",
+			"grid_position": 1,
+			"title": "Crossing the Equator",
+			"description": "Complete Level 5.",
+			"threshold": 5,
+			"icon": "assets/sprites/ui/achievements/halfway_there_v2_0.png"
+		},
+		{
+			"persistent_id": "campaign_complete",
+			"grid_position": 2,
+			"title": "That's All!",
+			"description": "Complete Level 10.",
+			"threshold": 10,
+			"icon": "assets/sprites/ui/achievements/campaign_complete_v2_0.png"
+		},
+		{
+			"persistent_id": "run_survivor",
+			"grid_position": 3,
+			"title": "Please, Make It Stop!",
+			"description": "Survive for 1 minute in Run Mode.",
+			"threshold": 60,
+			"icon": "assets/sprites/ui/achievements/run_survivor_v2_0.png"
+		},
+		{
+			"persistent_id": "horde_survivor",
+			"grid_position": 4,
+			"title": "Nothing Can Stop Me",
+			"description": "Survive 5 waves in Horde Mode.",
+			"threshold": 5,
+			"icon": "assets/sprites/ui/achievements/horde_survivor_v2_0.png"
+		},
+		{
+			"persistent_id": "fully_upgraded",
+			"grid_position": 5,
+			"title": "Looking Sharp",
+			"description": "Upgrade every ship system to its maximum rank.",
+			"threshold": 4,
+			"icon": "assets/sprites/ui/achievements/fully_upgraded_v2_0.png"
+		},
+		{
+			"persistent_id": "tutorial_skipped",
+			"grid_position": 6,
+			"title": "Overconfident",
+			"description": "Skip the tutorial.",
+			"threshold": 1,
+			"icon": "assets/sprites/ui/achievements/tutorial_skipped_v2_0.png"
+		},
+		{
+			"persistent_id": "flawless_campaign",
+			"grid_position": 7,
+			"title": "Not My First Time",
+			"description": "Complete a new campaign from start to finish without dying.",
+			"threshold": 10,
+			"icon": "assets/sprites/ui/achievements/flawless_campaign_v2_0.png"
+		},
+		{
+			"persistent_id": "boss_untouched",
+			"grid_position": 8,
+			"title": "I'm the Boss Here!",
+			"description": "Complete Level 10 without taking any damage.",
+			"threshold": 0,
+			"icon": "assets/sprites/ui/achievements/boss_untouched_v2_0.png"
+		}
+	]
+}

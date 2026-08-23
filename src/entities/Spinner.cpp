@@ -2,7 +2,7 @@
 
 #include <cmath>
 #include <numbers>
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "core/World.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
@@ -18,7 +18,7 @@ namespace
 	}
 }
 
-Spinner::Spinner(AssetStore& assets, World& world)
+Spinner::Spinner(Assets& assets, World& world)
 	: Enemy(
 		assets,
 		world,
@@ -131,13 +131,13 @@ void Spinner::ShootRadialVolley()
 
 sf::Vector2f Spinner::GetWeaponEmitterPosition(std::size_t index) const
 {
-	const sf::Sprite& sprite{ GetSprite() };
-	const sf::IntRect textureRect{ sprite.getTextureRect() };
+	const sf::Sprite& entitySprite{ GetSprite() };
+	const sf::IntRect textureRect{ entitySprite.getTextureRect() };
 	const GameplayData::NormalizedPoint& emitter{ GetWeaponEmitters().at(index) };
 	const sf::Vector2f localPosition{
 		static_cast<float>(textureRect.position.x) +
 			static_cast<float>(textureRect.size.x) * emitter.x,
 		static_cast<float>(textureRect.position.y) +
 			static_cast<float>(textureRect.size.y) * emitter.y };
-	return sprite.getTransform().transformPoint(localPosition);
+	return entitySprite.getTransform().transformPoint(localPosition);
 }

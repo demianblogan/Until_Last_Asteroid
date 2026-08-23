@@ -24,15 +24,18 @@ public:
 	void Update(float deltaTime) override;
 	void Render() override;
 	void RenderOverlay() override;
+	void OnReactivated() override;
 
 private:
 	enum class ExitTarget { None, Gameplay, MainMenu, LevelSelect };
 
 	void Select(std::size_t index, bool playSound = true);
-	void MoveSelection(int delta);
+	void MoveVertical(int direction);
+	void MoveHorizontal(int direction);
 	void ActivateSelected();
 	void Purchase(ShipUpgradeType type);
 	void Refresh();
+	void RefreshLocalizedContent();
 	void LayoutPartsPanel();
 	void BeginExit(ExitTarget target);
 	void PlayPressSound();
@@ -62,6 +65,7 @@ private:
 	std::vector<MenuButton> buttons;
 	std::array<bool, 4> maximumRanks{};
 	std::size_t selectedIndex{ 0u };
+	std::size_t localizationRevision{ 0u };
 	ExitTarget exitTarget{ ExitTarget::None };
 	bool returnToLevelSelect{ false };
 };

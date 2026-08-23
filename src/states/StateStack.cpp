@@ -8,10 +8,15 @@ StateStack::StateStack(StateContext context)
 {
 }
 
+void StateStack::EnableStateCaching(StateID stateID)
+{
+	cacheableStates.insert(stateID);
+}
+
 void StateStack::HandleEvent(const sf::Event& event)
 {
     if (!states.empty())
-        states.back()->HandleEvent(event);
+        states.back().state->HandleEvent(event);
 
     ApplyPendingChanges();
 }
@@ -19,7 +24,7 @@ void StateStack::HandleEvent(const sf::Event& event)
 void StateStack::HandleRealtime()
 {
     if (!states.empty())
-        states.back()->HandleRealtime();
+        states.back().state->HandleRealtime();
 
     ApplyPendingChanges();
 }
@@ -27,7 +32,7 @@ void StateStack::HandleRealtime()
 void StateStack::Update(float deltaTime)
 {
     if (!states.empty())
-        states.back()->Update(deltaTime);
+        states.back().state->Update(deltaTime);
 
     ApplyPendingChanges();
 }
@@ -38,22 +43,22 @@ void StateStack::Render()
         return;
 
     std::size_t firstVisibleState{ states.size() - 1u };
-    while (firstVisibleState > 0u && states[firstVisibleState]->IsTransparent())
+    while (firstVisibleState > 0u && states[firstVisibleState].state->IsTransparent())
         --firstVisibleState;
 
     for (std::size_t index{ firstVisibleState }; index < states.size(); ++index)
-        states[index]->Render();
+        states[index].state->Render();
 }
 
 void StateStack::RenderOverlay()
 {
     if (!states.empty())
-        states.back()->RenderOverlay();
+        states.back().state->RenderOverlay();
 }
 
-void StateStack::PushState(StateId stateId)
+void StateStack::PushState(StateID stateID)
 {
-    pendingChanges.push_back({ Action::Push, stateId });
+    pendingChanges.push_back({ Action::Push, stateID });
 }
 
 void StateStack::PopState()
@@ -76,15 +81,37 @@ void StateStack::ApplyPendingChanges()
         switch (change.action)
         {
         case Action::Push:
-            states.push_back(CreateState(change.stateId.value()));
+        {
+            const StateID stateID{ change.stateID.value() };
+            if (const auto cached{ cachedStates.find(stateID) }; cached != cachedStates.end())
+            {
+                std::unique_ptr<State> reactivated{ std::move(cached->second) };
+                cachedStates.erase(cached);
+                reactivated->OnReactivated();
+                states.push_back({ stateID, std::move(reactivated) });
+            }
+            else
+            {
+                states.push_back({ stateID, CreateState(stateID) });
+            }
             break;
+        }
 
         case Action::Pop:
             if (!states.empty())
+            {
+                if (cacheableStates.contains(states.back().id))
+                    cachedStates[states.back().id] = std::move(states.back().state);
                 states.pop_back();
+            }
             break;
 
         case Action::Clear:
+            for (StackEntry& entry : states)
+            {
+                if (cacheableStates.contains(entry.id))
+                    cachedStates[entry.id] = std::move(entry.state);
+            }
             states.clear();
             break;
         }
@@ -96,9 +123,9 @@ bool StateStack::IsEmpty() const noexcept
     return states.empty();
 }
 
-std::unique_ptr<State> StateStack::CreateState(StateId stateId)
+std::unique_ptr<State> StateStack::CreateState(StateID stateID)
 {
-    const auto factory{ factories.find(stateId) };
+    const auto factory{ factories.find(stateID) };
     if (factory == factories.end())
         throw std::logic_error("Attempted to create an unregistered application state");
 

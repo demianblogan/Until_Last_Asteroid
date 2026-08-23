@@ -13,7 +13,7 @@
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/System/Angle.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -28,7 +28,7 @@ MenuBackground::DecorativeAsteroid::DecorativeAsteroid(const sf::Texture& textur
 {
 }
 
-MenuBackground::MenuBackground(AssetStore& assets, sf::Vector2f size)
+MenuBackground::MenuBackground(Assets& assets, sf::Vector2f size)
     : background(assets.Textures().Get(Config::Texture::MainMenuBackground))
     , vignette(size)
     , vignetteShader(assets.GetShader(Config::Shader::MenuVignette))
@@ -164,7 +164,7 @@ void MenuBackground::InitializeStars()
     }
 }
 
-void MenuBackground::InitializeAsteroids(AssetStore& assets)
+void MenuBackground::InitializeAsteroids(Assets& assets)
 {
     using Config::Texture;
 

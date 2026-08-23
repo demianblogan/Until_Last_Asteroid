@@ -7,16 +7,18 @@
 class LaserTurret final : public Enemy
 {
 public:
-	LaserTurret(AssetStore& assets, World& world);
+	LaserTurret(Assets& assets, World& world);
 
 	void ConfigurePath(sf::Vector2f first, sf::Vector2f second, sf::Vector2f inward);
+	void ConfigureStationaryArrival(
+		sf::Vector2f start, sf::Vector2f destination, sf::Vector2f beamDirection);
 	[[nodiscard]] sf::Vector2f GetBeamStart() const noexcept;
 	[[nodiscard]] sf::Vector2f GetBeamEnd() const noexcept;
 	[[nodiscard]] float GetBeamWidth() const noexcept;
 	[[nodiscard]] float GetBeamPulse() const noexcept;
 	[[nodiscard]] float GetBeamAnimationTime() const noexcept;
 	[[nodiscard]] bool IsBeamActive() const noexcept;
-	[[nodiscard]] bool IsArriving() const noexcept;
+	[[nodiscard]] bool IsArriving() const noexcept override;
 	[[nodiscard]] bool AcceptsKnockback() const noexcept override;
 
 	Type GetType() const noexcept override;

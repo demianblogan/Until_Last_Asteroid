@@ -9,16 +9,17 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 
 namespace
 {
     constexpr float Padding{ 72.f };
+	constexpr float BloomScale{ 0.5f };
     constexpr float InnerBlurRadius{ 0.9f };
     constexpr float OuterBlurRadius{ 1.5f };
     constexpr unsigned int InnerBlurIterations{ 2u };
-    constexpr unsigned int OuterBlurIterations{ 10u };
+	constexpr unsigned int OuterBlurIterations{ 5u };
     constexpr float BrightnessThreshold{ 0.46f };
     constexpr float BrightnessSoftness{ 0.16f };
     constexpr float PulseSpeed{ 3.2f };
@@ -30,6 +31,15 @@ namespace
             std::max(1u, static_cast<unsigned int>(std::ceil(contentSize.y + Padding * 2.f)))
         };
     }
+
+	sf::Vector2u ToBloomTextureSize(sf::Vector2f contentSize)
+	{
+		const sf::Vector2u fullSize{ ToTextureSize(contentSize) };
+		return {
+			std::max(1u, static_cast<unsigned int>(std::ceil(fullSize.x * BloomScale))),
+			std::max(1u, static_cast<unsigned int>(std::ceil(fullSize.y * BloomScale)))
+		};
+	}
 
     sf::Color ModulatedColor(sf::Color color, float intensity)
     {
@@ -49,7 +59,7 @@ namespace
         sf::BlendMode::Equation::Add);
 }
 
-NeonGlow::NeonGlow(AssetStore& assets)
+NeonGlow::NeonGlow(Assets& assets)
     : brightPassShader(assets.GetShader(Config::Shader::BrightPass))
     , blurShader(assets.GetShader(Config::Shader::GaussianBlur))
 {
@@ -85,12 +95,14 @@ void NeonGlow::DrawBloom(
 
     sf::Sprite outer(outerBlur.getTexture());
     outer.setPosition(position);
+	outer.setScale({ 1.f / BloomScale, 1.f / BloomScale });
     outer.setColor(ModulatedColor(color, 0.92f * pulse));
     target.draw(outer, additive);
     target.draw(outer, additive);
 
     sf::Sprite inner(innerBlur.getTexture());
     inner.setPosition(position);
+	inner.setScale({ 1.f / BloomScale, 1.f / BloomScale });
     inner.setColor(ModulatedColor(color, 0.96f * (0.72f + pulse * 0.28f)));
     target.draw(inner, additive);
     target.draw(inner, additive);
@@ -107,6 +119,7 @@ void NeonGlow::DrawHighlight(
     const float pulse{ GetPulse() };
     sf::Sprite highlight(emissive.getTexture());
     highlight.setPosition(bounds.position - sf::Vector2f{ Padding, Padding });
+	highlight.setScale({ 1.f / BloomScale, 1.f / BloomScale });
     highlight.setColor(ModulatedColor(color, 0.7f * (0.58f + pulse * 0.42f)));
 
     sf::RenderStates additive;
@@ -133,7 +146,9 @@ void NeonGlow::Rebuild(const sf::FloatRect& bounds, const SourceRenderer& render
     brightPassStates.blendMode = sf::BlendNone;
 
     emissive.clear(sf::Color::Transparent);
-    emissive.draw(sf::Sprite(source.getTexture()), brightPassStates);
+	sf::Sprite downsampledSource(source.getTexture());
+	downsampledSource.setScale({ BloomScale, BloomScale });
+	emissive.draw(downsampledSource, brightPassStates);
     emissive.display();
 
     ApplyBlur(emissive.getTexture(), innerBlur, InnerBlurRadius, InnerBlurIterations);
@@ -143,12 +158,13 @@ void NeonGlow::Rebuild(const sf::FloatRect& bounds, const SourceRenderer& render
 
 bool NeonGlow::Resize(sf::Vector2f contentSize)
 {
-    const sf::Vector2u textureSize{ ToTextureSize(contentSize) };
-    if (!source.resize(textureSize) ||
-        !emissive.resize(textureSize) ||
-        !horizontalBlur.resize(textureSize) ||
-        !innerBlur.resize(textureSize) ||
-        !outerBlur.resize(textureSize))
+	const sf::Vector2u sourceSize{ ToTextureSize(contentSize) };
+	const sf::Vector2u bloomSize{ ToBloomTextureSize(contentSize) };
+	if (!source.resize(sourceSize) ||
+		!emissive.resize(bloomSize) ||
+		!horizontalBlur.resize(bloomSize) ||
+		!innerBlur.resize(bloomSize) ||
+		!outerBlur.resize(bloomSize))
     {
         return false;
     }

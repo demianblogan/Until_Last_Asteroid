@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/Graphics/Text.hpp>
 
 #include "settings/GameSettings.h"
@@ -44,6 +45,7 @@ private:
         Audio,
         Gameplay,
         Controls,
+		Language,
         KeyboardControls,
         GamepadControls
     };
@@ -64,6 +66,7 @@ private:
         OpenAudio,
         OpenGameplay,
         OpenControls,
+		OpenLanguage,
         OpenKeyboardControls,
         OpenGamepadControls,
         Back,
@@ -86,12 +89,17 @@ private:
         MoveLeft,
         MoveRight,
         Fire,
-        ResetControls
+        ResetControls,
+		SetEnglish,
+		SetSpanish,
+		SetRussian,
+		SetUkrainian,
+		SetArabic
     };
 
     struct Row
     {
-        std::string label;
+        sf::String label;
         RowKind kind;
         Action action;
         bool enabled{ true };
@@ -144,18 +152,19 @@ private:
     [[nodiscard]] ControlBinding* GetBinding(Action action);
     [[nodiscard]] const ControlBinding* GetBinding(Action action) const;
 
-    [[nodiscard]] std::string GetRowValue(const Row& row) const;
-    [[nodiscard]] std::string GetBindingName(const ControlBinding& binding) const;
+    [[nodiscard]] sf::String GetRowValue(const Row& row) const;
+    [[nodiscard]] sf::String GetBindingName(const ControlBinding& binding) const;
     [[nodiscard]] std::size_t FindCurrentResolution() const;
     [[nodiscard]] std::size_t GetDropdownItemCount() const;
-    [[nodiscard]] std::string GetDropdownItemLabel(std::size_t index) const;
+    [[nodiscard]] sf::String GetDropdownItemLabel(std::size_t index) const;
     [[nodiscard]] sf::FloatRect GetValueBoxBounds(const Row& row) const;
     [[nodiscard]] sf::FloatRect GetDropdownItemBounds(std::size_t visibleIndex) const;
     [[nodiscard]] sf::FloatRect GetDropdownScrollbarBounds() const;
     [[nodiscard]] bool IsSelectedRowEnabled() const;
 
-    void DrawTitle(sf::RenderTarget& target) const;
+    void DrawTitle(sf::RenderTarget& target);
     void DrawGamepadLayouts(sf::RenderTarget& target);
+	void DrawGamepadLayoutsContent(sf::RenderTarget& target);
     void DrawRows(sf::RenderTarget& target);
     void DrawRow(
         sf::RenderTarget& target,
@@ -178,24 +187,24 @@ private:
         const sf::FloatRect& bounds,
         std::size_t itemIndex,
         bool selected,
-        const sf::RenderStates& states) const;
+		const sf::RenderStates& states);
     void DrawDialog(sf::RenderTarget& target);
     void DrawDialogButton(
         sf::RenderTarget& target,
         const sf::FloatRect& bounds,
-        const std::string& label,
+        const sf::String& label,
         bool selected,
         const sf::RenderStates& states) const;
     void DrawCenteredText(
         sf::RenderTarget& target,
-        const std::string& value,
+        const sf::String& value,
         float centerX,
         float y,
         unsigned int size,
         sf::Color color) const;
     void DrawText(
         sf::RenderTarget& target,
-        const std::string& value,
+        const sf::String& value,
         sf::Vector2f position,
         unsigned int size,
         sf::Color color) const;
@@ -204,13 +213,12 @@ private:
 
     MenuBackground background;
     sf::RectangleShape shade;
-    sf::Text titleGlow;
     sf::Text title;
+    NeonGlow titleGlow;
     NeonGlow neonGlow;
-    NeonGlow dropdownGlow;
     NeonGlow dialogGlow;
-    NeonGlow xboxHeadingGlow;
-    NeonGlow playStationHeadingGlow;
+	sf::RenderTexture gamepadLayoutCache;
+	bool gamepadLayoutCacheDirty{ true };
     GlowingCursor menuCursor;
     ScreenFade screenFade;
     Page page{ Page::Root };
@@ -227,6 +235,7 @@ private:
     Action dropdownAction{ Action::Resolution };
     std::size_t dropdownIndex{ 0u };
     std::size_t dropdownFirstVisible{ 0u };
+	std::vector<sf::Text> dropdownLabels;
     bool dropdownScrollbarDragging{ false };
     bool sliderDragging{ false };
     std::optional<Action> pendingBinding;

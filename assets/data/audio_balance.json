@@ -1,20 +1,24 @@
 {
-    "music": {
+    "music":
+    {
         "company_splash": 100.0,
         "main_menu_background": 100.0,
         "gameplay_background_1": 100.0,
         "gameplay_background_2": 100.0,
-        "gameplay_background_3": 100.0
+        "gameplay_background_3": 100.0,
+        "boss_fight": 100.0,
+        "campaign_victory": 100.0
     },
-    "sounds": {
+    "sounds":
+    {
         "character_typing": 34.0,
         "interface_activation": 58.0,
         "item_select": 45.0,
         "item_press": 60.0,
         "player_normal_shot": 50.0,
         "enemy_shot": 100.0,
-		"enemy_laser_shot": 50.0,
-		"enemy_station_working": 50.0,
+        "enemy_laser_shot": 50.0,
+        "enemy_station_working": 50.0,
         "ship_explosion": 100.0,
         "asteroid_explosion": 100.0,
         "bullet_hit_asteroid": 100.0,
@@ -23,8 +27,8 @@
         "metal_hit": 50.0,
         "game_over": 100.0,
         "bonus_touched": 100.0,
-		"part_picked_up": 100.0,
+        "part_picked_up": 100.0,
         "level_complete": 100.0,
-		"player_laser_shot": 50.0
+        "player_laser_shot": 50.0
     }
 }

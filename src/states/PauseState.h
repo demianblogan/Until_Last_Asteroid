@@ -45,6 +45,7 @@ private:
     void UpdateMouseSelection(sf::Vector2i pixelPosition);
     void BeginActivation(std::size_t index);
     void CompleteActivation(std::size_t index);
+    void RefreshLocalizedContent();
 
     sf::Texture windowSnapshot;
     sf::RenderTexture horizontalBlur;
@@ -61,6 +62,7 @@ private:
     sf::Vector2u capturedWindowSize{};
     std::size_t selectedIndex{ 0 };
     std::size_t pendingActivation{ 0 };
+    std::size_t localizationRevision{ 0u };
     float activationDelayRemaining{ 0.f };
     bool frameCaptured{ false };
     bool activationPending{ false };

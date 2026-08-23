@@ -11,12 +11,13 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 
-#include "assets/AssetStore.h"
+#include "assets/Assets.h"
 #include "audio/AudioManager.h"
 #include "campaign/CampaignSaveManager.h"
-#include "game/GameplayLaunch.h"
-#include "states/StateId.h"
-#include "systems/GamepadManager.h"
+#include "gameplay/GameplayLaunch.h"
+#include "localization/LocalizationManager.h"
+#include "states/StateID.h"
+#include "input/GamepadManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -54,14 +55,17 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
         { 6.f, 2.f },
         InterfaceGlowColor)
     , screenFade(context.logicalSize)
-    , title(context.assets.Fonts().Get(Config::Font::MenuSemibold), "CAMPAIGN", 82)
-    , statusText(context.assets.Fonts().Get(Config::Font::MenuRegular), "", 24)
+    , title(context.assets.Fonts().Get(context.localization.BoldFont()),
+		context.localization.Get("campaign_menu.title"), 82)
+    , statusText(context.assets.Fonts().Get(context.localization.RegularFont()), "", 24)
     , dialogShade(context.logicalSize)
     , dialogPanel(DialogPanelSize)
-    , dialogTitle(context.assets.Fonts().Get(Config::Font::MenuSemibold), "START NEW CAMPAIGN?", 42)
+    , dialogTitle(context.assets.Fonts().Get(context.localization.BoldFont()),
+		context.localization.Get("campaign_menu.new_title"), 42)
     , dialogMessage(
-        context.assets.Fonts().Get(Config::Font::BodyRegular),
-        "Your existing campaign progress will be permanently replaced.",
+        context.assets.Fonts().Get(context.localization.GetLanguage() == Language::English
+			? Config::Font::BodyRegular : context.localization.RegularFont()),
+        context.localization.Get("campaign_menu.overwrite_message"),
         27)
 {
     context.window.setMouseCursorVisible(false);
@@ -75,17 +79,18 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     statusText.setFillColor(sf::Color(255, 105, 90));
     statusText.setPosition({ FirstButtonPosition.x + 20.f, 950.f });
 
-    const sf::Font& menuFont{ context.assets.Fonts().Get(Config::Font::MenuRegular) };
+    const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.RegularFont()) };
     const sf::Texture& idleTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
     const sf::Texture& selectedTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 
     const auto addButton{ [this, &menuFont, &idleTexture, &selectedTexture](
-        std::string label,
+        sf::String label,
         MenuAction action,
         bool enabled)
     {
         const std::size_t index{ buttons.size() };
-        buttons.emplace_back(menuFont, idleTexture, selectedTexture, std::move(label), ButtonSize);
+        buttons.emplace_back(menuFont, idleTexture, selectedTexture, "", ButtonSize);
+		buttons.back().SetLabel(label);
         buttons.back().SetPosition(
             FirstButtonPosition + sf::Vector2f{ 0.f, ButtonSpacing * static_cast<float>(index) });
         buttons.back().SetEnabled(enabled);
@@ -96,17 +101,17 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     buttonActions.reserve(6u);
     if (context.campaignSave.HasSave())
     {
-        addButton("Continue Campaign", MenuAction::ContinueCampaign, true);
-        addButton("Start New Campaign", MenuAction::StartNewCampaign, true);
-        addButton("Select Level", MenuAction::SelectLevel, true);
+        addButton(context.localization.Get("campaign_menu.continue"), MenuAction::ContinueCampaign, true);
+        addButton(context.localization.Get("campaign_menu.new"), MenuAction::StartNewCampaign, true);
+        addButton(context.localization.Get("campaign_menu.select_level"), MenuAction::SelectLevel, true);
     }
     else
     {
-        addButton("Start New Campaign", MenuAction::StartNewCampaign, true);
+        addButton(context.localization.Get("campaign_menu.new"), MenuAction::StartNewCampaign, true);
     }
-    addButton("Horde Mode", MenuAction::HordeMode, true);
-    addButton("Run Mode", MenuAction::RunMode, true);
-    addButton("Back to Main Menu", MenuAction::Back, true);
+    addButton(context.localization.Get("campaign_menu.horde"), MenuAction::HordeMode, true);
+    addButton(context.localization.Get("campaign_menu.run"), MenuAction::RunMode, true);
+    addButton(context.localization.Get("common.back_main"), MenuAction::Back, true);
     Select(0u, false);
 
     dialogShade.setFillColor(sf::Color(0, 3, 10, 205));
@@ -121,8 +126,10 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     CenterText(dialogMessage, { 960.f, 495.f });
 
     dialogButtons.reserve(2u);
-    dialogButtons.emplace_back(menuFont, idleTexture, selectedTexture, "Confirm", DialogButtonSize);
-    dialogButtons.emplace_back(menuFont, idleTexture, selectedTexture, "Cancel", DialogButtonSize);
+    dialogButtons.emplace_back(menuFont, idleTexture, selectedTexture, "", DialogButtonSize);
+    dialogButtons.emplace_back(menuFont, idleTexture, selectedTexture, "", DialogButtonSize);
+	dialogButtons[0].SetLabel(context.localization.Get("common.confirm"));
+	dialogButtons[1].SetLabel(context.localization.Get("common.cancel"));
     dialogButtons[0].SetPosition({ 650.f, 585.f });
     dialogButtons[1].SetPosition({ 970.f, 585.f });
     SelectDialogOption(1u, false);
@@ -261,16 +268,18 @@ void CampaignMenuState::Update(float deltaTime)
     if (launchingGameplay && !screenFade.IsActive())
     {
         RequestClear();
-        RequestPush(StateId::Gameplay);
+        RequestPush(StateID::Gameplay);
     }
 	else if (launchingUpgrades && !screenFade.IsActive())
 	{
 		RequestClear();
-		RequestPush(StateId::ShipUpgrades);
+		RequestPush(StateID::ShipUpgrades);
 	}
 	else if (launchingLevelSelect && !screenFade.IsActive())
 	{
-		RequestPush(StateId::LevelSelect);
+		launchingLevelSelect = false;
+		RequestPush(StateID::LevelSelect);
+		screenFade.StartFadeIn(FadeDuration);
 	}
 }
 
@@ -333,7 +342,7 @@ void CampaignMenuState::Render()
 
 void CampaignMenuState::RenderOverlay()
 {
-    if (!GetContext().gamepad.IsUsingGamepad())
+    if (!GetContext().gamepad.IsInUse())
         menuCursor.Draw(GetContext().window);
     screenFade.Draw(GetContext().window);
 }
@@ -372,7 +381,7 @@ void CampaignMenuState::Select(std::size_t index, bool playSound)
         buttonGlow.Invalidate();
     if (changed && playSound)
         GetContext().audio.PlaySound(
-            Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f, SoundPlayback::Restart);
+            Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f, SoundPlayback::StopPrevious);
 }
 
 void CampaignMenuState::UpdateMouseSelection(sf::Vector2i pixelPosition)
@@ -400,7 +409,7 @@ void CampaignMenuState::ActivateSelected()
 			launchingUpgrades = true;
 			screenFade.StartFadeOut(FadeDuration);
 		}
-		else if (progress != nullptr && progress->phase == CampaignPhase::ContentComplete)
+		else if (progress != nullptr && progress->phase == CampaignPhase::Finished)
 		{
 			launchingLevelSelect = true;
 			screenFade.StartFadeOut(FadeDuration);
@@ -418,7 +427,7 @@ void CampaignMenuState::ActivateSelected()
         RequestPop();
         break;
     case MenuAction::SelectLevel:
-		RequestPush(StateId::LevelSelect);
+		RequestPush(StateID::LevelSelect);
 		break;
     case MenuAction::HordeMode:
         BeginGameplay(GameplayLaunchMode::Horde);
@@ -432,12 +441,12 @@ void CampaignMenuState::ActivateSelected()
 void CampaignMenuState::OpenOverwriteConfirmation()
 {
     dialogMode = DialogMode::OverwriteCampaign;
-    dialogTitle.setString("START NEW CAMPAIGN?");
-    dialogMessage.setString("Your existing campaign progress will be permanently replaced.");
+    dialogTitle.setString(GetContext().localization.Get("campaign_menu.new_title"));
+    dialogMessage.setString(GetContext().localization.Get("campaign_menu.overwrite_message"));
     CenterText(dialogTitle, { 960.f, 410.f });
     CenterText(dialogMessage, { 960.f, 495.f });
-    dialogButtons[0].SetLabel("Confirm");
-    dialogButtons[1].SetLabel("Cancel");
+	dialogButtons[0].SetLabel(GetContext().localization.Get("common.confirm"));
+	dialogButtons[1].SetLabel(GetContext().localization.Get("common.cancel"));
     dialogGlow.Invalidate();
     SelectDialogOption(1u, false);
 }
@@ -445,13 +454,13 @@ void CampaignMenuState::OpenOverwriteConfirmation()
 void CampaignMenuState::OpenTutorialChoice()
 {
     dialogMode = DialogMode::TutorialChoice;
-    dialogTitle.setString("PLAY THE TUTORIAL?");
+    dialogTitle.setString(GetContext().localization.Get("campaign_menu.tutorial_title"));
     dialogMessage.setString(
-        "Learn the basics, Parts, and ship upgrades before Level 1.");
+        GetContext().localization.Get("campaign_menu.tutorial_message"));
     CenterText(dialogTitle, { 960.f, 410.f });
     CenterText(dialogMessage, { 960.f, 495.f });
-    dialogButtons[0].SetLabel("Play");
-    dialogButtons[1].SetLabel("Skip");
+	dialogButtons[0].SetLabel(GetContext().localization.Get("common.play"));
+	dialogButtons[1].SetLabel(GetContext().localization.Get("common.skip"));
     dialogGlow.Invalidate();
     SelectDialogOption(0u, false);
 }
@@ -471,7 +480,7 @@ void CampaignMenuState::SelectDialogOption(std::size_t index, bool playSound)
         dialogGlow.Invalidate();
     if (changed && playSound)
         GetContext().audio.PlaySound(
-            Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f, SoundPlayback::Restart);
+            Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f, SoundPlayback::StopPrevious);
 }
 
 void CampaignMenuState::ActivateDialogOption()
@@ -495,7 +504,7 @@ void CampaignMenuState::StartNewCampaign()
     dialogMode = DialogMode::None;
     if (!GetContext().campaignSave.StartNewCampaign())
     {
-        statusText.setString("Unable to create campaign save. Check access to Local AppData.");
+        statusText.setString(GetContext().localization.Get("campaign_menu.save_error"));
         return;
     }
 
@@ -509,7 +518,8 @@ void CampaignMenuState::ChooseTutorial(bool playTutorial)
     {
         if (CampaignProgress* progress{ GetContext().campaignSave.EditProgress() })
         {
-            progress->tutorialCompleted = true;
+			progress->isTutorialCompleted = true;
+			progress->isTutorialSkipped = true;
             static_cast<void>(GetContext().campaignSave.Save());
         }
     }
@@ -528,5 +538,5 @@ void CampaignMenuState::BeginGameplay(GameplayLaunchMode mode)
 void CampaignMenuState::PlayPressSound()
 {
     GetContext().audio.PlaySound(
-        Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f, SoundPlayback::Restart);
+        Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f, SoundPlayback::StopPrevious);
 }

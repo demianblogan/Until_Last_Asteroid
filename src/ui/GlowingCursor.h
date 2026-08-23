@@ -7,7 +7,7 @@
 #include "ui/NeonGlow.h"
 #include "utils/ConfigEnums.h"
 
-class AssetStore;
+class Assets;
 
 namespace sf
 {
@@ -18,7 +18,7 @@ class GlowingCursor
 {
 public:
     GlowingCursor(
-        AssetStore& assets,
+        Assets& assets,
         Config::Texture texture,
         sf::Vector2f hotspot,
         sf::Color glowColor);
