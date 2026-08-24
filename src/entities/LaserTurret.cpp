@@ -169,6 +169,6 @@ void LaserTurret::OnDestroy()
 	GetWorld().StopSound(laserSoundHandle);
 	laserSoundHandle = 0u;
 	GetWorld().AddSound(Config::Sound::ShipExplosion, 0.82f);
-	GetWorld().AddEffectEvent({ World::EffectEventType::ShipExplosion,
+	GetWorld().AddEffectEvent({ EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.3f });
 }

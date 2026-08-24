@@ -75,10 +75,10 @@ void HomingMissile::Update(float deltaTime)
 	Move(deltaTime);
 
 	GetWorld().AddEffectEvent({
-		World::EffectEventType::MissileSmoke,
+		EffectEventType::MissileSmoke,
 		GetPosition(), direction });
 	GetWorld().AddEffectEvent({
-		World::EffectEventType::EnemyProjectileGlow,
+		EffectEventType::EnemyProjectileGlow,
 		GetPosition(), direction, 1.2f });
 
 	constexpr float DespawnMargin{ 160.f };
@@ -99,7 +99,7 @@ void HomingMissile::OnDestroy()
 
 	GetWorld().AddSound(Config::Sound::ShipExplosion, 1.15f);
 	GetWorld().AddEffectEvent({
-		World::EffectEventType::ShipExplosion,
+		EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 0.72f });
 	GetWorld().ExplodeEnemyMissile(
 		GetPosition(), explosionRadius, explosionDamage, explosionImpulse);

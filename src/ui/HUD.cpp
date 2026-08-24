@@ -53,30 +53,30 @@ namespace
 
 HUD::HUD(Assets& assets, const GameplaySession& session, LocalizationManager& localize)
 	: assets(assets), session(session), localization(localize)
-	, scoreText(assets.Fonts().Get(localize.RegularFont()))
+	, scoreText(assets.Fonts().Get(localize.GetRegularFont()))
 	, scorePanel(assets.Textures().Get(Config::Texture::ScorePanelFrame))
 	, scoreGlow(assets)
-	, partsText(assets.Fonts().Get(localize.RegularFont()))
+	, partsText(assets.Fonts().Get(localize.GetRegularFont()))
 	, partsPanel(assets.Textures().Get(Config::Texture::ScorePanelFrame))
 	, partsIcon(assets.Textures().Get(Config::Texture::PartToken))
 	, partsGlow(assets)
-	, healthText(assets.Fonts().Get(localize.BoldFont()))
+	, healthText(assets.Fonts().Get(localize.GetBoldFont()))
 	, healthFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, healthFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, healthGlow(assets)
-	, shieldText(assets.Fonts().Get(localize.BoldFont()))
+	, shieldText(assets.Fonts().Get(localize.GetBoldFont()))
 	, shieldFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, shieldFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, shieldGlow(assets)
-	, homingText(assets.Fonts().Get(localize.BoldFont()))
+	, homingText(assets.Fonts().Get(localize.GetBoldFont()))
 	, homingFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, homingFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, homingGlow(assets)
-	, weaponText(assets.Fonts().Get(localize.BoldFont()))
+	, weaponText(assets.Fonts().Get(localize.GetBoldFont()))
 	, weaponFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, weaponFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, weaponGlow(assets)
-	, timeSlowdownText(assets.Fonts().Get(localize.BoldFont()))
+	, timeSlowdownText(assets.Fonts().Get(localize.GetBoldFont()))
 	, timeSlowdownFrame(assets.Textures().Get(Config::Texture::HealthBarFrame))
 	, timeSlowdownFill(assets.Textures().Get(Config::Texture::HealthBarFill))
 	, timeSlowdownGlow(assets)
@@ -90,7 +90,7 @@ HUD::HUD(Assets& assets, const GameplaySession& session, LocalizationManager& lo
 	scoreText.setOutlineColor(sf::Color(4, 24, 38, 230));
 	scoreText.setOutlineThickness(2.f);
 	displayedScore = session.GetScore();
-	scoreText.setString(localization.Format("hud.score", "value", std::to_string(displayedScore)));
+	scoreText.setString(localization.FormatText("hud.score", "value", std::to_string(displayedScore)));
 	CenterScoreText();
 
 	partsPanel.setPosition(PartsPanelPosition);
@@ -109,7 +109,7 @@ HUD::HUD(Assets& assets, const GameplaySession& session, LocalizationManager& lo
 	partsText.setOutlineColor(sf::Color(4, 24, 38, 230));
 	partsText.setOutlineThickness(2.f);
 	displayedParts = session.GetDisplayedParts();
-	partsText.setString(localization.Format("hud.parts", "value", std::to_string(displayedParts)));
+	partsText.setString(localization.FormatText("hud.parts", "value", std::to_string(displayedParts)));
 	CenterPartsText();
 
 	healthFrame.setPosition(FramePosition);
@@ -164,9 +164,9 @@ void HUD::Update(float deltaTime)
 	// their label word until the next score/parts change. Forcing the
 	// "last known value" sentinels to mismatch makes UpdateScore/UpdateParts
 	// reformat through their normal path instead of duplicating it here.
-	if (localizationRevision != localization.GetRevision())
+	if (localizationRevision != localization.GetLanguageRevision())
 	{
-		localizationRevision = localization.GetRevision();
+		localizationRevision = localization.GetLanguageRevision();
 		displayedScore = -1;
 		displayedParts = -1;
 		displayedTimeSeconds = -1;
@@ -269,7 +269,7 @@ void HUD::UpdateShieldBar(float deltaTime)
 	shieldFill.setColor(color);
 
 	const int percentage{ static_cast<int>(std::ceil(ratio * 100.f)) };
-	shieldText.setString(localization.Format("hud.shield", "value", std::to_string(percentage)));
+	shieldText.setString(localization.FormatText("hud.shield", "value", std::to_string(percentage)));
 }
 
 void HUD::UpdateHomingBar(float deltaTime)
@@ -290,7 +290,7 @@ void HUD::UpdateHomingBar(float deltaTime)
 	homingFill.setColor(sf::Color(255, 190, 40));
 
 	const int percentage{ static_cast<int>(std::ceil(ratio * 100.f)) };
-	homingText.setString(localization.Format("hud.homing", "value", std::to_string(percentage)));
+	homingText.setString(localization.FormatText("hud.homing", "value", std::to_string(percentage)));
 }
 
 void HUD::UpdateWeaponBar(float deltaTime)
@@ -315,13 +315,13 @@ void HUD::UpdateWeaponBar(float deltaTime)
 	{
 		weaponFill.setColor(sf::Color(255, 55, 28));
 		weaponText.setFillColor(sf::Color(255, 218, 200));
-		weaponText.setString(localization.Format("hud.laser", "value", std::to_string(percentage)));
+		weaponText.setString(localization.FormatText("hud.laser", "value", std::to_string(percentage)));
 	}
 	else
 	{
 		weaponFill.setColor(sf::Color(255, 170, 30));
 		weaponText.setFillColor(sf::Color(255, 238, 185));
-		weaponText.setString(localization.Format("hud.triple", "value", std::to_string(percentage)));
+		weaponText.setString(localization.FormatText("hud.triple", "value", std::to_string(percentage)));
 	}
 }
 
@@ -343,7 +343,7 @@ void HUD::UpdateTimeSlowdownBar(float deltaTime)
 	timeSlowdownFill.setColor(sf::Color(180, 75, 255));
 
 	const int percentage{ static_cast<int>(std::ceil(ratio * 100.f)) };
-	timeSlowdownText.setString(localization.Format("hud.time_slow", "value", std::to_string(percentage)));
+	timeSlowdownText.setString(localization.FormatText("hud.time_slow", "value", std::to_string(percentage)));
 }
 
 void HUD::UpdateBonusBarLayout()
@@ -391,7 +391,7 @@ void HUD::UpdateScore(float deltaTime)
 			text << std::setfill('0') << std::setw(2)
 				<< totalSeconds / 60 << ':' << std::setw(2)
 				<< totalSeconds % 60;
-			scoreText.setString(localization.Format("hud.time", "value", text.str()));
+			scoreText.setString(localization.FormatText("hud.time", "value", text.str()));
 			CenterScoreText();
 			scoreGlow.Invalidate();
 		}
@@ -404,7 +404,7 @@ void HUD::UpdateScore(float deltaTime)
 			scorePulseRemaining = ScorePulseDuration;
 
 		displayedScore = currentScore;
-		scoreText.setString(localization.Format("hud.score", "value", std::to_string(displayedScore)));
+		scoreText.setString(localization.FormatText("hud.score", "value", std::to_string(displayedScore)));
 		CenterScoreText();
 		scoreGlow.Invalidate();
 	}
@@ -421,7 +421,7 @@ void HUD::UpdateParts(float deltaTime)
 		if (currentParts > displayedParts)
 			partsPulseRemaining = PartsPulseDuration;
 		displayedParts = currentParts;
-		partsText.setString(localization.Format("hud.parts", "value", std::to_string(displayedParts)));
+		partsText.setString(localization.FormatText("hud.parts", "value", std::to_string(displayedParts)));
 		CenterPartsText();
 		partsGlow.Invalidate();
 	}
@@ -468,19 +468,19 @@ void HUD::UpdateHealthBar(float deltaTime)
 
 	const int percentage{ static_cast<int>(std::round(
 		ratio * 100.f * session.GetArmorMultiplier())) };
-	healthText.setString(localization.Format("hud.armor", "value", std::to_string(percentage)));
+	healthText.setString(localization.FormatText("hud.armor", "value", std::to_string(percentage)));
 	CenterHealthText();
 }
 
 void HUD::RefreshLocalizedFonts()
 {
-	scoreText.setFont(assets.Fonts().Get(localization.RegularFont()));
-	partsText.setFont(assets.Fonts().Get(localization.RegularFont()));
-	healthText.setFont(assets.Fonts().Get(localization.BoldFont()));
-	shieldText.setFont(assets.Fonts().Get(localization.BoldFont()));
-	homingText.setFont(assets.Fonts().Get(localization.BoldFont()));
-	weaponText.setFont(assets.Fonts().Get(localization.BoldFont()));
-	timeSlowdownText.setFont(assets.Fonts().Get(localization.BoldFont()));
+	scoreText.setFont(assets.Fonts().Get(localization.GetRegularFont()));
+	partsText.setFont(assets.Fonts().Get(localization.GetRegularFont()));
+	healthText.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+	shieldText.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+	homingText.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+	weaponText.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+	timeSlowdownText.setFont(assets.Fonts().Get(localization.GetBoldFont()));
 	scoreGlow.Invalidate();
 	partsGlow.Invalidate();
 	healthGlow.Invalidate();

@@ -55,17 +55,17 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
         { 6.f, 2.f },
         InterfaceGlowColor)
     , screenFade(context.logicalSize)
-    , title(context.assets.Fonts().Get(context.localization.BoldFont()),
-		context.localization.Get("campaign_menu.title"), 82)
-    , statusText(context.assets.Fonts().Get(context.localization.RegularFont()), "", 24)
+    , title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
+		context.localization.GetText("campaign_menu.title"), 82)
+    , statusText(context.assets.Fonts().Get(context.localization.GetRegularFont()), "", 24)
     , dialogShade(context.logicalSize)
     , dialogPanel(DialogPanelSize)
-    , dialogTitle(context.assets.Fonts().Get(context.localization.BoldFont()),
-		context.localization.Get("campaign_menu.new_title"), 42)
+    , dialogTitle(context.assets.Fonts().Get(context.localization.GetBoldFont()),
+		context.localization.GetText("campaign_menu.new_title"), 42)
     , dialogMessage(
-        context.assets.Fonts().Get(context.localization.GetLanguage() == Language::English
-			? Config::Font::BodyRegular : context.localization.RegularFont()),
-        context.localization.Get("campaign_menu.overwrite_message"),
+        context.assets.Fonts().Get(context.localization.GetCurrentLanguage() == Language::English
+			? Config::Font::BodyRegular : context.localization.GetRegularFont()),
+        context.localization.GetText("campaign_menu.overwrite_message"),
         27)
 {
     context.window.setMouseCursorVisible(false);
@@ -79,7 +79,7 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     statusText.setFillColor(sf::Color(255, 105, 90));
     statusText.setPosition({ FirstButtonPosition.x + 20.f, 950.f });
 
-    const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.RegularFont()) };
+    const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.GetRegularFont()) };
     const sf::Texture& idleTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
     const sf::Texture& selectedTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 
@@ -101,17 +101,17 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     buttonActions.reserve(6u);
     if (context.campaignSave.HasSave())
     {
-        addButton(context.localization.Get("campaign_menu.continue"), MenuAction::ContinueCampaign, true);
-        addButton(context.localization.Get("campaign_menu.new"), MenuAction::StartNewCampaign, true);
-        addButton(context.localization.Get("campaign_menu.select_level"), MenuAction::SelectLevel, true);
+        addButton(context.localization.GetText("campaign_menu.continue"), MenuAction::ContinueCampaign, true);
+        addButton(context.localization.GetText("campaign_menu.new"), MenuAction::StartNewCampaign, true);
+        addButton(context.localization.GetText("campaign_menu.select_level"), MenuAction::SelectLevel, true);
     }
     else
     {
-        addButton(context.localization.Get("campaign_menu.new"), MenuAction::StartNewCampaign, true);
+        addButton(context.localization.GetText("campaign_menu.new"), MenuAction::StartNewCampaign, true);
     }
-    addButton(context.localization.Get("campaign_menu.horde"), MenuAction::HordeMode, true);
-    addButton(context.localization.Get("campaign_menu.run"), MenuAction::RunMode, true);
-    addButton(context.localization.Get("common.back_main"), MenuAction::Back, true);
+    addButton(context.localization.GetText("campaign_menu.horde"), MenuAction::HordeMode, true);
+    addButton(context.localization.GetText("campaign_menu.run"), MenuAction::RunMode, true);
+    addButton(context.localization.GetText("common.back_main"), MenuAction::Back, true);
     Select(0u, false);
 
     dialogShade.setFillColor(sf::Color(0, 3, 10, 205));
@@ -128,8 +128,8 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     dialogButtons.reserve(2u);
     dialogButtons.emplace_back(menuFont, idleTexture, selectedTexture, "", DialogButtonSize);
     dialogButtons.emplace_back(menuFont, idleTexture, selectedTexture, "", DialogButtonSize);
-	dialogButtons[0].SetLabel(context.localization.Get("common.confirm"));
-	dialogButtons[1].SetLabel(context.localization.Get("common.cancel"));
+	dialogButtons[0].SetLabel(context.localization.GetText("common.confirm"));
+	dialogButtons[1].SetLabel(context.localization.GetText("common.cancel"));
     dialogButtons[0].SetPosition({ 650.f, 585.f });
     dialogButtons[1].SetPosition({ 970.f, 585.f });
     SelectDialogOption(1u, false);
@@ -441,12 +441,12 @@ void CampaignMenuState::ActivateSelected()
 void CampaignMenuState::OpenOverwriteConfirmation()
 {
     dialogMode = DialogMode::OverwriteCampaign;
-    dialogTitle.setString(GetContext().localization.Get("campaign_menu.new_title"));
-    dialogMessage.setString(GetContext().localization.Get("campaign_menu.overwrite_message"));
+    dialogTitle.setString(GetContext().localization.GetText("campaign_menu.new_title"));
+    dialogMessage.setString(GetContext().localization.GetText("campaign_menu.overwrite_message"));
     CenterText(dialogTitle, { 960.f, 410.f });
     CenterText(dialogMessage, { 960.f, 495.f });
-	dialogButtons[0].SetLabel(GetContext().localization.Get("common.confirm"));
-	dialogButtons[1].SetLabel(GetContext().localization.Get("common.cancel"));
+	dialogButtons[0].SetLabel(GetContext().localization.GetText("common.confirm"));
+	dialogButtons[1].SetLabel(GetContext().localization.GetText("common.cancel"));
     dialogGlow.Invalidate();
     SelectDialogOption(1u, false);
 }
@@ -454,13 +454,13 @@ void CampaignMenuState::OpenOverwriteConfirmation()
 void CampaignMenuState::OpenTutorialChoice()
 {
     dialogMode = DialogMode::TutorialChoice;
-    dialogTitle.setString(GetContext().localization.Get("campaign_menu.tutorial_title"));
+    dialogTitle.setString(GetContext().localization.GetText("campaign_menu.tutorial_title"));
     dialogMessage.setString(
-        GetContext().localization.Get("campaign_menu.tutorial_message"));
+        GetContext().localization.GetText("campaign_menu.tutorial_message"));
     CenterText(dialogTitle, { 960.f, 410.f });
     CenterText(dialogMessage, { 960.f, 495.f });
-	dialogButtons[0].SetLabel(GetContext().localization.Get("common.play"));
-	dialogButtons[1].SetLabel(GetContext().localization.Get("common.skip"));
+	dialogButtons[0].SetLabel(GetContext().localization.GetText("common.play"));
+	dialogButtons[1].SetLabel(GetContext().localization.GetText("common.skip"));
     dialogGlow.Invalidate();
     SelectDialogOption(0u, false);
 }
@@ -504,7 +504,7 @@ void CampaignMenuState::StartNewCampaign()
     dialogMode = DialogMode::None;
     if (!GetContext().campaignSave.StartNewCampaign())
     {
-        statusText.setString(GetContext().localization.Get("campaign_menu.save_error"));
+        statusText.setString(GetContext().localization.GetText("campaign_menu.save_error"));
         return;
     }
 

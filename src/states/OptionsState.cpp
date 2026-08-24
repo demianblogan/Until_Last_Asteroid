@@ -54,7 +54,7 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context, Origin 
     : State(stateStack, context)
     , background(context.assets, context.logicalSize)
     , shade(context.logicalSize)
-    , title(context.assets.Fonts().Get(context.localization.BoldFont()), context.localization.Get("options.title"), 76)
+    , title(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("options.title"), 76)
     , titleGlow(context.assets)
     , neonGlow(context.assets)
     , dialogGlow(context.assets)
@@ -64,8 +64,8 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context, Origin 
         { 6.f, 2.f },
         InterfaceGlowColor)
     , screenFade(context.logicalSize)
-    , toggleOnText(context.assets.Fonts().Get(context.localization.RegularFont()), context.localization.Get("common.on"), 23)
-    , toggleOffText(context.assets.Fonts().Get(context.localization.RegularFont()), context.localization.Get("common.off"), 23)
+    , toggleOnText(context.assets.Fonts().Get(context.localization.GetRegularFont()), context.localization.GetText("common.on"), 23)
+    , toggleOffText(context.assets.Fonts().Get(context.localization.GetRegularFont()), context.localization.GetText("common.off"), 23)
     , previousGraphics(context.settings.GetSettings().graphics)
     , origin(optionsOrigin)
 {
@@ -389,16 +389,16 @@ void OptionsState::RefreshTitle()
     sf::String value;
     switch (page)
     {
-    case Page::Root: value = localize.Get("options.title"); break;
-    case Page::Graphics: value = localize.Get("options.graphics"); break;
-    case Page::Audio: value = localize.Get("options.audio"); break;
-    case Page::Gameplay: value = localize.Get("options.gameplay"); break;
-    case Page::Controls: value = localize.Get("options.controls"); break;
-	case Page::Language: value = localize.Get("options.language"); break;
-    case Page::KeyboardControls: value = localize.Get("options.keyboard"); break;
-    case Page::GamepadControls: value = localize.Get("options.gamepad"); break;
+    case Page::Root: value = localize.GetText("options.title"); break;
+    case Page::Graphics: value = localize.GetText("options.graphics"); break;
+    case Page::Audio: value = localize.GetText("options.audio"); break;
+    case Page::Gameplay: value = localize.GetText("options.gameplay"); break;
+    case Page::Controls: value = localize.GetText("options.controls"); break;
+	case Page::Language: value = localize.GetText("options.language"); break;
+    case Page::KeyboardControls: value = localize.GetText("options.keyboard"); break;
+    case Page::GamepadControls: value = localize.GetText("options.gamepad"); break;
     }
-	const Language language{ localize.GetLanguage() };
+	const Language language{ localize.GetCurrentLanguage() };
 	const auto titleFont{ language == Language::English ? Config::Font::MenuSemibold
 		: (language == Language::Arabic ? Config::Font::ArabicBold : Config::Font::LocalizedBold) };
 	title.setFont(GetContext().assets.Fonts().Get(titleFont));
@@ -428,64 +428,64 @@ void OptionsState::RebuildRows()
     switch (page)
     {
     case Page::Root:
-        add(GetContext().localization.Get("options.graphics"), RowKind::Button, Action::OpenGraphics);
-        add(GetContext().localization.Get("options.audio"), RowKind::Button, Action::OpenAudio);
-        add(GetContext().localization.Get("options.gameplay"), RowKind::Button, Action::OpenGameplay);
-        add(GetContext().localization.Get("options.controls"), RowKind::Button, Action::OpenControls);
-		add(GetContext().localization.Get("options.language"), RowKind::Button, Action::OpenLanguage);
-        add(GetContext().localization.Get("options.restore_defaults"), RowKind::Button, Action::ResetAll);
-        add(GetContext().localization.Get(origin == Origin::PauseMenu
+        add(GetContext().localization.GetText("options.graphics"), RowKind::Button, Action::OpenGraphics);
+        add(GetContext().localization.GetText("options.audio"), RowKind::Button, Action::OpenAudio);
+        add(GetContext().localization.GetText("options.gameplay"), RowKind::Button, Action::OpenGameplay);
+        add(GetContext().localization.GetText("options.controls"), RowKind::Button, Action::OpenControls);
+		add(GetContext().localization.GetText("options.language"), RowKind::Button, Action::OpenLanguage);
+        add(GetContext().localization.GetText("options.restore_defaults"), RowKind::Button, Action::ResetAll);
+        add(GetContext().localization.GetText(origin == Origin::PauseMenu
 			? "options.back_pause" : "options.back_main"),
             RowKind::Button, Action::Back);
         break;
 	case Page::Language:
-		add(LocalizationManager::NativeName(Language::English), RowKind::Button, Action::SetEnglish);
-		add(LocalizationManager::NativeName(Language::Spanish), RowKind::Button, Action::SetSpanish);
-		add(LocalizationManager::NativeName(Language::Russian), RowKind::Button, Action::SetRussian);
-		add(LocalizationManager::NativeName(Language::Ukrainian), RowKind::Button, Action::SetUkrainian);
-		add(LocalizationManager::NativeName(Language::Arabic), RowKind::Button, Action::SetArabic);
-		add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
+		add(LocalizationManager::GetLanguageNativeName(Language::English), RowKind::Button, Action::SetEnglish);
+		add(LocalizationManager::GetLanguageNativeName(Language::Spanish), RowKind::Button, Action::SetSpanish);
+		add(LocalizationManager::GetLanguageNativeName(Language::Russian), RowKind::Button, Action::SetRussian);
+		add(LocalizationManager::GetLanguageNativeName(Language::Ukrainian), RowKind::Button, Action::SetUkrainian);
+		add(LocalizationManager::GetLanguageNativeName(Language::Arabic), RowKind::Button, Action::SetArabic);
+		add(GetContext().localization.GetText("options.back"), RowKind::Button, Action::Back);
 		break;
     case Page::Graphics:
-        add(GetContext().localization.Get("options.display_resolution"), RowKind::Dropdown, Action::Resolution,
+        add(GetContext().localization.GetText("options.display_resolution"), RowKind::Dropdown, Action::Resolution,
             GetContext().settings.GetSettings().graphics.windowMode != WindowMode::Borderless);
-        add(GetContext().localization.Get("options.window_mode"), RowKind::Dropdown, Action::WindowMode);
-        add(GetContext().localization.Get("options.show_fps"), RowKind::Toggle, Action::ShowFps);
-        add(GetContext().localization.Get("options.vsync"), RowKind::Toggle, Action::VerticalSync);
-        add(GetContext().localization.Get("options.frame_limit"), RowKind::Choice, Action::FrameRateLimit,
+        add(GetContext().localization.GetText("options.window_mode"), RowKind::Dropdown, Action::WindowMode);
+        add(GetContext().localization.GetText("options.show_fps"), RowKind::Toggle, Action::ShowFps);
+        add(GetContext().localization.GetText("options.vsync"), RowKind::Toggle, Action::VerticalSync);
+        add(GetContext().localization.GetText("options.frame_limit"), RowKind::Choice, Action::FrameRateLimit,
             !GetContext().settings.GetSettings().graphics.isVSyncEnabled);
-        add(GetContext().localization.Get("options.post_effects"), RowKind::Toggle, Action::PostEffects);
-        add(GetContext().localization.Get("options.reset_graphics"), RowKind::Button, Action::ResetGraphics);
-        add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
+        add(GetContext().localization.GetText("options.post_effects"), RowKind::Toggle, Action::PostEffects);
+        add(GetContext().localization.GetText("options.reset_graphics"), RowKind::Button, Action::ResetGraphics);
+        add(GetContext().localization.GetText("options.back"), RowKind::Button, Action::Back);
         break;
     case Page::Gameplay:
-        add(GetContext().localization.Get("options.screen_shake"), RowKind::Toggle, Action::ScreenShake);
-        add(GetContext().localization.Get("options.score_popups"), RowKind::Toggle, Action::ShowScorePopups);
-        add(GetContext().localization.Get("options.reset_gameplay"), RowKind::Button, Action::ResetGameplay);
-        add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
+        add(GetContext().localization.GetText("options.screen_shake"), RowKind::Toggle, Action::ScreenShake);
+        add(GetContext().localization.GetText("options.score_popups"), RowKind::Toggle, Action::ShowScorePopups);
+        add(GetContext().localization.GetText("options.reset_gameplay"), RowKind::Button, Action::ResetGameplay);
+        add(GetContext().localization.GetText("options.back"), RowKind::Button, Action::Back);
         break;
     case Page::Audio:
-        add(GetContext().localization.Get("options.music"), RowKind::Slider, Action::MusicVolume);
-        add(GetContext().localization.Get("options.sounds"), RowKind::Slider, Action::SoundVolume);
-        add(GetContext().localization.Get("options.reset_audio"), RowKind::Button, Action::ResetAudio);
-        add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
+        add(GetContext().localization.GetText("options.music"), RowKind::Slider, Action::MusicVolume);
+        add(GetContext().localization.GetText("options.sounds"), RowKind::Slider, Action::SoundVolume);
+        add(GetContext().localization.GetText("options.reset_audio"), RowKind::Button, Action::ResetAudio);
+        add(GetContext().localization.GetText("options.back"), RowKind::Button, Action::Back);
         break;
     case Page::Controls:
-        add(GetContext().localization.Get("options.keyboard"), RowKind::Button, Action::OpenKeyboardControls);
-        add(GetContext().localization.Get("options.gamepad"), RowKind::Button, Action::OpenGamepadControls);
-        add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
+        add(GetContext().localization.GetText("options.keyboard"), RowKind::Button, Action::OpenKeyboardControls);
+        add(GetContext().localization.GetText("options.gamepad"), RowKind::Button, Action::OpenGamepadControls);
+        add(GetContext().localization.GetText("options.back"), RowKind::Button, Action::Back);
         break;
     case Page::KeyboardControls:
-        add(GetContext().localization.Get("options.move_up"), RowKind::Binding, Action::MoveUp);
-        add(GetContext().localization.Get("options.move_down"), RowKind::Binding, Action::MoveDown);
-        add(GetContext().localization.Get("options.move_left"), RowKind::Binding, Action::MoveLeft);
-        add(GetContext().localization.Get("options.move_right"), RowKind::Binding, Action::MoveRight);
-        add(GetContext().localization.Get("options.fire"), RowKind::Binding, Action::Fire);
-        add(GetContext().localization.Get("options.reset_controls"), RowKind::Button, Action::ResetControls);
-        add(GetContext().localization.Get("options.back"), RowKind::Button, Action::Back);
+        add(GetContext().localization.GetText("options.move_up"), RowKind::Binding, Action::MoveUp);
+        add(GetContext().localization.GetText("options.move_down"), RowKind::Binding, Action::MoveDown);
+        add(GetContext().localization.GetText("options.move_left"), RowKind::Binding, Action::MoveLeft);
+        add(GetContext().localization.GetText("options.move_right"), RowKind::Binding, Action::MoveRight);
+        add(GetContext().localization.GetText("options.fire"), RowKind::Binding, Action::Fire);
+        add(GetContext().localization.GetText("options.reset_controls"), RowKind::Button, Action::ResetControls);
+        add(GetContext().localization.GetText("options.back"), RowKind::Button, Action::Back);
         break;
     case Page::GamepadControls:
-        add(GetContext().localization.Get("options.back_controls"), RowKind::Button, Action::Back);
+        add(GetContext().localization.GetText("options.back_controls"), RowKind::Button, Action::Back);
         rows.back().bounds.position.x = 580.f;
         rows.back().bounds.position.y = 880.f;
         rows.back().bounds.size.x = 760.f;
@@ -501,15 +501,15 @@ void OptionsState::RebuildRows()
 
 void OptionsState::RebuildRowTextCache()
 {
-	const Language language{ GetContext().localization.GetLanguage() };
+	const Language language{ GetContext().localization.GetCurrentLanguage() };
 	const auto defaultFontID{ language == Language::English ? Config::Font::MenuRegular
 		: (language == Language::Arabic ? Config::Font::ArabicRegular
 			: Config::Font::LocalizedRegular) };
     const sf::Font& font{ GetContext().assets.Fonts().Get(defaultFontID) };
 	toggleOnText.setFont(font);
 	toggleOffText.setFont(font);
-	toggleOnText.setString(GetContext().localization.Get("common.on"));
-	toggleOffText.setString(GetContext().localization.Get("common.off"));
+	toggleOnText.setString(GetContext().localization.GetText("common.on"));
+	toggleOffText.setString(GetContext().localization.GetText("common.off"));
     rowLabels.clear();
     rowValues.clear();
     rowHints.clear();
@@ -539,7 +539,7 @@ void OptionsState::RebuildRowTextCache()
                 bounds.position + sf::Vector2f{ 20.f, row.enabled ? 13.f : 5.f });
             if (!row.enabled)
             {
-                rowHints.back().setString(GetContext().localization.Get("options.desktop_controlled"));
+                rowHints.back().setString(GetContext().localization.GetText("options.desktop_controlled"));
 				TextLayout::FitWidth(rowHints.back(), bounds.size.x - 40.f, 11u);
                 rowHints.back().setPosition(bounds.position + sf::Vector2f{ 20.f, 33.f });
                 rowHints.back().setFillColor(Red);
@@ -768,7 +768,7 @@ void OptionsState::OpenDropdown(Action action)
 	dropdownLabels.clear();
 	dropdownLabels.reserve(GetDropdownItemCount());
 	const sf::Font& font{ GetContext().assets.Fonts().Get(
-		GetContext().localization.RegularFont()) };
+		GetContext().localization.GetRegularFont()) };
 	for (std::size_t index{}; index < GetDropdownItemCount(); ++index)
 		dropdownLabels.emplace_back(font, GetDropdownItemLabel(index), 24u);
     EnsureDropdownSelectionVisible();
@@ -1224,30 +1224,30 @@ sf::String OptionsState::GetRowValue(const Row& row) const
     {
     case Action::Resolution:
         if (!row.enabled)
-            return GetContext().localization.Get("options.desktop_resolution");
+            return GetContext().localization.GetText("options.desktop_resolution");
         return std::to_string(settings.graphics.resolution.x) + " x " +
             std::to_string(settings.graphics.resolution.y);
     case Action::WindowMode:
         switch (settings.graphics.windowMode)
 		{
-		case WindowMode::Fullscreen: return GetContext().localization.Get("options.fullscreen");
-		case WindowMode::Windowed: return GetContext().localization.Get("options.windowed");
-		case WindowMode::Borderless: return GetContext().localization.Get("options.borderless");
+		case WindowMode::Fullscreen: return GetContext().localization.GetText("options.fullscreen");
+		case WindowMode::Windowed: return GetContext().localization.GetText("options.windowed");
+		case WindowMode::Borderless: return GetContext().localization.GetText("options.borderless");
 		}
-		return GetContext().localization.Get("common.unknown");
+		return GetContext().localization.GetText("common.unknown");
     case Action::ShowFps:
-        return GetContext().localization.Get(settings.graphics.needToShowFPS ? "common.on" : "common.off");
+        return GetContext().localization.GetText(settings.graphics.needToShowFPS ? "common.on" : "common.off");
     case Action::VerticalSync:
-        return GetContext().localization.Get(settings.graphics.isVSyncEnabled ? "common.on" : "common.off");
+        return GetContext().localization.GetText(settings.graphics.isVSyncEnabled ? "common.on" : "common.off");
     case Action::PostEffects:
-        return GetContext().localization.Get(settings.graphics.arePostEffectsEnabled ? "common.on" : "common.off");
+        return GetContext().localization.GetText(settings.graphics.arePostEffectsEnabled ? "common.on" : "common.off");
     case Action::ScreenShake:
-        return GetContext().localization.Get(settings.gameplay.isScreenShakeEnabled ? "common.on" : "common.off");
+        return GetContext().localization.GetText(settings.gameplay.isScreenShakeEnabled ? "common.on" : "common.off");
     case Action::ShowScorePopups:
-        return GetContext().localization.Get(settings.gameplay.needToShowScorePopups ? "common.on" : "common.off");
+        return GetContext().localization.GetText(settings.gameplay.needToShowScorePopups ? "common.on" : "common.off");
     case Action::FrameRateLimit:
         return settings.graphics.frameRateLimit == 0u
-            ? GetContext().localization.Get("options.unlimited")
+            ? GetContext().localization.GetText("options.unlimited")
             : sf::String(std::to_string(settings.graphics.frameRateLimit));
     case Action::MusicVolume:
         return std::to_string(static_cast<int>(std::round(settings.audio.musicVolume))) + "%";
@@ -1266,13 +1266,13 @@ sf::String OptionsState::GetBindingName(const ControlBinding& binding) const
 	{
 		switch (static_cast<sf::Mouse::Button>(binding.code))
 		{
-		case sf::Mouse::Button::Left: return GetContext().localization.Get("options.mouse_left");
-		case sf::Mouse::Button::Right: return GetContext().localization.Get("options.mouse_right");
-		case sf::Mouse::Button::Middle: return GetContext().localization.Get("options.mouse_middle");
-		case sf::Mouse::Button::Extra1: return GetContext().localization.Get("options.mouse_4");
-		case sf::Mouse::Button::Extra2: return GetContext().localization.Get("options.mouse_5");
+		case sf::Mouse::Button::Left: return GetContext().localization.GetText("options.mouse_left");
+		case sf::Mouse::Button::Right: return GetContext().localization.GetText("options.mouse_right");
+		case sf::Mouse::Button::Middle: return GetContext().localization.GetText("options.mouse_middle");
+		case sf::Mouse::Button::Extra1: return GetContext().localization.GetText("options.mouse_4");
+		case sf::Mouse::Button::Extra2: return GetContext().localization.GetText("options.mouse_5");
 		}
-		return GetContext().localization.Get("options.mouse");
+		return GetContext().localization.GetText("options.mouse");
 	}
 
     const auto key{ static_cast<sf::Keyboard::Key>(binding.code) };
@@ -1310,7 +1310,7 @@ sf::String OptionsState::GetDropdownItemLabel(std::size_t index) const
     else if (dropdownAction == Action::WindowMode && index < 3u)
     {
         const std::array keys{ "options.fullscreen", "options.windowed", "options.borderless" };
-		return GetContext().localization.Get(keys[index]);
+		return GetContext().localization.GetText(keys[index]);
     }
     return {};
 }
@@ -1405,7 +1405,7 @@ void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
         target.draw(panel);
 
         sf::Text headingText(
-            GetContext().assets.Fonts().Get(GetContext().localization.BoldFont()), heading, 34u);
+            GetContext().assets.Fonts().Get(GetContext().localization.GetBoldFont()), heading, 34u);
         const sf::FloatRect headingLocalBounds{ headingText.getLocalBounds() };
         headingText.setOrigin({
             headingLocalBounds.position.x + headingLocalBounds.size.x * 0.5f,
@@ -1478,14 +1478,14 @@ void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
         Config::Texture::PlayStationOptions
     };
     const std::array<sf::String, 7> actions{
-        GetContext().localization.Get("options.move"), GetContext().localization.Get("options.aim"),
-		GetContext().localization.Get("options.fire"), GetContext().localization.Get("options.menu_navigation"),
-		GetContext().localization.Get("common.confirm"), GetContext().localization.Get("options.back"),
-		GetContext().localization.Get("pause.title")
+        GetContext().localization.GetText("options.move"), GetContext().localization.GetText("options.aim"),
+		GetContext().localization.GetText("options.fire"), GetContext().localization.GetText("options.menu_navigation"),
+		GetContext().localization.GetText("common.confirm"), GetContext().localization.GetText("options.back"),
+		GetContext().localization.GetText("pause.title")
     };
 
-    drawPanel(GetContext().localization.Get("options.xbox_controller"), 190.f, xboxIcons, actions);
-    drawPanel(GetContext().localization.Get("options.playstation_controller"), 515.f, playStationIcons, actions);
+    drawPanel(GetContext().localization.GetText("options.xbox_controller"), 190.f, xboxIcons, actions);
+    drawPanel(GetContext().localization.GetText("options.playstation_controller"), 515.f, playStationIcons, actions);
 }
 
 void OptionsState::DrawRows(sf::RenderTarget& target)
@@ -1511,7 +1511,7 @@ void OptionsState::DrawRows(sf::RenderTarget& target)
 
     if (saveFailed)
     {
-        DrawText(target, GetContext().localization.Get("options.save_error"),
+        DrawText(target, GetContext().localization.GetText("options.save_error"),
             { 570.f, 930.f }, 23, Red);
     }
 }
@@ -1735,14 +1735,14 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
 
     if (displayConfirmationOpen)
     {
-        DrawCenteredText(target, GetContext().localization.Get("options.keep_display"), 960.f, 465.f, 36, BrightCyan);
-        DrawCenteredText(target, GetContext().localization.Format("options.reverting", "seconds",
+        DrawCenteredText(target, GetContext().localization.GetText("options.keep_display"), 960.f, 465.f, 36, BrightCyan);
+        DrawCenteredText(target, GetContext().localization.FormatText("options.reverting", "seconds",
 			std::to_string(static_cast<int>(std::ceil(displayConfirmationRemaining)))),
             960.f, 520.f, 24, Orange);
 
         const std::array<std::pair<sf::FloatRect, sf::String>, 2> buttons{
-            std::pair{ DialogConfirmBounds, GetContext().localization.Get("common.confirm") },
-            std::pair{ DialogCancelBounds, GetContext().localization.Get("common.cancel") }
+            std::pair{ DialogConfirmBounds, GetContext().localization.GetText("common.confirm") },
+            std::pair{ DialogCancelBounds, GetContext().localization.GetText("common.cancel") }
         };
         const auto& [selectedBounds, selectedLabel]{ buttons[dialogSelectedIndex] };
         dialogGlow.DrawBloom(
@@ -1774,8 +1774,8 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
     }
     else
     {
-        DrawCenteredText(target, GetContext().localization.Get("options.press_binding"), 960.f, 475.f, 34, BrightCyan);
-        const sf::String cancelLabel{ GetContext().localization.Get("common.cancel") };
+        DrawCenteredText(target, GetContext().localization.GetText("options.press_binding"), 960.f, 475.f, 34, BrightCyan);
+        const sf::String cancelLabel{ GetContext().localization.GetText("common.cancel") };
         dialogGlow.DrawBloom(
             target,
             BindingCancelBounds,
@@ -1814,7 +1814,7 @@ void OptionsState::DrawDialogButton(
     target.draw(button, states);
 
     sf::Text label(
-        GetContext().assets.Fonts().Get(GetContext().localization.RegularFont()),
+        GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()),
         labelValue,
         25);
     const sf::FloatRect textBounds{ label.getLocalBounds() };
@@ -1835,7 +1835,7 @@ void OptionsState::DrawCenteredText(
     unsigned int size,
     sf::Color color) const
 {
-    sf::Text text(GetContext().assets.Fonts().Get(GetContext().localization.RegularFont()), value, size);
+    sf::Text text(GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()), value, size);
     const sf::FloatRect bounds{ text.getLocalBounds() };
     text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y });
     text.setPosition({ centerX, y });
@@ -1850,7 +1850,7 @@ void OptionsState::DrawText(
     unsigned int size,
     sf::Color color) const
 {
-    sf::Text text(GetContext().assets.Fonts().Get(GetContext().localization.RegularFont()), value, size);
+    sf::Text text(GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()), value, size);
     text.setPosition(position);
     text.setFillColor(color);
     target.draw(text);

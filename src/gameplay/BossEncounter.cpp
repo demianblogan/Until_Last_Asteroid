@@ -208,7 +208,7 @@ BossEncounter::BossEncounter(Assets& assets, LocalizationManager& localize, sf::
 	, outerRing(assets.Textures().Get(Config::Texture::BossOuterRing))
 	, diamond(assets.Textures().Get(Config::Texture::BossDiamond))
 	, core(assets.Textures().Get(Config::Texture::BossCore))
-	, armorLabel(assets.Fonts().Get(localize.BoldFont()), "", 22u)
+	, armorLabel(assets.Fonts().Get(localize.GetBoldFont()), "", 22u)
 	, hudCenterX(logicalSize.x * 0.5f)
 	, hitFlashShader(assets.GetShader(Config::Shader::HitFlash))
 	, config(assets.GetGameplayData().GetBoss())
@@ -336,7 +336,7 @@ void BossEncounter::Update(
 			BeginOuterShield(2);
 		else if (shieldCycle == 2 && healthRatio <= config.outerRingEndHealthRatio)
 		{
-			world.AddEffectEvent({ World::EffectEventType::BossDestructionShake,
+			world.AddEffectEvent({ EffectEventType::BossDestructionShake,
 				position, {}, 8.f, 1000 });
 			world.SpawnPickupAt(
 				GameplayData::PickupKind::Health, GetSafePickupPosition(0u));
@@ -554,7 +554,7 @@ void BossEncounter::DebugDefeat(World& world)
 	stateElapsed = 0.f;
 	coreExplosionElapsed = 0.f;
 	victoryCleanupElapsed = 0.f;
-	world.AddEffectEvent({ World::EffectEventType::BossDestructionShake,
+	world.AddEffectEvent({ EffectEventType::BossDestructionShake,
 		position + CoreVisualOffset, {}, 12.f, 3500 });
 }
 #endif
@@ -626,7 +626,7 @@ void BossEncounter::UpdateOuterRingMechanics(float deltaTime, World& world)
 			const sf::Vector2f fireDirection{
 				std::cos(angleRadians), std::sin(angleRadians) };
 			world.AddEffectEvent({
-				World::EffectEventType::EnemyMuzzleFlash,
+				EffectEventType::EnemyMuzzleFlash,
 				cannonPosition,
 				fireDirection,
 				1.45f });
@@ -723,7 +723,7 @@ void BossEncounter::UpdateOuterRingDestruction(float deltaTime, World& world)
 		const float radius{ Random::Float(
 			config.outerRingInnerRadius, config.outerRingOuterRadius) };
 		world.AddEffectEvent({
-			World::EffectEventType::ShipExplosion,
+			EffectEventType::ShipExplosion,
 			position + sf::Vector2f{ std::cos(angle) * radius, std::sin(angle) * radius },
 			{},
 			0.28f });
@@ -735,7 +735,7 @@ void BossEncounter::UpdateOuterRingDestruction(float deltaTime, World& world)
 		outerRingVisible = false;
 		world.AddSound(Config::Sound::ShipExplosion, 0.68f);
 		world.AddEffectEvent({
-			World::EffectEventType::ShipExplosion, position, {}, 1.8f });
+			EffectEventType::ShipExplosion, position, {}, 1.8f });
 		state = State::InnerPhase;
 		stateElapsed = 0.f;
 		nextPortalSpawn = 0.f;
@@ -827,7 +827,7 @@ void BossEncounter::HandlePortalImpacts(World& world)
 			nextPortalSpawn,
 			config.portalSpawnIntervalPerAlive * static_cast<float>(aliveCount));
 		world.AddSound(Config::Sound::ShipExplosion, 0.92f);
-		world.AddEffectEvent({ World::EffectEventType::ShipExplosion,
+		world.AddEffectEvent({ EffectEventType::ShipExplosion,
 			GetPortalPosition(index), {}, 0.72f });
 		world.SpawnPickupAt(
 			GameplayData::PickupKind::Health, GetSafePickupPosition(index));
@@ -835,7 +835,7 @@ void BossEncounter::HandlePortalImpacts(World& world)
 			portalHealth.begin(), portalHealth.end(), [](int value) { return value > 0; }) };
 		if (allDestroyed)
 		{
-			world.AddEffectEvent({ World::EffectEventType::BossDestructionShake,
+			world.AddEffectEvent({ EffectEventType::BossDestructionShake,
 				position, {}, 8.f, 1000 });
 			BeginDiamondDestruction();
 		}
@@ -875,7 +875,7 @@ void BossEncounter::UpdateDiamondDestruction(float deltaTime, World& world)
 	{
 		destructionExplosionElapsed -= config.diamondExplosionInterval;
 		const float angle{ Random::Float(0.f, 2.f * std::numbers::pi_v<float>) };
-		world.AddEffectEvent({ World::EffectEventType::ShipExplosion,
+		world.AddEffectEvent({ EffectEventType::ShipExplosion,
 			position + sf::Vector2f{
 				std::cos(angle) * config.portalOrbitRadius,
 				std::sin(angle) * config.portalOrbitRadius },
@@ -886,7 +886,7 @@ void BossEncounter::UpdateDiamondDestruction(float deltaTime, World& world)
 		diamond.setPosition(position);
 		diamondVisible = false;
 		world.AddSound(Config::Sound::ShipExplosion, 0.76f);
-		world.AddEffectEvent({ World::EffectEventType::ShipExplosion,
+		world.AddEffectEvent({ EffectEventType::ShipExplosion,
 			position, {}, 1.45f });
 		state = State::CoreShieldWarning;
 		stateElapsed = 0.f;
@@ -1070,7 +1070,7 @@ void BossEncounter::HandleCoreLaser(
 	if (offset.x * offset.x + offset.y * offset.y > hitRadius * hitRadius)
 		return;
 	world.RegisterPlayerAttackHit(laser->attackID);
-	world.AddEffectEvent({ World::EffectEventType::ShipHit,
+	world.AddEffectEvent({ EffectEventType::ShipHit,
 		impactPosition, segment, 1.15f });
 	ApplyCoreDamage(laser->damage, world, spawnReinforcement);
 }
@@ -1096,7 +1096,7 @@ void BossEncounter::ApplyCoreDamage(
 		stateElapsed = 0.f;
 		coreExplosionElapsed = 0.f;
 		victoryCleanupElapsed = 0.f;
-		world.AddEffectEvent({ World::EffectEventType::BossDestructionShake,
+		world.AddEffectEvent({ EffectEventType::BossDestructionShake,
 			position + CoreVisualOffset, {}, 12.f, 3500 });
 	}
 }
@@ -1116,7 +1116,7 @@ void BossEncounter::UpdateCoreDestruction(float deltaTime, World& world)
 		coreExplosionElapsed -= 0.11f;
 		const float angle{ Random::Float(0.f, 2.f * std::numbers::pi_v<float>) };
 		const float radius{ Random::Float(10.f, config.coreCollisionRadius) };
-		world.AddEffectEvent({ World::EffectEventType::ShipExplosion,
+		world.AddEffectEvent({ EffectEventType::ShipExplosion,
 			position + CoreVisualOffset + sf::Vector2f{
 				std::cos(angle) * radius, std::sin(angle) * radius },
 			{}, Random::Float(0.28f, 0.58f) });
@@ -1126,7 +1126,7 @@ void BossEncounter::UpdateCoreDestruction(float deltaTime, World& world)
 	coreVisible = false;
 	world.DestroyAllBossVictoryTargets();
 	world.AddSound(Config::Sound::ShipExplosion, 0.48f);
-	world.AddEffectEvent({ World::EffectEventType::ShipExplosion,
+	world.AddEffectEvent({ EffectEventType::ShipExplosion,
 		position + CoreVisualOffset, {}, 3.4f });
 	state = State::VictorySilence;
 	stateElapsed = 0.f;
@@ -1221,7 +1221,7 @@ void BossEncounter::UpdateArmorLabel()
 	const int percent{ static_cast<int>(std::ceil(
 		100.f * static_cast<float>(health) /
 		static_cast<float>(config.maximumHealth))) };
-	armorLabel.setString(localization.Format("hud.boss_armor", "value", std::to_string(percent)));
+	armorLabel.setString(localization.FormatText("hud.boss_armor", "value", std::to_string(percent)));
 	const sf::FloatRect bounds{ armorLabel.getLocalBounds() };
 	armorLabel.setOrigin({
 		bounds.position.x + bounds.size.x * 0.5f,

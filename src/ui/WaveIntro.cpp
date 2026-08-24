@@ -29,7 +29,7 @@ namespace
 
 WaveIntro::WaveIntro(Assets& assets, LocalizationManager& localize)
     : titleGlow(assets), assets(assets), localization(localize)
-    , title(assets.Fonts().Get(localize.BoldFont()), "", 76)
+    , title(assets.Fonts().Get(localize.GetBoldFont()), "", 76)
 {
     title.setOutlineColor(sf::Color(2, 12, 24, 235));
     title.setOutlineThickness(4.f);
@@ -38,9 +38,9 @@ WaveIntro::WaveIntro(Assets& assets, LocalizationManager& localize)
 
 void WaveIntro::Start(int waveNumber, bool finalWave)
 {
-    title.setFont(assets.Fonts().Get(localization.BoldFont()));
-    title.setString(finalWave ? localization.Get("intro.final_wave")
-		: localization.Format("intro.wave", "value", std::to_string(std::max(1, waveNumber))));
+    title.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+    title.setString(finalWave ? localization.GetText("intro.final_wave")
+		: localization.FormatText("intro.wave", "value", std::to_string(std::max(1, waveNumber))));
     elapsed = 0.f;
     active = true;
     titleGlow.Invalidate();

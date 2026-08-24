@@ -34,14 +34,14 @@ void Shot::Update(float deltaTime)
 		: sf::Vector2f{ 0.f, -1.f } };
 	GetWorld().AddEffectEvent({
 		visualKind == VisualKind::Player
-			? World::EffectEventType::PlayerProjectileGlow
+			? EffectEventType::PlayerProjectileGlow
 			: visualKind == VisualKind::Helper
-				? World::EffectEventType::PlayerProjectileGlow
+				? EffectEventType::PlayerProjectileGlow
 			: visualKind == VisualKind::PlayerHoming
-				? World::EffectEventType::PlayerHomingProjectileGlow
+				? EffectEventType::PlayerHomingProjectileGlow
 				: visualKind == VisualKind::PlayerTriple
-					? World::EffectEventType::PlayerTripleProjectileGlow
-				: World::EffectEventType::EnemyProjectileGlow,
+					? EffectEventType::PlayerTripleProjectileGlow
+				: EffectEventType::EnemyProjectileGlow,
 		position,
 		direction });
 	const World& currentWorld{ GetWorld() };
@@ -100,7 +100,7 @@ PlayerShot::PlayerShot(Assets& assets, World& world,
 	}
 	if (tripleShotVisual)
 		SetPresentation(1.f, 1.f, sf::Color(65, 255, 115));
-	GetWorld().AddEffectEvent({ World::EffectEventType::PlayerMuzzleFlash,
+	GetWorld().AddEffectEvent({ EffectEventType::PlayerMuzzleFlash,
 		position, direction });
 	if (playSound)
 	{
@@ -219,7 +219,7 @@ SaucerShot::SaucerShot(Assets& assets, World& world,
 	const float finalAngle{ std::atan2(toTarget.y, toTarget.x) };
 	const sf::Vector2f direction{ std::cos(finalAngle), std::sin(finalAngle) };
 	SetDirection(direction);
-	GetWorld().AddEffectEvent({ World::EffectEventType::EnemyMuzzleFlash,
+	GetWorld().AddEffectEvent({ EffectEventType::EnemyMuzzleFlash,
 		position, direction });
 	SetRotation(sf::degrees(finalAngle * 180.f / std::numbers::pi_v<float> + 90.f));
 	if (playSound)
@@ -250,7 +250,7 @@ HelperShot::HelperShot(Assets& assets, World& world,
 	SetDirection({ std::cos(angle), std::sin(angle) });
 	SetRotation(sf::radians(angle + std::numbers::pi_v<float> * 0.5f));
 	GetWorld().AddEffectEvent({
-		World::EffectEventType::PlayerMuzzleFlash,
+		EffectEventType::PlayerMuzzleFlash,
 		position,
 		{ std::cos(angle), std::sin(angle) } });
 	GetWorld().AddSound(Config::Sound::PlayerShot, 1.35f);

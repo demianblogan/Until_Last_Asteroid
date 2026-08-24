@@ -107,6 +107,7 @@
     <ClInclude Include="src\gameplay\TutorialDirector.h" />
     <ClInclude Include="src\gameplay\WaveDirector.h" />
     <ClInclude Include="src\rendering\GameplayBackground.h" />
+    <ClInclude Include="src\rendering\EffectEvent.h" />
     <ClInclude Include="src\rendering\GameplayEffects.h" />
     <ClInclude Include="src\rendering\GameplayPostProcessor.h" />
     <ClInclude Include="src\rendering\ParticleSystem.h" />

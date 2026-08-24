@@ -49,8 +49,8 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 	, partsGlow(context.assets)
 	, menuCursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Cyan)
 	, screenFade(context.logicalSize)
-	, title(context.assets.Fonts().Get(context.localization.BoldFont()),
-		context.localization.Get("level_select.title"), 72u)
+	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
+		context.localization.GetText("level_select.title"), 72u)
 {
 	context.window.setMouseCursorVisible(false);
 	title.setFillColor(sf::Color(215, 247, 252));
@@ -65,7 +65,7 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 		? std::max(1, progress->highestUnlockedLevel)
 		: 1 };
 	const int implementedLevels{ gameplayData.GetLevelCount() };
-	const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.RegularFont()) };
+	const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.GetRegularFont()) };
 	const sf::Texture& idle{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
 	const sf::Texture& selected{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 
@@ -84,7 +84,7 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 		const bool implemented{ level <= implementedLevels };
 		const bool enabled{ implemented && level <= highestUnlocked };
 		sf::String label{ std::to_string(level) + "  -  " };
-		label += context.localization.Get("level_select.locked");
+		label += context.localization.GetText("level_select.locked");
 		int collected{ 0 };
 		std::size_t total{ 0u };
 		if (implemented)
@@ -100,7 +100,7 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 			if (enabled)
 			{
 				label = sf::String(std::to_string(level) + "  -  ");
-				label += context.localization.Get(
+				label += context.localization.GetText(
 					"levels.title_" + std::to_string(level));
 			}
 		}
@@ -141,7 +141,7 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 
 	buttons.emplace_back(
 		menuFont, idle, selected, "", ReturnButtonSize);
-	buttons.back().SetLabel(context.localization.Get("level_select.back_game_menu"));
+	buttons.back().SetLabel(context.localization.GetText("level_select.back_game_menu"));
 	buttons.back().SetPosition({
 		(context.logicalSize.x - ReturnButtonSize.x) * 0.5f, 900.f });
 	buttonLevels.push_back(0);

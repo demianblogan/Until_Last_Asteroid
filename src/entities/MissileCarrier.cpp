@@ -92,7 +92,7 @@ void MissileCarrier::OnDestroy()
 {
 	GetWorld().AddSound(Config::Sound::ShipExplosion);
 	GetWorld().AddEffectEvent({
-		World::EffectEventType::ShipExplosion,
+		EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.3f });
 }
 
@@ -101,7 +101,7 @@ void MissileCarrier::LaunchMissile(const sf::Vector2f& target)
 	const sf::Vector2f launcherPosition{ GetLauncherPosition() };
 	const sf::Vector2f direction{ Normalize(target - launcherPosition) };
 	GetWorld().AddEffectEvent({
-		World::EffectEventType::EnemyMuzzleFlash,
+		EffectEventType::EnemyMuzzleFlash,
 		launcherPosition, direction, 1.15f });
 	GetWorld().AddSound(Config::Sound::EnemyShot, 0.72f);
 	GetWorld().SpawnHomingMissile(launcherPosition, target);
@@ -117,7 +117,7 @@ void MissileCarrier::EmitEngineParticles(const sf::Vector2f& exhaustDirection)
 	for (const GameplayData::NormalizedPoint& emitter : GetEngineEmitters())
 	{
 		GetWorld().AddEffectEvent({
-			World::EffectEventType::EnemyEngine,
+			EffectEventType::EnemyEngine,
 			GetEmitterPosition(emitter), exhaustDirection });
 	}
 }

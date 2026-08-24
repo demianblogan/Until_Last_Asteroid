@@ -36,12 +36,12 @@ AchievementsState::AchievementsState(StateStack& stack, StateContext context)
 	, buttonGlow(context.assets)
 	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Cyan)
 	, fade(context.logicalSize)
-	, title(context.assets.Fonts().Get(context.localization.BoldFont()),
-		context.localization.Get("achievements.title"), 68u)
-	, returnButton(context.assets.Fonts().Get(context.localization.RegularFont()),
+	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
+		context.localization.GetText("achievements.title"), 68u)
+	, returnButton(context.assets.Fonts().Get(context.localization.GetRegularFont()),
 		context.assets.Textures().Get(Config::Texture::MenuButtonIdle),
 		context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
-		context.localization.Get("common.back_main"), ButtonSize)
+		context.localization.GetText("common.back_main"), ButtonSize)
 {
 	context.window.setMouseCursorVisible(false);
 	title.setFillColor({ 215, 247, 252 });
@@ -49,8 +49,8 @@ AchievementsState::AchievementsState(StateStack& stack, StateContext context)
 	title.setOutlineThickness(3.5f);
 
 	const auto& definitions{ context.achievements.GetDefinitions() };
-	const sf::Font& titleFont{ context.assets.Fonts().Get(context.localization.BoldFont()) };
-	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.RegularFont(false)) };
+	const sf::Font& titleFont{ context.assets.Fonts().Get(context.localization.GetBoldFont()) };
+	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetRegularFont(false)) };
 	tiles.reserve(definitions.size()); icons.reserve(definitions.size());
 	achievementTitles.reserve(definitions.size()); descriptions.reserve(definitions.size());
 	for (std::size_t index{ 0u }; index < definitions.size(); ++index)
@@ -148,7 +148,7 @@ void AchievementsState::RenderOverlay()
 void AchievementsState::OnReactivated()
 {
 	GetContext().window.setMouseCursorVisible(false);
-	if (localizationRevision != GetContext().localization.GetRevision())
+	if (localizationRevision != GetContext().localization.GetLanguageRevision())
 		RefreshLocalizedContent();
 	returning = false;
 	returnButtonSelected = false;
@@ -161,34 +161,34 @@ void AchievementsState::OnReactivated()
 void AchievementsState::RefreshLocalizedContent()
 {
 	const StateContext& context{ GetContext() };
-	localizationRevision = context.localization.GetRevision();
+	localizationRevision = context.localization.GetLanguageRevision();
 
-	title.setFont(context.assets.Fonts().Get(context.localization.BoldFont()));
-	title.setString(context.localization.Get("achievements.title"));
+	title.setFont(context.assets.Fonts().Get(context.localization.GetBoldFont()));
+	title.setString(context.localization.GetText("achievements.title"));
 	Center(title, { 960.f, 78.f });
 	titleGlow.Invalidate();
 
 	const auto& definitions{ context.achievements.GetDefinitions() };
-	const sf::Font& titleFont{ context.assets.Fonts().Get(context.localization.BoldFont()) };
-	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.RegularFont(false)) };
+	const sf::Font& titleFont{ context.assets.Fonts().Get(context.localization.GetBoldFont()) };
+	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetRegularFont(false)) };
 	for (std::size_t index{ 0u }; index < definitions.size() && index < achievementTitles.size(); ++index)
 	{
 		const auto& definition{ definitions[index] };
 		const std::string prefix{ "achievements.items." + definition.persistentID };
 
 		achievementTitles[index].setFont(titleFont);
-		achievementTitles[index].setString(context.localization.Get(prefix + ".title"));
+		achievementTitles[index].setString(context.localization.GetText(prefix + ".title"));
 		achievementTitles[index].setScale({ 1.f, 1.f });
 		TextLayout::FitWidth(achievementTitles[index], 315.f, 18u);
 
 		descriptions[index].setFont(bodyFont);
-		descriptions[index].setString(context.localization.Get(prefix + ".description"));
+		descriptions[index].setString(context.localization.GetText(prefix + ".description"));
 		descriptions[index].setScale({ 1.f, 1.f });
 		TextLayout::FitWidth(descriptions[index], 315.f, 16u);
 	}
 
-	returnButton.SetFont(context.assets.Fonts().Get(context.localization.RegularFont()));
-	returnButton.SetLabel(context.localization.Get("common.back_main"));
+	returnButton.SetFont(context.assets.Fonts().Get(context.localization.GetRegularFont()));
+	returnButton.SetLabel(context.localization.GetText("common.back_main"));
 }
 
 void AchievementsState::RefreshUnlockState()

@@ -117,7 +117,7 @@ float Entity::GetCollisionRadius() const noexcept
 
 bool Entity::CheckCollision(const Entity& other) const noexcept
 {
-	return GetCollisionManifold(other).has_value();
+	return GetCollisionContactInfo(other).has_value();
 }
 
 sf::Vector2f Entity::GetCollisionCircleCenter(
@@ -131,16 +131,16 @@ sf::Vector2f Entity::GetCollisionCircleCenter(
 		circle.offset.x * sine + circle.offset.y * cosine };
 }
 
-std::optional<Collision::CircleManifold> Entity::GetCollisionManifold(
+std::optional<Collision::CircleContactInfo> Entity::GetCollisionContactInfo(
 	const Entity& other) const noexcept
 {
-	std::optional<Collision::CircleManifold> deepestManifold;
+	std::optional<Collision::CircleContactInfo> deepestManifold;
 	for (const Collision::LocalCircle& firstCircle : collisionCircles)
 	{
 		const sf::Vector2f firstCenter{ GetCollisionCircleCenter(firstCircle) };
 		for (const Collision::LocalCircle& secondCircle : other.collisionCircles)
 		{
-			const auto manifold{ Collision::GetCircleManifold(
+			const auto manifold{ Collision::GetCircleContactInfo(
 				firstCenter, firstCircle.radius,
 				other.GetCollisionCircleCenter(secondCircle), secondCircle.radius) };
 			if (manifold && (!deepestManifold ||

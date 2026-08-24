@@ -16,14 +16,16 @@ namespace TextWarmup
 	{
 		// Every distinct character size passed to a Text/MenuButton
 		// constructor anywhere in the game, split by which font "role"
-		// (heading/bold vs. body/button/regular) actually uses it. Both
-		// lists carry some slack; warming an unused size is harmless, and
-		// far cheaper than missing one and paying for it mid-game.
+		// (heading/bold vs. body/button/regular) actually uses it. Audited
+		// against every call site in src/ -- keep this in sync whenever a
+		// new size is introduced, since a missed one just moves its
+		// first-touch glyph-rasterization hitch from here to whichever
+		// screen uses it first.
 		constexpr std::array BoldSizes{
-			22u, 27u, 29u, 30u, 31u, 34u, 36u, 42u, 60u, 68u, 72u, 76u, 82u, 86u, 92u, 104u };
+			18u, 20u, 22u, 27u, 29u, 30u, 31u, 34u, 36u, 38u, 42u, 60u, 68u, 72u, 76u, 82u, 86u, 92u, 104u };
 		constexpr std::array RegularSizes{
-			14u, 20u, 21u, 23u, 24u, 25u, 27u, 28u, 29u, 31u, 34u, 36u, 38u, 48u };
-		constexpr std::array BodyRegularSizes{ 27u };
+			14u, 20u, 21u, 23u, 24u, 25u, 26u, 27u, 28u, 29u, 30u, 31u, 34u, 36u, 38u, 48u };
+		constexpr std::array BodyRegularSizes{ 27u, 29u };
 
 		// Total number of (font, size) combinations Run() touches, regardless
 		// of which sample texts turn out non-empty -- used as the denominator
@@ -45,6 +47,7 @@ namespace TextWarmup
 			for (const unsigned int size : sizes)
 			{
 				sf::Text text(font, sampleText, size);
+				// The bounds themselves are unused -- calling this forces sf::Text's lazy glyph layout/rasterization to run now.
 				static_cast<void>(text.getLocalBounds());
 
 				++combinationsTouched;

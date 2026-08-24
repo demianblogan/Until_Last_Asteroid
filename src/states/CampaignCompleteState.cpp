@@ -36,12 +36,12 @@ CampaignCompleteState::CampaignCompleteState(StateStack& stack, StateContext con
 		TitleBounds, 220u, { TitleBorder, TitleBorder })
 	, messageFrame(context.assets.Textures().Get(Config::Texture::CampaignCompletePanelFrame),
 		MessageBounds, 190u, { MessageBorder, MessageBorder })
-	, title(context.assets.Fonts().Get(context.localization.BoldFont()),
-		context.localization.Get("campaign_complete.title"), 60u)
-	, button(context.assets.Fonts().Get(context.localization.RegularFont()),
+	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
+		context.localization.GetText("campaign_complete.title"), 60u)
+	, button(context.assets.Fonts().Get(context.localization.GetRegularFont()),
 		context.assets.Textures().Get(Config::Texture::MenuButtonIdle),
 		context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
-		context.localization.Get("campaign_complete.thanks"), ButtonSize)
+		context.localization.GetText("campaign_complete.thanks"), ButtonSize)
 	, titleGlow(context.assets), buttonGlow(context.assets)
 	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Gold)
 	, screenFade(context.logicalSize)
@@ -50,13 +50,13 @@ CampaignCompleteState::CampaignCompleteState(StateStack& stack, StateContext con
 	title.setOutlineThickness(3.f);
 	CenterText(title, { 960.f, 160.f });
 	TextLayout::FitWidth(title, TitleBounds.size.x - 240.f, 38u);
-	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.RegularFont(false)) };
+	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetRegularFont(false)) };
 	const std::array mainCopy{ "campaign_complete.line_1", "campaign_complete.line_2",
 		"campaign_complete.line_3", "campaign_complete.line_4" };
 	messageLines.reserve(mainCopy.size());
 	for (std::size_t index{ 0u }; index < mainCopy.size(); ++index)
 	{
-		messageLines.emplace_back(bodyFont, context.localization.Get(mainCopy[index]), 36u);
+		messageLines.emplace_back(bodyFont, context.localization.GetText(mainCopy[index]), 36u);
 		TextLayout::FitWidth(messageLines.back(), MessageBounds.size.x - 220.f, 24u);
 		messageLines.back().setOutlineThickness(1.5f);
 		CenterText(messageLines.back(), { 960.f, 405.f + 58.f * static_cast<float>(index) });
@@ -65,7 +65,7 @@ CampaignCompleteState::CampaignCompleteState(StateStack& stack, StateContext con
 	postscriptLines.reserve(postscriptCopy.size());
 	for (std::size_t index{ 0u }; index < postscriptCopy.size(); ++index)
 	{
-		postscriptLines.emplace_back(bodyFont, context.localization.Get(postscriptCopy[index]), 31u);
+		postscriptLines.emplace_back(bodyFont, context.localization.GetText(postscriptCopy[index]), 31u);
 		TextLayout::FitWidth(postscriptLines.back(), MessageBounds.size.x - 220.f, 21u);
 		postscriptLines.back().setOutlineThickness(1.f);
 		CenterText(postscriptLines.back(), { 960.f, 700.f + 48.f * static_cast<float>(index) });

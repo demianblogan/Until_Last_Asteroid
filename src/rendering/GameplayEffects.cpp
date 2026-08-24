@@ -11,6 +11,7 @@
 
 #include "assets/Assets.h"
 #include "core/World.h"
+#include "entities/Player.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -69,7 +70,8 @@ void GameplayEffects::Update(
     projectileGlowParticles.Clear();
 
     constexpr float EmissionInterval{ 1.f / 70.f };
-    const auto playerState{ world.GetPlayerEffectState() };
+    Player* player{ world.GetPlayer() };
+    const auto playerState{ player ? player->GetEffectState() : std::nullopt };
     if (!playerState || !playerState->isThrusting)
     {
         engineEmissionAccumulator = 0.f;
@@ -87,68 +89,68 @@ void GameplayEffects::Update(
         engineEmissionAccumulator = std::min(engineEmissionAccumulator, EmissionInterval);
     }
 
-    for (const World::EffectEvent& event : world.GetEffectEvents())
+    for (const EffectEvent& event : world.GetEffectEvents())
     {
         switch (event.type)
         {
-        case World::EffectEventType::PlayerProjectileGlow:
+        case EffectEventType::PlayerProjectileGlow:
             EmitProjectileGlow(true, event.position, event.direction);
             break;
-		case World::EffectEventType::PlayerHomingProjectileGlow:
+		case EffectEventType::PlayerHomingProjectileGlow:
 			EmitProjectileGlow(true, event.position, event.direction, true);
 			break;
-		case World::EffectEventType::PlayerTripleProjectileGlow:
+		case EffectEventType::PlayerTripleProjectileGlow:
 			EmitProjectileGlow(true, event.position, event.direction, false, true);
 			break;
-        case World::EffectEventType::EnemyProjectileGlow:
+        case EffectEventType::EnemyProjectileGlow:
             EmitProjectileGlow(false, event.position, event.direction);
             break;
-		case World::EffectEventType::MissileSmoke:
+		case EffectEventType::MissileSmoke:
 			EmitMissileSmoke(event.position, event.direction);
 			break;
-		case World::EffectEventType::EnemyEngine:
+		case EffectEventType::EnemyEngine:
 			EmitEnemyEngine(event.position, event.direction);
 			break;
-		case World::EffectEventType::StationWelding:
+		case EffectEventType::StationWelding:
 			EmitStationWelding(event.position, event.scale);
 			break;
-		case World::EffectEventType::StationChainExplosion:
+		case EffectEventType::StationChainExplosion:
 			EmitStationChainExplosion(event.position, event.scale);
 			break;
-        case World::EffectEventType::PlayerMuzzleFlash:
+        case EffectEventType::PlayerMuzzleFlash:
 			EmitMuzzleFlash(true, event.position, event.direction, event.scale);
             break;
-        case World::EffectEventType::EnemyMuzzleFlash:
+        case EffectEventType::EnemyMuzzleFlash:
 			EmitMuzzleFlash(false, event.position, event.direction, event.scale);
             break;
-        case World::EffectEventType::AsteroidHit:
+        case EffectEventType::AsteroidHit:
             EmitStoneHit(event.position, event.direction, event.scale);
             break;
-        case World::EffectEventType::ShipHit:
+        case EffectEventType::ShipHit:
             EmitMetalHit(event.position, event.direction, event.scale);
             break;
-        case World::EffectEventType::PlayerHit:
+        case EffectEventType::PlayerHit:
             EmitMetalHit(event.position, event.direction, event.scale);
             postProcessState.damageVignette = 1.f;
             StartCameraShake(config.damageShake, event.scale);
             break;
-        case World::EffectEventType::AsteroidExplosion:
+        case EffectEventType::AsteroidExplosion:
             EmitAsteroidExplosion(event.position, event.scale);
             break;
-        case World::EffectEventType::ShipExplosion:
+        case EffectEventType::ShipExplosion:
             EmitShipExplosion(event.position, event.scale);
             break;
-		case World::EffectEventType::StationExplosion:
+		case EffectEventType::StationExplosion:
 			EmitStationExplosion(event.position, event.scale);
 			break;
-		case World::EffectEventType::PlayerTeleport:
+		case EffectEventType::PlayerTeleport:
 			EmitPlayerTeleport(event.position, event.scale);
 			break;
-		case World::EffectEventType::BossDestructionShake:
+		case EffectEventType::BossDestructionShake:
 			StartCameraShake({
 				static_cast<float>(event.value) / 1000.f, event.scale }, 1.f);
 			break;
-        case World::EffectEventType::ScorePopup:
+        case EffectEventType::ScorePopup:
             if (showScorePopups)
                 EmitScorePopup(event.position, event.value);
             break;
@@ -244,7 +246,8 @@ sf::Vector2f GameplayEffects::RandomDirectionAround(
 
 void GameplayEffects::EmitPlayerEngineParticles(const World& world)
 {
-    const auto playerState{ world.GetPlayerEffectState() };
+    Player* player{ world.GetPlayer() };
+    const auto playerState{ player ? player->GetEffectState() : std::nullopt };
     if (!playerState)
         return;
 

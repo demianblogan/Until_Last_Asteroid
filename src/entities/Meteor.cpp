@@ -39,7 +39,7 @@ void Meteor::OnDestroy()
 {
 	GetWorld().AddSound(Config::Sound::AsteroidExplosion, GetSoundPitch());
 	GetWorld().AddEffectEvent({
-		World::EffectEventType::AsteroidExplosion,
+		EffectEventType::AsteroidExplosion,
 		GetPosition(),
 		GetVelocity(),
 		size == Size::Big ? 1.f : 0.62f });

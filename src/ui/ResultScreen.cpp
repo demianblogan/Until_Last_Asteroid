@@ -98,10 +98,10 @@ ResultScreen::ResultScreen(
     , logicalSize(screenSize)
     , shade(screenSize)
     , titleFrame(assets.Textures().Get(Config::Texture::ResultTitleFrame))
-	, title(assets.Fonts().Get(localizationManager.BoldFont()), "", 86u)
+	, title(assets.Fonts().Get(localizationManager.GetBoldFont()), "", 86u)
 	, statisticsPanel(StatisticsPanelSize, 22.f, 12u)
 	, statisticsSeparator({ StatisticsPanelSize.x - 100.f, 2.f })
-	, statisticsTitle(assets.Fonts().Get(localizationManager.BoldFont()), localizationManager.Get("results.statistics"), 36u)
+	, statisticsTitle(assets.Fonts().Get(localizationManager.GetBoldFont()), localizationManager.GetText("results.statistics"), 36u)
     , titleGlow(assets)
     , buttonGlow(assets)
     , menuCursor(assets, Config::Texture::MenuPointer, { 6.f, 2.f }, SelectionGlowColor)
@@ -118,8 +118,8 @@ ResultScreen::ResultScreen(
     title.setLetterSpacing(1.05f);
 	CenterText(title, { logicalSize.x * 0.5f, 190.f });
 
-	const sf::Font& regularFont{ assets.Fonts().Get(localizationManager.RegularFont()) };
-	const sf::Font& bodyFont{ assets.Fonts().Get(localizationManager.RegularFont(false)) };
+	const sf::Font& regularFont{ assets.Fonts().Get(localizationManager.GetRegularFont()) };
+	const sf::Font& bodyFont{ assets.Fonts().Get(localizationManager.GetRegularFont(false)) };
 	statisticsPanel.setPosition(StatisticsPanelPosition);
 	statisticsPanel.setFillColor(sf::Color(2, 13, 27, 230));
 	statisticsPanel.setOutlineColor(sf::Color(25, 205, 240));
@@ -189,12 +189,12 @@ void ResultScreen::ApplyContent(
 	mode = newMode;
 	statistics = resultStatistics;
 
-	title.setFont(assets.Fonts().Get(localization.BoldFont()));
-	statisticsTitle.setFont(assets.Fonts().Get(localization.BoldFont()));
-	statisticsTitle.setString(localization.Get("results.statistics"));
+	title.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+	statisticsTitle.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+	statisticsTitle.setString(localization.GetText("results.statistics"));
 	CenterText(statisticsTitle, { logicalSize.x * .5f, StatisticsPanelPosition.y + 52.f });
-	const sf::Font& regularFont{ assets.Fonts().Get(localization.RegularFont()) };
-	const sf::Font& bodyFont{ assets.Fonts().Get(localization.RegularFont(false)) };
+	const sf::Font& regularFont{ assets.Fonts().Get(localization.GetRegularFont()) };
+	const sf::Font& bodyFont{ assets.Fonts().Get(localization.GetRegularFont(false)) };
 	for (sf::Text& label : statisticLabels)
 		label.setFont(bodyFont);
 	for (sf::Text& value : statisticValues)
@@ -204,42 +204,42 @@ void ResultScreen::ApplyContent(
 
 	if (mode == Mode::Victory)
 	{
-		title.setString(localization.Get("results.victory"));
-		buttons[0].SetLabel(localization.Get("results.play_again"));
+		title.setString(localization.GetText("results.victory"));
+		buttons[0].SetLabel(localization.GetText("results.play_again"));
 	}
 	else if (mode == Mode::LevelReplay)
 	{
-		title.setString(localization.Format("results.level_complete", "value", std::to_string(level)));
-		buttons[0].SetLabel(localization.Get("results.back_levels"));
+		title.setString(localization.FormatText("results.level_complete", "value", std::to_string(level)));
+		buttons[0].SetLabel(localization.GetText("results.back_levels"));
 	}
 	else if (mode == Mode::ContentComplete)
 	{
-		title.setString(localization.Format("results.level_complete", "value", std::to_string(level)));
-		buttons[0].SetLabel(localization.Get("results.continue"));
+		title.setString(localization.FormatText("results.level_complete", "value", std::to_string(level)));
+		buttons[0].SetLabel(localization.GetText("results.continue"));
 	}
 	else
 	{
-		title.setString(localization.Format("results.level_complete", "value", std::to_string(level)));
-		buttons[0].SetLabel(localization.Get("results.continue"));
+		title.setString(localization.FormatText("results.level_complete", "value", std::to_string(level)));
+		buttons[0].SetLabel(localization.GetText("results.continue"));
 	}
-	statisticLabels[0].setString(localization.Get("results.destroyed"));
+	statisticLabels[0].setString(localization.GetText("results.destroyed"));
 	statisticLabels[1].setString(
-		localization.Format("results.armor", "value", std::to_string(statistics.armorPercent)));
+		localization.FormatText("results.armor", "value", std::to_string(statistics.armorPercent)));
 	statisticLabels[2].setString(
-		localization.Format("results.accuracy", "value", std::to_string(statistics.accuracyPercent)) +
-		sf::String("  (") + localization.Format("results.required", "value",
+		localization.FormatText("results.accuracy", "value", std::to_string(statistics.accuracyPercent)) +
+		sf::String("  (") + localization.FormatText("results.required", "value",
 			std::to_string(statistics.targetAccuracyPercent)) + sf::String(")"));
 	statisticLabels[3].setString(
-		localization.Format("results.parts", "value", std::to_string(statistics.partsCollected)) +
+		localization.FormatText("results.parts", "value", std::to_string(statistics.partsCollected)) +
 		sf::String(" / ") + sf::String(std::to_string(statistics.partsTotal)));
-	statisticLabels[4].setString(localization.Get("results.level_score"));
+	statisticLabels[4].setString(localization.GetText("results.level_score"));
 	for (std::size_t index{ 0u }; index < statisticLabels.size(); ++index)
 	{
 		AlignLeft(statisticLabels[index], LabelPositions[index]);
 		AlignRight(statisticValues[index], ValuePositions[index]);
 	}
-	buttons[1].SetLabel(localization.Get("game_over.restart_level"));
-	buttons[2].SetLabel(localization.Get("common.back_main"));
+	buttons[1].SetLabel(localization.GetText("game_over.restart_level"));
+	buttons[2].SetLabel(localization.GetText("common.back_main"));
 	TextLayout::FitWidth(title, TitleFrameSize.x - 140.f, 48u);
 	CenterText(title, { logicalSize.x * 0.5f, 190.f });
 }

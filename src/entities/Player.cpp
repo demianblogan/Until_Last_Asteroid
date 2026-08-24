@@ -20,13 +20,14 @@ namespace
 }
 
 Player::Player(Assets& assets, World& world, InputHandler<Config::PlayerAction>& input,
-	GamepadManager& gamepadManager)
+	GamepadManager& gamepadManager, sf::RenderWindow& gameWindow)
 	: Entity(assets, world, assets.Textures().Get(Config::Texture::PlayerShip),
 		assets.GetGameplayData().GetPlayer().visualScale,
 		assets.GetGameplayData().GetPlayer().collisionRadius,
 		assets.GetGameplayData().GetPlayer().collisionCircles)
 	, input(input)
 	, gamepad(gamepadManager)
+	, window(gameWindow)
 {
 	BindInput();
 }
@@ -101,7 +102,7 @@ void Player::OnDestroy()
 	StopLaserSounds();
 	SetVisible(true);
 	GetWorld().AddEffectEvent({
-		World::EffectEventType::ShipExplosion,
+		EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.35f });
 }
 
@@ -226,6 +227,18 @@ std::optional<sf::Vector2f> Player::GetGamepadAimPoint() const
 	return GetPosition() + gamepadAimDirection * 190.f;
 }
 
+std::optional<PlayerEffectState> Player::GetEffectState() const
+{
+	if (!IsAlive())
+		return std::nullopt;
+
+	return PlayerEffectState{
+		GetEngineEmitterPositions(),
+		GetVelocity(),
+		GetExhaustDirection(),
+		IsThrusting() };
+}
+
 void Player::BindInput()
 {
 	using enum Config::PlayerAction;
@@ -271,7 +284,6 @@ void Player::UpdateRotation()
 		return;
 	}
 
-	sf::RenderWindow& window{ GetWorld().GetWindow() };
 	const sf::Vector2i mousePixel{ sf::Mouse::getPosition(window) };
 	const sf::Vector2f mouseWorld{ window.mapPixelToCoords(mousePixel) };
 	const sf::Vector2f toMouse{ mouseWorld - GetPosition() };

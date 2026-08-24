@@ -64,8 +64,8 @@ GameOverScreen::GameOverScreen(
     , logicalSize(screenSize)
     , shade(screenSize)
     , titleFrame(assets.Textures().Get(Config::Texture::GameOverTitleFrame))
-    , title(assets.Fonts().Get(localizationManager.BoldFont()), localizationManager.Get("game_over.title"), 104u)
-    , finalScore(assets.Fonts().Get(localizationManager.RegularFont()), "", 38u)
+    , title(assets.Fonts().Get(localizationManager.GetBoldFont()), localizationManager.GetText("game_over.title"), 104u)
+    , finalScore(assets.Fonts().Get(localizationManager.GetRegularFont()), "", 38u)
     , titleGlow(assets)
     , buttonGlow(assets)
     , menuCursor(
@@ -95,13 +95,13 @@ GameOverScreen::GameOverScreen(
     // empty string has no glyphs to lay out and primes nothing) so the
     // first, expensive layout pass happens now instead of the moment the
     // player actually dies.
-    finalScore.setString(localizationManager.Format("game_over.final_score", "value", "0"));
+    finalScore.setString(localizationManager.FormatText("game_over.final_score", "value", "0"));
     CenterText(finalScore, { logicalSize.x * 0.5f, 448.f });
 
-    const sf::Font& menuFont{ assets.Fonts().Get(localizationManager.RegularFont()) };
+    const sf::Font& menuFont{ assets.Fonts().Get(localizationManager.GetRegularFont()) };
     const sf::Texture& idle{ assets.Textures().Get(Config::Texture::MenuButtonIdle) };
     const sf::Texture& selected{ assets.Textures().Get(Config::Texture::MenuButtonSelected) };
-    const std::array<sf::String, 2> labels{ localization.Get("game_over.restart_level"), localization.Get("common.back_main") };
+    const std::array<sf::String, 2> labels{ localization.GetText("game_over.restart_level"), localization.GetText("common.back_main") };
     buttons.reserve(labels.size());
     for (std::size_t index{ 0u }; index < labels.size(); ++index)
     {
@@ -111,29 +111,29 @@ GameOverScreen::GameOverScreen(
             520.f + static_cast<float>(index) * 132.f });
     }
 
-    localizationRevision = localizationManager.GetRevision();
+    localizationRevision = localizationManager.GetLanguageRevision();
     Reset();
 }
 
 void GameOverScreen::Start(int score)
 {
-    StartWithSummary(localization.Format("game_over.final_score", "value", std::to_string(score)), localization.Get("game_over.restart_level"));
+    StartWithSummary(localization.FormatText("game_over.final_score", "value", std::to_string(score)), localization.GetText("game_over.restart_level"));
 }
 
 void GameOverScreen::StartHorde(int score, int wavesSurvived)
 {
     StartWithSummary(
-        localization.Format("game_over.horde_summary", "value", std::to_string(score)) +
-		sf::String("   ") + localization.Format("game_over.waves", "value", std::to_string(wavesSurvived)),
-        localization.Get("game_over.restart_horde"));
+        localization.FormatText("game_over.horde_summary", "value", std::to_string(score)) +
+		sf::String("   ") + localization.FormatText("game_over.waves", "value", std::to_string(wavesSurvived)),
+        localization.GetText("game_over.restart_horde"));
 }
 
 void GameOverScreen::StartRun(int survivalSeconds, int recordSeconds)
 {
     StartWithSummary(
-        localization.Format("game_over.time", "value", FormatDuration(survivalSeconds)) + sf::String("   ") +
-		localization.Format("game_over.record", "value", FormatDuration(recordSeconds)),
-        localization.Get("game_over.restart_run"));
+        localization.FormatText("game_over.time", "value", FormatDuration(survivalSeconds)) + sf::String("   ") +
+		localization.FormatText("game_over.record", "value", FormatDuration(recordSeconds)),
+        localization.GetText("game_over.restart_run"));
 }
 
 void GameOverScreen::StartWithSummary(sf::String summary, const sf::String& restartLabel)
@@ -162,19 +162,19 @@ void GameOverScreen::StartWithSummary(sf::String summary, const sf::String& rest
 
 void GameOverScreen::RefreshLocalizedContent()
 {
-    localizationRevision = localization.GetRevision();
+    localizationRevision = localization.GetLanguageRevision();
 
-    title.setFont(assets.Fonts().Get(localization.BoldFont()));
-    title.setString(localization.Get("game_over.title"));
+    title.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+    title.setString(localization.GetText("game_over.title"));
     CenterText(title, { logicalSize.x * 0.5f, 308.f });
 
-    const sf::Font& menuFont{ assets.Fonts().Get(localization.RegularFont()) };
+    const sf::Font& menuFont{ assets.Fonts().Get(localization.GetRegularFont()) };
     finalScore.setFont(menuFont);
     CenterText(finalScore, { logicalSize.x * 0.5f, 448.f });
 
     buttons[0].SetFont(menuFont);
     buttons[1].SetFont(menuFont);
-    buttons[1].SetLabel(localization.Get("common.back_main"));
+    buttons[1].SetLabel(localization.GetText("common.back_main"));
 
     titleGlow.Invalidate();
     buttonGlow.Invalidate();
@@ -195,7 +195,7 @@ void GameOverScreen::Reset()
 
 void GameOverScreen::Update(float deltaTime)
 {
-    if (localizationRevision != localization.GetRevision())
+    if (localizationRevision != localization.GetLanguageRevision())
         RefreshLocalizedContent();
 
     if (!active)

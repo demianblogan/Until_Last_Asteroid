@@ -23,12 +23,12 @@ namespace
 {
 	std::vector<sf::String> GetMenuLabels(const LocalizationManager& localization)
 	{
-		return { localization.Get("main_menu.start_game"),
-			localization.Get("main_menu.achievements"),
-			localization.Get("main_menu.records"),
-			localization.Get("main_menu.options"),
-			localization.Get("main_menu.credits"),
-			localization.Get("main_menu.quit") };
+		return { localization.GetText("main_menu.start_game"),
+			localization.GetText("main_menu.achievements"),
+			localization.GetText("main_menu.records"),
+			localization.GetText("main_menu.options"),
+			localization.GetText("main_menu.credits"),
+			localization.GetText("main_menu.quit") };
 	}
 
 	constexpr sf::Vector2f ButtonSize{ 540.f, 82.f };
@@ -54,19 +54,19 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
         Config::Texture::MenuPointer,
         { 6.f, 2.f },
         InterfaceGlowColor)
-	, introAnimation(context.localization.Get("main_menu.title"), GetMenuLabels(context.localization))
+	, introAnimation(context.localization.GetText("main_menu.title"), GetMenuLabels(context.localization))
     , screenFade(context.logicalSize)
-	, title(context.assets.Fonts().Get(context.localization.BoldFont()), "", 92)
+	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), "", 92)
     , version(context.assets.Fonts().Get(Config::Font::MenuRegular), std::string(GameVersion::Text), 20)
 {
     context.window.setMouseCursorVisible(false);
-	localizationRevision = context.localization.GetRevision();
+	localizationRevision = context.localization.GetLanguageRevision();
 
     title.setFillColor(sf::Color(215, 247, 252));
     title.setOutlineColor(sf::Color(3, 18, 31, 235));
     title.setOutlineThickness(3.5f);
     title.setLetterSpacing(1.08f);
-	title.setString(context.localization.Get("main_menu.title"));
+	title.setString(context.localization.GetText("main_menu.title"));
     const sf::FloatRect fullTitleBounds{ title.getLocalBounds() };
     titleLeftPosition = context.logicalSize.x * 0.5f
         - fullTitleBounds.size.x * 0.5f
@@ -86,9 +86,9 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     version.setPosition(context.logicalSize - sf::Vector2f{ 24.f, 20.f });
 
     const sf::Font& menuFont{ context.assets.Fonts().Get(
-		context.localization.GetLanguage() == Language::English
+		context.localization.GetCurrentLanguage() == Language::English
 		? Config::Font::MenuRegular
-		: (context.localization.GetLanguage() == Language::Arabic
+		: (context.localization.GetCurrentLanguage() == Language::Arabic
 			? Config::Font::ArabicRegular : Config::Font::LocalizedRegular)) };
     const sf::Texture& idleTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
     const sf::Texture& selectedTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
@@ -224,7 +224,7 @@ void MainMenuState::HandleEvent(const sf::Event& event)
 
 void MainMenuState::Update(float deltaTime)
 {
-	if (localizationRevision != GetContext().localization.GetRevision())
+	if (localizationRevision != GetContext().localization.GetLanguageRevision())
 		RefreshLocalizedLabels();
     background.Update(deltaTime);
     neonGlow.Update(deltaTime);
@@ -252,16 +252,16 @@ void MainMenuState::Update(float deltaTime)
 
 void MainMenuState::RefreshLocalizedLabels()
 {
-	localizationRevision = GetContext().localization.GetRevision();
+	localizationRevision = GetContext().localization.GetLanguageRevision();
 	localizedLabelsOverride = true;
-	const Language language{ GetContext().localization.GetLanguage() };
+	const Language language{ GetContext().localization.GetCurrentLanguage() };
 	const auto fontID{ language == Language::English ? Config::Font::MenuRegular
 		: (language == Language::Arabic ? Config::Font::ArabicRegular
 			: Config::Font::LocalizedRegular) };
 	const sf::Font& font{ GetContext().assets.Fonts().Get(fontID) };
-	const sf::Font& titleFont{ GetContext().assets.Fonts().Get(GetContext().localization.BoldFont()) };
+	const sf::Font& titleFont{ GetContext().assets.Fonts().Get(GetContext().localization.GetBoldFont()) };
 	title.setFont(titleFont);
-	title.setString(GetContext().localization.Get("main_menu.title"));
+	title.setString(GetContext().localization.GetText("main_menu.title"));
 	const sf::FloatRect fullTitleBounds{ title.getLocalBounds() };
 	titleLeftPosition = GetContext().logicalSize.x * 0.5f - fullTitleBounds.size.x * 0.5f - fullTitleBounds.position.x;
 	title.setOrigin({ 0.f, fullTitleBounds.position.y + fullTitleBounds.size.y * 0.5f });
@@ -413,7 +413,7 @@ void MainMenuState::CompleteActivation(std::size_t index)
 void MainMenuState::ApplyAnimationState()
 {
 	const sf::String visibleTitle{ localizedLabelsOverride
-		? GetContext().localization.Get("main_menu.title") : introAnimation.GetVisibleTitle() };
+		? GetContext().localization.GetText("main_menu.title") : introAnimation.GetVisibleTitle() };
     if (title.getString() != visibleTitle)
     {
         title.setString(visibleTitle);

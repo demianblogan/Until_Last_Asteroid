@@ -21,10 +21,10 @@ AchievementToast::AchievementToast(Assets& store, AudioManager& audioManager,
 	AchievementManager& manager, LocalizationManager& localizationManager, sf::Vector2f size)
 	: assets(store), audio(audioManager), achievements(manager), localization(localizationManager)
 	, panel(PanelSize, 20.f, 10u)
-	, unlockedLabel(store.Fonts().Get(localizationManager.BoldFont()),
-		localizationManager.Get("achievements.unlocked"), 20u)
-	, title(store.Fonts().Get(localizationManager.BoldFont()), "", 31u)
-	, description(store.Fonts().Get(localizationManager.RegularFont(false)), "", 21u)
+	, unlockedLabel(store.Fonts().Get(localizationManager.GetBoldFont()),
+		localizationManager.GetText("achievements.unlocked"), 20u)
+	, title(store.Fonts().Get(localizationManager.GetBoldFont()), "", 31u)
+	, description(store.Fonts().Get(localizationManager.GetRegularFont(false)), "", 21u)
 	, glow(store), logicalSize(size)
 {
 	panel.setFillColor({ 3, 12, 22, 245 });
@@ -33,14 +33,14 @@ AchievementToast::AchievementToast(Assets& store, AudioManager& audioManager,
 	unlockedLabel.setFillColor(Gold);
 	title.setFillColor({ 230, 247, 251 });
 	description.setFillColor({ 150, 215, 230 });
-	localizationRevision = localization.GetRevision();
+	localizationRevision = localization.GetLanguageRevision();
 	Layout(HiddenY);
 }
 
 void AchievementToast::Update(float dt)
 {
 	glow.Update(dt);
-	if (localizationRevision != localization.GetRevision())
+	if (localizationRevision != localization.GetLanguageRevision())
 		RefreshLocalizedContent();
 	if (!active)
 	{
@@ -77,16 +77,16 @@ void AchievementToast::Begin(AchievementID id)
 	const auto size{ icon->getTexture().getSize() };
 	const float scale{ 112.f / static_cast<float>(std::max(size.x, size.y)) };
 	icon->setScale({ scale, scale });
-	title.setFont(assets.Fonts().Get(localization.BoldFont()));
-	description.setFont(assets.Fonts().Get(localization.RegularFont(false)));
+	title.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+	description.setFont(assets.Fonts().Get(localization.GetRegularFont(false)));
 	const std::string prefix{ "achievements.items." + definition.persistentID };
-	title.setString(localization.Get(prefix + ".title"));
+	title.setString(localization.GetText(prefix + ".title"));
 
 	// The achievements page description is formatted with an explicit line
 	// break for its own (narrower) tile layout; the toast panel is wider and
 	// only one line tall, so the break is flattened into a space here and
 	// the text is shrunk to fit instead of wrapping past the panel edge.
-	sf::String description1Line{ localization.Get(prefix + ".description") };
+	sf::String description1Line{ localization.GetText(prefix + ".description") };
 	for (std::size_t position{ description1Line.find('\n') };
 		position != sf::String::InvalidPos;
 		position = description1Line.find('\n', position + 1u))
@@ -102,9 +102,9 @@ void AchievementToast::Begin(AchievementID id)
 
 void AchievementToast::RefreshLocalizedContent()
 {
-	localizationRevision = localization.GetRevision();
-	unlockedLabel.setFont(assets.Fonts().Get(localization.BoldFont()));
-	unlockedLabel.setString(localization.Get("achievements.unlocked"));
+	localizationRevision = localization.GetLanguageRevision();
+	unlockedLabel.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+	unlockedLabel.setString(localization.GetText("achievements.unlocked"));
 }
 
 void AchievementToast::Layout(float y)

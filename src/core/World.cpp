@@ -354,12 +354,13 @@ void World::Spawn(std::unique_ptr<Entity> entity)
 	pendingEntities.push_back(std::move(entity));
 }
 
-void World::SpawnPlayer(Assets& playerAssets, InputHandler<Config::PlayerAction>& input)
+void World::SpawnPlayer(
+	Assets& playerAssets, InputHandler<Config::PlayerAction>& input, sf::RenderWindow& window)
 {
 	if (player != nullptr)
 		return;
 
-	auto playerPtr{ std::make_unique<Player>(playerAssets, *this, input, gamepad) };
+	auto playerPtr{ std::make_unique<Player>(playerAssets, *this, input, gamepad, window) };
 	playerPtr->SetPosition({ GetWidth() * 0.5f, GetHeight() * 0.5f });
 	player = playerPtr.get();
 	Spawn(std::move(playerPtr));
@@ -383,9 +384,6 @@ void World::TeleportPlayerToCenter() noexcept
 	player->SetVelocity({});
 }
 
-sf::RenderWindow& World::GetWindow() noexcept { return *window; }
-void World::SetWindow(sf::RenderWindow& newWindow) { window = &newWindow; }
-
 bool World::IsCleared() const noexcept
 {
 	const auto containsAliveEnemy = [](const auto& list)
@@ -404,30 +402,7 @@ bool World::IsCleared() const noexcept
 }
 
 bool World::HasPlayer() const noexcept { return player != nullptr; }
-
-void World::HandlePlayerEvent(const sf::Event& event)
-{
-	if (player != nullptr)
-		player->HandleEvent(event);
-}
-
-void World::HandlePlayerRealtime()
-{
-	if (player != nullptr)
-		player->HandleRealtime();
-}
-
-void World::SetPlayerControlEnabled(bool enabled) noexcept
-{
-	if (player != nullptr)
-		player->SetControlEnabled(enabled);
-}
-
-void World::SetPlayerFiringEnabled(bool enabled) noexcept
-{
-	if (player != nullptr)
-		player->SetFiringEnabled(enabled);
-}
+Player* World::GetPlayer() const noexcept { return player; }
 
 std::uint64_t World::BeginPlayerAttack() noexcept
 {
@@ -685,7 +660,7 @@ void World::AddEffectEvent(const EffectEvent& event)
 	effectEvents.push_back(event);
 }
 
-const std::vector<World::EffectEvent>& World::GetEffectEvents() const noexcept
+const std::vector<EffectEvent>& World::GetEffectEvents() const noexcept
 {
 	return effectEvents;
 }
@@ -710,12 +685,6 @@ void World::ClearProjectiles()
 	} };
 	std::erase_if(entities, isProjectile);
 	std::erase_if(pendingEntities, isProjectile);
-}
-
-void World::SetPlayerCinematicInvulnerable(bool enabled) noexcept
-{
-	if (player != nullptr)
-		player->SetCinematicInvulnerable(enabled);
 }
 
 std::optional<World::PlayerLaserDamageEvent>
@@ -1096,23 +1065,6 @@ bool World::IsEntityActive(const Entity* entity) const noexcept
 		});
 }
 
-std::optional<World::PlayerEffectState> World::GetPlayerEffectState() const
-{
-	if (player == nullptr || !player->IsAlive())
-		return std::nullopt;
-
-	return PlayerEffectState{
-		player->GetEngineEmitterPositions(),
-		player->GetVelocity(),
-		player->GetExhaustDirection(),
-		player->IsThrusting() };
-}
-
-std::optional<sf::Vector2f> World::GetPlayerGamepadAimPoint() const
-{
-	return player != nullptr ? player->GetGamepadAimPoint() : std::nullopt;
-}
-
 unsigned int World::GetWidth() const noexcept { return width; }
 unsigned int World::GetHeight() const noexcept { return height; }
 GameplaySession& World::GetSession() noexcept { return session; }
@@ -1415,7 +1367,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 	if (!collidedPlayer->IsAlive() || !collidedEnemy->IsAlive())
 		return;
 
-	const auto manifold{ collidedPlayer->GetCollisionManifold(*collidedEnemy) };
+	const auto manifold{ collidedPlayer->GetCollisionContactInfo(*collidedEnemy) };
 	if (!manifold)
 		return;
 

@@ -18,6 +18,7 @@
 #include "entities/Meteor.h"
 #include "entities/MissileCarrier.h"
 #include "entities/Part.h"
+#include "entities/Player.h"
 #include "entities/ReflectorGunship.h"
 #include "entities/Saucer.h"
 #include "entities/ShooterStation.h"
@@ -91,7 +92,6 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	, levelIntro(context.assets, context.localization, context.logicalSize)
 	, waveIntro(context.assets, context.localization)
 {
-	world.SetWindow(context.window);
 	context.window.setMouseCursorVisible(false);
 	session.ConfigurePlayerHealth(gameplayData.GetPlayer().maximumHealth);
 	session.ConfigureShield(
@@ -261,7 +261,10 @@ void GameplayState::HandleEvent(const sf::Event& event)
 		return;
 
 	if (session.IsPlaying())
-		world.HandlePlayerEvent(event);
+	{
+		if (Player* player{ world.GetPlayer() })
+			player->HandleEvent(event);
+	}
 }
 
 void GameplayState::HandleRealtime()
@@ -276,7 +279,10 @@ void GameplayState::HandleRealtime()
 		gameOverScreen.IsActive() || resultScreen.IsActive())
 		return;
 	if (session.IsPlaying())
-		world.HandlePlayerRealtime();
+	{
+		if (Player* player{ world.GetPlayer() })
+			player->HandleRealtime();
+	}
 }
 
 void GameplayState::OpenPauseMenu()
@@ -463,9 +469,12 @@ void GameplayState::Update(float dt)
 			session.ClearTemporaryEffects();
 			world.ClearBossVictoryPickupsAndCompanions();
 			world.ClearProjectiles();
-			world.SetPlayerFiringEnabled(false);
-			world.SetPlayerCinematicInvulnerable(true);
-			world.SetPlayerControlEnabled(true);
+			if (Player* player{ world.GetPlayer() })
+			{
+				player->SetFiringEnabled(false);
+				player->SetCinematicInvulnerable(true);
+				player->SetControlEnabled(true);
+			}
 		}
 		if (bossEncounter->IsVictoryReady() &&
 			gameplayTransition == GameplayTransition::None &&
@@ -545,7 +554,8 @@ void GameplayState::Update(float dt)
 			}
 			waveClearDelayActive = true;
 			waveClearDelayRemaining = WaveClearDelayDuration;
-			world.SetPlayerControlEnabled(false);
+			if (Player* player{ world.GetPlayer() })
+				player->SetControlEnabled(false);
 			BeginPlayerWaveTeleport();
 			return;
 		}
@@ -603,6 +613,8 @@ void GameplayState::DrawScene(sf::RenderTarget& target)
 
 void GameplayState::RenderOverlay()
 {
+	Player* player{ world.GetPlayer() };
+	const bool aimingWithGamepad{ player != nullptr && player->GetGamepadAimPoint().has_value() };
 	if (gameOverScreen.IsActive())
 		gameOverScreen.DrawCursor(GetContext().window);
 	else if (resultScreen.IsActive())
@@ -610,7 +622,7 @@ void GameplayState::RenderOverlay()
 	else if (!bossVictorySequenceStarted &&
 		!levelIntro.IsActive() && !waveIntro.IsActive() &&
 		!playerSpawnAnimating && !runMode &&
-		!world.GetPlayerGamepadAimPoint())
+		!aimingWithGamepad)
 		crosshair.Draw(GetContext().window);
 	screenFade.Draw(GetContext().window);
 }
@@ -619,8 +631,9 @@ void GameplayState::SpawnPlayerIfNeeded()
 {
 	if (!world.HasPlayer() && !session.IsGameOver())
 	{
-		world.SpawnPlayer(GetContext().assets, input);
-		world.SetPlayerFiringEnabled(!runMode);
+		world.SpawnPlayer(GetContext().assets, input, GetContext().window);
+		if (Player* player{ world.GetPlayer() })
+			player->SetFiringEnabled(!runMode);
 	}
 }
 
@@ -857,7 +870,7 @@ void GameplayState::SpawnConfiguredEnemy(
 		waveMaterializationElapsed = 0.f;
 		entity->SetPresentation(0.7f, 0.f, sf::Color(80, 225, 255));
 		materializingEnemies.push_back(entity.get());
-		world.AddEffectEvent({ World::EffectEventType::PlayerTeleport,
+		world.AddEffectEvent({ EffectEventType::PlayerTeleport,
 			entity->GetPosition(), {}, 1.25f });
 	}
 	world.Spawn(std::move(entity));
@@ -1591,8 +1604,8 @@ void GameplayState::StartHorde()
 		hud->SetPartsVisible(false);
 	StartNextHordeWave(false, false);
 	levelIntro.StartMode(
-		GetContext().localization.Get("intro.horde"),
-		GetContext().localization.Get("intro.horde_objective"));
+		GetContext().localization.GetText("intro.horde"),
+		GetContext().localization.GetText("intro.horde_objective"));
 }
 
 void GameplayState::StartRun()
@@ -1635,8 +1648,8 @@ void GameplayState::StartRun()
 		hud->Update(0.f);
 	}
 	levelIntro.StartMode(
-		GetContext().localization.Get("intro.run"),
-		GetContext().localization.Get("intro.run_objective"));
+		GetContext().localization.GetText("intro.run"),
+		GetContext().localization.GetText("intro.run_objective"));
 }
 
 void GameplayState::UpdateRun(float deltaTime)
@@ -1890,7 +1903,8 @@ void GameplayState::StartNextWave(
 
 void GameplayState::FinishWaveIntro()
 {
-	world.SetPlayerControlEnabled(true);
+	if (Player* player{ world.GetPlayer() })
+		player->SetControlEnabled(true);
 	if (world.HasPlayer())
 		return;
 
@@ -1898,8 +1912,11 @@ void GameplayState::FinishWaveIntro()
 	world.CommitPendingEntities();
 	if (bossEncounter)
 	{
-		world.SetPlayerControlEnabled(false);
-		world.SetPlayerFiringEnabled(false);
+		if (Player* player{ world.GetPlayer() })
+		{
+			player->SetControlEnabled(false);
+			player->SetFiringEnabled(false);
+		}
 	}
 	playerSpawnElapsed = 0.f;
 	playerSpawnAnimating = true;
@@ -1917,8 +1934,11 @@ void GameplayState::UpdatePlayerSpawnAnimation(float deltaTime)
 		if (bossEncounter && !bossEncounter->IsActive())
 		{
 			bossEncounter->Start();
-			world.SetPlayerControlEnabled(true);
-			world.SetPlayerFiringEnabled(true);
+			if (Player* player{ world.GetPlayer() })
+			{
+				player->SetControlEnabled(true);
+				player->SetFiringEnabled(true);
+			}
 		}
 	}
 }
@@ -1931,7 +1951,7 @@ void GameplayState::BeginPlayerWaveTeleport()
 	playerTeleportAnimating = true;
 	playerTeleportMoved = false;
 	world.AddEffectEvent({
-		World::EffectEventType::PlayerTeleport,
+		EffectEventType::PlayerTeleport,
 		world.GetPlayerPosition(), {}, 0.85f });
 }
 
@@ -1953,7 +1973,7 @@ void GameplayState::UpdatePlayerWaveTeleport(float deltaTime)
 		{
 			world.TeleportPlayerToCenter();
 			world.AddEffectEvent({
-				World::EffectEventType::PlayerTeleport,
+				EffectEventType::PlayerTeleport,
 				world.GetPlayerPosition(), {}, 1.15f });
 			playerTeleportMoved = true;
 		}

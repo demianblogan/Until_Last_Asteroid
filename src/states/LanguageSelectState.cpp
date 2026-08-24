@@ -53,7 +53,7 @@ LanguageSelectState::LanguageSelectState(StateStack& stack, StateContext context
         const bool arabic{ Languages[i] == Language::Arabic };
         const auto fontID{ arabic ? Config::Font::ArabicRegular : Config::Font::LocalizedRegular };
         buttons.emplace_back(context.assets.Fonts().Get(fontID), idle, active, "", ButtonSize);
-		buttons.back().SetLabel(LocalizationManager::NativeName(Languages[i]));
+		buttons.back().SetLabel(LocalizationManager::GetLanguageNativeName(Languages[i]));
         buttons.back().SetPosition(FirstButton + sf::Vector2f{ 0.f, Spacing * static_cast<float>(i) });
     }
     Select(0u, false);

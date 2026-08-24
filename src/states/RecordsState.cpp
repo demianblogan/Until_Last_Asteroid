@@ -69,16 +69,16 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 	, buttonGlow(context.assets)
 	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Cyan)
 	, fade(context.logicalSize)
-	, title(context.assets.Fonts().Get(context.localization.BoldFont()), context.localization.Get("records.title"), 72)
+	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("records.title"), 72)
 	, campaignPanel(CampaignSize, 22.f, 12u)
 	, hordePanel(HordeSize, 22.f, 12u)
 	, runPanel(RunSize, 22.f, 12u)
-	, campaignTitle(context.assets.Fonts().Get(context.localization.BoldFont()), context.localization.Get("campaign_menu.title"), 42)
-	, hordeTitle(context.assets.Fonts().Get(context.localization.BoldFont()), context.localization.Get("campaign_menu.horde"), 42)
-	, runTitle(context.assets.Fonts().Get(context.localization.BoldFont()), context.localization.Get("campaign_menu.run"), 42)
-	, runLabel(context.assets.Fonts().Get(context.localization.GetLanguage() == Language::English ? Config::Font::BodyRegular : context.localization.RegularFont()), context.localization.Get("records.best_time"), 27)
-	, runValue(context.assets.Fonts().Get(context.localization.RegularFont()), "00:00", 48)
-	, returnButton(context.assets.Fonts().Get(context.localization.RegularFont()),
+	, campaignTitle(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("campaign_menu.title"), 42)
+	, hordeTitle(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("campaign_menu.horde"), 42)
+	, runTitle(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("campaign_menu.run"), 42)
+	, runLabel(context.assets.Fonts().Get(context.localization.GetCurrentLanguage() == Language::English ? Config::Font::BodyRegular : context.localization.GetRegularFont()), context.localization.GetText("records.best_time"), 27)
+	, runValue(context.assets.Fonts().Get(context.localization.GetRegularFont()), "00:00", 48)
+	, returnButton(context.assets.Fonts().Get(context.localization.GetRegularFont()),
 		context.assets.Textures().Get(Config::Texture::MenuButtonIdle),
 		context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
 		"", { 540.f, 104.f })
@@ -109,14 +109,14 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 	CenterText(hordeTitle, { 1380.f, 170.f });
 	CenterText(runTitle, { 1380.f, 535.f });
 
-	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetLanguage() == Language::English ? Config::Font::BodyRegular : context.localization.RegularFont()) };
-	const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.RegularFont()) };
+	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetCurrentLanguage() == Language::English ? Config::Font::BodyRegular : context.localization.GetRegularFont()) };
+	const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.GetRegularFont()) };
 	levelLabels.reserve(10u); levelScores.reserve(10u);
 	for (std::size_t index{ 0 }; index < 10u; ++index)
 	{
 		const int level{ static_cast<int>(index) + 1 };
 		const float y{ CampaignPosition.y + 70.f + static_cast<float>(index) * 58.f };
-		sf::String levelLabel{ context.localization.Get("records.level") };
+		sf::String levelLabel{ context.localization.GetText("records.level") };
 		levelLabel += " " + std::to_string(level);
 		levelLabels.emplace_back(bodyFont, levelLabel, 27);
 		levelScores.emplace_back(menuFont,
@@ -128,7 +128,7 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 	}
 	const GameRecords& records{ context.records.GetRecords() };
 	const std::array<sf::String, 2> hordeNames{
-		context.localization.Get("records.waves_survived"), context.localization.Get("records.best_score") };
+		context.localization.GetText("records.waves_survived"), context.localization.GetText("records.best_score") };
 	const std::array<int, 2> hordeNumbers{ records.hordeWaves, records.hordeScore };
 	hordeLabels.reserve(2u); hordeValues.reserve(2u);
 	for (std::size_t index{ 0 }; index < 2u; ++index)
@@ -147,7 +147,7 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 	CenterText(runLabel, { 1380.f, RunPosition.y + 95.f });
 	CenterText(runValue, { 1380.f, RunPosition.y + 195.f });
 	returnButton.SetPosition({ 690.f, 935.f });
-	returnButton.SetLabel(context.localization.Get("common.back_main"));
+	returnButton.SetLabel(context.localization.GetText("common.back_main"));
 	returnButton.SetSelected(false);
 	fade.StartFadeIn(FadeDuration);
 }

@@ -39,7 +39,7 @@ TutorialDirector::TutorialDirector(
     const ControlSettings& controls)
     : logicalSize(size), localization(localizationManager)
     , panel(PanelSize, 18.f, 10u)
-    , text(assets.Fonts().Get(localizationManager.RegularFont(false)), "", 27)
+    , text(assets.Fonts().Get(localizationManager.GetRegularFont(false)), "", 27)
     , glow(assets)
 {
     panel.setFillColor(PanelColor);
@@ -55,9 +55,9 @@ TutorialDirector::TutorialDirector(
 		sf::String(", ") + BindingName(controls.moveRight) };
 	const sf::U8String bindingBytes{ bindings.toUtf8() };
 	const sf::U8String fireBytes{ BindingName(controls.fire).toUtf8() };
-    movementInstruction = localization.Format("tutorial.movement", "bindings",
+    movementInstruction = localization.FormatText("tutorial.movement", "bindings",
 		std::string(reinterpret_cast<const char*>(bindingBytes.data()), bindingBytes.size()));
-    fireInstruction = localization.Format("tutorial.fire", "binding",
+    fireInstruction = localization.FormatText("tutorial.fire", "binding",
 		std::string(reinterpret_cast<const char*>(fireBytes.data()), fireBytes.size()));
 }
 
@@ -164,43 +164,43 @@ std::optional<TutorialDirector::Action> TutorialDirector::EnterStep(
     case Step::BigAsteroid:
         bigMeteorBaseline = snapshot.bigMeteorsDestroyed;
         smallMeteorBaseline = snapshot.smallMeteorsDestroyed;
-		SetInstruction(localization.Get("tutorial.asteroid"));
+		SetInstruction(localization.GetText("tutorial.asteroid"));
         return Action::SpawnBigMeteor;
     case Step::Fragments:
-		SetInstruction(localization.Get("tutorial.fragments"));
+		SetInstruction(localization.GetText("tutorial.fragments"));
         break;
     case Step::Score:
-		SetInstruction(localization.Get("tutorial.score"));
+		SetInstruction(localization.GetText("tutorial.score"));
         return Action::HighlightScore;
     case Step::Armor:
-		SetInstruction(localization.Get("tutorial.armor"));
+		SetInstruction(localization.GetText("tutorial.armor"));
         return Action::HighlightArmor;
     case Step::Enemies:
-		SetInstruction(localization.Get("tutorial.enemies"));
+		SetInstruction(localization.GetText("tutorial.enemies"));
         break;
     case Step::Shooter:
         shooterBaseline = snapshot.shootersDestroyed;
-		SetInstruction(localization.Get("tutorial.shooter"));
+		SetInstruction(localization.GetText("tutorial.shooter"));
         return Action::SpawnShooter;
     case Step::Collision:
-		SetInstruction(localization.Get("tutorial.collision"));
+		SetInstruction(localization.GetText("tutorial.collision"));
         break;
     case Step::ShieldPickup:
         shieldPickupBaseline = snapshot.shieldPickupsCollected;
-		SetInstruction(localization.Get("tutorial.shield_pickup"));
+		SetInstruction(localization.GetText("tutorial.shield_pickup"));
         return Action::SpawnShield;
     case Step::ShieldInfo:
-		SetInstruction(localization.Get("tutorial.shield_info"));
+		SetInstruction(localization.GetText("tutorial.shield_info"));
         return Action::HighlightShield;
     case Step::PartPickup:
         partsBaseline = snapshot.partsCollected;
-		SetInstruction(localization.Get("tutorial.part_pickup"));
+		SetInstruction(localization.GetText("tutorial.part_pickup"));
         return Action::SpawnPart;
     case Step::PartInfo:
-		SetInstruction(localization.Get("tutorial.part_info"));
+		SetInstruction(localization.GetText("tutorial.part_info"));
         return Action::HighlightParts;
     case Step::Finish:
-		SetInstruction(localization.Get("tutorial.complete"));
+		SetInstruction(localization.GetText("tutorial.complete"));
         break;
     case Step::Complete:
         active = false;
@@ -306,13 +306,13 @@ sf::String TutorialDirector::BindingName(const ControlBinding& binding) const
 	{
 		switch (static_cast<sf::Mouse::Button>(binding.code))
 		{
-		case sf::Mouse::Button::Left: return localization.Get("options.mouse_left");
-		case sf::Mouse::Button::Right: return localization.Get("options.mouse_right");
-		case sf::Mouse::Button::Middle: return localization.Get("options.mouse_middle");
-		case sf::Mouse::Button::Extra1: return localization.Get("options.mouse_4");
-		case sf::Mouse::Button::Extra2: return localization.Get("options.mouse_5");
+		case sf::Mouse::Button::Left: return localization.GetText("options.mouse_left");
+		case sf::Mouse::Button::Right: return localization.GetText("options.mouse_right");
+		case sf::Mouse::Button::Middle: return localization.GetText("options.mouse_middle");
+		case sf::Mouse::Button::Extra1: return localization.GetText("options.mouse_4");
+		case sf::Mouse::Button::Extra2: return localization.GetText("options.mouse_5");
 		}
-		return localization.Get("options.mouse");
+		return localization.GetText("options.mouse");
 	}
 
     const auto key{ static_cast<sf::Keyboard::Key>(binding.code) };

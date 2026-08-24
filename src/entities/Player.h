@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <optional>
 
+#include <SFML/System/Vector2.hpp>
+
 #include "core/Entity.h"
 #include "input/InputHandler.h"
 #include "utils/ConfigEnums.h"
@@ -15,13 +17,25 @@ class GamepadManager;
 namespace sf
 {
 	class Event;
+	class RenderWindow;
 }
+
+// Snapshot of the fields GameplayEffects needs to drive the engine-exhaust
+// particles, sampled once per frame rather than exposing the underlying
+// state directly.
+struct PlayerEffectState
+{
+	std::array<sf::Vector2f, 2> enginePositions;
+	sf::Vector2f velocity;
+	sf::Vector2f exhaustDirection;
+	bool isThrusting{ false };
+};
 
 class Player final : public Entity
 {
 public:
 	Player(Assets& assets, World& world, InputHandler<Config::PlayerAction>& input,
-		GamepadManager& gamepad);
+		GamepadManager& gamepad, sf::RenderWindow& window);
 	~Player();
 
 	Type GetType() const noexcept override;
@@ -45,6 +59,7 @@ public:
 	[[nodiscard]] float GetLaserVisualTime() const noexcept;
 	[[nodiscard]] sf::Vector2f GetExhaustDirection() const noexcept;
 	[[nodiscard]] std::optional<sf::Vector2f> GetGamepadAimPoint() const;
+	[[nodiscard]] std::optional<PlayerEffectState> GetEffectState() const;
 
 private:
 	void BindInput();
@@ -58,6 +73,7 @@ private:
 
 	InputHandler<Config::PlayerAction>& input;
 	GamepadManager& gamepad;
+	sf::RenderWindow& window;
 	sf::Vector2f moveInput{ 0.f, 0.f };
 	sf::Vector2f gamepadAimDirection{ 0.f, -1.f };
 	float shootTimer{ 0.f };

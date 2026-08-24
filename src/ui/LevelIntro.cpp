@@ -40,8 +40,8 @@ LevelIntro::LevelIntro(Assets& assets, LocalizationManager& localize, sf::Vector
 	, panel(PanelSize, 28.f, 12u)
 	, upperLine({ 760.f, 3.f })
 	, lowerLine({ 420.f, 2.f })
-	, levelLabel(assets.Fonts().Get(localize.BoldFont()), "", 72u)
-	, title(assets.Fonts().Get(localize.RegularFont()), "", 46u)
+	, levelLabel(assets.Fonts().Get(localize.GetBoldFont()), "", 72u)
+	, title(assets.Fonts().Get(localize.GetRegularFont()), "", 46u)
 	, logicalSize(screenSize)
 {
 	shade.setFillColor(sf::Color::Transparent);
@@ -66,17 +66,17 @@ LevelIntro::LevelIntro(Assets& assets, LocalizationManager& localize, sf::Vector
 
 void LevelIntro::Start(int levelNumber)
 {
-	levelLabel.setFont(assets.Fonts().Get(localization.BoldFont()));
-	title.setFont(assets.Fonts().Get(localization.RegularFont()));
+	levelLabel.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+	title.setFont(assets.Fonts().Get(localization.GetRegularFont()));
 	titleGlowEnabled = true;
-	StartWithText(localization.Format("intro.level", "value", std::to_string(levelNumber)),
-		localization.Get("levels.title_" + std::to_string(levelNumber)));
+	StartWithText(localization.FormatText("intro.level", "value", std::to_string(levelNumber)),
+		localization.GetText("levels.title_" + std::to_string(levelNumber)));
 }
 
 void LevelIntro::StartMode(const sf::String& modeName, const sf::String& objective)
 {
-	levelLabel.setFont(assets.Fonts().Get(localization.BoldFont()));
-	title.setFont(assets.Fonts().Get(localization.RegularFont(false)));
+	levelLabel.setFont(assets.Fonts().Get(localization.GetBoldFont()));
+	title.setFont(assets.Fonts().Get(localization.GetRegularFont(false)));
 	titleGlowEnabled = false;
 	StartWithText(modeName, objective);
 }

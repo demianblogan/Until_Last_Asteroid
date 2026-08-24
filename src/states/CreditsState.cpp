@@ -49,11 +49,11 @@ CreditsState::CreditsState(StateStack& stack, StateContext context)
 	, buttonGlow(context.assets)
 	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Cyan)
 	, fade(context.logicalSize)
-	, title(context.assets.Fonts().Get(context.localization.BoldFont()), context.localization.Get("credits.title"), 72u)
-	, returnButton(context.assets.Fonts().Get(context.localization.RegularFont()),
+	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("credits.title"), 72u)
+	, returnButton(context.assets.Fonts().Get(context.localization.GetRegularFont()),
 		context.assets.Textures().Get(Config::Texture::MenuButtonIdle),
 		context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
-		context.localization.Get("common.back_main"), ButtonSize)
+		context.localization.GetText("common.back_main"), ButtonSize)
 {
 	context.window.setMouseCursorVisible(false);
 	title.setFillColor({ 215, 247, 252 });
@@ -62,10 +62,10 @@ CreditsState::CreditsState(StateStack& stack, StateContext context)
 	CenterText(title, { 960.f, 82.f });
 
 	bodyLines.reserve(CreditLines.size());
-	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.RegularFont(false)) };
+	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetRegularFont(false)) };
 	for (const CreditLine& line : CreditLines)
 	{
-		bodyLines.emplace_back(bodyFont, context.localization.Get(line.key), BodyAtlasSize);
+		bodyLines.emplace_back(bodyFont, context.localization.GetText(line.key), BodyAtlasSize);
 		bodyLines.back().setFillColor(line.color);
 		bodyLines.back().setOutlineColor({ 0, 8, 15, 225 });
 		bodyLines.back().setOutlineThickness(1.25f);
@@ -146,7 +146,7 @@ void CreditsState::RenderOverlay()
 void CreditsState::OnReactivated()
 {
 	GetContext().window.setMouseCursorVisible(false);
-	if (localizationRevision != GetContext().localization.GetRevision())
+	if (localizationRevision != GetContext().localization.GetLanguageRevision())
 		RefreshLocalizedContent();
 	returning = false;
 	returnButtonSelected = false;
@@ -158,28 +158,28 @@ void CreditsState::OnReactivated()
 void CreditsState::RefreshLocalizedContent()
 {
 	const StateContext& context{ GetContext() };
-	localizationRevision = context.localization.GetRevision();
+	localizationRevision = context.localization.GetLanguageRevision();
 
-	title.setFont(context.assets.Fonts().Get(context.localization.BoldFont()));
-	title.setString(context.localization.Get("credits.title"));
+	title.setFont(context.assets.Fonts().Get(context.localization.GetBoldFont()));
+	title.setString(context.localization.GetText("credits.title"));
 	CenterText(title, { 960.f, 82.f });
 	titleGlow.Invalidate();
 
-	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.RegularFont(false)) };
+	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetRegularFont(false)) };
 	for (std::size_t index{ 0u }; index < CreditLines.size(); ++index)
 	{
 		const CreditLine& line{ CreditLines[index] };
 		sf::Text& text{ bodyLines[index] };
 		text.setFont(bodyFont);
-		text.setString(context.localization.Get(line.key));
+		text.setString(context.localization.GetText(line.key));
 		const float visualScale{ static_cast<float>(line.size) / static_cast<float>(BodyAtlasSize) };
 		text.setScale({ visualScale, visualScale });
 		TextLayout::FitWidth(text, PanelBounds.size.x - 180.f, 18u);
 		CenterText(text, { 960.f, line.y });
 	}
 
-	returnButton.SetFont(context.assets.Fonts().Get(context.localization.RegularFont()));
-	returnButton.SetLabel(context.localization.Get("common.back_main"));
+	returnButton.SetFont(context.assets.Fonts().Get(context.localization.GetRegularFont()));
+	returnButton.SetLabel(context.localization.GetText("common.back_main"));
 }
 
 void CreditsState::BeginReturn()

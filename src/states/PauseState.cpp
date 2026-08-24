@@ -56,10 +56,10 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     , blurredFrame(GetViewportSize(context.window))
     , blurShader(context.assets.GetShader(Config::Shader::GaussianBlur))
     , darkOverlay(context.logicalSize)
-    , titleGlow(context.assets.Fonts().Get(context.localization.BoldFont()),
-		context.localization.Get("pause.title"), 92)
-    , title(context.assets.Fonts().Get(context.localization.BoldFont()),
-		context.localization.Get("pause.title"), 92)
+    , titleGlow(context.assets.Fonts().Get(context.localization.GetBoldFont()),
+		context.localization.GetText("pause.title"), 92)
+    , title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
+		context.localization.GetText("pause.title"), 92)
     , neonGlow(context.assets)
     , menuCursor(
         context.assets,
@@ -104,18 +104,18 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     titleGlow.setPosition(menuCenter);
     title.setPosition(menuCenter);
 
-    const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.RegularFont()) };
+    const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.GetRegularFont()) };
     const sf::Texture& idleTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
     const sf::Texture& selectedTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 
 	std::vector<std::pair<sf::String, PauseAction>> menuItems{
-		{ context.localization.Get("pause.resume"), PauseAction::Resume },
-		{ context.localization.Get(tutorialMenu ? "pause.restart_tutorial" : "pause.restart_level"), PauseAction::RestartLevel }
+		{ context.localization.GetText("pause.resume"), PauseAction::Resume },
+		{ context.localization.GetText(tutorialMenu ? "pause.restart_tutorial" : "pause.restart_level"), PauseAction::RestartLevel }
 	};
 	if (tutorialMenu)
-		menuItems.emplace_back(context.localization.Get("pause.skip_tutorial"), PauseAction::SkipTutorial);
-	menuItems.emplace_back(context.localization.Get("main_menu.options"), PauseAction::Options);
-	menuItems.emplace_back(context.localization.Get("common.back_main"), PauseAction::MainMenu);
+		menuItems.emplace_back(context.localization.GetText("pause.skip_tutorial"), PauseAction::SkipTutorial);
+	menuItems.emplace_back(context.localization.GetText("main_menu.options"), PauseAction::Options);
+	menuItems.emplace_back(context.localization.GetText("common.back_main"), PauseAction::MainMenu);
 
     buttons.reserve(menuItems.size());
 	buttonActions.reserve(menuItems.size());
@@ -129,7 +129,7 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     }
     Select(0, false);
 
-    localizationRevision = context.localization.GetRevision();
+    localizationRevision = context.localization.GetLanguageRevision();
 
     musicWasPlaying = context.audio.IsGameplayMusicPlaying();
     context.audio.PauseGameplayMusic();
@@ -224,7 +224,7 @@ void PauseState::Update(float deltaTime)
     // Pause stays on the stack (not popped) while Options is open on top of
     // it, so a language change there wouldn't otherwise be noticed until
     // something else happened to touch this state's text.
-    if (localizationRevision != GetContext().localization.GetRevision())
+    if (localizationRevision != GetContext().localization.GetLanguageRevision())
         RefreshLocalizedContent();
 
     neonGlow.Update(deltaTime);
@@ -357,14 +357,14 @@ void PauseState::CaptureBlurredFrame()
 void PauseState::RefreshLocalizedContent()
 {
     const StateContext& context{ GetContext() };
-    localizationRevision = context.localization.GetRevision();
+    localizationRevision = context.localization.GetLanguageRevision();
     const bool tutorialMenu{ context.gameplayLaunch.tutorialRunning };
 
-    const sf::Font& headingFont{ context.assets.Fonts().Get(context.localization.BoldFont()) };
+    const sf::Font& headingFont{ context.assets.Fonts().Get(context.localization.GetBoldFont()) };
     titleGlow.setFont(headingFont);
-    titleGlow.setString(context.localization.Get("pause.title"));
+    titleGlow.setString(context.localization.GetText("pause.title"));
     title.setFont(headingFont);
-    title.setString(context.localization.Get("pause.title"));
+    title.setString(context.localization.GetText("pause.title"));
 
     const sf::FloatRect titleBounds{ title.getLocalBounds() };
     const sf::Vector2f titleOrigin{
@@ -374,15 +374,15 @@ void PauseState::RefreshLocalizedContent()
     titleGlow.setOrigin(titleOrigin);
     title.setOrigin(titleOrigin);
 
-    const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.RegularFont()) };
+    const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.GetRegularFont()) };
     std::vector<sf::String> labels{
-        context.localization.Get("pause.resume"),
-        context.localization.Get(tutorialMenu ? "pause.restart_tutorial" : "pause.restart_level")
+        context.localization.GetText("pause.resume"),
+        context.localization.GetText(tutorialMenu ? "pause.restart_tutorial" : "pause.restart_level")
     };
     if (tutorialMenu)
-        labels.push_back(context.localization.Get("pause.skip_tutorial"));
-    labels.push_back(context.localization.Get("main_menu.options"));
-    labels.push_back(context.localization.Get("common.back_main"));
+        labels.push_back(context.localization.GetText("pause.skip_tutorial"));
+    labels.push_back(context.localization.GetText("main_menu.options"));
+    labels.push_back(context.localization.GetText("common.back_main"));
 
     for (std::size_t index{ 0u }; index < buttons.size() && index < labels.size(); ++index)
     {
