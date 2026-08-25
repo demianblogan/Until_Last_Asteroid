@@ -9,7 +9,7 @@
 #include "ui/GlowingCursor.h"
 #include "ui/MenuBackground.h"
 #include "ui/MenuButton.h"
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
 #include "ui/ScreenFade.h"
 

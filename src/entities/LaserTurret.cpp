@@ -6,7 +6,7 @@
 #include <SFML/Audio/SoundBuffer.hpp>
 
 #include "assets/Assets.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -135,7 +135,7 @@ void LaserTurret::Update(float deltaTime)
 
 	if (traversalElapsed >= laserDuration)
 	{
-		GetWorld().StopSound(laserSoundHandle);
+		GetWorld().Sound().StopSound(laserSoundHandle);
 		laserSoundHandle = 0u;
 		SetPosition(targetCorner);
 		SetVelocity({});
@@ -154,7 +154,7 @@ void LaserTurret::BeginTraversal()
 	traversalElapsed = 0.f;
 	const sf::Vector2f delta{ targetCorner - GetPosition() };
 	SetVelocity(delta / laserDuration);
-	laserSoundHandle = GetWorld().AddSound(Config::Sound::EnemyLaserShot);
+	laserSoundHandle = GetWorld().Sound().AddSound(Config::Sound::EnemyLaserShot);
 }
 
 bool LaserTurret::ReachedTarget(sf::Vector2f target) const noexcept
@@ -166,9 +166,9 @@ bool LaserTurret::ReachedTarget(sf::Vector2f target) const noexcept
 
 void LaserTurret::OnDestroy()
 {
-	GetWorld().StopSound(laserSoundHandle);
+	GetWorld().Sound().StopSound(laserSoundHandle);
 	laserSoundHandle = 0u;
-	GetWorld().AddSound(Config::Sound::ShipExplosion, 0.82f);
-	GetWorld().AddEffectEvent({ EffectEventType::ShipExplosion,
+	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion, 0.82f);
+	GetWorld().Effects().Add({ EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.3f });
 }

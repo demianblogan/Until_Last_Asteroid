@@ -14,7 +14,7 @@
 
 #include "assets/Assets.h"
 #include "localization/LocalizationManager.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "rendering/EnergyShield.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
@@ -309,7 +309,7 @@ void BossEncounter::Update(
 	UpdateLightning(deltaTime);
 	if (state == State::Dormant)
 		return;
-	world.ClearBossHomingTargets();
+	world.BossHomingTargets().Clear();
 	if (!IsDefeatSequenceActive())
 	{
 		world.KeepPlayerOutsideCircle(
@@ -336,7 +336,7 @@ void BossEncounter::Update(
 			BeginOuterShield(2);
 		else if (shieldCycle == 2 && healthRatio <= config.outerRingEndHealthRatio)
 		{
-			world.AddEffectEvent({ EffectEventType::BossDestructionShake,
+			world.Effects().Add({ EffectEventType::BossDestructionShake,
 				position, {}, 8.f, 1000 });
 			world.SpawnPickupAt(
 				GameplayData::PickupKind::Health, GetSafePickupPosition(0u));
@@ -554,7 +554,7 @@ void BossEncounter::DebugDefeat(World& world)
 	stateElapsed = 0.f;
 	coreExplosionElapsed = 0.f;
 	victoryCleanupElapsed = 0.f;
-	world.AddEffectEvent({ EffectEventType::BossDestructionShake,
+	world.Effects().Add({ EffectEventType::BossDestructionShake,
 		position + CoreVisualOffset, {}, 12.f, 3500 });
 }
 #endif
@@ -625,7 +625,7 @@ void BossEncounter::UpdateOuterRingMechanics(float deltaTime, World& world)
 				std::sin(angleRadians) * config.cannonOrbitRadius } };
 			const sf::Vector2f fireDirection{
 				std::cos(angleRadians), std::sin(angleRadians) };
-			world.AddEffectEvent({
+			world.Effects().Add({
 				EffectEventType::EnemyMuzzleFlash,
 				cannonPosition,
 				fireDirection,
@@ -722,7 +722,7 @@ void BossEncounter::UpdateOuterRingDestruction(float deltaTime, World& world)
 		const float angle{ Random::Float(0.f, 2.f * std::numbers::pi_v<float>) };
 		const float radius{ Random::Float(
 			config.outerRingInnerRadius, config.outerRingOuterRadius) };
-		world.AddEffectEvent({
+		world.Effects().Add({
 			EffectEventType::ShipExplosion,
 			position + sf::Vector2f{ std::cos(angle) * radius, std::sin(angle) * radius },
 			{},
@@ -733,8 +733,8 @@ void BossEncounter::UpdateOuterRingDestruction(float deltaTime, World& world)
 	{
 		outerRing.setPosition(position);
 		outerRingVisible = false;
-		world.AddSound(Config::Sound::ShipExplosion, 0.68f);
-		world.AddEffectEvent({
+		world.Sound().AddSound(Config::Sound::ShipExplosion, 0.68f);
+		world.Effects().Add({
 			EffectEventType::ShipExplosion, position, {}, 1.8f });
 		state = State::InnerPhase;
 		stateElapsed = 0.f;
@@ -759,7 +759,7 @@ void BossEncounter::UpdateInnerPhase(
 		if (portalHealth[index] > 0)
 			homingTargets[index] = GetPortalPosition(index);
 	}
-	world.SetBossHomingTargets(homingTargets);
+	world.BossHomingTargets().Set(homingTargets);
 
 	nextPortalSpawn -= deltaTime;
 	if (nextPortalSpawn <= 0.f)
@@ -826,8 +826,8 @@ void BossEncounter::HandlePortalImpacts(World& world)
 		nextPortalSpawn = std::min(
 			nextPortalSpawn,
 			config.portalSpawnIntervalPerAlive * static_cast<float>(aliveCount));
-		world.AddSound(Config::Sound::ShipExplosion, 0.92f);
-		world.AddEffectEvent({ EffectEventType::ShipExplosion,
+		world.Sound().AddSound(Config::Sound::ShipExplosion, 0.92f);
+		world.Effects().Add({ EffectEventType::ShipExplosion,
 			GetPortalPosition(index), {}, 0.72f });
 		world.SpawnPickupAt(
 			GameplayData::PickupKind::Health, GetSafePickupPosition(index));
@@ -835,7 +835,7 @@ void BossEncounter::HandlePortalImpacts(World& world)
 			portalHealth.begin(), portalHealth.end(), [](int value) { return value > 0; }) };
 		if (allDestroyed)
 		{
-			world.AddEffectEvent({ EffectEventType::BossDestructionShake,
+			world.Effects().Add({ EffectEventType::BossDestructionShake,
 				position, {}, 8.f, 1000 });
 			BeginDiamondDestruction();
 		}
@@ -875,7 +875,7 @@ void BossEncounter::UpdateDiamondDestruction(float deltaTime, World& world)
 	{
 		destructionExplosionElapsed -= config.diamondExplosionInterval;
 		const float angle{ Random::Float(0.f, 2.f * std::numbers::pi_v<float>) };
-		world.AddEffectEvent({ EffectEventType::ShipExplosion,
+		world.Effects().Add({ EffectEventType::ShipExplosion,
 			position + sf::Vector2f{
 				std::cos(angle) * config.portalOrbitRadius,
 				std::sin(angle) * config.portalOrbitRadius },
@@ -885,8 +885,8 @@ void BossEncounter::UpdateDiamondDestruction(float deltaTime, World& world)
 	{
 		diamond.setPosition(position);
 		diamondVisible = false;
-		world.AddSound(Config::Sound::ShipExplosion, 0.76f);
-		world.AddEffectEvent({ EffectEventType::ShipExplosion,
+		world.Sound().AddSound(Config::Sound::ShipExplosion, 0.76f);
+		world.Effects().Add({ EffectEventType::ShipExplosion,
 			position, {}, 1.45f });
 		state = State::CoreShieldWarning;
 		stateElapsed = 0.f;
@@ -1070,7 +1070,7 @@ void BossEncounter::HandleCoreLaser(
 	if (offset.x * offset.x + offset.y * offset.y > hitRadius * hitRadius)
 		return;
 	world.RegisterPlayerAttackHit(laser->attackID);
-	world.AddEffectEvent({ EffectEventType::ShipHit,
+	world.Effects().Add({ EffectEventType::ShipHit,
 		impactPosition, segment, 1.15f });
 	ApplyCoreDamage(laser->damage, world, spawnReinforcement);
 }
@@ -1096,7 +1096,7 @@ void BossEncounter::ApplyCoreDamage(
 		stateElapsed = 0.f;
 		coreExplosionElapsed = 0.f;
 		victoryCleanupElapsed = 0.f;
-		world.AddEffectEvent({ EffectEventType::BossDestructionShake,
+		world.Effects().Add({ EffectEventType::BossDestructionShake,
 			position + CoreVisualOffset, {}, 12.f, 3500 });
 	}
 }
@@ -1116,7 +1116,7 @@ void BossEncounter::UpdateCoreDestruction(float deltaTime, World& world)
 		coreExplosionElapsed -= 0.11f;
 		const float angle{ Random::Float(0.f, 2.f * std::numbers::pi_v<float>) };
 		const float radius{ Random::Float(10.f, config.coreCollisionRadius) };
-		world.AddEffectEvent({ EffectEventType::ShipExplosion,
+		world.Effects().Add({ EffectEventType::ShipExplosion,
 			position + CoreVisualOffset + sf::Vector2f{
 				std::cos(angle) * radius, std::sin(angle) * radius },
 			{}, Random::Float(0.28f, 0.58f) });
@@ -1125,8 +1125,8 @@ void BossEncounter::UpdateCoreDestruction(float deltaTime, World& world)
 		return;
 	coreVisible = false;
 	world.DestroyAllBossVictoryTargets();
-	world.AddSound(Config::Sound::ShipExplosion, 0.48f);
-	world.AddEffectEvent({ EffectEventType::ShipExplosion,
+	world.Sound().AddSound(Config::Sound::ShipExplosion, 0.48f);
+	world.Effects().Add({ EffectEventType::ShipExplosion,
 		position + CoreVisualOffset, {}, 3.4f });
 	state = State::VictorySilence;
 	stateElapsed = 0.f;

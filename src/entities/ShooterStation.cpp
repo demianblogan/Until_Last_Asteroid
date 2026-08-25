@@ -5,7 +5,7 @@
 #include <numbers>
 
 #include "assets/Assets.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "core/Collision.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
@@ -146,7 +146,7 @@ void ShooterStation::Update(float deltaTime)
 			const sf::Vector2f offset{
 				Random::Float(-0.62f, 0.62f) * GetCollisionRadius(),
 				Random::Float(-0.62f, 0.62f) * GetCollisionRadius() };
-			GetWorld().AddEffectEvent({
+			GetWorld().Effects().Add({
 				EffectEventType::StationChainExplosion,
 				GetPosition() + offset, {}, Random::Float(1.05f, 1.45f) });
 		}
@@ -169,7 +169,7 @@ void ShooterStation::Update(float deltaTime)
 			targetPoint = pathEnd;
 			creationRemaining = shieldDuration;
 			weldingAccumulator = 0.f;
-			workingSoundHandle = GetWorld().AddSound(
+			workingSoundHandle = GetWorld().Sound().AddSound(
 				Config::Sound::EnemyStationWorking);
 			GetWorld().SpawnStationShooter(
 				GetPosition(), spawnAnimationDuration, this);
@@ -196,13 +196,13 @@ void ShooterStation::Update(float deltaTime)
 		while (weldingAccumulator >= WeldingInterval)
 		{
 			weldingAccumulator -= WeldingInterval;
-			GetWorld().AddEffectEvent({
+			GetWorld().Effects().Add({
 				EffectEventType::StationWelding,
 				GetPosition(), {}, 1.f });
 		}
 		if (creationRemaining <= 0.f)
 		{
-			GetWorld().StopSound(workingSoundHandle);
+			GetWorld().Sound().StopSound(workingSoundHandle);
 			workingSoundHandle = 0u;
 		}
 	}
@@ -213,7 +213,7 @@ void ShooterStation::Update(float deltaTime)
 		spawnElapsed -= GetActionInterval();
 		creationRemaining = shieldDuration;
 		weldingAccumulator = 0.f;
-		workingSoundHandle = GetWorld().AddSound(Config::Sound::EnemyStationWorking);
+		workingSoundHandle = GetWorld().Sound().AddSound(Config::Sound::EnemyStationWorking);
 		GetWorld().SpawnStationShooter(
 			GetPosition(), spawnAnimationDuration, this);
 	}
@@ -229,7 +229,7 @@ void ShooterStation::BeginDestruction()
 	destructionExplosionAccumulator = 0.f;
 	destructionElapsed = 0.f;
 	SetVelocity({});
-	GetWorld().StopSound(workingSoundHandle);
+	GetWorld().Sound().StopSound(workingSoundHandle);
 	workingSoundHandle = 0u;
 }
 
@@ -242,9 +242,9 @@ bool ShooterStation::ReachedTarget() const noexcept
 
 void ShooterStation::OnDestroy()
 {
-	GetWorld().StopSound(workingSoundHandle);
+	GetWorld().Sound().StopSound(workingSoundHandle);
 	workingSoundHandle = 0u;
-	GetWorld().AddSound(Config::Sound::ShipExplosion, 0.58f);
-	GetWorld().AddEffectEvent({ EffectEventType::StationExplosion,
+	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion, 0.58f);
+	GetWorld().Effects().Add({ EffectEventType::StationExplosion,
 		GetPosition(), {}, 2.f });
 }

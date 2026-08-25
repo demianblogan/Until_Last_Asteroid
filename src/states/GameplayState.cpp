@@ -289,7 +289,7 @@ void GameplayState::OpenPauseMenu()
 {
 	if (!gameplaySoundsPaused)
 	{
-		world.PauseActiveSounds();
+		world.Sound().PauseActiveSounds();
 		gameplaySoundsPaused = true;
 	}
 	RequestPush(StateID::Pause);
@@ -299,7 +299,7 @@ void GameplayState::ResumeGameplaySounds()
 {
 	if (!gameplaySoundsPaused)
 		return;
-	world.ResumePausedSounds();
+	world.Sound().ResumePausedSounds();
 	gameplaySoundsPaused = false;
 }
 
@@ -317,7 +317,7 @@ void GameplayState::Update(float dt)
 		gameplayTransition == GameplayTransition::None)
 	{
 		GetContext().gameplayLaunch.pendingCommand = GameplayRuntimeCommand::None;
-		world.StopActiveSounds();
+		world.Sound().StopActiveSounds();
 		gameplaySoundsPaused = false;
 		if (runtimeCommand == GameplayRuntimeCommand::SkipTutorial && tutorialActive)
 			FinishTutorial();
@@ -463,7 +463,7 @@ void GameplayState::Update(float dt)
 			!bossVictorySequenceStarted)
 		{
 			bossVictorySequenceStarted = true;
-			world.StopActiveSounds();
+			world.Sound().StopActiveSounds();
 			GetContext().audio.StopGameplayMusic();
 			session.AddScore(10000);
 			session.ClearTemporaryEffects();
@@ -870,7 +870,7 @@ void GameplayState::SpawnConfiguredEnemy(
 		waveMaterializationElapsed = 0.f;
 		entity->SetPresentation(0.7f, 0.f, sf::Color(80, 225, 255));
 		materializingEnemies.push_back(entity.get());
-		world.AddEffectEvent({ EffectEventType::PlayerTeleport,
+		world.Effects().Add({ EffectEventType::PlayerTeleport,
 			entity->GetPosition(), {}, 1.25f });
 	}
 	world.Spawn(std::move(entity));
@@ -1255,7 +1255,7 @@ void GameplayState::DebugCompleteCurrentLevel()
 		static_cast<void>(session.RecoverPart(id));
 	session.DebugPreparePartsBalance(CompleteUpgradeTestBalance);
 
-	world.StopActiveSounds();
+	world.Sound().StopActiveSounds();
 	world.ClearProjectiles();
 	CompleteCurrentLevel();
 }
@@ -1271,25 +1271,25 @@ void GameplayState::BeginGameOver()
 			static_cast<void>(GetContext().campaignSave.Save());
 		}
 	}
-	world.StopActiveSounds();
-	world.AddSound(Config::Sound::ShipExplosion);
+	world.Sound().StopActiveSounds();
+	world.Sound().AddSound(Config::Sound::ShipExplosion);
 	GetContext().audio.PauseGameplayMusic();
 	if (hordeMode)
 	{
 		static_cast<void>(GetContext().records.SubmitHordeResult(
 			hordeWavesSurvived, session.GetScore()));
-		gameOverScreen.StartHorde(session.GetScore(), hordeWavesSurvived);
+		gameOverScreen.ShowInHordeMode(session.GetScore(), hordeWavesSurvived);
 	}
 	else if (runMode)
 	{
 		const int survivedSeconds{ static_cast<int>(std::floor(runElapsed)) };
 		static_cast<void>(GetContext().records.SubmitRunSeconds(survivedSeconds));
-		gameOverScreen.StartRun(
+		gameOverScreen.ShowInRunMode(
 			survivedSeconds,
 			GetContext().records.GetRecords().runSeconds);
 	}
 	else
-		gameOverScreen.Start(session.GetScore());
+		gameOverScreen.ShowInCampaignMode(session.GetScore());
 }
 
 void GameplayState::BeginGameOverTransition(GameOverScreen::Action action)
@@ -1304,7 +1304,7 @@ void GameplayState::BeginResultTransition(ResultScreen::Action action)
 {
 	if (action == ResultScreen::Action::Restart)
 	{
-		world.StopActiveSounds();
+		world.Sound().StopActiveSounds();
 		session.DiscardRecoveredParts();
 		gameplayTransition = GameplayTransition::RestartLevel;
 		screenFade.StartFadeOut(GameplayFadeOutDuration);
@@ -1950,7 +1950,7 @@ void GameplayState::BeginPlayerWaveTeleport()
 	playerTeleportElapsed = 0.f;
 	playerTeleportAnimating = true;
 	playerTeleportMoved = false;
-	world.AddEffectEvent({
+	world.Effects().Add({
 		EffectEventType::PlayerTeleport,
 		world.GetPlayerPosition(), {}, 0.85f });
 }
@@ -1972,7 +1972,7 @@ void GameplayState::UpdatePlayerWaveTeleport(float deltaTime)
 		if (!playerTeleportMoved)
 		{
 			world.TeleportPlayerToCenter();
-			world.AddEffectEvent({
+			world.Effects().Add({
 				EffectEventType::PlayerTeleport,
 				world.GetPlayerPosition(), {}, 1.15f });
 			playerTeleportMoved = true;

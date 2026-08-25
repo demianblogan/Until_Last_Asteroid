@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Code">
@@ -16,6 +16,14 @@
     <ClCompile Include="src\campaign\CampaignSaveManager.cpp" />
 	<ClCompile Include="src\records\RecordsManager.cpp" />
     <ClCompile Include="src\core\Collision.cpp" />
+    <ClCompile Include="src\core\world\ProjectileGeometry.cpp" />
+    <ClCompile Include="src\core\world\WorldBossHomingTargets.cpp" />
+    <ClCompile Include="src\core\world\WorldCampaignPickupQueue.cpp" />
+    <ClCompile Include="src\core\world\WorldRewardExclusionZone.cpp" />
+    <ClCompile Include="src\core\world\WorldStatisticsTracker.cpp" />
+    <ClCompile Include="src\core\world\WorldPlayerAttackTracker.cpp" />
+    <ClCompile Include="src\core\world\WorldEffectEventQueue.cpp" />
+    <ClCompile Include="src\core\world\WorldSoundSystem.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
     <ClCompile Include="src\entities\Pickup.cpp" />
     <ClCompile Include="src\core\Entity.cpp" />
@@ -50,7 +58,7 @@
     <ClCompile Include="src\utils\AppDataPath.cpp" />
     <ClCompile Include="src\utils\Random.cpp" />
     <ClCompile Include="src\utils\SafeFileWrite.cpp" />
-    <ClCompile Include="src\core\World.cpp" />
+    <ClCompile Include="src\core\world\World.cpp" />
     <ClCompile Include="src\entities\Saucer.cpp" />
 	<ClCompile Include="src\entities\Spinner.cpp" />
     <ClCompile Include="src\entities\Shot.cpp" />
@@ -60,7 +68,7 @@
     <ClCompile Include="src\ui\MenuBackground.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
-    <ClCompile Include="src\ui\NeonGlow.cpp" />
+    <ClCompile Include="src\rendering\NeonGlow.cpp" />
     <ClCompile Include="src\ui\RoundedRectangleShape.cpp" />
     <ClCompile Include="src\ui\ScreenFade.cpp" />
     <ClCompile Include="src\ui\TextWarmup.cpp" />
@@ -82,11 +90,19 @@
     <ClInclude Include="src\app\DisplayManager.h" />
     <ClInclude Include="src\assets\AssetCache.h" />
     <ClInclude Include="src\core\Collision.h" />
+    <ClInclude Include="src\core\world\ProjectileGeometry.h" />
+    <ClInclude Include="src\core\world\WorldBossHomingTargets.h" />
+    <ClInclude Include="src\core\world\WorldCampaignPickupQueue.h" />
+    <ClInclude Include="src\core\world\WorldRewardExclusionZone.h" />
+    <ClInclude Include="src\core\world\WorldStatisticsTracker.h" />
+    <ClInclude Include="src\core\world\WorldPlayerAttackTracker.h" />
+    <ClInclude Include="src\core\world\WorldEffectEventQueue.h" />
+    <ClInclude Include="src\core\world\WorldSoundSystem.h" />
     <ClInclude Include="src\input\InputBinding.h" />
     <ClInclude Include="src\input\ActionMap.h" />
     <ClInclude Include="src\input\InputHandler.h" />
     <ClInclude Include="src\input\GamepadManager.h" />
-    <ClInclude Include="src\core\World.h" />
+    <ClInclude Include="src\core\world\World.h" />
     <ClInclude Include="src\entities\Shot.h" />
     <ClInclude Include="src\entities\Saucer.h" />
 	<ClInclude Include="src\entities\Spinner.h" />
@@ -132,7 +148,7 @@
     <ClInclude Include="src\ui\MenuBackground.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
-    <ClInclude Include="src\ui\NeonGlow.h" />
+    <ClInclude Include="src\rendering\NeonGlow.h" />
     <ClInclude Include="src\ui\RoundedRectangleShape.h" />
     <ClInclude Include="src\ui\ScreenFade.h" />
     <ClInclude Include="src\ui\TextWarmup.h" />

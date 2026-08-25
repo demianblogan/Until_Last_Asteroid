@@ -4,7 +4,7 @@
 #include <cmath>
 #include <numbers>
 #include "assets/Assets.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "utils/ConfigEnums.h"
 
 HomingMissile::HomingMissile(
@@ -74,10 +74,10 @@ void HomingMissile::Update(float deltaTime)
 	SetRotation(sf::radians(finalAngle + std::numbers::pi_v<float> * 0.5f));
 	Move(deltaTime);
 
-	GetWorld().AddEffectEvent({
+	GetWorld().Effects().Add({
 		EffectEventType::MissileSmoke,
 		GetPosition(), direction });
-	GetWorld().AddEffectEvent({
+	GetWorld().Effects().Add({
 		EffectEventType::EnemyProjectileGlow,
 		GetPosition(), direction, 1.2f });
 
@@ -97,8 +97,8 @@ void HomingMissile::OnDestroy()
 	if (!detonating)
 		return;
 
-	GetWorld().AddSound(Config::Sound::ShipExplosion, 1.15f);
-	GetWorld().AddEffectEvent({
+	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion, 1.15f);
+	GetWorld().Effects().Add({
 		EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 0.72f });
 	GetWorld().ExplodeEnemyMissile(

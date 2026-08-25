@@ -6,7 +6,7 @@
 #include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
-#include "core/World.h"
+#include "core/world/World.h"
 
 Meteor::Meteor(Assets& assets, World& world, Size size)
 	: Enemy(assets, world, GetRandomTexture(assets, size), GetConfig(assets, size)), size(size)
@@ -37,8 +37,8 @@ bool Meteor::IsCollideWith(const Entity& other) const
 
 void Meteor::OnDestroy()
 {
-	GetWorld().AddSound(Config::Sound::AsteroidExplosion, GetSoundPitch());
-	GetWorld().AddEffectEvent({
+	GetWorld().Sound().AddSound(Config::Sound::AsteroidExplosion, GetSoundPitch());
+	GetWorld().Effects().Add({
 		EffectEventType::AsteroidExplosion,
 		GetPosition(),
 		GetVelocity(),

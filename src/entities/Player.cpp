@@ -7,7 +7,7 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include "assets/Assets.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "gameplay/GameplaySession.h"
 #include "input/GamepadManager.h"
 
@@ -101,7 +101,7 @@ void Player::OnDestroy()
 {
 	StopLaserSounds();
 	SetVisible(true);
-	GetWorld().AddEffectEvent({
+	GetWorld().Effects().Add({
 		EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.35f });
 }
@@ -344,7 +344,7 @@ void Player::UpdateLaser(float dt)
 		{
 			// The laser must stop the instant the fire button is released,
 			// not fade out through a release/outro tail.
-			GetWorld().StopSound(laserSoundHandle);
+			GetWorld().Sound().StopSound(laserSoundHandle);
 			laserSoundHandle = 0u;
 		}
 		laserDamageTimer = 0.f;
@@ -356,7 +356,7 @@ void Player::UpdateLaser(float dt)
 	if (!wasFiring)
 	{
 		laserDamageTimer = pickupConfig.laserDamageInterval;
-		laserSoundHandle = GetWorld().AddSustainedSound(
+		laserSoundHandle = GetWorld().Sound().AddSustainedSound(
 			Config::Sound::PlayerLaserShot,
 			PlayerLaserPitch,
 			PlayerLaserLoopStart,
@@ -377,7 +377,7 @@ void Player::UpdateLaser(float dt)
 
 void Player::StopLaserSounds()
 {
-	GetWorld().StopSound(laserSoundHandle);
+	GetWorld().Sound().StopSound(laserSoundHandle);
 	laserSoundHandle = 0u;
 }
 

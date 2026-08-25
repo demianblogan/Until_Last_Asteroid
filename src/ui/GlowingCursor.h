@@ -4,31 +4,27 @@
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/System/Vector2.hpp>
 
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 #include "utils/ConfigEnums.h"
 
 class Assets;
 
 namespace sf
 {
-    class RenderWindow;
+	class RenderWindow;
 }
 
 class GlowingCursor
 {
 public:
-    GlowingCursor(
-        Assets& assets,
-        Config::Texture texture,
-        sf::Vector2f hotspot,
-        sf::Color glowColor);
+	GlowingCursor(Assets& assets, Config::Texture texture, sf::Vector2f hotspot, sf::Color glowColor);
 
-    void Update(float deltaTime);
-    void Draw(sf::RenderWindow& window);
-    void DrawAt(sf::RenderWindow& window, sf::Vector2f position);
+	void Update(float deltaTime);
+	void Draw(sf::RenderWindow& window);
+	void DrawAt(sf::RenderWindow& window, sf::Vector2f position);
 
 private:
-    sf::Sprite sprite;
-    NeonGlow glow;
-    sf::Color glowColor;
+	sf::Sprite sprite;
+	NeonGlow glowEffect;
+	sf::Color glowEffectColor;
 };

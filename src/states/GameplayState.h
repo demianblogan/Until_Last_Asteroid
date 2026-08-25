@@ -6,7 +6,7 @@
 #include <vector>
 #include <SFML/System/Vector2.hpp>
 
-#include "core/World.h"
+#include "core/world/World.h"
 #include "entities/Pickup.h"
 #include "gameplay/GameplayData.h"
 #include "gameplay/BossEncounter.h"

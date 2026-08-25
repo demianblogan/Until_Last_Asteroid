@@ -3,7 +3,7 @@
 #include <cmath>
 #include <numbers>
 #include "assets/Assets.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
 
@@ -109,8 +109,8 @@ void Spinner::ConfigureApproachTarget(sf::Vector2f target) noexcept
 
 void Spinner::OnDestroy()
 {
-	GetWorld().AddSound(Config::Sound::ShipExplosion);
-	GetWorld().AddEffectEvent({
+	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion);
+	GetWorld().Effects().Add({
 		EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.25f });
 }

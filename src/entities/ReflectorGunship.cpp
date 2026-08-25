@@ -5,7 +5,7 @@
 #include <numbers>
 
 #include "assets/Assets.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "core/Collision.h"
 #include "utils/ConfigEnums.h"
 
@@ -129,8 +129,8 @@ void ReflectorGunship::Update(float deltaTime)
 
 void ReflectorGunship::OnDestroy()
 {
-	GetWorld().AddSound(Config::Sound::ShipExplosion, GetSoundPitch());
-	GetWorld().AddEffectEvent({
+	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion, GetSoundPitch());
+	GetWorld().Effects().Add({
 		EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.45f });
 }

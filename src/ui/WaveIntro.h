@@ -2,7 +2,7 @@
 
 #include <SFML/Graphics/Text.hpp>
 
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 
 class Assets;
 class LocalizationManager;

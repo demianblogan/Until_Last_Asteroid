@@ -5,7 +5,7 @@
 #include <numbers>
 
 #include "assets/Assets.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "gameplay/GameplaySession.h"
 #include "utils/ConfigEnums.h"
 

@@ -123,12 +123,15 @@ bool Entity::CheckCollision(const Entity& other) const noexcept
 sf::Vector2f Entity::GetCollisionCircleCenter(
 	const Collision::LocalCircle& circle) const noexcept
 {
-	const float angle{ GetRotation().asRadians() };
-	const float cosine{ std::cos(angle) };
-	const float sine{ std::sin(angle) };
-	return GetPosition() + sf::Vector2f{
+	const float angle = GetRotation().asRadians();
+	const float cosine = std::cos(angle);
+	const float sine = std::sin(angle);
+
+	return GetPosition() + sf::Vector2f
+	{
 		circle.offset.x * cosine - circle.offset.y * sine,
-		circle.offset.x * sine + circle.offset.y * cosine };
+		circle.offset.x * sine + circle.offset.y * cosine
+	};
 }
 
 std::optional<Collision::CircleContactInfo> Entity::GetCollisionContactInfo(

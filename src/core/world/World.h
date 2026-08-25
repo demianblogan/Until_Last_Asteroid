@@ -1,17 +1,21 @@
 #pragma once
 
-#include <array>
 #include <cstdint>
 #include <memory>
 #include <optional>
-#include <unordered_set>
 #include <vector>
 
 #include <SFML/System/Vector2.hpp>
 
-#include "Entity.h"
+#include "core/Entity.h"
+#include "WorldBossHomingTargets.h"
+#include "WorldCampaignPickupQueue.h"
+#include "WorldEffectEventQueue.h"
+#include "WorldPlayerAttackTracker.h"
+#include "WorldRewardExclusionZone.h"
+#include "WorldSoundSystem.h"
+#include "WorldStatisticsTracker.h"
 #include "gameplay/GameplayData.h"
-#include "rendering/EffectEvent.h"
 #include "utils/ConfigEnums.h"
 #include "input/InputHandler.h"
 
@@ -53,15 +57,7 @@ public:
 		int damage = 0;
 	};
 
-	struct Statistics
-	{
-		unsigned int playerAttacksFired = 0u;
-		unsigned int playerAttacksHit = 0u;
-		unsigned int bigMeteorsDestroyed = 0u;
-		unsigned int smallMeteorsDestroyed = 0u;
-		unsigned int shootersDestroyed = 0u;
-		unsigned int shieldPickupsCollected = 0u;
-	};
+	using Statistics = WorldStatistics;
 
 	World(unsigned int width, unsigned int height, Assets& assets, AudioManager& audio,
 		GameplaySession& session, GamepadManager& gamepad);
@@ -99,21 +95,9 @@ public:
 	void DamagePlayerWithBeam(const sf::Vector2f& start, const sf::Vector2f& end, float width, int damage);
 	void ExplodeEnemyMissile(const sf::Vector2f& position, float radius, int damage, float impulse);
 
-	std::uint64_t AddSound(Config::Sound id, float pitch = 1.f);
-	std::uint64_t AddSustainedSound(
-		Config::Sound id,
-		float pitch,
-		float loopStartSeconds,
-		float loopEndSeconds,
-		float outroStartSeconds);
-	void StopSound(std::uint64_t handle);
+	[[nodiscard]] WorldSoundSystem& Sound() noexcept;
+	[[nodiscard]] WorldEffectEventQueue& Effects() noexcept;
 	void CompleteDelayedEnemyDestruction(Enemy& enemy);
-	void AddEffectEvent(const EffectEvent& event);
-	[[nodiscard]] const std::vector<EffectEvent>& GetEffectEvents() const noexcept;
-	void ClearEffectEvents() noexcept;
-	void PauseActiveSounds();
-	void ResumePausedSounds();
-	void StopActiveSounds();
 	void ClearProjectiles();
 	[[nodiscard]] std::vector<PlayerProjectileImpact> ConsumePlayerProjectilesInCircle(
 		sf::Vector2f center, float radius);
@@ -140,13 +124,7 @@ public:
 		const sf::Vector2f& position,
 		const sf::Vector2f& direction,
 		float minimumDirectionDot) const noexcept;
-	void SetBossHomingTargets(const std::array<std::optional<sf::Vector2f>, 4>& targets) noexcept;
-	void ClearBossHomingTargets() noexcept;
-	[[nodiscard]] std::optional<std::size_t> FindBossHomingTarget(
-		const sf::Vector2f& position,
-		const sf::Vector2f& direction,
-		float minimumDirectionDot) const noexcept;
-	[[nodiscard]] std::optional<sf::Vector2f> GetBossHomingTargetPosition(std::size_t index) const noexcept;
+	[[nodiscard]] WorldBossHomingTargets& BossHomingTargets() noexcept;
 	[[nodiscard]] bool IsEntityActive(const Entity* entity) const noexcept;
 	[[nodiscard]] unsigned int GetWidth() const noexcept;
 	[[nodiscard]] unsigned int GetHeight() const noexcept;
@@ -174,18 +152,18 @@ private:
 	std::vector<std::unique_ptr<Entity>> entities;
 	std::vector<std::unique_ptr<Entity>> pendingEntities;
 
-	std::vector<EffectEvent> effectEvents;
+	WorldEffectEventQueue effectEvents;
 
-	std::optional<sf::Vector2f> rewardExclusionCenter;
-	float rewardExclusionRadius = 0.f;
+	WorldRewardExclusionZone rewardExclusionZone;
 
-	std::array<std::optional<sf::Vector2f>, 4> bossHomingTargets{};
+	WorldBossHomingTargets bossHomingTargets;
 	std::optional<PlayerLaserDamageEvent> playerLaserDamageEvent;
 
 	Assets& assets;
-	AudioManager& audio;
 	GameplaySession& session;
 	GamepadManager& gamepad;
+
+	WorldSoundSystem sound;
 
 	Player* player = nullptr;
 
@@ -194,13 +172,11 @@ private:
 
 	float shieldVisualTime = 0.f;
 
-	Statistics statistics;
-	std::uint64_t nextPlayerAttackID = 1u;
-	std::unordered_set<std::uint64_t> successfulPlayerAttacks;
+	WorldStatisticsTracker statisticsTracker;
+	WorldPlayerAttackTracker playerAttackTracker;
 
 	bool helperPickupSpawned = false;
 	bool helperBotSpawned = false;
 
-	std::vector<GameplayData::PickupKind> campaignPickupSequence;
-	std::size_t nextCampaignPickup = 0u;
+	WorldCampaignPickupQueue campaignPickupQueue;
 };

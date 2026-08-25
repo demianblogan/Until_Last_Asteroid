@@ -11,7 +11,7 @@
 #include "ui/MenuBackground.h"
 #include "ui/MenuButton.h"
 #include "ui/MenuIntroAnimation.h"
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 #include "ui/ScreenFade.h"
 
 class MainMenuState final : public State

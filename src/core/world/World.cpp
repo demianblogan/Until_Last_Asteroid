@@ -1,6 +1,7 @@
 #include "World.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -28,6 +29,7 @@
 #include "gameplay/GameplaySession.h"
 #include "rendering/EnergyShield.h"
 #include "core/Collision.h"
+#include "core/world/ProjectileGeometry.h"
 #include "input/GamepadManager.h"
 
 namespace
@@ -297,10 +299,9 @@ namespace
 
 World::World(unsigned int width, unsigned int height, Assets& assets,
 	AudioManager& audio, GameplaySession& session, GamepadManager& gamepadManager)
-	: assets(assets), audio(audio), session(session), gamepad(gamepadManager),
-	  width(width), height(height)
+	: assets(assets), session(session), gamepad(gamepadManager),
+	  sound(audio), width(width), height(height)
 {
-	effectEvents.reserve(256);
 }
 
 void World::Update(float deltaTime, float worldTimeScale)
@@ -406,16 +407,14 @@ Player* World::GetPlayer() const noexcept { return player; }
 
 std::uint64_t World::BeginPlayerAttack() noexcept
 {
-	++statistics.playerAttacksFired;
-	return nextPlayerAttackID++;
+	statisticsTracker.RecordAttackFired();
+	return playerAttackTracker.Begin();
 }
 
 void World::RegisterPlayerAttackHit(std::uint64_t attackID) noexcept
 {
-	if (attackID == 0u)
-		return;
-	if (successfulPlayerAttacks.insert(attackID).second)
-		++statistics.playerAttacksHit;
+	if (playerAttackTracker.RegisterHit(attackID))
+		statisticsTracker.RecordAttackHit();
 }
 
 void World::SpawnPlayerShot(
@@ -494,8 +493,7 @@ void World::DamageEnemiesWithPlayerLaser(
 	std::uint64_t attackID)
 {
 	const sf::Vector2f segment{ end - start };
-	const float lengthSquared{ segment.x * segment.x + segment.y * segment.y };
-	if (lengthSquared <= 0.001f || damage <= 0)
+	if (segment.x * segment.x + segment.y * segment.y <= 0.001f || damage <= 0)
 		return;
 	playerLaserDamageEvent = PlayerLaserDamageEvent{
 		start, end, laserWidth, damage, attackID };
@@ -511,19 +509,14 @@ void World::DamageEnemiesWithPlayerLaser(
 			continue;
 		}
 
-		const sf::Vector2f relative{ entity->GetPosition() - start };
-		const float projection{ std::clamp(
-			(relative.x * segment.x + relative.y * segment.y) / lengthSquared,
-			0.f, 1.f) };
-		const sf::Vector2f impactPosition{ start + segment * projection };
-		const sf::Vector2f offset{ entity->GetPosition() - impactPosition };
-		const float hitRadius{ entity->GetCollisionRadius() + laserWidth * 0.5f };
-		if (offset.x * offset.x + offset.y * offset.y > hitRadius * hitRadius)
+		const auto impactPosition{ ProjectileGeometry::TrySegmentImpactPoint(
+			start, end, laserWidth, entity->GetPosition(), entity->GetCollisionRadius()) };
+		if (!impactPosition)
 			continue;
 
 		RegisterPlayerAttackHit(attackID);
-		AddEffectEvent({ EffectEventType::ShipHit,
-			impactPosition, Normalize(segment),
+		effectEvents.Add({ EffectEventType::ShipHit,
+			*impactPosition, Normalize(segment),
 			std::clamp(entity->GetCollisionRadius() / 45.f, 0.55f, 1.2f) });
 		if (type == Entity::Type::EnemyMissile)
 		{
@@ -549,24 +542,17 @@ void World::DamagePlayerWithBeam(
 	if (player == nullptr || !player->IsAlive())
 		return;
 	const sf::Vector2f segment{ end - start };
-	const float lengthSquared{ segment.x * segment.x + segment.y * segment.y };
-	if (lengthSquared <= 0.001f)
-		return;
-	const sf::Vector2f relative{ player->GetPosition() - start };
-	const float projection{ std::clamp(
-		(relative.x * segment.x + relative.y * segment.y) / lengthSquared, 0.f, 1.f) };
-	const sf::Vector2f closest{ start + segment * projection };
-	const sf::Vector2f offset{ player->GetPosition() - closest };
-	const float hitRadius{ player->GetCollisionRadius() + beamWidth * 0.5f };
-	if (offset.x * offset.x + offset.y * offset.y > hitRadius * hitRadius)
+	const auto closest{ ProjectileGeometry::TrySegmentImpactPoint(
+		start, end, beamWidth, player->GetPosition(), player->GetCollisionRadius()) };
+	if (!closest)
 		return;
 
 	if (player->TakeDamage(damage))
 	{
 		if (player->DidLastDamageReachHealth())
-			AddEffectEvent({ EffectEventType::PlayerHit,
-				closest, Normalize(segment), 1.15f });
-		AddSound(Config::Sound::MetalHit, 0.85f);
+			effectEvents.Add({ EffectEventType::PlayerHit,
+				*closest, Normalize(segment), 1.15f });
+		sound.AddSound(Config::Sound::MetalHit, 0.85f);
 		if (!player->IsAlive())
 			session.SetGameOver();
 	}
@@ -602,7 +588,7 @@ void World::ExplodeEnemyMissile(
 			if (damageAccepted)
 			{
 				if (targetPlayer.DidLastDamageReachHealth())
-					AddEffectEvent({ EffectEventType::PlayerHit,
+					effectEvents.Add({ EffectEventType::PlayerHit,
 						targetPlayer.GetPosition(), direction, 1.25f });
 				targetPlayer.ApplyImpulse(direction * impulse);
 			}
@@ -617,7 +603,7 @@ void World::ExplodeEnemyMissile(
 		}
 
 		auto& enemy{ static_cast<Enemy&>(entity) };
-		AddEffectEvent({
+		effectEvents.Add({
 			entity.GetType() == Entity::Type::Asteroid
 				? EffectEventType::AsteroidHit
 				: EffectEventType::ShipHit,
@@ -631,48 +617,13 @@ void World::ExplodeEnemyMissile(
 	}
 }
 
-std::uint64_t World::AddSound(Config::Sound id, float pitch)
-{
-	return audio.PlaySound(id, SoundGroup::Gameplay, 100.f, pitch);
-}
-
-std::uint64_t World::AddSustainedSound(
-	Config::Sound id,
-	float pitch,
-	float loopStartSeconds,
-	float loopEndSeconds,
-	float outroStartSeconds)
-{
-	return audio.PlaySustainedSound(
-		id, SoundGroup::Gameplay, 100.f, pitch,
-		loopStartSeconds, loopEndSeconds, outroStartSeconds);
-}
-
-void World::StopSound(std::uint64_t handle) { audio.StopSound(handle); }
+WorldSoundSystem& World::Sound() noexcept { return sound; }
+WorldEffectEventQueue& World::Effects() noexcept { return effectEvents; }
 
 void World::CompleteDelayedEnemyDestruction(Enemy& enemy)
 {
 	AwardScore(enemy);
 }
-
-void World::AddEffectEvent(const EffectEvent& event)
-{
-	effectEvents.push_back(event);
-}
-
-const std::vector<EffectEvent>& World::GetEffectEvents() const noexcept
-{
-	return effectEvents;
-}
-
-void World::ClearEffectEvents() noexcept
-{
-	effectEvents.clear();
-}
-
-void World::PauseActiveSounds() { audio.PauseSounds(SoundGroup::Gameplay); }
-void World::ResumePausedSounds() { audio.ResumeSounds(SoundGroup::Gameplay); }
-void World::StopActiveSounds() { audio.StopSounds(SoundGroup::Gameplay); }
 
 void World::ClearProjectiles()
 {
@@ -705,19 +656,18 @@ std::vector<World::PlayerProjectileImpact> World::ConsumePlayerProjectilesInCirc
 			continue;
 		}
 
-		const sf::Vector2f offset{ entity->GetPosition() - center };
-		const float reach{ radius + entity->GetCollisionRadius() };
-		if (offset.x * offset.x + offset.y * offset.y > reach * reach)
+		const auto direction{ ProjectileGeometry::TryCircleImpactDirection(
+			center, radius, entity->GetPosition(), entity->GetCollisionRadius()) };
+		if (!direction)
 			continue;
 
-		const sf::Vector2f direction{ Normalize(offset) };
 		const Shot& shot{ static_cast<const Shot&>(*entity) };
-		impacts.push_back({ center + direction * radius, shot.GetDamage() });
+		impacts.push_back({ center + *direction * radius, shot.GetDamage() });
 		RegisterPlayerAttackHit(shot.GetPlayerAttackID());
 		entity->Destroy();
-		AddEffectEvent({ EffectEventType::ShipHit,
-			impacts.back().position, direction, 1.25f });
-		AddSound(Config::Sound::MetalHit, 0.72f);
+		effectEvents.Add({ EffectEventType::ShipHit,
+			impacts.back().position, *direction, 1.25f });
+		sound.AddSound(Config::Sound::MetalHit, 0.72f);
 	}
 	return impacts;
 }
@@ -734,24 +684,19 @@ std::vector<World::PlayerProjectileImpact> World::ConsumePlayerProjectilesInAnnu
 			continue;
 		}
 
-		const sf::Vector2f offset{ entity->GetPosition() - center };
-		const float distanceSquared{ offset.x * offset.x + offset.y * offset.y };
-		const float outerReach{ outerRadius + entity->GetCollisionRadius() };
-		const float innerReach{ std::max(0.f, innerRadius - entity->GetCollisionRadius()) };
-		if (distanceSquared > outerReach * outerReach ||
-			distanceSquared < innerReach * innerReach)
-		{
+		const auto direction{ ProjectileGeometry::TryAnnulusImpactDirection(
+			center, innerRadius, outerRadius,
+			entity->GetPosition(), entity->GetCollisionRadius()) };
+		if (!direction)
 			continue;
-		}
 
-		const sf::Vector2f direction{ Normalize(offset) };
 		const Shot& shot{ static_cast<const Shot&>(*entity) };
-		impacts.push_back({ center + direction * outerRadius, shot.GetDamage() });
+		impacts.push_back({ center + *direction * outerRadius, shot.GetDamage() });
 		RegisterPlayerAttackHit(shot.GetPlayerAttackID());
 		entity->Destroy();
-		AddEffectEvent({ EffectEventType::ShipHit,
-			impacts.back().position, direction, 1.15f });
-		AddSound(Config::Sound::MetalHit, 0.82f);
+		effectEvents.Add({ EffectEventType::ShipHit,
+			impacts.back().position, *direction, 1.15f });
+		sound.AddSound(Config::Sound::MetalHit, 0.82f);
 	}
 	return impacts;
 }
@@ -762,9 +707,6 @@ void World::ConsumePlayerProjectilesInDiamondFrame(
 	float vertexRadius,
 	float halfThickness)
 {
-	const float rotation{ -rotationDegrees * std::numbers::pi_v<float> / 180.f };
-	const float cosine{ std::cos(rotation) };
-	const float sine{ std::sin(rotation) };
 	for (const auto& entity : entities)
 	{
 		if (!entity->IsAlive() ||
@@ -773,23 +715,18 @@ void World::ConsumePlayerProjectilesInDiamondFrame(
 			continue;
 		}
 
-		const sf::Vector2f offset{ entity->GetPosition() - center };
-		const sf::Vector2f local{
-			offset.x * cosine - offset.y * sine,
-			offset.x * sine + offset.y * cosine };
-		const float diamondDistance{ std::abs(local.x) + std::abs(local.y) };
-		if (std::abs(diamondDistance - vertexRadius) >
-			halfThickness + entity->GetCollisionRadius())
-		{
+		const auto direction{ ProjectileGeometry::TryDiamondFrameImpactDirection(
+			center, rotationDegrees, vertexRadius, halfThickness,
+			entity->GetPosition(), entity->GetCollisionRadius()) };
+		if (!direction)
 			continue;
-		}
 
 		const Shot& shot{ static_cast<const Shot&>(*entity) };
 		RegisterPlayerAttackHit(shot.GetPlayerAttackID());
 		entity->Destroy();
-		AddEffectEvent({ EffectEventType::ShipHit,
-			entity->GetPosition(), Normalize(offset), 0.9f });
-		AddSound(Config::Sound::MetalHit, 0.76f);
+		effectEvents.Add({ EffectEventType::ShipHit,
+			entity->GetPosition(), *direction, 0.9f });
+		sound.AddSound(Config::Sound::MetalHit, 0.76f);
 	}
 }
 
@@ -803,10 +740,10 @@ bool World::DamagePlayerFromBoss(int damage, sf::Vector2f sourcePosition)
 	const sf::Vector2f direction{ Normalize(player->GetPosition() - sourcePosition) };
 	if (player->DidLastDamageReachHealth())
 	{
-		AddEffectEvent({ EffectEventType::PlayerHit,
+		effectEvents.Add({ EffectEventType::PlayerHit,
 			player->GetPosition(), direction, 1.2f });
 	}
-	AddSound(Config::Sound::MetalHit, 1.08f);
+	sound.AddSound(Config::Sound::MetalHit, 1.08f);
 	if (!player->IsAlive())
 		session.SetGameOver();
 	return true;
@@ -876,8 +813,7 @@ void World::KeepEnemiesOutsideCircle(
 
 void World::SetRewardExclusionCircle(sf::Vector2f center, float radius) noexcept
 {
-	rewardExclusionCenter = center;
-	rewardExclusionRadius = std::max(0.f, radius);
+	rewardExclusionZone.Set(center, radius);
 }
 
 std::size_t World::CountActiveLaserTurrets() const noexcept
@@ -919,7 +855,7 @@ bool World::DestroyNextBossVictoryTarget()
 			}
 			else
 			{
-				AddEffectEvent({ EffectEventType::ShipExplosion,
+				effectEvents.Add({ EffectEventType::ShipExplosion,
 					entity->GetPosition(), {}, 0.7f });
 			}
 			entity->Destroy();
@@ -963,8 +899,7 @@ void World::ClearPickups()
 void World::ConfigureCampaignPickupSequence(
 	const std::vector<GameplayData::PickupKind>& sequence)
 {
-	campaignPickupSequence = sequence;
-	nextCampaignPickup = 0u;
+	campaignPickupQueue.Configure(sequence);
 }
 
 sf::Vector2f World::GetPlayerPosition() const noexcept
@@ -1010,51 +945,7 @@ const Entity* World::FindHomingTarget(
 	return closestTarget;
 }
 
-void World::SetBossHomingTargets(
-	const std::array<std::optional<sf::Vector2f>, 4>& targets) noexcept
-{
-	bossHomingTargets = targets;
-}
-
-void World::ClearBossHomingTargets() noexcept
-{
-	bossHomingTargets.fill(std::nullopt);
-}
-
-std::optional<std::size_t> World::FindBossHomingTarget(
-	const sf::Vector2f& position,
-	const sf::Vector2f& direction,
-	float minimumDirectionDot) const noexcept
-{
-	const sf::Vector2f normalizedDirection{ Normalize(direction) };
-	std::optional<std::size_t> closestTarget;
-	float closestDistanceSquared{ std::numeric_limits<float>::max() };
-	for (std::size_t index{ 0u }; index < bossHomingTargets.size(); ++index)
-	{
-		if (!bossHomingTargets[index])
-			continue;
-		const sf::Vector2f offset{ *bossHomingTargets[index] - position };
-		const float distanceSquared{ offset.x * offset.x + offset.y * offset.y };
-		if (distanceSquared <= 0.0001f || distanceSquared >= closestDistanceSquared)
-			continue;
-		const float directionDot{
-			(offset.x * normalizedDirection.x + offset.y * normalizedDirection.y) /
-			std::sqrt(distanceSquared) };
-		if (directionDot < minimumDirectionDot)
-			continue;
-		closestTarget = index;
-		closestDistanceSquared = distanceSquared;
-	}
-	return closestTarget;
-}
-
-std::optional<sf::Vector2f> World::GetBossHomingTargetPosition(
-	std::size_t index) const noexcept
-{
-	return index < bossHomingTargets.size()
-		? bossHomingTargets[index]
-		: std::nullopt;
-}
+WorldBossHomingTargets& World::BossHomingTargets() noexcept { return bossHomingTargets; }
 
 bool World::IsEntityActive(const Entity* entity) const noexcept
 {
@@ -1068,26 +959,23 @@ bool World::IsEntityActive(const Entity* entity) const noexcept
 unsigned int World::GetWidth() const noexcept { return width; }
 unsigned int World::GetHeight() const noexcept { return height; }
 GameplaySession& World::GetSession() noexcept { return session; }
-const World::Statistics& World::GetStatistics() const noexcept { return statistics; }
+const World::Statistics& World::GetStatistics() const noexcept { return statisticsTracker.Get(); }
 
 void World::Clear()
 {
 	entities.clear();
 	pendingEntities.clear();
-	rewardExclusionCenter.reset();
-	rewardExclusionRadius = 0.f;
-	ClearBossHomingTargets();
+	rewardExclusionZone.Clear();
+	bossHomingTargets.Clear();
 	playerLaserDamageEvent.reset();
-	effectEvents.clear();
+	effectEvents.Clear();
 	player = nullptr;
 	shieldVisualTime = 0.f;
-	statistics = {};
-	nextPlayerAttackID = 1u;
-	successfulPlayerAttacks.clear();
+	statisticsTracker.Reset();
+	playerAttackTracker.Reset();
 	helperPickupSpawned = false;
 	helperBotSpawned = false;
-	campaignPickupSequence.clear();
-	nextCampaignPickup = 0u;
+	campaignPickupQueue.Clear();
 }
 
 void World::Wrap(Entity& entity) const
@@ -1175,7 +1063,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		if (other.GetType() == Entity::Type::Player)
 		{
 			if (session.RecoverPart(part.GetID()))
-				AddSound(Config::Sound::PartPickedUp);
+				sound.AddSound(Config::Sound::PartPickedUp);
 			part.Destroy();
 		}
 		return;
@@ -1188,9 +1076,9 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		Entity& other{ first.GetType() == Entity::Type::Pickup ? second : first };
 		if (other.GetType() == Entity::Type::Player && pickup.Apply(session))
 		{
-			AddSound(Config::Sound::BonusTouched);
+			sound.AddSound(Config::Sound::BonusTouched);
 			if (pickup.GetKind() == Pickup::Kind::Shield)
-				++statistics.shieldPickupsCollected;
+				statisticsTracker.RecordShieldPickupCollected();
 			else if (pickup.GetKind() == Pickup::Kind::HelperBot)
 				SpawnHelperBot();
 			pickup.Destroy();
@@ -1209,11 +1097,11 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		{
 			auto& shot{ static_cast<Shot&>(other) };
 			RegisterPlayerAttackHit(shot.GetPlayerAttackID());
-			AddEffectEvent({ EffectEventType::ShipHit,
+			effectEvents.Add({ EffectEventType::ShipHit,
 				missile.GetPosition(), Normalize(shot.GetVelocity()), 0.55f });
 			shot.Destroy();
 			if (!missile.TakeDamage(shot.GetDamage()))
-				AddSound(Config::Sound::MetalHit, 1.2f);
+				sound.AddSound(Config::Sound::MetalHit, 1.2f);
 		}
 		else
 		{
@@ -1230,7 +1118,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		const sf::Vector2f impactDirection{ Normalize(shot.GetVelocity()) };
 		const sf::Vector2f impactPosition{
 			enemy.GetPlayerProjectileImpactPosition(shot) };
-		AddEffectEvent({
+		effectEvents.Add({
 			enemy.GetType() == Entity::Type::Asteroid
 				? EffectEventType::AsteroidHit
 				: EffectEventType::ShipHit,
@@ -1243,7 +1131,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 				Normalize(GetPlayerPosition() - impactPosition) };
 			shot.ReflectToward(GetPlayerPosition());
 			shot.Translate(reflectedDirection * 12.f);
-			AddSound(Config::Sound::EnemyShot, 0.72f);
+			sound.AddSound(Config::Sound::EnemyShot, 0.72f);
 			return;
 		}
 		shot.Destroy();
@@ -1253,9 +1141,9 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		if (killed)
 			AwardScore(enemy);
 		else if (enemy.GetType() == Entity::Type::Asteroid)
-			AddSound(Config::Sound::BulletHitAsteroid, enemy.GetSoundPitch());
+			sound.AddSound(Config::Sound::BulletHitAsteroid, enemy.GetSoundPitch());
 		else if (enemy.GetType() == Entity::Type::Enemy)
-			AddSound(Config::Sound::MetalHit);
+			sound.AddSound(Config::Sound::MetalHit);
 	};
 
 	if (first.GetType() == Entity::Type::Projectile_Player)
@@ -1285,12 +1173,12 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 			if (damageAccepted)
 			{
 				if (targetPlayer.DidLastDamageReachHealth())
-					AddEffectEvent({ EffectEventType::PlayerHit,
+					effectEvents.Add({ EffectEventType::PlayerHit,
 						shot.GetPosition(), Normalize(shot.GetVelocity()), 1.f });
 				targetPlayer.ApplyImpulse(Normalize(shot.GetVelocity()) * shot.GetKnockback());
 			}
 			if (damageAccepted && targetPlayer.IsAlive())
-				AddSound(Config::Sound::MetalHit);
+				sound.AddSound(Config::Sound::MetalHit);
 			if (!targetPlayer.IsAlive())
 				session.SetGameOver();
 		}
@@ -1340,9 +1228,9 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		const sf::Vector2f impactPosition{ collidedPlayer->GetPosition() +
 			impactDirection * collidedPlayer->GetCollisionRadius() };
 		if (collidedPlayer->DidLastDamageReachHealth())
-			AddEffectEvent({ EffectEventType::PlayerHit,
+			effectEvents.Add({ EffectEventType::PlayerHit,
 				impactPosition, -impactDirection, 1.15f });
-		AddEffectEvent({
+		effectEvents.Add({
 			collidedEnemy->GetType() == Entity::Type::Asteroid
 				? EffectEventType::AsteroidHit
 				: EffectEventType::ShipHit,
@@ -1353,7 +1241,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		const Config::Sound impactSound{ collidedEnemy->GetType() == Entity::Type::Asteroid
 			? Config::Sound::HitAsteroid
 			: Config::Sound::HitEnemySaucer };
-		AddSound(impactSound, collidedEnemy->GetSoundPitch());
+		sound.AddSound(impactSound, collidedEnemy->GetSoundPitch());
 
 		const bool enemyKilled{ collidedEnemy->TakeDamage(
 			assets.GetGameplayData().GetPlayer().collisionDamage) };
@@ -1391,19 +1279,19 @@ void World::AwardScore(const Enemy& enemy)
 		if (const auto* meteor{ dynamic_cast<const Meteor*>(&enemy) })
 		{
 			if (meteor->GetSize() == Meteor::Size::Big)
-				++statistics.bigMeteorsDestroyed;
+				statisticsTracker.RecordBigMeteorDestroyed();
 			else
-				++statistics.smallMeteorsDestroyed;
+				statisticsTracker.RecordSmallMeteorDestroyed();
 		}
 		else if (const auto* saucer{ dynamic_cast<const Saucer*>(&enemy) };
 			saucer != nullptr && saucer->GetMode() == Saucer::Mode::Shooter)
 		{
-			++statistics.shootersDestroyed;
+			statisticsTracker.RecordShooterDestroyed();
 		}
 
 		const int points{ enemy.GetScoreValue() };
 		session.AddScore(points);
-		AddEffectEvent({
+		effectEvents.Add({
 			EffectEventType::ScorePopup,
 			enemy.GetPosition(),
 			{},
@@ -1417,12 +1305,12 @@ void World::AwardScore(const Enemy& enemy)
 		const int orderedDropCount{ enemy.GetOrderedPickupDropCount() };
 		if (orderedDropCount > 0)
 		{
-			for (int index{ 0 };
-				index < orderedDropCount &&
-				nextCampaignPickup < campaignPickupSequence.size();
-				++index)
+			for (int index{ 0 }; index < orderedDropCount; ++index)
 			{
-				pickupKinds.push_back(campaignPickupSequence[nextCampaignPickup++]);
+				const auto pickupKind{ campaignPickupQueue.TryPop() };
+				if (!pickupKind)
+					break;
+				pickupKinds.push_back(*pickupKind);
 			}
 		}
 		else if (const auto pickupKind{ enemy.RollPickupDrop() })
@@ -1437,18 +1325,9 @@ void World::AwardScore(const Enemy& enemy)
 				static_cast<float>(index) / static_cast<float>(pickupKinds.size())
 			: 0.f };
 		const float radius{ pickupKinds.size() > 1u ? 72.f : 0.f };
-		sf::Vector2f position{ enemy.GetPosition() + sf::Vector2f{
-			std::cos(angle) * radius, std::sin(angle) * radius } };
-		if (rewardExclusionCenter && rewardExclusionRadius > 0.f)
-		{
-			const sf::Vector2f offset{ position - *rewardExclusionCenter };
-			const float distanceSquared{ offset.x * offset.x + offset.y * offset.y };
-			if (distanceSquared < rewardExclusionRadius * rewardExclusionRadius)
-			{
-				const sf::Vector2f direction{ Normalize(offset) };
-				position = *rewardExclusionCenter + direction * rewardExclusionRadius;
-			}
-		}
+		const sf::Vector2f position{ rewardExclusionZone.PushOutside(
+			enemy.GetPosition() + sf::Vector2f{
+				std::cos(angle) * radius, std::sin(angle) * radius }) };
 		if (pickupKinds[index] == Pickup::Kind::HelperBot)
 			static_cast<void>(SpawnHelperPickup(position));
 		else

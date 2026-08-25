@@ -7,7 +7,7 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "settings/GameSettings.h"
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
 
 class Assets;

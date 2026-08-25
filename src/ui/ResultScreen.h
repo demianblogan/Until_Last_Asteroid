@@ -10,7 +10,7 @@
 
 #include "ui/GlowingCursor.h"
 #include "ui/MenuButton.h"
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
 
 class Assets;

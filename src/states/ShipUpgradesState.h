@@ -12,7 +12,7 @@
 #include "states/State.h"
 #include "ui/GlowingCursor.h"
 #include "ui/MenuButton.h"
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 #include "ui/ScreenFade.h"
 
 class ShipUpgradesState final : public State

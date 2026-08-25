@@ -5,7 +5,7 @@
 #include <numbers>
 #include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "gameplay/GameplaySession.h"
 #include "entities/Enemy.h"
 
@@ -32,7 +32,7 @@ void Shot::Update(float deltaTime)
 	const sf::Vector2f direction{ velocityLength > 0.0001f
 		? currentVelocity / velocityLength
 		: sf::Vector2f{ 0.f, -1.f } };
-	GetWorld().AddEffectEvent({
+	GetWorld().Effects().Add({
 		visualKind == VisualKind::Player
 			? EffectEventType::PlayerProjectileGlow
 			: visualKind == VisualKind::Helper
@@ -100,14 +100,14 @@ PlayerShot::PlayerShot(Assets& assets, World& world,
 	}
 	if (tripleShotVisual)
 		SetPresentation(1.f, 1.f, sf::Color(65, 255, 115));
-	GetWorld().AddEffectEvent({ EffectEventType::PlayerMuzzleFlash,
+	GetWorld().Effects().Add({ EffectEventType::PlayerMuzzleFlash,
 		position, direction });
 	if (playSound)
 	{
 		const float shotPitch{ tripleShotVisual
 			? 0.82f
 			: homingEnabled ? 1.18f : 1.f };
-		GetWorld().AddSound(Config::Sound::PlayerShot, shotPitch);
+		GetWorld().Sound().AddSound(Config::Sound::PlayerShot, shotPitch);
 	}
 }
 
@@ -125,12 +125,12 @@ void PlayerShot::AcquireHomingTarget()
 		config.homingConeDegrees * 0.5f * std::numbers::pi_v<float> / 180.f };
 	homingTarget = GetWorld().FindHomingTarget(
 		GetPosition(), GetVelocity(), std::cos(halfConeRadians));
-	bossHomingTarget = GetWorld().FindBossHomingTarget(
+	bossHomingTarget = GetWorld().BossHomingTargets().FindClosest(
 		GetPosition(), GetVelocity(), std::cos(halfConeRadians));
 	if (homingTarget != nullptr && bossHomingTarget)
 	{
 		const auto bossPosition{
-			GetWorld().GetBossHomingTargetPosition(*bossHomingTarget) };
+			GetWorld().BossHomingTargets().Get(*bossHomingTarget) };
 		if (!bossPosition)
 			bossHomingTarget.reset();
 		else
@@ -154,14 +154,14 @@ void PlayerShot::UpdateHoming(float deltaTime)
 {
 	if (!GetWorld().IsEntityActive(homingTarget) &&
 		(!bossHomingTarget ||
-			!GetWorld().GetBossHomingTargetPosition(*bossHomingTarget)))
+			!GetWorld().BossHomingTargets().Get(*bossHomingTarget)))
 	{
 		homingTarget = nullptr;
 		bossHomingTarget.reset();
 		AcquireHomingTarget();
 	}
 	const std::optional<sf::Vector2f> bossPosition{ bossHomingTarget
-		? GetWorld().GetBossHomingTargetPosition(*bossHomingTarget)
+		? GetWorld().BossHomingTargets().Get(*bossHomingTarget)
 		: std::nullopt };
 	if (homingTarget == nullptr && !bossPosition)
 		return;
@@ -219,11 +219,11 @@ SaucerShot::SaucerShot(Assets& assets, World& world,
 	const float finalAngle{ std::atan2(toTarget.y, toTarget.x) };
 	const sf::Vector2f direction{ std::cos(finalAngle), std::sin(finalAngle) };
 	SetDirection(direction);
-	GetWorld().AddEffectEvent({ EffectEventType::EnemyMuzzleFlash,
+	GetWorld().Effects().Add({ EffectEventType::EnemyMuzzleFlash,
 		position, direction });
 	SetRotation(sf::degrees(finalAngle * 180.f / std::numbers::pi_v<float> + 90.f));
 	if (playSound)
-		GetWorld().AddSound(Config::Sound::EnemyShot);
+		GetWorld().Sound().AddSound(Config::Sound::EnemyShot);
 }
 
 Entity::Type SaucerShot::GetType() const noexcept { return Type::Projectile_Enemy; }
@@ -249,11 +249,11 @@ HelperShot::HelperShot(Assets& assets, World& world,
 	const float angle{ std::atan2(toTarget.y, toTarget.x) };
 	SetDirection({ std::cos(angle), std::sin(angle) });
 	SetRotation(sf::radians(angle + std::numbers::pi_v<float> * 0.5f));
-	GetWorld().AddEffectEvent({
+	GetWorld().Effects().Add({
 		EffectEventType::PlayerMuzzleFlash,
 		position,
 		{ std::cos(angle), std::sin(angle) } });
-	GetWorld().AddSound(Config::Sound::PlayerShot, 1.35f);
+	GetWorld().Sound().AddSound(Config::Sound::PlayerShot, 1.35f);
 }
 
 void HelperShot::Update(float deltaTime)

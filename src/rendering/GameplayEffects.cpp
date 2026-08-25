@@ -10,7 +10,7 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 
 #include "assets/Assets.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "entities/Player.h"
 #include "utils/ConfigEnums.h"
 
@@ -89,7 +89,7 @@ void GameplayEffects::Update(
         engineEmissionAccumulator = std::min(engineEmissionAccumulator, EmissionInterval);
     }
 
-    for (const EffectEvent& event : world.GetEffectEvents())
+    for (const EffectEvent& event : world.Effects().Get())
     {
         switch (event.type)
         {
@@ -156,7 +156,7 @@ void GameplayEffects::Update(
             break;
         }
     }
-    world.ClearEffectEvents();
+    world.Effects().Clear();
 
     engineParticles.Update(deltaTime);
     projectileGlowParticles.Update(0.f);

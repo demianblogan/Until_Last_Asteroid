@@ -13,7 +13,7 @@
 #include "states/State.h"
 #include "ui/GlowingCursor.h"
 #include "ui/MenuBackground.h"
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
 #include "ui/ScreenFade.h"
 

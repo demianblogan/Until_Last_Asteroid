@@ -3,7 +3,7 @@
 #include <cmath>
 #include <numbers>
 #include "assets/Assets.h"
-#include "core/World.h"
+#include "core/world/World.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
 
@@ -90,8 +90,8 @@ void MissileCarrier::UpdatePatrolMovement(float deltaTime)
 
 void MissileCarrier::OnDestroy()
 {
-	GetWorld().AddSound(Config::Sound::ShipExplosion);
-	GetWorld().AddEffectEvent({
+	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion);
+	GetWorld().Effects().Add({
 		EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.3f });
 }
@@ -100,10 +100,10 @@ void MissileCarrier::LaunchMissile(const sf::Vector2f& target)
 {
 	const sf::Vector2f launcherPosition{ GetLauncherPosition() };
 	const sf::Vector2f direction{ Normalize(target - launcherPosition) };
-	GetWorld().AddEffectEvent({
+	GetWorld().Effects().Add({
 		EffectEventType::EnemyMuzzleFlash,
 		launcherPosition, direction, 1.15f });
-	GetWorld().AddSound(Config::Sound::EnemyShot, 0.72f);
+	GetWorld().Sound().AddSound(Config::Sound::EnemyShot, 0.72f);
 	GetWorld().SpawnHomingMissile(launcherPosition, target);
 }
 
@@ -116,7 +116,7 @@ void MissileCarrier::EmitEngineParticles(const sf::Vector2f& exhaustDirection)
 {
 	for (const GameplayData::NormalizedPoint& emitter : GetEngineEmitters())
 	{
-		GetWorld().AddEffectEvent({
+		GetWorld().Effects().Add({
 			EffectEventType::EnemyEngine,
 			GetEmitterPosition(emitter), exhaustDirection });
 	}

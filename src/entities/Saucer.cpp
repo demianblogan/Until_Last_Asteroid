@@ -5,7 +5,7 @@
 #include "utils/Random.h"
 #include "utils/ConfigEnums.h"
 #include "assets/Assets.h"
-#include "core/World.h"
+#include "core/world/World.h"
 
 Saucer::Saucer(Assets& assets, World& world, Mode mode)
 	: Enemy(assets, world, GetTexture(assets, mode), GetConfig(assets, mode))
@@ -88,8 +88,8 @@ void Saucer::Update(float deltaTime)
 
 void Saucer::OnDestroy()
 {
-	GetWorld().AddSound(Config::Sound::ShipExplosion);
-	GetWorld().AddEffectEvent({
+	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion);
+	GetWorld().Effects().Add({
 		EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), mode == Mode::Shooter ? 1.1f : 0.95f });
 }
