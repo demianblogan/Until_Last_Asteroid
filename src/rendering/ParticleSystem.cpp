@@ -14,17 +14,17 @@ namespace
 {
     sf::Image CreateParticleImage(ParticleAppearance appearance)
     {
-        constexpr unsigned int Size{ 64 };
-        constexpr float Center{ (static_cast<float>(Size) - 1.f) * 0.5f };
+        constexpr unsigned int Size = 64;
+        constexpr float Center = (static_cast<float>(Size) - 1.f) * 0.5f;
         sf::Image image({ Size, Size }, sf::Color::Transparent);
-        for (unsigned int y{ 0 }; y < Size; ++y)
+        for (unsigned int y = 0; y < Size; ++y)
         {
-            for (unsigned int x{ 0 }; x < Size; ++x)
+            for (unsigned int x = 0; x < Size; ++x)
             {
-                const float dx{ (static_cast<float>(x) - Center) / Center };
-                const float dy{ (static_cast<float>(y) - Center) / Center };
-                const float distance{ std::sqrt(dx * dx + dy * dy) };
-                float intensity{ 0.f };
+                const float dx = (static_cast<float>(x) - Center) / Center;
+                const float dy = (static_cast<float>(y) - Center) / Center;
+                const float distance = std::sqrt(dx * dx + dy * dy);
+                float intensity = 0.f;
                 switch (appearance)
                 {
                 case ParticleAppearance::Glow:
@@ -32,23 +32,23 @@ namespace
                     break;
                 case ParticleAppearance::Smoke:
                 {
-                    const float cloud{ std::pow(std::max(0.f, 1.f - distance), 1.35f) };
-                    const float noise{ 0.78f + 0.22f * std::sin(
-                        static_cast<float>(x) * 0.73f + static_cast<float>(y) * 1.17f) };
+                    const float cloud = std::pow(std::max(0.f, 1.f - distance), 1.35f);
+                    const float noise = 0.78f + 0.22f * std::sin(
+                        static_cast<float>(x) * 0.73f + static_cast<float>(y) * 1.17f);
                     intensity = cloud * noise * 0.82f;
                     break;
                 }
                 case ParticleAppearance::Debris:
                 {
-                    const float angle{ std::atan2(dy, dx) };
-                    const float edge{ 0.55f + 0.1f * std::sin(angle * 5.f) +
-                        0.06f * std::cos(angle * 3.f) };
+                    const float angle = std::atan2(dy, dx);
+                    const float edge = 0.55f + 0.1f * std::sin(angle * 5.f) +
+                        0.06f * std::cos(angle * 3.f);
                     intensity = std::clamp((edge - distance) * 18.f, 0.f, 1.f);
                     break;
                 }
                 case ParticleAppearance::Ring:
                 {
-                    const float ringDistance{ (distance - 0.68f) / 0.075f };
+                    const float ringDistance = (distance - 0.68f) / 0.075f;
                     intensity = std::exp(-ringDistance * ringDistance) *
                         std::clamp((1.f - distance) * 4.f, 0.f, 1.f);
                     break;
@@ -83,7 +83,7 @@ namespace
 
 ParticleSystem::ParticleSystem(ParticleAppearance appearance)
     : glowTexture(CreateParticleImage(appearance))
-    , additiveBlend(appearance == ParticleAppearance::Glow ||
+    , isAdditiveBlend(appearance == ParticleAppearance::Glow ||
         appearance == ParticleAppearance::Ring)
 {
     glowTexture.setSmooth(true);
@@ -112,7 +112,7 @@ void ParticleSystem::Emit(const ParticleSpawn& spawn)
 
 void ParticleSystem::Update(float deltaTime)
 {
-    for (std::size_t i{ 0 }; i < particles.size();)
+    for (std::size_t i = 0; i < particles.size();)
     {
         Particle& particle{ particles[i] };
         particle.remaining -= deltaTime;
@@ -148,19 +148,19 @@ void ParticleSystem::BuildVertices()
     vertices.clear();
     for (const Particle& particle : particles)
     {
-        const float progress{ std::clamp(
-            1.f - particle.remaining / particle.lifetime, 0.f, 1.f) };
+        const float progress = std::clamp(
+            1.f - particle.remaining / particle.lifetime, 0.f, 1.f);
         AppendParticleQuad(particle, progress);
     }
 }
 
 void ParticleSystem::AppendParticleQuad(const Particle& particle, float progress)
 {
-    const float size{ particle.startSize + (particle.endSize - particle.startSize) * progress };
-    const float halfWidth{ size * particle.aspectRatio * 0.5f };
-    const float halfHeight{ size * 0.5f };
-    const float cosine{ std::cos(particle.rotation) };
-    const float sine{ std::sin(particle.rotation) };
+    const float size = particle.startSize + (particle.endSize - particle.startSize) * progress;
+    const float halfWidth = size * particle.aspectRatio * 0.5f;
+    const float halfHeight = size * 0.5f;
+    const float cosine = std::cos(particle.rotation);
+    const float sine = std::sin(particle.rotation);
     const sf::Color color{ LerpColor(particle.startColor, particle.endColor, progress) };
 
     const auto transformPoint{ [&](sf::Vector2f point)
@@ -185,7 +185,7 @@ void ParticleSystem::AppendParticleQuad(const Particle& particle, float progress
 
 void ParticleSystem::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-    states.blendMode = additiveBlend ? sf::BlendAdd : sf::BlendAlpha;
+    states.blendMode = isAdditiveBlend ? sf::BlendAdd : sf::BlendAlpha;
     states.texture = &glowTexture;
     target.draw(vertices, states);
 }

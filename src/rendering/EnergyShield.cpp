@@ -23,24 +23,24 @@ namespace
 	const std::vector<sf::Vector2f>& GetHexGridLocalVertices(float radius)
 	{
 		static std::unordered_map<int, std::vector<sf::Vector2f>> cache;
-		const int key{ static_cast<int>(std::lround(radius * 4.f)) };
+		const int key = static_cast<int>(std::lround(radius * 4.f));
 		const auto found{ cache.find(key) };
 		if (found != cache.end())
 			return found->second;
 
-		constexpr float HexRadius{ 9.f };
-		constexpr float HorizontalSpacing{ 16.f };
-		constexpr float VerticalSpacing{ 14.f };
-		const int maximumRow{ static_cast<int>(std::ceil(radius / VerticalSpacing)) };
-		const int maximumColumn{ static_cast<int>(std::ceil(radius / HorizontalSpacing)) };
+		constexpr float HexRadius = 9.f;
+		constexpr float HorizontalSpacing = 16.f;
+		constexpr float VerticalSpacing = 14.f;
+		const int maximumRow = static_cast<int>(std::ceil(radius / VerticalSpacing));
+		const int maximumColumn = static_cast<int>(std::ceil(radius / HorizontalSpacing));
 
 		std::vector<sf::Vector2f> vertices;
-		for (int row{ -maximumRow }; row <= maximumRow; ++row)
+		for (int row = -maximumRow; row <= maximumRow; ++row)
 		{
-			for (int column{ -maximumColumn }; column <= maximumColumn; ++column)
+			for (int column = -maximumColumn; column <= maximumColumn; ++column)
 			{
-				const float x{ column * HorizontalSpacing + (row % 2 == 0 ? 0.f : 8.f) };
-				const float y{ row * VerticalSpacing };
+				const float x = column * HorizontalSpacing + (row % 2 == 0 ? 0.f : 8.f);
+				const float y = row * VerticalSpacing;
 				if (x * x + y * y >
 					(radius - HexRadius - 3.f) * (radius - HexRadius - 3.f))
 				{
@@ -48,15 +48,15 @@ namespace
 				}
 
 				std::array<sf::Vector2f, 6> corners;
-				for (std::size_t corner{ 0u }; corner < corners.size(); ++corner)
+				for (std::size_t corner = 0u; corner < corners.size(); ++corner)
 				{
-					const float angle{ std::numbers::pi_v<float> / 6.f +
-						static_cast<float>(corner) * std::numbers::pi_v<float> / 3.f };
+					const float angle = std::numbers::pi_v<float> / 6.f +
+						static_cast<float>(corner) * std::numbers::pi_v<float> / 3.f;
 					corners[corner] = sf::Vector2f{ x, y } + sf::Vector2f{
 						std::cos(angle) * HexRadius,
 						std::sin(angle) * HexRadius };
 				}
-				for (std::size_t corner{ 0u }; corner < corners.size(); ++corner)
+				for (std::size_t corner = 0u; corner < corners.size(); ++corner)
 				{
 					vertices.push_back(corners[corner]);
 					vertices.push_back(corners[(corner + 1u) % corners.size()]);
@@ -78,7 +78,7 @@ void Rendering::DrawEnergyShield(
 	float hexOpacity,
 	sf::RenderStates states)
 {
-	constexpr std::size_t ShieldCirclePoints{ 64u };
+	constexpr std::size_t ShieldCirclePoints = 64u;
 	sf::CircleShape shell(radius, ShieldCirclePoints);
 	shell.setOrigin({ radius, radius });
 	shell.setPosition(center);
@@ -91,9 +91,9 @@ void Rendering::DrawEnergyShield(
 
 	sf::RenderStates additiveStates{ states };
 	additiveStates.blendMode = sf::BlendAdd;
-	for (int layer{ 0 }; layer < 3; ++layer)
+	for (int layer = 0; layer < 3; ++layer)
 	{
-		const float glowRadius{ radius + 2.f + layer * 3.f };
+		const float glowRadius = radius + 2.f + layer * 3.f;
 		sf::CircleShape glow(glowRadius, ShieldCirclePoints);
 		glow.setOrigin({ glowRadius, glowRadius });
 		glow.setPosition(center);
@@ -111,7 +111,7 @@ void Rendering::DrawEnergyShield(
 		static_cast<std::uint8_t>(hexOpacity * pulse) };
 	const std::vector<sf::Vector2f>& localVertices{ GetHexGridLocalVertices(radius) };
 	sf::VertexArray hexGrid(sf::PrimitiveType::Lines, localVertices.size());
-	for (std::size_t index{ 0u }; index < localVertices.size(); ++index)
+	for (std::size_t index = 0u; index < localVertices.size(); ++index)
 		hexGrid[index] = sf::Vertex{ center + localVertices[index], hexColor };
 	if (hexGrid.getVertexCount() > 0u)
 		target.draw(hexGrid, additiveStates);

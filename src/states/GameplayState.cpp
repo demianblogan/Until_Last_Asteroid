@@ -1180,7 +1180,7 @@ void GameplayState::UnlockCompletionAchievements(int completedLevel)
 		static_cast<void>(GetContext().achievements.Unlock(AchievementID::FlawlessCampaign));
 }
 
-ResultScreen::Statistics GameplayState::FinalizeLevelStatistics()
+UI::ResultScreen::Statistics GameplayState::FinalizeLevelStatistics()
 {
 	const auto& level{ gameplayData.GetLevel(session.GetLevel()) };
 	const World::Statistics& worldStatistics{ world.GetStatistics() };
@@ -1193,7 +1193,7 @@ ResultScreen::Statistics GameplayState::FinalizeLevelStatistics()
 		: 0.f };
 	const float targetAccuracyRatio{ level.targetAccuracyPercent / 100.f };
 
-	ResultScreen::Statistics result;
+	UI::ResultScreen::Statistics result;
 	result.combatScore = session.GetLevelScore();
 	result.armorPercent = static_cast<int>(std::lround(armorRatio * 100.f));
 	result.armorBonus = armorRatio >= ArmorBonusThreshold ? ArmorBonusPoints : 0;
@@ -1225,7 +1225,7 @@ ResultScreen::Statistics GameplayState::FinalizeLevelStatistics()
 
 void GameplayState::CompleteCurrentLevel()
 {
-	const ResultScreen::Statistics levelStatistics{ FinalizeLevelStatistics() };
+	const UI::ResultScreen::Statistics levelStatistics{ FinalizeLevelStatistics() };
 	session.ClearTemporaryEffects();
 	world.ClearPickups();
 	if (hud)
@@ -1235,13 +1235,13 @@ void GameplayState::CompleteCurrentLevel()
 	UnlockCompletionAchievements(session.GetLevel());
 
 	if (selectedLevelRun && !selectedLevelAdvancesCampaign)
-		resultScreen.Start(ResultScreen::Mode::LevelReplay,
+		resultScreen.Start(UI::ResultScreen::Mode::LevelReplay,
 			session.GetLevel(), levelStatistics);
 	else if (session.GetLevel() >= gameplayData.GetLevelCount())
-		resultScreen.Start(ResultScreen::Mode::ContentComplete,
+		resultScreen.Start(UI::ResultScreen::Mode::ContentComplete,
 			session.GetLevel(), levelStatistics);
 	else
-		resultScreen.Start(ResultScreen::Mode::LevelComplete,
+		resultScreen.Start(UI::ResultScreen::Mode::LevelComplete,
 			session.GetLevel(), levelStatistics);
 }
 
@@ -1292,17 +1292,17 @@ void GameplayState::BeginGameOver()
 		gameOverScreen.ShowInCampaignMode(session.GetScore());
 }
 
-void GameplayState::BeginGameOverTransition(GameOverScreen::Action action)
+void GameplayState::BeginGameOverTransition(UI::GameOverScreen::Action action)
 {
-	gameplayTransition = action == GameOverScreen::Action::RestartLevel
+	gameplayTransition = action == UI::GameOverScreen::Action::RestartLevel
 		? GameplayTransition::RestartLevel
 		: GameplayTransition::MainMenu;
 	screenFade.StartFadeOut(GameplayFadeOutDuration);
 }
 
-void GameplayState::BeginResultTransition(ResultScreen::Action action)
+void GameplayState::BeginResultTransition(UI::ResultScreen::Action action)
 {
-	if (action == ResultScreen::Action::Restart)
+	if (action == UI::ResultScreen::Action::Restart)
 	{
 		world.Sound().StopActiveSounds();
 		session.DiscardRecoveredParts();
@@ -1313,15 +1313,15 @@ void GameplayState::BeginResultTransition(ResultScreen::Action action)
 	session.AcceptRecoveredParts();
 	SaveCompletedLevel();
 	GetContext().gameplayLaunch.upgradesReturnToLevelSelect = false;
-	if (action == ResultScreen::Action::MainMenu)
+	if (action == UI::ResultScreen::Action::MainMenu)
 		gameplayTransition = GameplayTransition::MainMenu;
-	else if (resultScreen.GetMode() == ResultScreen::Mode::LevelReplay)
+	else if (resultScreen.GetMode() == UI::ResultScreen::Mode::LevelReplay)
 	{
 		GetContext().gameplayLaunch.upgradesReturnToLevelSelect = true;
 		gameplayTransition = GameplayTransition::ShipUpgrades;
 	}
 	else
-		gameplayTransition = resultScreen.GetMode() == ResultScreen::Mode::Victory
+		gameplayTransition = resultScreen.GetMode() == UI::ResultScreen::Mode::Victory
 			? GameplayTransition::RestartGame
 			: GameplayTransition::ShipUpgrades;
 	screenFade.StartFadeOut(GameplayFadeOutDuration);

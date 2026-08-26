@@ -10,7 +10,7 @@
 
 #include "states/State.h"
 #include "ui/GlowingCursor.h"
-#include "ui/MenuButton.h"
+#include "ui/MenuButtonList.h"
 #include "rendering/NeonGlow.h"
 #include "ui/ScreenFade.h"
 
@@ -39,10 +39,6 @@ private:
     };
 
     void CaptureBlurredFrame();
-    void SelectPrevious();
-    void SelectNext();
-    void Select(std::size_t index, bool playSound = true);
-    void UpdateMouseSelection(sf::Vector2i pixelPosition);
     void BeginActivation(std::size_t index);
     void CompleteActivation(std::size_t index);
     void RefreshLocalizedContent();
@@ -55,12 +51,11 @@ private:
     sf::Text titleGlow;
     sf::Text title;
     NeonGlow neonGlow;
-    GlowingCursor menuCursor;
-    ScreenFade screenFade;
-    std::vector<MenuButton> buttons;
+    UI::GlowingCursor menuCursor;
+    UI::ScreenFade screenFade;
+    UI::MenuButtonList buttonList;
     std::vector<PauseAction> buttonActions;
     sf::Vector2u capturedWindowSize{};
-    std::size_t selectedIndex{ 0 };
     std::size_t pendingActivation{ 0 };
     std::size_t localizationRevision{ 0u };
     float activationDelayRemaining{ 0.f };

@@ -14,10 +14,10 @@
 
 namespace
 {
-    constexpr float BloomThreshold{ 0.79f };
-    constexpr float BloomSoftness{ 0.14f };
-    constexpr float BlurRadius{ 2.15f };
-    constexpr unsigned int BlurIterations{ 2u };
+    constexpr float BloomThreshold = 0.79f;
+    constexpr float BloomSoftness = 0.14f;
+    constexpr float BlurRadius = 2.15f;
+    constexpr unsigned int BlurIterations = 2u;
 
     sf::Vector2u GetViewportSize(sf::RenderWindow& window)
     {
@@ -63,17 +63,17 @@ void GameplayPostProcessor::Render(
     // iterations). Levels with bloomIntensity at ~0 don't need it redone
     // every frame -- clear the (now unused) bloom texture once and reuse
     // that empty result until bloom is actually needed again.
-    constexpr float MinimumBloomIntensity{ 0.01f };
+    constexpr float MinimumBloomIntensity = 0.01f;
     if (config.bloomIntensity > MinimumBloomIntensity)
     {
         ApplyBloom(scene.getTexture());
-        bloomTextureCleared = false;
+        isBloomTextureCleared = false;
     }
-    else if (!bloomTextureCleared)
+    else if (!isBloomTextureCleared)
     {
         bloom.clear(sf::Color::Transparent);
         bloom.display();
-        bloomTextureCleared = true;
+        isBloomTextureCleared = true;
     }
 
     compositeShader.setUniform("source", sf::Shader::CurrentTexture);
@@ -93,7 +93,7 @@ void GameplayPostProcessor::Render(
 	{
 		std::array<sf::Glsl::Vec2, GameplayEffects::MaximumShockwaves> centers;
 		std::array<float, GameplayEffects::MaximumShockwaves> radii{};
-		for (std::size_t index{ 0u }; index < shockwaveCount; ++index)
+		for (std::size_t index = 0u; index < shockwaveCount; ++index)
 		{
 			// RenderTexture sampling uses a vertically flipped texture matrix.
 			// World coordinates originate at the top-left, so convert Y to the
@@ -172,7 +172,7 @@ void GameplayPostProcessor::ApplyBloom(const sf::Texture& source)
     sf::RenderStates blurStates;
     blurStates.shader = &blurShader;
     blurStates.blendMode = sf::BlendNone;
-    for (unsigned int iteration{ 0u }; iteration < BlurIterations; ++iteration)
+    for (unsigned int iteration = 0u; iteration < BlurIterations; ++iteration)
     {
         blurShader.setUniform("source", sf::Shader::CurrentTexture);
         blurShader.setUniform("direction", sf::Glsl::Vec2(

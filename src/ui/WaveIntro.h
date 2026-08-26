@@ -7,28 +7,34 @@
 class Assets;
 class LocalizationManager;
 
-namespace sf { class RenderTarget; }
-
-class WaveIntro
+namespace sf
 {
-public:
-    WaveIntro(Assets& assets, LocalizationManager& localization);
+	class RenderTarget;
+}
 
-    void Start(int waveNumber, bool finalWave = false);
-    bool Update(float deltaTime);
-    void Draw(sf::RenderTarget& target);
-    void Reset() noexcept;
+namespace UI
+{
+	class WaveIntro
+	{
+	public:
+		WaveIntro(Assets& assets, LocalizationManager& localization);
 
-    [[nodiscard]] bool IsActive() const noexcept;
+		void Start(int waveNumber, bool isFinalWave = false);
+		void Reset() noexcept;
 
-private:
-    void ApplyAnimation();
-    static void CenterText(sf::Text& text, sf::Vector2f position);
+		bool Update(float deltaTime);
+		void Draw(sf::RenderTarget& target);
 
-    NeonGlow titleGlow;
-    Assets& assets;
-    LocalizationManager& localization;
-    sf::Text title;
-    float elapsed{ 0.f };
-    bool active{ false };
-};
+		[[nodiscard]] bool IsActive() const noexcept;
+
+	private:
+		void ApplyAnimation();
+
+		NeonGlow titleGlow;
+		Assets& assets;
+		LocalizationManager& localization;
+		sf::Text title;
+		float elapsedSeconds = 0.f;
+		bool isActive = false;
+	};
+}

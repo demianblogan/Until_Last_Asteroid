@@ -2,14 +2,13 @@
 
 #include <cstddef>
 #include <optional>
-#include <vector>
 
 #include <SFML/Graphics/Text.hpp>
 
 #include "states/State.h"
 #include "ui/GlowingCursor.h"
 #include "ui/MenuBackground.h"
-#include "ui/MenuButton.h"
+#include "ui/MenuButtonList.h"
 #include "ui/MenuIntroAnimation.h"
 #include "rendering/NeonGlow.h"
 #include "ui/ScreenFade.h"
@@ -26,29 +25,24 @@ public:
     void RenderOverlay() override;
 
 private:
-    void SelectPrevious();
-    void SelectNext();
-    void Select(std::size_t index, bool playSound = true);
-    void UpdateMouseSelection(sf::Vector2i pixelPosition);
     void ActivateSelected();
     void CompleteActivation(std::size_t index);
     void ApplyAnimationState();
-    void HandleAnimationEvents(const MenuIntroAnimation::Events& events);
+    void HandleAnimationEvents(const UI::MenuIntroAnimation::Events& events);
     void PlayTypingSounds(std::size_t count);
     void StartMenuMusic();
 	void RefreshLocalizedLabels();
 
-    MenuBackground background;
+    UI::MenuBackground background;
     NeonGlow neonGlow;
     NeonGlow titleNeonGlow;
-    GlowingCursor menuCursor;
-    MenuIntroAnimation introAnimation;
-    ScreenFade screenFade;
+    UI::GlowingCursor menuCursor;
+    UI::MenuIntroAnimation introAnimation;
+    UI::ScreenFade screenFade;
     sf::Text title;
     sf::Text version;
-    std::vector<MenuButton> buttons;
+    UI::MenuButtonList buttonList;
     std::optional<std::size_t> pendingActivation;
-    std::size_t selectedIndex{ 0 };
     std::size_t typingSoundIndex{ 0 };
     float activationDelayRemaining{ 0.f };
     float titleLeftPosition{ 0.f };

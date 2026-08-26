@@ -14,15 +14,15 @@
 
 namespace
 {
-    constexpr float Padding{ 72.f };
-	constexpr float BloomScale{ 0.5f };
-    constexpr float InnerBlurRadius{ 0.9f };
-    constexpr float OuterBlurRadius{ 1.5f };
-    constexpr unsigned int InnerBlurIterations{ 2u };
-	constexpr unsigned int OuterBlurIterations{ 5u };
-    constexpr float BrightnessThreshold{ 0.46f };
-    constexpr float BrightnessSoftness{ 0.16f };
-    constexpr float PulseSpeed{ 3.2f };
+    constexpr float Padding = 72.f;
+	constexpr float BloomScale = 0.5f;
+    constexpr float InnerBlurRadius = 0.9f;
+    constexpr float OuterBlurRadius = 1.5f;
+    constexpr unsigned int InnerBlurIterations = 2u;
+	constexpr unsigned int OuterBlurIterations = 5u;
+    constexpr float BrightnessThreshold = 0.46f;
+    constexpr float BrightnessSoftness = 0.16f;
+    constexpr float PulseSpeed = 3.2f;
 
     sf::Vector2u ToTextureSize(sf::Vector2f contentSize)
     {
@@ -72,7 +72,7 @@ void NeonGlow::Update(float deltaTime)
 
 void NeonGlow::Invalidate() noexcept
 {
-    dirty = true;
+    isDirty = true;
 }
 
 void NeonGlow::DrawBloom(
@@ -80,15 +80,15 @@ void NeonGlow::DrawBloom(
     const sf::FloatRect& bounds,
     const SourceRenderer& renderSource,
     sf::Color color,
-    bool pulsing)
+    bool isPulsing)
 {
-    if (dirty || cachedContentSize != bounds.size)
+    if (isDirty || cachedContentSize != bounds.size)
         Rebuild(bounds, renderSource);
 
-    if (dirty || outerBlur.getSize().x == 0u || outerBlur.getSize().y == 0u)
+    if (isDirty || outerBlur.getSize().x == 0u || outerBlur.getSize().y == 0u)
         return;
 
-    const float pulse{ pulsing ? GetPulse() : 1.f };
+    const float pulse = isPulsing ? GetPulse() : 1.f;
     const sf::Vector2f position{ bounds.position - sf::Vector2f{ Padding, Padding } };
     sf::RenderStates additive;
     additive.blendMode = PureAdditive;
@@ -113,10 +113,10 @@ void NeonGlow::DrawHighlight(
     const sf::FloatRect& bounds,
     sf::Color color) const
 {
-    if (dirty || emissive.getSize().x == 0u || emissive.getSize().y == 0u)
+    if (isDirty || emissive.getSize().x == 0u || emissive.getSize().y == 0u)
         return;
 
-    const float pulse{ GetPulse() };
+    const float pulse = GetPulse();
     sf::Sprite highlight(emissive.getTexture());
     highlight.setPosition(bounds.position - sf::Vector2f{ Padding, Padding });
 	highlight.setScale({ 1.f / BloomScale, 1.f / BloomScale });
@@ -153,7 +153,7 @@ void NeonGlow::Rebuild(const sf::FloatRect& bounds, const SourceRenderer& render
 
     ApplyBlur(emissive.getTexture(), innerBlur, InnerBlurRadius, InnerBlurIterations);
     ApplyBlur(emissive.getTexture(), outerBlur, OuterBlurRadius, OuterBlurIterations);
-    dirty = false;
+    isDirty = false;
 }
 
 bool NeonGlow::Resize(sf::Vector2f contentSize)
@@ -189,7 +189,7 @@ void NeonGlow::ApplyBlur(
     blurStates.shader = &blurShader;
     blurStates.blendMode = sf::BlendNone;
     const sf::Texture* currentInput{ &input };
-    for (unsigned int iteration{ 0u }; iteration < iterations; ++iteration)
+    for (unsigned int iteration = 0u; iteration < iterations; ++iteration)
     {
         blurShader.setUniform("source", sf::Shader::CurrentTexture);
         blurShader.setUniform("direction", sf::Glsl::Vec2(

@@ -25,8 +25,8 @@ private:
     struct Star
     {
         sf::Vector2f position;
-        float size{ 1.f };
-        float speed{ 0.f };
+        float size = 1.f;
+        float speed = 0.f;
         sf::Color color{ sf::Color::White };
     };
 

@@ -12,12 +12,12 @@
 
 namespace
 {
-    constexpr std::uint32_t FnvOffsetBasis{ 2166136261u };
-    constexpr std::uint32_t FnvPrime{ 16777619u };
+    constexpr std::uint32_t FnvOffsetBasis = 2166136261u;
+    constexpr std::uint32_t FnvPrime = 16777619u;
 
     std::uint32_t HashTheme(std::string_view theme)
     {
-        std::uint32_t hash{ FnvOffsetBasis };
+        std::uint32_t hash = FnvOffsetBasis;
         for (const unsigned char character : theme)
         {
             hash ^= character;
@@ -37,7 +37,7 @@ GameplayBackground::GameplayBackground(Assets& assets, sf::Vector2f logicalSize)
 
 void GameplayBackground::SetTheme(std::string_view theme, float brightness)
 {
-	constexpr float GlobalBrightnessMultiplier{ 1.1f };
+	constexpr float GlobalBrightnessMultiplier = 1.1f;
 	brightness *= GlobalBrightnessMultiplier;
 	farBackground.reset();
 	std::optional<Config::Texture> backgroundTexture;
@@ -67,9 +67,9 @@ void GameplayBackground::SetTheme(std::string_view theme, float brightness)
 		sf::Texture& texture{ assets.Textures().Get(*backgroundTexture) };
 		farBackground.emplace(texture);
 		const sf::Vector2u textureSize{ texture.getSize() };
-		const float scale{ std::max(
+		const float scale = std::max(
 			logicalSize.x / static_cast<float>(textureSize.x),
-			logicalSize.y / static_cast<float>(textureSize.y)) };
+			logicalSize.y / static_cast<float>(textureSize.y));
 		farBackground->setOrigin({
 			static_cast<float>(textureSize.x) * 0.5f,
 			static_cast<float>(textureSize.y) * 0.5f });
@@ -194,7 +194,7 @@ void GameplayBackground::GenerateStars(std::uint32_t seed)
 
     middleStars.clear();
     middleStars.reserve(180);
-    for (int i{ 0 }; i < 180; ++i)
+    for (int i = 0; i < 180; ++i)
     {
         middleStars.push_back(createStar(
             middleSizeDistribution(random),
@@ -204,7 +204,7 @@ void GameplayBackground::GenerateStars(std::uint32_t seed)
 
     nearDust.clear();
     nearDust.reserve(55);
-    for (int i{ 0 }; i < 55; ++i)
+    for (int i = 0; i < 55; ++i)
     {
         nearDust.push_back(createStar(
             nearSizeDistribution(random),
@@ -241,7 +241,7 @@ void GameplayBackground::BuildStarVertices(
 
 void GameplayBackground::AppendStarQuad(sf::VertexArray& vertices, const Star& star) const
 {
-    const float halfSize{ star.size * 0.5f };
+    const float halfSize = star.size * 0.5f;
     const sf::Vector2f topLeft{ star.position.x - halfSize, star.position.y - halfSize };
     const sf::Vector2f topRight{ star.position.x + halfSize, star.position.y - halfSize };
     const sf::Vector2f bottomLeft{ star.position.x - halfSize, star.position.y + halfSize };

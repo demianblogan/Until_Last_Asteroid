@@ -92,7 +92,7 @@ private:
 
     sf::Vector2f logicalSize;
 	LocalizationManager& localization;
-    RoundedRectangleShape panel;
+    UI::RoundedRectangleShape panel;
     sf::Text text;
     NeonGlow glow;
     sf::String movementInstruction;

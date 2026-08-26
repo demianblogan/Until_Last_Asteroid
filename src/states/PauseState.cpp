@@ -67,6 +67,7 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
         { 6.f, 2.f },
         InterfaceGlowColor)
     , screenFade(context.logicalSize)
+    , buttonList(context.audio, neonGlow)
 {
     context.window.setMouseCursorVisible(false);
 	const bool tutorialMenu{ context.gameplayLaunch.tutorialRunning };
@@ -117,17 +118,17 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
 	menuItems.emplace_back(context.localization.GetText("main_menu.options"), PauseAction::Options);
 	menuItems.emplace_back(context.localization.GetText("common.back_main"), PauseAction::MainMenu);
 
-    buttons.reserve(menuItems.size());
 	buttonActions.reserve(menuItems.size());
 	for (std::size_t index{ 0 }; index < menuItems.size(); ++index)
     {
-		buttons.emplace_back(menuFont, idleTexture, selectedTexture, "", ButtonSize);
-		buttons.back().SetLabel(menuItems[index].first);
-        buttons.back().SetPosition(
+		UI::MenuButton button(menuFont, idleTexture, selectedTexture, "", ButtonSize);
+		button.SetLabel(menuItems[index].first);
+        button.SetPosition(
 			firstButtonPosition + sf::Vector2f{ 0.f, buttonSpacing * static_cast<float>(index) });
+		buttonList.Add(std::move(button));
 		buttonActions.push_back(menuItems[index].second);
     }
-    Select(0, false);
+    buttonList.Select(0, false);
 
     localizationRevision = context.localization.GetLanguageRevision();
 
@@ -160,16 +161,16 @@ void PauseState::HandleEvent(const sf::Event& event)
     using enum GamepadManager::NavigationAction;
     switch (GetContext().gamepad.GetNavigationAction(event))
     {
-    case Up: SelectPrevious(); return;
-    case Down: SelectNext(); return;
-    case Confirm: BeginActivation(selectedIndex); return;
+    case Up: buttonList.SelectPrevious(); return;
+    case Down: buttonList.SelectNext(); return;
+    case Confirm: BeginActivation(buttonList.GetSelectedIndex()); return;
     case Back: BeginActivation(0u); return;
     default: break;
     }
 
     if (const auto* mouseMoved{ event.getIf<sf::Event::MouseMoved>() })
     {
-        UpdateMouseSelection(mouseMoved->position);
+        buttonList.UpdateMouseSelection(GetContext().window.mapPixelToCoords(mouseMoved->position));
         return;
     }
 
@@ -179,17 +180,17 @@ void PauseState::HandleEvent(const sf::Event& event)
         {
         case sf::Keyboard::Key::Up:
         case sf::Keyboard::Key::W:
-            SelectPrevious();
+            buttonList.SelectPrevious();
             return;
 
         case sf::Keyboard::Key::Down:
         case sf::Keyboard::Key::S:
-            SelectNext();
+            buttonList.SelectNext();
             return;
 
         case sf::Keyboard::Key::Enter:
         case sf::Keyboard::Key::Space:
-            BeginActivation(selectedIndex);
+            BeginActivation(buttonList.GetSelectedIndex());
             return;
 
         case sf::Keyboard::Key::Escape:
@@ -207,11 +208,11 @@ void PauseState::HandleEvent(const sf::Event& event)
             return;
 
         const sf::Vector2f mousePosition{ GetContext().window.mapPixelToCoords(mousePressed->position) };
-        for (std::size_t index{ 0 }; index < buttons.size(); ++index)
+        for (std::size_t index{ 0 }; index < buttonList.GetButtons().size(); ++index)
         {
-            if (buttons[index].Contains(mousePosition))
+            if (buttonList.GetButtons()[index].Contains(mousePosition))
             {
-                Select(index, false);
+                buttonList.Select(index, false);
                 BeginActivation(index);
                 return;
             }
@@ -270,9 +271,9 @@ void PauseState::Render()
     window.draw(titleGlow);
     window.draw(title);
 
-    if (!buttons.empty())
+    if (!buttonList.GetButtons().empty())
     {
-        const MenuButton& selectedButton{ buttons[selectedIndex] };
+        const UI::MenuButton& selectedButton{ buttonList.GetButtons()[buttonList.GetSelectedIndex()] };
         neonGlow.DrawBloom(
             window,
             selectedButton.GetBounds(),
@@ -283,11 +284,11 @@ void PauseState::Render()
             SelectionGlowColor);
     }
 
-    for (const MenuButton& button : buttons)
+    for (const UI::MenuButton& button : buttonList.GetButtons())
         button.Draw(window);
 
-    if (!buttons.empty())
-        neonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), SelectionGlowColor);
+    if (!buttonList.GetButtons().empty())
+        neonGlow.DrawHighlight(window, buttonList.GetButtons()[buttonList.GetSelectedIndex()].GetBounds(), SelectionGlowColor);
 }
 
 void PauseState::RenderOverlay()
@@ -384,57 +385,12 @@ void PauseState::RefreshLocalizedContent()
     labels.push_back(context.localization.GetText("main_menu.options"));
     labels.push_back(context.localization.GetText("common.back_main"));
 
-    for (std::size_t index{ 0u }; index < buttons.size() && index < labels.size(); ++index)
+    for (std::size_t index{ 0u }; index < buttonList.GetButtons().size() && index < labels.size(); ++index)
     {
-        buttons[index].SetFont(menuFont);
-        buttons[index].SetLabel(labels[index]);
+        buttonList.GetButtons()[index].SetFont(menuFont);
+        buttonList.GetButtons()[index].SetLabel(labels[index]);
     }
     neonGlow.Invalidate();
-}
-
-void PauseState::SelectPrevious()
-{
-    Select(selectedIndex == 0 ? buttons.size() - 1 : selectedIndex - 1);
-}
-
-void PauseState::SelectNext()
-{
-    Select((selectedIndex + 1) % buttons.size());
-}
-
-void PauseState::Select(std::size_t index, bool playSound)
-{
-    const bool selectionChanged{ selectedIndex != index };
-    selectedIndex = index;
-
-    for (std::size_t buttonIndex{ 0 }; buttonIndex < buttons.size(); ++buttonIndex)
-        buttons[buttonIndex].SetSelected(buttonIndex == selectedIndex);
-
-    if (selectionChanged)
-        neonGlow.Invalidate();
-
-    if (selectionChanged && playSound)
-    {
-        GetContext().audio.PlaySound(
-            Config::Sound::ItemSelect,
-            SoundGroup::UI,
-            100.f,
-            1.f,
-            SoundPlayback::StopPrevious);
-    }
-}
-
-void PauseState::UpdateMouseSelection(sf::Vector2i pixelPosition)
-{
-    const sf::Vector2f mousePosition{ GetContext().window.mapPixelToCoords(pixelPosition) };
-    for (std::size_t index{ 0 }; index < buttons.size(); ++index)
-    {
-        if (buttons[index].Contains(mousePosition))
-        {
-            Select(index);
-            return;
-        }
-    }
 }
 
 void PauseState::BeginActivation(std::size_t index)

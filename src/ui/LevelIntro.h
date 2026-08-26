@@ -14,41 +14,43 @@ namespace sf
 	class RenderTarget;
 }
 
-class LevelIntro
+namespace UI
 {
-public:
-	LevelIntro(Assets& assets, LocalizationManager& localization, sf::Vector2f logicalSize);
+	class LevelIntro
+	{
+	public:
+		LevelIntro(Assets& assets, LocalizationManager& localization, sf::Vector2f logicalSize);
 
-	void Start(int levelNumber);
-	void StartMode(const sf::String& modeName, const sf::String& objective);
+		void Start(int levelNumber);
+		void StartMode(const sf::String& modeName, const sf::String& objective);
 
-	[[nodiscard]] bool Update(float deltaTime);
-	void Draw(sf::RenderTarget& target);
+		[[nodiscard]] bool Update(float deltaTime);
+		void Draw(sf::RenderTarget& target);
 
-	void Reset() noexcept;
+		void Reset() noexcept;
 
-	[[nodiscard]] bool IsActive() const noexcept;
+		[[nodiscard]] bool IsActive() const noexcept;
 
-private:
-	void StartWithText(const sf::String& heading, const sf::String& subtitle);
-	void ApplyAnimation();
-	static void CenterText(sf::Text& text, sf::Vector2f position);
+	private:
+		void StartWithText(const sf::String& heading, const sf::String& subtitle);
+		void ApplyAnimation();
 
-	NeonGlow levelGlowEffect;
-	Assets& assets;
-	LocalizationManager& localization;
+		NeonGlow levelGlowEffect;
+		Assets& assets;
+		LocalizationManager& localization;
 
-	NeonGlow titleGlowEffect;
-	sf::RectangleShape shade;
-	RoundedRectangleShape panel;
-	sf::RectangleShape upperLine;
-	sf::RectangleShape lowerLine;
+		NeonGlow titleGlowEffect;
+		sf::RectangleShape shade;
+		RoundedRectangleShape panel;
+		sf::RectangleShape upperLine;
+		sf::RectangleShape lowerLine;
 
-	sf::Text levelLabel;
-	sf::Text title;
-	sf::Vector2f logicalSize;
+		sf::Text levelLabel;
+		sf::Text title;
+		sf::Vector2f logicalSize;
 
-	float animationElapsedSeconds = 0.f;
-	bool isBeingShown = false;
-	bool isTitleGlowVisible = true;
-};
+		float animationElapsedSeconds = 0.f;
+		bool isBeingShown = false;
+		bool isTitleGlowVisible = true;
+	};
+}

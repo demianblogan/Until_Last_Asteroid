@@ -3,179 +3,183 @@
 #include <algorithm>
 #include <utility>
 
-MenuIntroAnimation::MenuIntroAnimation(sf::String titleText, std::vector<sf::String> itemTexts)
-    : title(std::move(titleText))
-    , menuItems(std::move(itemTexts))
-    , visibleMenuCharacters(menuItems.size(), 0)
+namespace UI
 {
-}
+	MenuIntroAnimation::MenuIntroAnimation(sf::String titleText, std::vector<sf::String> itemTexts)
+		: title(std::move(titleText))
+		, menuItems(std::move(itemTexts))
+		, visibleMenuCharacters(menuItems.size(), 0)
+	{}
 
-MenuIntroAnimation::Events MenuIntroAnimation::Update(float deltaTime)
-{
-    Events events;
+	MenuIntroAnimation::Events MenuIntroAnimation::Update(float deltaTime)
+	{
+		Events events;
 
-    switch (phase)
-    {
-    case Phase::TypingTitle:
-        UpdateTypingTitle(deltaTime, events);
-        break;
+		switch (phase)
+		{
+		case Phase::TypingTitle:
+			UpdateTypingTitle(deltaTime, events);
+			break;
 
-    case Phase::MovingTitle:
-        UpdateMovingTitle(deltaTime);
-        break;
+		case Phase::MovingTitle:
+			UpdateMovingTitle(deltaTime);
+			break;
 
-    case Phase::TypingMenuItems:
-        UpdateTypingMenuItems(deltaTime, events);
-        break;
+		case Phase::TypingMenuItems:
+			UpdateTypingMenuItems(deltaTime, events);
+			break;
 
-    case Phase::RevealingFrames:
-        phaseTimer += deltaTime;
-        frameOpacity = std::clamp(phaseTimer / FRAME_REVEAL_DURATION, 0.f, 1.f);
-        if (frameOpacity >= 1.f)
-        {
-            phase = Phase::Interactive;
-            events.becameInteractive = true;
-        }
-        break;
+		case Phase::RevealingFrames:
+			phaseTimer += deltaTime;
+			frameOpacity = std::clamp(phaseTimer / FrameRevealDuration, 0.f, 1.f);
+			if (frameOpacity >= 1.f)
+			{
+				phase = Phase::Interactive;
+				events.hasBecomeInteractive = true;
+			}
+			break;
 
-    case Phase::Interactive:
-        break;
-    }
+		case Phase::Interactive:
+			break;
+		}
 
-    return events;
-}
+		return events;
+	}
 
-MenuIntroAnimation::Events MenuIntroAnimation::Skip()
-{
-    Events events;
-    if (phase == Phase::Interactive)
-        return events;
+	MenuIntroAnimation::Events MenuIntroAnimation::Skip()
+	{
+		Events events;
+		if (phase == Phase::Interactive)
+			return events;
 
-    visibleTitleCharacters = title.getSize();
-    for (std::size_t index{ 0 }; index < menuItems.size(); ++index)
-        visibleMenuCharacters[index] = menuItems[index].getSize();
+		visibleTitleCharacters = title.getSize();
+		for (std::size_t index = 0u; index < menuItems.size(); index++)
+			visibleMenuCharacters[index] = menuItems[index].getSize();
 
-    titleMoveProgress = 1.f;
-    frameOpacity = 1.f;
-    phase = Phase::Interactive;
-    events.activationStarted = !hasStartedActivation;
-    events.becameInteractive = true;
-    hasStartedActivation = true;
-    return events;
-}
+		titleMoveProgress = 1.f;
+		frameOpacity = 1.f;
+		phase = Phase::Interactive;
 
-sf::String MenuIntroAnimation::GetVisibleTitle() const
-{
-    return title.substring(0, visibleTitleCharacters);
-}
+		events.hasActivationStarted = !hasStartedActivation;
+		events.hasBecomeInteractive = true;
+		hasStartedActivation = true;
 
-sf::String MenuIntroAnimation::GetVisibleMenuItem(std::size_t index) const
-{
-    if (index >= menuItems.size())
-        return {};
+		return events;
+	}
 
-    return menuItems[index].substring(0, visibleMenuCharacters[index]);
-}
+	sf::String MenuIntroAnimation::GetVisibleTitle() const
+	{
+		return title.substring(0, visibleTitleCharacters);
+	}
 
-float MenuIntroAnimation::GetTitleMoveProgress() const noexcept
-{
-    return titleMoveProgress;
-}
+	sf::String MenuIntroAnimation::GetVisibleMenuItem(std::size_t index) const
+	{
+		if (index >= menuItems.size())
+			return {};
 
-float MenuIntroAnimation::GetFrameOpacity() const noexcept
-{
-    return frameOpacity;
-}
+		return menuItems[index].substring(0, visibleMenuCharacters[index]);
+	}
 
-bool MenuIntroAnimation::IsInteractive() const noexcept
-{
-    return phase == Phase::Interactive;
-}
+	float MenuIntroAnimation::GetTitleMoveProgress() const noexcept
+	{
+		return titleMoveProgress;
+	}
 
-void MenuIntroAnimation::UpdateTypingTitle(float deltaTime, Events& events)
-{
-    characterTimer += deltaTime;
+	float MenuIntroAnimation::GetFrameOpacity() const noexcept
+	{
+		return frameOpacity;
+	}
 
-    while (characterTimer >= TITLE_CHARACTER_INTERVAL && visibleTitleCharacters < title.getSize())
-    {
-        characterTimer -= TITLE_CHARACTER_INTERVAL;
-        if (title[visibleTitleCharacters] != U' ')
-            ++events.typedCharacters;
+	bool MenuIntroAnimation::IsInteractive() const noexcept
+	{
+		return phase == Phase::Interactive;
+	}
 
-        ++visibleTitleCharacters;
-    }
+	void MenuIntroAnimation::UpdateTypingTitle(float deltaTime, Events& events)
+	{
+		characterTimer += deltaTime;
 
-    if (visibleTitleCharacters >= title.getSize())
-    {
-        phase = Phase::MovingTitle;
-        phaseTimer = 0.f;
-        characterTimer = 0.f;
-    }
-}
+		while (characterTimer >= TitleCharacterInterval && visibleTitleCharacters < title.getSize())
+		{
+			characterTimer -= TitleCharacterInterval;
+			if (title[visibleTitleCharacters] != U' ')
+				events.typedCharacters++;
 
-void MenuIntroAnimation::UpdateMovingTitle(float deltaTime)
-{
-    phaseTimer += deltaTime;
-    const float linearProgress{ std::clamp(phaseTimer / TITLE_MOVE_DURATION, 0.f, 1.f) };
-    const float inverse{ 1.f - linearProgress };
-    titleMoveProgress = 1.f - inverse * inverse * inverse;
+			visibleTitleCharacters++;
+		}
 
-    if (linearProgress >= 1.f)
-    {
-        phase = Phase::TypingMenuItems;
-        phaseTimer = 0.f;
-        characterTimer = 0.f;
-    }
-}
+		if (visibleTitleCharacters >= title.getSize())
+		{
+			phase = Phase::MovingTitle;
+			phaseTimer = 0.f;
+			characterTimer = 0.f;
+		}
+	}
 
-void MenuIntroAnimation::UpdateTypingMenuItems(float deltaTime, Events& events)
-{
-    if (currentMenuItem >= menuItems.size())
-    {
-        StartFrameReveal(events);
-        return;
-    }
+	void MenuIntroAnimation::UpdateMovingTitle(float deltaTime)
+	{
+		phaseTimer += deltaTime;
+		const float linearProgress = std::clamp(phaseTimer / TitleMoveDuration, 0.f, 1.f);
+		const float inverse = 1.f - linearProgress;
+		titleMoveProgress = 1.f - inverse * inverse * inverse;
 
-    const sf::String& item{ menuItems[currentMenuItem] };
-    std::size_t& visibleCharacters{ visibleMenuCharacters[currentMenuItem] };
+		if (linearProgress >= 1.f)
+		{
+			phase = Phase::TypingMenuItems;
+			phaseTimer = 0.f;
+			characterTimer = 0.f;
+		}
+	}
 
-    if (visibleCharacters < item.getSize())
-    {
-        characterTimer += deltaTime;
+	void MenuIntroAnimation::UpdateTypingMenuItems(float deltaTime, Events& events)
+	{
+		if (currentMenuItem >= menuItems.size())
+		{
+			StartFrameReveal(events);
+			return;
+		}
 
-        while (characterTimer >= MENU_CHARACTER_INTERVAL && visibleCharacters < item.getSize())
-        {
-            characterTimer -= MENU_CHARACTER_INTERVAL;
-            if (item[visibleCharacters] != U' ')
-                ++events.typedCharacters;
+		const sf::String& item = menuItems[currentMenuItem];
+		std::size_t& visibleCharacters = visibleMenuCharacters[currentMenuItem];
 
-            ++visibleCharacters;
-        }
+		if (visibleCharacters < item.getSize())
+		{
+			characterTimer += deltaTime;
 
-        if (visibleCharacters >= item.getSize())
-        {
-            phaseTimer = 0.f;
-            if (currentMenuItem + 1 >= menuItems.size())
-                StartFrameReveal(events);
-        }
+			while (characterTimer >= MenuCharacterInterval && visibleCharacters < item.getSize())
+			{
+				characterTimer -= MenuCharacterInterval;
+				if (item[visibleCharacters] != U' ')
+					events.typedCharacters++;
 
-        return;
-    }
+				visibleCharacters++;
+			}
 
-    phaseTimer += deltaTime;
-    if (phaseTimer >= MENU_ITEM_PAUSE)
-    {
-        ++currentMenuItem;
-        phaseTimer = 0.f;
-        characterTimer = 0.f;
-    }
-}
+			if (visibleCharacters >= item.getSize())
+			{
+				phaseTimer = 0.f;
+				if (currentMenuItem + 1 >= menuItems.size())
+					StartFrameReveal(events);
+			}
 
-void MenuIntroAnimation::StartFrameReveal(Events& events)
-{
-    phase = Phase::RevealingFrames;
-    phaseTimer = 0.f;
-    frameOpacity = 0.f;
-    hasStartedActivation = true;
-    events.activationStarted = true;
+			return;
+		}
+
+		phaseTimer += deltaTime;
+		if (phaseTimer >= MenuItemPause)
+		{
+			currentMenuItem++;
+			phaseTimer = 0.f;
+			characterTimer = 0.f;
+		}
+	}
+
+	void MenuIntroAnimation::StartFrameReveal(Events& events)
+	{
+		phase = Phase::RevealingFrames;
+		phaseTimer = 0.f;
+		frameOpacity = 0.f;
+		hasStartedActivation = true;
+		events.hasActivationStarted = true;
+	}
 }

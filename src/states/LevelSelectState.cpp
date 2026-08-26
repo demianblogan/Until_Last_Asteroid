@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Event.hpp>
@@ -16,6 +17,7 @@
 #include "localization/LocalizationManager.h"
 #include "states/StateID.h"
 #include "input/GamepadManager.h"
+#include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -30,15 +32,6 @@ namespace
 	constexpr sf::Color Cyan{ 25, 220, 255 };
 	constexpr sf::Color Amber{ 255, 178, 42 };
 	constexpr float FadeDuration{ 0.38f };
-
-	void CenterText(sf::Text& text, sf::Vector2f position)
-	{
-		const sf::FloatRect bounds{ text.getLocalBounds() };
-		text.setOrigin({
-			bounds.position.x + bounds.size.x * 0.5f,
-			bounds.position.y + bounds.size.y * 0.5f });
-		text.setPosition(position);
-	}
 }
 
 LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
@@ -51,13 +44,14 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 	, screenFade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
 		context.localization.GetText("level_select.title"), 72u)
+	, buttonList(context.audio, buttonGlow)
 {
 	context.window.setMouseCursorVisible(false);
 	title.setFillColor(sf::Color(215, 247, 252));
 	title.setOutlineColor(sf::Color(3, 18, 31, 235));
 	title.setOutlineThickness(3.5f);
 	title.setLetterSpacing(1.12f);
-	CenterText(title, { context.logicalSize.x * 0.5f, 82.f });
+	UI::TextLayout::CenterText(title, { context.logicalSize.x * 0.5f, 82.f });
 
 	const GameplayData& gameplayData{ context.assets.GetGameplayData() };
 	const CampaignProgress* progress{ context.campaignSave.GetProgress() };
@@ -69,7 +63,6 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 	const sf::Texture& idle{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
 	const sf::Texture& selected{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 
-	buttons.reserve(VisibleLevelCount + 1u);
 	partsFrames.reserve(VisibleLevelCount);
 	partsIcons.reserve(VisibleLevelCount);
 	partsCounts.reserve(VisibleLevelCount);
@@ -106,10 +99,11 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 		}
 		const sf::Vector2f rowPosition{ FirstButtonPosition +
 			sf::Vector2f{ 0.f, ButtonSpacing * static_cast<float>(level - 1) } };
-		buttons.emplace_back(menuFont, idle, selected, "", LevelButtonSize);
-		buttons.back().SetLabel(label);
-		buttons.back().SetPosition(rowPosition);
-		buttons.back().SetEnabled(enabled);
+		UI::MenuButton button(menuFont, idle, selected, "", LevelButtonSize);
+		button.SetLabel(label);
+		button.SetPosition(rowPosition);
+		button.SetEnabled(enabled);
+		buttonList.Add(std::move(button));
 
 		const sf::Vector2f partsPosition{
 			rowPosition.x + LevelButtonSize.x + PartsFrameGap, rowPosition.y };
@@ -135,15 +129,16 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 			: sf::Color(100, 112, 122));
 		partsCounts.back().setOutlineColor(sf::Color(3, 18, 31, 230));
 		partsCounts.back().setOutlineThickness(2.f);
-		CenterText(partsCounts.back(), partsPosition + sf::Vector2f{ 128.f, 36.f });
+		UI::TextLayout::CenterText(partsCounts.back(), partsPosition + sf::Vector2f{ 128.f, 36.f });
 		buttonLevels.push_back(level);
 	}
 
-	buttons.emplace_back(
+	UI::MenuButton returnButton(
 		menuFont, idle, selected, "", ReturnButtonSize);
-	buttons.back().SetLabel(context.localization.GetText("level_select.back_game_menu"));
-	buttons.back().SetPosition({
+	returnButton.SetLabel(context.localization.GetText("level_select.back_game_menu"));
+	returnButton.SetPosition({
 		(context.logicalSize.x - ReturnButtonSize.x) * 0.5f, 900.f });
+	buttonList.Add(std::move(returnButton));
 	buttonLevels.push_back(0);
 	Select(0u, false);
 	screenFade.StartFadeIn(0.25f);
@@ -176,12 +171,12 @@ void LevelSelectState::HandleEvent(const sf::Event& event)
 		if (pressed->button != sf::Mouse::Button::Left)
 			return;
 		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(pressed->position) };
-		for (std::size_t index{ 0u }; index < buttons.size(); ++index)
+		for (std::size_t index{ 0u }; index < buttonList.GetButtons().size(); ++index)
 		{
 			const bool containsParts{ index < partsFrames.size() &&
 				partsFrames[index].Contains(point) };
-			if (buttons[index].IsEnabled() &&
-				(buttons[index].Contains(point) || containsParts))
+			if (buttonList.GetButtons()[index].IsEnabled() &&
+				(buttonList.GetButtons()[index].Contains(point) || containsParts))
 			{
 				Select(index, false);
 				ActivateSelected();
@@ -230,7 +225,8 @@ void LevelSelectState::Render()
 	window.draw(title);
 	titleGlow.DrawHighlight(window, title.getGlobalBounds(), Cyan);
 
-	const MenuButton& selectedButton{ buttons[selectedIndex] };
+	const std::size_t selectedIndex{ buttonList.GetSelectedIndex() };
+	const UI::MenuButton& selectedButton{ buttonList.GetButtons()[selectedIndex] };
 	buttonGlow.DrawBloom(window, selectedButton.GetBounds(),
 		[&selectedButton](sf::RenderTarget& target, const sf::RenderStates& states)
 		{ selectedButton.Draw(target, states); }, Amber);
@@ -245,7 +241,7 @@ void LevelSelectState::Render()
 				target.draw(partsCounts[index], states);
 			}, Amber);
 	}
-	for (const MenuButton& button : buttons)
+	for (const UI::MenuButton& button : buttonList.GetButtons())
 		button.Draw(window);
 	for (std::size_t index{ 0u }; index < partsFrames.size(); ++index)
 	{
@@ -268,53 +264,30 @@ void LevelSelectState::RenderOverlay()
 
 void LevelSelectState::SelectPrevious()
 {
-	std::size_t index{ selectedIndex };
-	do
-	{
-		index = index == 0u ? buttons.size() - 1u : index - 1u;
-	} while (!buttons[index].IsEnabled() && index != selectedIndex);
-	Select(index);
+	buttonList.SelectPrevious();
+	SyncPartsSelection();
 }
 
 void LevelSelectState::SelectNext()
 {
-	std::size_t index{ selectedIndex };
-	do
-	{
-		index = (index + 1u) % buttons.size();
-	} while (!buttons[index].IsEnabled() && index != selectedIndex);
-	Select(index);
+	buttonList.SelectNext();
+	SyncPartsSelection();
 }
 
 void LevelSelectState::Select(std::size_t index, bool playSound)
 {
-	if (index >= buttons.size() || !buttons[index].IsEnabled())
-		return;
-	const bool changed{ selectedIndex != index };
-	selectedIndex = index;
-	for (std::size_t buttonIndex{ 0u }; buttonIndex < buttons.size(); ++buttonIndex)
-		buttons[buttonIndex].SetSelected(buttonIndex == selectedIndex);
-	for (std::size_t frameIndex{ 0u }; frameIndex < partsFrames.size(); ++frameIndex)
-		partsFrames[frameIndex].SetSelected(frameIndex == selectedIndex);
-	if (changed)
-	{
-		buttonGlow.Invalidate();
-		partsGlow.Invalidate();
-	}
-	if (changed && playSound)
-		GetContext().audio.PlaySound(
-			Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f,
-			SoundPlayback::StopPrevious);
+	buttonList.Select(index, playSound);
+	SyncPartsSelection();
 }
 
 void LevelSelectState::UpdateMouseSelection(sf::Vector2f position)
 {
-	for (std::size_t index{ 0u }; index < buttons.size(); ++index)
+	for (std::size_t index{ 0u }; index < buttonList.GetButtons().size(); ++index)
 	{
 		const bool containsParts{ index < partsFrames.size() &&
 			partsFrames[index].Contains(position) };
-		if (buttons[index].IsEnabled() &&
-			(buttons[index].Contains(position) || containsParts))
+		if (buttonList.GetButtons()[index].IsEnabled() &&
+			(buttonList.GetButtons()[index].Contains(position) || containsParts))
 		{
 			Select(index);
 			return;
@@ -322,12 +295,20 @@ void LevelSelectState::UpdateMouseSelection(sf::Vector2f position)
 	}
 }
 
+void LevelSelectState::SyncPartsSelection()
+{
+	const std::size_t selectedIndex{ buttonList.GetSelectedIndex() };
+	for (std::size_t frameIndex{ 0u }; frameIndex < partsFrames.size(); ++frameIndex)
+		partsFrames[frameIndex].SetSelected(frameIndex == selectedIndex);
+	partsGlow.Invalidate();
+}
+
 void LevelSelectState::ActivateSelected()
 {
 	GetContext().audio.PlaySound(
 		Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f,
 		SoundPlayback::StopPrevious);
-	const int level{ buttonLevels[selectedIndex] };
+	const int level{ buttonLevels[buttonList.GetSelectedIndex()] };
 	if (level == 0)
 	{
 		RequestPop();

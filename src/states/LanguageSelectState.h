@@ -31,14 +31,14 @@ private:
         Language::English, Language::Spanish, Language::Russian,
         Language::Ukrainian, Language::Arabic };
 
-    MenuBackground background;
+    UI::MenuBackground background;
     NeonGlow glow;
     NeonGlow buttonGlow;
-    GlowingCursor cursor;
-    ScreenFade fade;
+    UI::GlowingCursor cursor;
+    UI::ScreenFade fade;
     sf::Text title;
     sf::Text hint;
-    std::vector<MenuButton> buttons;
+    std::vector<UI::MenuButton> buttons;
     std::size_t selected{ 0u };
     sf::Vector2f cursorPosition;
 };

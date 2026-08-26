@@ -66,7 +66,10 @@
     <ClCompile Include="src\ui\GlowingCursor.cpp" />
 	<ClCompile Include="src\ui\LevelIntro.cpp" />
     <ClCompile Include="src\ui\MenuBackground.cpp" />
+    <ClCompile Include="src\ui\LocalizationRevision.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
+    <ClCompile Include="src\ui\MenuButtonList.cpp" />
+    <ClCompile Include="src\ui\OptionsWidgets.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
     <ClCompile Include="src\rendering\NeonGlow.cpp" />
     <ClCompile Include="src\ui\RoundedRectangleShape.cpp" />
@@ -146,7 +149,10 @@
     <ClInclude Include="src\ui\GlowingCursor.h" />
 	<ClInclude Include="src\ui\LevelIntro.h" />
     <ClInclude Include="src\ui\MenuBackground.h" />
+    <ClInclude Include="src\ui\LocalizationRevision.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
+    <ClInclude Include="src\ui\MenuButtonList.h" />
+    <ClInclude Include="src\ui\OptionsWidgets.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
     <ClInclude Include="src\rendering\NeonGlow.h" />
     <ClInclude Include="src\ui\RoundedRectangleShape.h" />

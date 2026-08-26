@@ -14,21 +14,24 @@ namespace sf
 	class Texture;
 }
 
-class NineSliceFrame
+namespace UI
 {
-public:
-	NineSliceFrame(const sf::Texture& texture, sf::FloatRect destinationBounds,
-		unsigned int textureBorderSize, sf::Vector2f targetBorderSize);
+	class NineSliceFrame
+	{
+	public:
+		NineSliceFrame(const sf::Texture& texture, sf::FloatRect destinationBounds,
+			unsigned int textureBorderSize, sf::Vector2f targetBorderSize);
 
-	void SetColor(sf::Color color);
+		void SetColor(sf::Color color);
 
-	void Draw(sf::RenderTarget& target) const;
-	void Draw(sf::RenderTarget& target, const sf::RenderStates& states) const;
-	void DrawBorder(sf::RenderTarget& target, const sf::RenderStates& states) const;
+		void Draw(sf::RenderTarget& target) const;
+		void Draw(sf::RenderTarget& target, const sf::RenderStates& states) const;
+		void DrawBorder(sf::RenderTarget& target, const sf::RenderStates& states) const;
 
-	[[nodiscard]] sf::FloatRect GetBounds() const noexcept;
+		[[nodiscard]] sf::FloatRect GetBounds() const noexcept;
 
-private:
-	std::vector<sf::Sprite> slices;
-	sf::FloatRect bounds;
-};
+	private:
+		std::vector<sf::Sprite> slices;
+		sf::FloatRect bounds;
+	};
+}

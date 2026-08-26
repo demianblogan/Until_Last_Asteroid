@@ -59,8 +59,8 @@ private:
 	void OpenPauseMenu();
 	void ResumeGameplaySounds();
 	void BeginGameOver();
-	void BeginGameOverTransition(GameOverScreen::Action action);
-	void BeginResultTransition(ResultScreen::Action action);
+	void BeginGameOverTransition(UI::GameOverScreen::Action action);
+	void BeginResultTransition(UI::ResultScreen::Action action);
 	void RestartCurrentLevel();
 	void SpawnPlayerIfNeeded();
 	void SpawnConfiguredEnemy(
@@ -86,7 +86,7 @@ private:
 	void SaveCompletedLevel();
 	void EvaluateEntryAchievements();
 	void UnlockCompletionAchievements(int completedLevel);
-	[[nodiscard]] ResultScreen::Statistics FinalizeLevelStatistics();
+	[[nodiscard]] UI::ResultScreen::Statistics FinalizeLevelStatistics();
 	void CompleteCurrentLevel();
 #ifdef _DEBUG
 	void DebugCompleteCurrentLevel();
@@ -131,13 +131,13 @@ private:
 	GameplayEffects effects;
 	GameplayPostProcessor postProcessor;
 	World world;
-	GlowingCursor crosshair;
-	GameOverScreen gameOverScreen;
-	ResultScreen resultScreen;
-	ScreenFade screenFade;
-	LevelIntro levelIntro;
-	WaveIntro waveIntro;
-	std::optional<HUD> hud;
+	UI::GlowingCursor crosshair;
+	UI::GameOverScreen gameOverScreen;
+	UI::ResultScreen resultScreen;
+	UI::ScreenFade screenFade;
+	UI::LevelIntro levelIntro;
+	UI::WaveIntro waveIntro;
+	std::optional<UI::HUD> hud;
 	std::optional<TutorialDirector> tutorial;
 	bool tutorialActive{ false };
 	bool gameplaySoundsPaused{ false };

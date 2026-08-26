@@ -179,12 +179,12 @@ void AchievementsState::RefreshLocalizedContent()
 		achievementTitles[index].setFont(titleFont);
 		achievementTitles[index].setString(context.localization.GetText(prefix + ".title"));
 		achievementTitles[index].setScale({ 1.f, 1.f });
-		TextLayout::FitWidth(achievementTitles[index], 315.f, 18u);
+		UI::TextLayout::FitWidth(achievementTitles[index], 315.f, 18u);
 
 		descriptions[index].setFont(bodyFont);
 		descriptions[index].setString(context.localization.GetText(prefix + ".description"));
 		descriptions[index].setScale({ 1.f, 1.f });
-		TextLayout::FitWidth(descriptions[index], 315.f, 16u);
+		UI::TextLayout::FitWidth(descriptions[index], 315.f, 16u);
 	}
 
 	returnButton.SetFont(context.assets.Fonts().Get(context.localization.GetRegularFont()));

@@ -23,16 +23,15 @@ public:
 private:
 	void BeginReturn();
 	void RefreshLocalizedContent();
-	static void CenterText(sf::Text& text, sf::Vector2f position);
-	MenuBackground background;
-	NineSliceFrame panel;
+	UI::MenuBackground background;
+	UI::NineSliceFrame panel;
 	NeonGlow titleGlow;
 	NeonGlow buttonGlow;
-	GlowingCursor cursor;
-	ScreenFade fade;
+	UI::GlowingCursor cursor;
+	UI::ScreenFade fade;
 	sf::Text title;
 	std::vector<sf::Text> bodyLines;
-	MenuButton returnButton;
+	UI::MenuButton returnButton;
 	std::size_t localizationRevision{ 0u };
 	bool returnButtonSelected{ false };
 	bool returning{ false };

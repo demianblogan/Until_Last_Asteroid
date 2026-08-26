@@ -11,7 +11,7 @@ class LocalizationManager;
 // instead of paying that cost piecemeal the first time each individual
 // screen happens to appear. Meant to run once during the (already
 // backgrounded) asset loading, on a thread holding an active GL context.
-namespace TextWarmup
+namespace UI::TextWarmup
 {
 	// Same shape as Assets::ProgressCallback (progress fraction in, "keep
 	// going?" bool out), kept as an independent alias so this module doesn't
@@ -19,6 +19,5 @@ namespace TextWarmup
 	using ProgressCallback = std::function<bool(float, std::string_view)>;
 
 	// Returns false if the callback requested cancellation partway through.
-	[[nodiscard]] bool Run(Assets& assets, const LocalizationManager& localization,
-		const ProgressCallback& progress = {});
+	[[nodiscard]] bool Run(Assets& assets, const LocalizationManager& localization, const ProgressCallback& progress = {});
 }

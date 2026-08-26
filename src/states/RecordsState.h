@@ -26,15 +26,15 @@ public:
 private:
 	void BeginReturn();
 
-	MenuBackground background;
+	UI::MenuBackground background;
 	NeonGlow titleGlow;
 	NeonGlow buttonGlow;
-	GlowingCursor cursor;
-	ScreenFade fade;
+	UI::GlowingCursor cursor;
+	UI::ScreenFade fade;
 	sf::Text title;
-	RoundedRectangleShape campaignPanel;
-	RoundedRectangleShape hordePanel;
-	RoundedRectangleShape runPanel;
+	UI::RoundedRectangleShape campaignPanel;
+	UI::RoundedRectangleShape hordePanel;
+	UI::RoundedRectangleShape runPanel;
 	sf::Text campaignTitle;
 	sf::Text hordeTitle;
 	sf::Text runTitle;
@@ -44,7 +44,7 @@ private:
 	std::vector<sf::Text> hordeValues;
 	sf::Text runLabel;
 	sf::Text runValue;
-	MenuButton returnButton;
+	UI::MenuButton returnButton;
 	bool returning{ false };
 	bool returnButtonSelected{ false };
 };

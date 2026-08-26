@@ -31,7 +31,7 @@ public:
         const sf::FloatRect& bounds,
         const SourceRenderer& renderSource,
         sf::Color color,
-        bool pulsing = true);
+        bool isPulsing = true);
     void DrawHighlight(
         sf::RenderTarget& target,
         const sf::FloatRect& bounds,
@@ -55,6 +55,6 @@ private:
     sf::Shader& brightPassShader;
     sf::Shader& blurShader;
     sf::Vector2f cachedContentSize;
-    float elapsedTime{ 0.f };
-    bool dirty{ true };
+    float elapsedTime = 0.f;
+    bool isDirty = true;
 };

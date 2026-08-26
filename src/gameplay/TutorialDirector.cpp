@@ -20,16 +20,6 @@ namespace
     constexpr float HiddenY{ -195.f };
     constexpr sf::Color PanelColor{ 3, 18, 34, 238 };
     constexpr sf::Color Cyan{ 35, 225, 255 };
-
-    void CenterText(sf::Text& text, sf::Vector2f position)
-    {
-        const sf::FloatRect bounds{ text.getLocalBounds() };
-        text.setOrigin({
-            bounds.position.x + bounds.size.x * 0.5f,
-            bounds.position.y + bounds.size.y * 0.5f });
-        text.setPosition(position);
-    }
-
 }
 
 TutorialDirector::TutorialDirector(
@@ -114,7 +104,7 @@ void TutorialDirector::Draw(sf::RenderTarget& target)
     const float panelY{ std::lerp(HiddenY, VisibleY, eased) };
     const sf::Vector2f panelPosition{ (logicalSize.x - PanelSize.x) * 0.5f, panelY };
     panel.setPosition(panelPosition);
-    CenterText(text, panelPosition + PanelSize * 0.5f);
+    UI::TextLayout::CenterText(text, panelPosition + PanelSize * 0.5f);
 
     glow.DrawBloom(
         target,
@@ -213,8 +203,8 @@ void TutorialDirector::SetInstruction(const sf::String& instruction)
 {
 	text.setCharacterSize(27u);
 	text.setString(instruction);
-	TextLayout::FitWidth(text, PanelSize.x - 80.f, 20u);
-    CenterText(text, { logicalSize.x * 0.5f, VisibleY + PanelSize.y * 0.5f });
+	UI::TextLayout::FitWidth(text, PanelSize.x - 80.f, 20u);
+    UI::TextLayout::CenterText(text, { logicalSize.x * 0.5f, VisibleY + PanelSize.y * 0.5f });
     glow.Invalidate();
 }
 

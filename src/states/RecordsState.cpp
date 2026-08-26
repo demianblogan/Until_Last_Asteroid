@@ -15,6 +15,7 @@
 #include "records/RecordsManager.h"
 #include "localization/LocalizationManager.h"
 #include "input/GamepadManager.h"
+#include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -29,14 +30,6 @@ namespace
 	constexpr sf::Vector2f RunPosition{ 1000.f, 600.f };
 	constexpr sf::Vector2f RunSize{ 760.f, 300.f };
 	constexpr float FadeDuration{ .3f };
-
-	void CenterText(sf::Text& text, sf::Vector2f position)
-	{
-		const sf::FloatRect bounds{ text.getLocalBounds() };
-		text.setOrigin({ bounds.position.x + bounds.size.x * .5f,
-			bounds.position.y + bounds.size.y * .5f });
-		text.setPosition(position);
-	}
 
 	void AlignLeft(sf::Text& text, sf::Vector2f position)
 	{
@@ -88,7 +81,7 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 	title.setOutlineColor(sf::Color(3, 18, 31, 235));
 	title.setOutlineThickness(3.5f);
 	title.setLetterSpacing(1.12f);
-	CenterText(title, { 960.f, 82.f });
+	UI::TextLayout::CenterText(title, { 960.f, 82.f });
 
 	for (auto* panel : { &campaignPanel, &hordePanel, &runPanel })
 	{
@@ -105,9 +98,9 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 		heading->setOutlineColor(sf::Color(3, 18, 31, 235));
 		heading->setOutlineThickness(2.f);
 	}
-	CenterText(campaignTitle, { 540.f, 170.f });
-	CenterText(hordeTitle, { 1380.f, 170.f });
-	CenterText(runTitle, { 1380.f, 535.f });
+	UI::TextLayout::CenterText(campaignTitle, { 540.f, 170.f });
+	UI::TextLayout::CenterText(hordeTitle, { 1380.f, 170.f });
+	UI::TextLayout::CenterText(runTitle, { 1380.f, 535.f });
 
 	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetCurrentLanguage() == Language::English ? Config::Font::BodyRegular : context.localization.GetRegularFont()) };
 	const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.GetRegularFont()) };
@@ -144,8 +137,8 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 	runLabel.setFillColor(sf::Color(205, 230, 238));
 	runValue.setFillColor(Cyan);
 	runValue.setString(FormatDuration(records.runSeconds));
-	CenterText(runLabel, { 1380.f, RunPosition.y + 95.f });
-	CenterText(runValue, { 1380.f, RunPosition.y + 195.f });
+	UI::TextLayout::CenterText(runLabel, { 1380.f, RunPosition.y + 95.f });
+	UI::TextLayout::CenterText(runValue, { 1380.f, RunPosition.y + 195.f });
 	returnButton.SetPosition({ 690.f, 935.f });
 	returnButton.SetLabel(context.localization.GetText("common.back_main"));
 	returnButton.SetSelected(false);
@@ -209,7 +202,7 @@ void RecordsState::Render()
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
 		{ target.draw(title, states); }, Cyan);
 	window.draw(title);
-	for (const RoundedRectangleShape* panel : { &campaignPanel, &hordePanel, &runPanel })
+	for (const UI::RoundedRectangleShape* panel : { &campaignPanel, &hordePanel, &runPanel })
 		window.draw(*panel);
 	window.draw(campaignTitle); window.draw(hordeTitle); window.draw(runTitle);
 	for (std::size_t index{ 0 }; index < levelLabels.size(); ++index)

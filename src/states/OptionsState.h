@@ -157,7 +157,6 @@ private:
     [[nodiscard]] std::size_t FindCurrentResolution() const;
     [[nodiscard]] std::size_t GetDropdownItemCount() const;
     [[nodiscard]] sf::String GetDropdownItemLabel(std::size_t index) const;
-    [[nodiscard]] sf::FloatRect GetValueBoxBounds(const Row& row) const;
     [[nodiscard]] sf::FloatRect GetDropdownItemBounds(std::size_t visibleIndex) const;
     [[nodiscard]] sf::FloatRect GetDropdownScrollbarBounds() const;
     [[nodiscard]] bool IsSelectedRowEnabled() const;
@@ -171,47 +170,12 @@ private:
         const Row& row,
         std::size_t index,
         const sf::RenderStates& states);
-    void DrawSlider(
-        sf::RenderTarget& target,
-        const Row& row,
-        float value,
-        const sf::RenderStates& states) const;
-    void DrawToggle(
-        sf::RenderTarget& target,
-        const Row& row,
-        bool value,
-        const sf::RenderStates& states);
     void DrawDropdown(sf::RenderTarget& target);
-    void DrawDropdownItem(
-        sf::RenderTarget& target,
-        const sf::FloatRect& bounds,
-        std::size_t itemIndex,
-        bool selected,
-		const sf::RenderStates& states);
     void DrawDialog(sf::RenderTarget& target);
-    void DrawDialogButton(
-        sf::RenderTarget& target,
-        const sf::FloatRect& bounds,
-        const sf::String& label,
-        bool selected,
-        const sf::RenderStates& states) const;
-    void DrawCenteredText(
-        sf::RenderTarget& target,
-        const sf::String& value,
-        float centerX,
-        float y,
-        unsigned int size,
-        sf::Color color) const;
-    void DrawText(
-        sf::RenderTarget& target,
-        const sf::String& value,
-        sf::Vector2f position,
-        unsigned int size,
-        sf::Color color) const;
 
     static constexpr float DisplayConfirmationDuration{ 10.f };
 
-    MenuBackground background;
+    UI::MenuBackground background;
     sf::RectangleShape shade;
     sf::Text title;
     NeonGlow titleGlow;
@@ -219,8 +183,8 @@ private:
     NeonGlow dialogGlow;
 	sf::RenderTexture gamepadLayoutCache;
 	bool gamepadLayoutCacheDirty{ true };
-    GlowingCursor menuCursor;
-    ScreenFade screenFade;
+    UI::GlowingCursor menuCursor;
+    UI::ScreenFade screenFade;
     Page page{ Page::Root };
     std::optional<Page> pendingPage;
     std::vector<Row> rows;

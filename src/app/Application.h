@@ -97,9 +97,9 @@ private:
 	GamepadManager gamepad;
 	GameplayLaunchRequest gameplayLaunchRequest;
 	StateStack stateStack;
-	std::optional<AchievementToast> achievementToast;
+	std::optional<UI::AchievementToast> achievementToast;
 
-	// HUD/loading-screen presentation and its own bookkeeping.
+	// UI::HUD/loading-screen presentation and its own bookkeeping.
 	std::optional<sf::Text> FPSText;
 	sf::Clock loadingAnimationClock;
 	bool areLoadingLabelsWarmedUp = false;

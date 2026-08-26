@@ -9,7 +9,7 @@
 #include <SFML/Graphics/Text.hpp>
 
 #include "ui/GlowingCursor.h"
-#include "ui/MenuButton.h"
+#include "ui/MenuButtonList.h"
 #include "rendering/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
 
@@ -20,93 +20,93 @@ class LocalizationManager;
 
 namespace sf
 {
-    class Event;
-    class RenderTarget;
-    class RenderWindow;
+	class Event;
+	class RenderTarget;
+	class RenderWindow;
 }
 
-class ResultScreen
+namespace UI
 {
-public:
-	struct Statistics
+	class ResultScreen
 	{
-		int combatScore{ 0 };
-		int armorPercent{ 0 };
-		int armorBonus{ 0 };
-		unsigned int attacksHit{ 0u };
-		unsigned int attacksFired{ 0u };
-		int accuracyPercent{ 0 };
-		int targetAccuracyPercent{ 0 };
-		int accuracyBonus{ 0 };
-		int partsCollected{ 0 };
-		int partsTotal{ 0 };
-		int partsBonus{ 0 };
-		float completionSeconds{ 0.f };
-		int levelTotal{ 0 };
+	public:
+		struct Statistics
+		{
+			int combatScore = 0;
+			int armorPercent = 0;
+			int armorBonus = 0;
+			unsigned int attacksHit = 0u;
+			unsigned int attacksFired = 0u;
+			int accuracyPercent = 0;
+			int targetAccuracyPercent = 0;
+			int accuracyBonus = 0;
+			int partsCollected = 0;
+			int partsTotal = 0;
+			int partsBonus = 0;
+			float completionSeconds = 0.f;
+			int levelTotal = 0;
+		};
+
+		enum class Mode
+		{
+			LevelComplete,
+			LevelReplay,
+			ContentComplete,
+			Victory
+		};
+
+		enum class Action
+		{
+			Primary,
+			Restart,
+			MainMenu
+		};
+
+		ResultScreen(Assets& assets, AudioManager& audio, GamepadManager& gamepad,
+			LocalizationManager& localization,
+			sf::Vector2f logicalSize);
+
+		void Start(Mode mode, int level, const Statistics& statistics);
+		void Reset();
+
+		void Update(float deltaTime);
+
+		[[nodiscard]] std::optional<Action> HandleEvent(const sf::Event& event, sf::RenderWindow& window);
+
+		void Draw(sf::RenderTarget& target);
+		void DrawCursor(sf::RenderWindow& window);
+
+		[[nodiscard]] bool IsActive() const noexcept;
+		[[nodiscard]] Mode GetMode() const noexcept;
+
+	private:
+		void SkipAnimation();
+		void ApplyContent(Mode newMode, int level, const Statistics& resultStatistics);
+		void ApplyVisualState();
+		[[nodiscard]] std::optional<Action> ActivateSelected();
+
+		Assets& assets;
+		AudioManager& audio;
+		GamepadManager& gamepad;
+		LocalizationManager& localization;
+
+		sf::Vector2f logicalSize;
+		sf::RectangleShape shade;
+		sf::Sprite titleFrame;
+		sf::Text title;
+		RoundedRectangleShape statisticsPanel;
+		sf::RectangleShape statisticsSeparator;
+		sf::Text statisticsTitle;
+		std::vector<sf::Text> statisticLabels;
+		std::vector<sf::Text> statisticValues;
+		Statistics statistics;
+		NeonGlow titleGlow;
+		NeonGlow buttonGlow;
+		GlowingCursor menuCursor;
+		MenuButtonList buttonList;
+		Mode mode = Mode::LevelComplete;
+		float animationElapsedSeconds = 0.f;
+		bool isActive = false;
+		bool isInteractive = false;
 	};
-
-    enum class Mode
-    {
-        LevelComplete,
-		LevelReplay,
-		ContentComplete,
-        Victory
-    };
-
-    enum class Action
-    {
-        Primary,
-		Restart,
-        MainMenu
-    };
-
-    ResultScreen(Assets& assets, AudioManager& audio, GamepadManager& gamepad,
-        LocalizationManager& localization,
-        sf::Vector2f logicalSize);
-
-    void Start(Mode mode, int level, const Statistics& statistics);
-    void Reset();
-    void Update(float deltaTime);
-    [[nodiscard]] std::optional<Action> HandleEvent(
-        const sf::Event& event, sf::RenderWindow& window);
-    void Draw(sf::RenderTarget& target);
-    void DrawCursor(sf::RenderWindow& window);
-
-    [[nodiscard]] bool IsActive() const noexcept;
-    [[nodiscard]] Mode GetMode() const noexcept;
-
-private:
-    void SkipAnimation();
-    void ApplyContent(Mode newMode, int level, const Statistics& resultStatistics);
-    void ApplyVisualState();
-    void Select(std::size_t index, bool playSound = true);
-    void SelectPrevious();
-    void SelectNext();
-    void UpdateMouseSelection(sf::Vector2f position);
-    [[nodiscard]] std::optional<Action> ActivateSelected();
-    void CenterText(sf::Text& text, sf::Vector2f position);
-
-    Assets& assets;
-    AudioManager& audio;
-    GamepadManager& gamepad;
-	LocalizationManager& localization;
-    sf::Vector2f logicalSize;
-    sf::RectangleShape shade;
-    sf::Sprite titleFrame;
-	sf::Text title;
-	RoundedRectangleShape statisticsPanel;
-	sf::RectangleShape statisticsSeparator;
-	sf::Text statisticsTitle;
-	std::vector<sf::Text> statisticLabels;
-	std::vector<sf::Text> statisticValues;
-	Statistics statistics;
-    NeonGlow titleGlow;
-    NeonGlow buttonGlow;
-    GlowingCursor menuCursor;
-    std::vector<MenuButton> buttons;
-    std::size_t selectedIndex{ 0u };
-    Mode mode{ Mode::LevelComplete };
-    float elapsed{ 0.f };
-    bool active{ false };
-    bool interactive{ false };
-};
+}

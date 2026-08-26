@@ -5,50 +5,53 @@
 
 #include "assets/Assets.h"
 
-GlowingCursor::GlowingCursor(Assets& assets, Config::Texture texture, sf::Vector2f hotspot, sf::Color color)
-	: sprite(assets.Textures().Get(texture)), glowEffect(assets), glowEffectColor(color)
+namespace UI
 {
-	sprite.setOrigin(hotspot);
-}
-
-void GlowingCursor::Update(float deltaTime)
-{
-	glowEffect.Update(deltaTime);
-}
-
-void GlowingCursor::Draw(sf::RenderWindow& window)
-{
-	if (!window.hasFocus())
-		return;
-
-	const sf::Vector2i pixelPosition = sf::Mouse::getPosition(window);
-	const sf::Vector2u windowSize = window.getSize();
-
-	if (pixelPosition.x < 0 || pixelPosition.y < 0 ||
-		pixelPosition.x >= static_cast<int>(windowSize.x) ||
-		pixelPosition.y >= static_cast<int>(windowSize.y))
+	GlowingCursor::GlowingCursor(Assets& assets, Config::Texture texture, sf::Vector2f hotspot, sf::Color color)
+		: sprite(assets.Textures().Get(texture)), glowEffect(assets), glowEffectColor(color)
 	{
-		return;
+		sprite.setOrigin(hotspot);
 	}
 
-	DrawAt(window, window.mapPixelToCoords(pixelPosition));
-}
+	void GlowingCursor::Update(float deltaTime)
+	{
+		glowEffect.Update(deltaTime);
+	}
 
-void GlowingCursor::DrawAt(sf::RenderWindow& window, sf::Vector2f position)
-{
-	if (!window.hasFocus())
-		return;
+	void GlowingCursor::Draw(sf::RenderWindow& window)
+	{
+		if (!window.hasFocus())
+			return;
 
-	sprite.setPosition(position);
+		const sf::Vector2i pixelPosition = sf::Mouse::getPosition(window);
+		const sf::Vector2u windowSize = window.getSize();
 
-	const sf::FloatRect bounds = sprite.getGlobalBounds();
-	glowEffect.DrawBloom(window, bounds,
-		[this](sf::RenderTarget& target, const sf::RenderStates& states)
+		if (pixelPosition.x < 0 || pixelPosition.y < 0 ||
+			pixelPosition.x >= static_cast<int>(windowSize.x) ||
+			pixelPosition.y >= static_cast<int>(windowSize.y))
 		{
-			target.draw(sprite, states);
-		},
-		glowEffectColor);
+			return;
+		}
 
-	window.draw(sprite);
-	glowEffect.DrawHighlight(window, bounds, glowEffectColor);
+		DrawAt(window, window.mapPixelToCoords(pixelPosition));
+	}
+
+	void GlowingCursor::DrawAt(sf::RenderWindow& window, sf::Vector2f position)
+	{
+		if (!window.hasFocus())
+			return;
+
+		sprite.setPosition(position);
+
+		const sf::FloatRect bounds = sprite.getGlobalBounds();
+		glowEffect.DrawBloom(window, bounds,
+			[this](sf::RenderTarget& target, const sf::RenderStates& states)
+			{
+				target.draw(sprite, states);
+			},
+			glowEffectColor);
+
+		window.draw(sprite);
+		glowEffect.DrawHighlight(window, bounds, glowEffectColor);
+	}
 }

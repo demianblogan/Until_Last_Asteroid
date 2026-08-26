@@ -36,6 +36,6 @@ struct EffectEvent
 	EffectEventType type;
 	sf::Vector2f position;
 	sf::Vector2f direction;
-	float scale{ 1.f };
-	int value{ 0 };
+	float scale = 1.f;
+	int value = 0;
 };

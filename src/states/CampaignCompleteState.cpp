@@ -48,8 +48,8 @@ CampaignCompleteState::CampaignCompleteState(StateStack& stack, StateContext con
 {
 	context.window.setMouseCursorVisible(false);
 	title.setOutlineThickness(3.f);
-	CenterText(title, { 960.f, 160.f });
-	TextLayout::FitWidth(title, TitleBounds.size.x - 240.f, 38u);
+	UI::TextLayout::CenterText(title, { 960.f, 160.f });
+	UI::TextLayout::FitWidth(title, TitleBounds.size.x - 240.f, 38u);
 	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetRegularFont(false)) };
 	const std::array mainCopy{ "campaign_complete.line_1", "campaign_complete.line_2",
 		"campaign_complete.line_3", "campaign_complete.line_4" };
@@ -57,18 +57,18 @@ CampaignCompleteState::CampaignCompleteState(StateStack& stack, StateContext con
 	for (std::size_t index{ 0u }; index < mainCopy.size(); ++index)
 	{
 		messageLines.emplace_back(bodyFont, context.localization.GetText(mainCopy[index]), 36u);
-		TextLayout::FitWidth(messageLines.back(), MessageBounds.size.x - 220.f, 24u);
+		UI::TextLayout::FitWidth(messageLines.back(), MessageBounds.size.x - 220.f, 24u);
 		messageLines.back().setOutlineThickness(1.5f);
-		CenterText(messageLines.back(), { 960.f, 405.f + 58.f * static_cast<float>(index) });
+		UI::TextLayout::CenterText(messageLines.back(), { 960.f, 405.f + 58.f * static_cast<float>(index) });
 	}
 	const std::array postscriptCopy{ "campaign_complete.postscript_1", "campaign_complete.postscript_2" };
 	postscriptLines.reserve(postscriptCopy.size());
 	for (std::size_t index{ 0u }; index < postscriptCopy.size(); ++index)
 	{
 		postscriptLines.emplace_back(bodyFont, context.localization.GetText(postscriptCopy[index]), 31u);
-		TextLayout::FitWidth(postscriptLines.back(), MessageBounds.size.x - 220.f, 21u);
+		UI::TextLayout::FitWidth(postscriptLines.back(), MessageBounds.size.x - 220.f, 21u);
 		postscriptLines.back().setOutlineThickness(1.f);
-		CenterText(postscriptLines.back(), { 960.f, 700.f + 48.f * static_cast<float>(index) });
+		UI::TextLayout::CenterText(postscriptLines.back(), { 960.f, 700.f + 48.f * static_cast<float>(index) });
 	}
 	button.SetPosition(ButtonPosition);
 	button.SetSelected(true);
@@ -176,11 +176,4 @@ void CampaignCompleteState::ApplyReveal()
 		set(line, { 151, 219, 235 }, { 0, 9, 17 });
 	button.SetFrameOpacity(eased);
 	button.SetLabelOpacity(eased);
-}
-
-void CampaignCompleteState::CenterText(sf::Text& text, sf::Vector2f position)
-{
-	const sf::FloatRect bounds{ text.getLocalBounds() };
-	text.setOrigin(bounds.position + bounds.size * 0.5f);
-	text.setPosition(position);
 }

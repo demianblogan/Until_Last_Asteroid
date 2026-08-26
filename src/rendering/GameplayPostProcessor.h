@@ -44,5 +44,5 @@ private:
     sf::Shader& brightPassShader;
     sf::Shader& blurShader;
     sf::Shader& compositeShader;
-    bool bloomTextureCleared{ false };
+    bool isBloomTextureCleared = false;
 };

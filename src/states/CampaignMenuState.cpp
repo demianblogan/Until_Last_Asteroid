@@ -18,6 +18,7 @@
 #include "localization/LocalizationManager.h"
 #include "states/StateID.h"
 #include "input/GamepadManager.h"
+#include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -31,16 +32,6 @@ namespace
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
     constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
     constexpr float FadeDuration{ 0.38f };
-
-    void CenterText(sf::Text& text, sf::Vector2f position)
-    {
-        const sf::FloatRect bounds{ text.getLocalBounds() };
-        text.setOrigin({
-            bounds.position.x + bounds.size.x * 0.5f,
-            bounds.position.y + bounds.size.y * 0.5f
-        });
-        text.setPosition(position);
-    }
 }
 
 CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext context)
@@ -67,6 +58,7 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
 			? Config::Font::BodyRegular : context.localization.GetRegularFont()),
         context.localization.GetText("campaign_menu.overwrite_message"),
         27)
+    , buttonList(context.audio, buttonGlow)
 {
     context.window.setMouseCursorVisible(false);
 
@@ -74,7 +66,7 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     title.setOutlineColor(sf::Color(3, 18, 31, 235));
     title.setOutlineThickness(3.5f);
     title.setLetterSpacing(1.08f);
-    CenterText(title, { FirstButtonPosition.x + ButtonSize.x * 0.5f, 195.f });
+    UI::TextLayout::CenterText(title, { FirstButtonPosition.x + ButtonSize.x * 0.5f, 195.f });
 
     statusText.setFillColor(sf::Color(255, 105, 90));
     statusText.setPosition({ FirstButtonPosition.x + 20.f, 950.f });
@@ -88,16 +80,16 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
         MenuAction action,
         bool enabled)
     {
-        const std::size_t index{ buttons.size() };
-        buttons.emplace_back(menuFont, idleTexture, selectedTexture, "", ButtonSize);
-		buttons.back().SetLabel(label);
-        buttons.back().SetPosition(
+        const std::size_t index{ buttonList.GetButtons().size() };
+        UI::MenuButton button(menuFont, idleTexture, selectedTexture, "", ButtonSize);
+		button.SetLabel(label);
+        button.SetPosition(
             FirstButtonPosition + sf::Vector2f{ 0.f, ButtonSpacing * static_cast<float>(index) });
-        buttons.back().SetEnabled(enabled);
+        button.SetEnabled(enabled);
+        buttonList.Add(std::move(button));
         buttonActions.push_back(action);
     } };
 
-    buttons.reserve(6u);
     buttonActions.reserve(6u);
     if (context.campaignSave.HasSave())
     {
@@ -112,7 +104,7 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     addButton(context.localization.GetText("campaign_menu.horde"), MenuAction::HordeMode, true);
     addButton(context.localization.GetText("campaign_menu.run"), MenuAction::RunMode, true);
     addButton(context.localization.GetText("common.back_main"), MenuAction::Back, true);
-    Select(0u, false);
+    buttonList.Select(0u, false);
 
     dialogShade.setFillColor(sf::Color(0, 3, 10, 205));
     dialogPanel.setPosition(DialogPanelPosition);
@@ -121,9 +113,9 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     dialogPanel.setOutlineThickness(2.f);
 
     dialogTitle.setFillColor(sf::Color(215, 247, 252));
-    CenterText(dialogTitle, { 960.f, 410.f });
+    UI::TextLayout::CenterText(dialogTitle, { 960.f, 410.f });
     dialogMessage.setFillColor(sf::Color(180, 205, 215));
-    CenterText(dialogMessage, { 960.f, 495.f });
+    UI::TextLayout::CenterText(dialogMessage, { 960.f, 495.f });
 
     dialogButtons.reserve(2u);
     dialogButtons.emplace_back(menuFont, idleTexture, selectedTexture, "", DialogButtonSize);
@@ -209,8 +201,8 @@ void CampaignMenuState::HandleEvent(const sf::Event& event)
 
     switch (navigation)
     {
-    case Up: SelectPrevious(); return;
-    case Down: SelectNext(); return;
+    case Up: buttonList.SelectPrevious(); return;
+    case Down: buttonList.SelectNext(); return;
     case Confirm: ActivateSelected(); return;
     case Back: RequestPop(); return;
     default: break;
@@ -220,7 +212,7 @@ void CampaignMenuState::HandleEvent(const sf::Event& event)
     {
         const sf::Vector2f point{ GetContext().window.mapPixelToCoords(mouseMoved->position) };
         background.SetMousePosition(point);
-        UpdateMouseSelection(mouseMoved->position);
+        buttonList.UpdateMouseSelection(point);
         return;
     }
 
@@ -229,9 +221,9 @@ void CampaignMenuState::HandleEvent(const sf::Event& event)
         switch (key->code)
         {
         case sf::Keyboard::Key::Up:
-        case sf::Keyboard::Key::W: SelectPrevious(); return;
+        case sf::Keyboard::Key::W: buttonList.SelectPrevious(); return;
         case sf::Keyboard::Key::Down:
-        case sf::Keyboard::Key::S: SelectNext(); return;
+        case sf::Keyboard::Key::S: buttonList.SelectNext(); return;
         case sf::Keyboard::Key::Enter:
         case sf::Keyboard::Key::Space: ActivateSelected(); return;
         case sf::Keyboard::Key::Escape: RequestPop(); return;
@@ -244,11 +236,11 @@ void CampaignMenuState::HandleEvent(const sf::Event& event)
         if (mousePressed->button != sf::Mouse::Button::Left)
             return;
         const sf::Vector2f point{ GetContext().window.mapPixelToCoords(mousePressed->position) };
-        for (std::size_t index{ 0u }; index < buttons.size(); ++index)
+        for (std::size_t index{ 0u }; index < buttonList.GetButtons().size(); ++index)
         {
-            if (buttons[index].IsEnabled() && buttons[index].Contains(point))
+            if (buttonList.GetButtons()[index].IsEnabled() && buttonList.GetButtons()[index].Contains(point))
             {
-                Select(index, false);
+                buttonList.Select(index, false);
                 ActivateSelected();
                 return;
             }
@@ -299,9 +291,9 @@ void CampaignMenuState::Render()
     window.draw(title);
     titleGlow.DrawHighlight(window, title.getGlobalBounds(), InterfaceGlowColor);
 
-    if (!buttons.empty())
+    if (!buttonList.GetButtons().empty())
     {
-        const MenuButton& selectedButton{ buttons[selectedIndex] };
+        const UI::MenuButton& selectedButton{ buttonList.GetButtons()[buttonList.GetSelectedIndex()] };
         buttonGlow.DrawBloom(
             window,
             selectedButton.GetBounds(),
@@ -312,10 +304,10 @@ void CampaignMenuState::Render()
             SelectionGlowColor);
     }
 
-    for (const MenuButton& button : buttons)
+    for (const UI::MenuButton& button : buttonList.GetButtons())
         button.Draw(window);
-    if (!buttons.empty())
-        buttonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), SelectionGlowColor);
+    if (!buttonList.GetButtons().empty())
+        buttonGlow.DrawHighlight(window, buttonList.GetButtons()[buttonList.GetSelectedIndex()].GetBounds(), SelectionGlowColor);
     window.draw(statusText);
 
     if (dialogMode == DialogMode::None)
@@ -326,7 +318,7 @@ void CampaignMenuState::Render()
     window.draw(dialogTitle);
     window.draw(dialogMessage);
 
-    const MenuButton& selectedDialogButton{ dialogButtons[dialogSelectedIndex] };
+    const UI::MenuButton& selectedDialogButton{ dialogButtons[dialogSelectedIndex] };
     dialogGlow.DrawBloom(
         window,
         selectedDialogButton.GetBounds(),
@@ -335,7 +327,7 @@ void CampaignMenuState::Render()
             selectedDialogButton.Draw(target, states);
         },
         SelectionGlowColor);
-    for (const MenuButton& button : dialogButtons)
+    for (const UI::MenuButton& button : dialogButtons)
         button.Draw(window);
     dialogGlow.DrawHighlight(window, selectedDialogButton.GetBounds(), SelectionGlowColor);
 }
@@ -347,60 +339,10 @@ void CampaignMenuState::RenderOverlay()
     screenFade.Draw(GetContext().window);
 }
 
-void CampaignMenuState::SelectPrevious()
-{
-    std::size_t index{ selectedIndex };
-    do
-    {
-        index = index == 0u ? buttons.size() - 1u : index - 1u;
-    } while (!buttons[index].IsEnabled() && index != selectedIndex);
-    Select(index);
-}
-
-void CampaignMenuState::SelectNext()
-{
-    std::size_t index{ selectedIndex };
-    do
-    {
-        index = (index + 1u) % buttons.size();
-    } while (!buttons[index].IsEnabled() && index != selectedIndex);
-    Select(index);
-}
-
-void CampaignMenuState::Select(std::size_t index, bool playSound)
-{
-    if (index >= buttons.size() || !buttons[index].IsEnabled())
-        return;
-
-    const bool changed{ selectedIndex != index };
-    selectedIndex = index;
-    for (std::size_t buttonIndex{ 0u }; buttonIndex < buttons.size(); ++buttonIndex)
-        buttons[buttonIndex].SetSelected(buttonIndex == selectedIndex);
-
-    if (changed)
-        buttonGlow.Invalidate();
-    if (changed && playSound)
-        GetContext().audio.PlaySound(
-            Config::Sound::ItemSelect, SoundGroup::UI, 100.f, 1.f, SoundPlayback::StopPrevious);
-}
-
-void CampaignMenuState::UpdateMouseSelection(sf::Vector2i pixelPosition)
-{
-    const sf::Vector2f point{ GetContext().window.mapPixelToCoords(pixelPosition) };
-    for (std::size_t index{ 0u }; index < buttons.size(); ++index)
-    {
-        if (buttons[index].IsEnabled() && buttons[index].Contains(point))
-        {
-            Select(index);
-            return;
-        }
-    }
-}
-
 void CampaignMenuState::ActivateSelected()
 {
     PlayPressSound();
-    switch (buttonActions[selectedIndex])
+    switch (buttonActions[buttonList.GetSelectedIndex()])
     {
     case MenuAction::ContinueCampaign:
 		if (const CampaignProgress* progress{ GetContext().campaignSave.GetProgress() };
@@ -443,8 +385,8 @@ void CampaignMenuState::OpenOverwriteConfirmation()
     dialogMode = DialogMode::OverwriteCampaign;
     dialogTitle.setString(GetContext().localization.GetText("campaign_menu.new_title"));
     dialogMessage.setString(GetContext().localization.GetText("campaign_menu.overwrite_message"));
-    CenterText(dialogTitle, { 960.f, 410.f });
-    CenterText(dialogMessage, { 960.f, 495.f });
+    UI::TextLayout::CenterText(dialogTitle, { 960.f, 410.f });
+    UI::TextLayout::CenterText(dialogMessage, { 960.f, 495.f });
 	dialogButtons[0].SetLabel(GetContext().localization.GetText("common.confirm"));
 	dialogButtons[1].SetLabel(GetContext().localization.GetText("common.cancel"));
     dialogGlow.Invalidate();
@@ -457,8 +399,8 @@ void CampaignMenuState::OpenTutorialChoice()
     dialogTitle.setString(GetContext().localization.GetText("campaign_menu.tutorial_title"));
     dialogMessage.setString(
         GetContext().localization.GetText("campaign_menu.tutorial_message"));
-    CenterText(dialogTitle, { 960.f, 410.f });
-    CenterText(dialogMessage, { 960.f, 495.f });
+    UI::TextLayout::CenterText(dialogTitle, { 960.f, 410.f });
+    UI::TextLayout::CenterText(dialogMessage, { 960.f, 495.f });
 	dialogButtons[0].SetLabel(GetContext().localization.GetText("common.play"));
 	dialogButtons[1].SetLabel(GetContext().localization.GetText("common.skip"));
     dialogGlow.Invalidate();

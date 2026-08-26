@@ -7,7 +7,6 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/ConvexShape.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
@@ -18,6 +17,7 @@
 #include "localization/LocalizationManager.h"
 #include "settings/SettingsManager.h"
 #include "input/GamepadManager.h"
+#include "ui/OptionsWidgets.h"
 #include "ui/TextLayout.h"
 
 namespace
@@ -25,7 +25,6 @@ namespace
     constexpr sf::Color Cyan{ 105, 225, 242 };
     constexpr sf::Color BrightCyan{ 205, 250, 255 };
     constexpr sf::Color Orange{ 255, 190, 72 };
-    constexpr sf::Color Muted{ 128, 148, 164 };
     constexpr sf::Color Disabled{ 76, 88, 101 };
     constexpr sf::Color Red{ 245, 92, 92 };
     constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
@@ -36,13 +35,6 @@ namespace
     constexpr sf::Vector2f RowPosition{ 260.f, 220.f };
     constexpr sf::Vector2f RowSize{ 1400.f, 82.f };
     constexpr float RowSpacing{ 98.f };
-    constexpr float SliderLeft{ 1160.f };
-    constexpr float SliderWidth{ 380.f };
-    constexpr float ValueBoxLeft{ 1080.f };
-    constexpr float ValueBoxWidth{ 500.f };
-    constexpr float ValueBoxHeight{ 58.f };
-    constexpr float DropdownItemHeight{ 56.f };
-    constexpr std::size_t MaximumVisibleDropdownItems{ 6u };
     constexpr std::array<unsigned int, 7> FrameLimits{ 0u, 30u, 60u, 120u, 144u, 240u, 360u };
     const sf::FloatRect DialogConfirmBounds({ 690.f, 580.f }, { 250.f, 58.f });
     const sf::FloatRect DialogCancelBounds({ 980.f, 580.f }, { 250.f, 58.f });
@@ -525,22 +517,22 @@ void OptionsState::RebuildRowTextCache()
 			? Config::Font::ArabicRegular
 			: (nativeLanguageRow ? Config::Font::LocalizedRegular : defaultFontID)) };
         rowLabels.emplace_back(rowFont, row.label, 30);
-		TextLayout::FitWidth(rowLabels.back(), 760.f, 19u);
+		UI::TextLayout::FitWidth(rowLabels.back(), 760.f, 19u);
         rowLabels.back().setPosition(row.bounds.position + sf::Vector2f{ 34.f, 20.f });
 
         rowValues.emplace_back(font, GetRowValue(row), 28);
         rowHints.emplace_back(font, "", 14);
         if (row.kind == RowKind::Dropdown)
         {
-            const sf::FloatRect bounds{ GetValueBoxBounds(row) };
+            const sf::FloatRect bounds{ UI::OptionsWidgets::GetValueBoxBounds(row.bounds.position.y) };
             rowValues.back().setCharacterSize(row.enabled ? 25u : 21u);
-			TextLayout::FitWidth(rowValues.back(), bounds.size.x - 40.f, 16u);
+			UI::TextLayout::FitWidth(rowValues.back(), bounds.size.x - 40.f, 16u);
             rowValues.back().setPosition(
                 bounds.position + sf::Vector2f{ 20.f, row.enabled ? 13.f : 5.f });
             if (!row.enabled)
             {
                 rowHints.back().setString(GetContext().localization.GetText("options.desktop_controlled"));
-				TextLayout::FitWidth(rowHints.back(), bounds.size.x - 40.f, 11u);
+				UI::TextLayout::FitWidth(rowHints.back(), bounds.size.x - 40.f, 11u);
                 rowHints.back().setPosition(bounds.position + sf::Vector2f{ 20.f, 33.f });
                 rowHints.back().setFillColor(Red);
             }
@@ -580,7 +572,7 @@ void OptionsState::RefreshRowTextValues()
 	{
         rowValues[index].setString(GetRowValue(rows[index]));
 		if (rows[index].kind == RowKind::Dropdown)
-			TextLayout::FitWidth(rowValues[index], GetValueBoxBounds(rows[index]).size.x - 40.f, 16u);
+			UI::TextLayout::FitWidth(rowValues[index], UI::OptionsWidgets::GetValueBoxBounds(rows[index].bounds.position.y).size.x - 40.f, 16u);
 	}
 
     neonGlow.Invalidate();
@@ -722,7 +714,7 @@ void OptionsState::HandleMousePress(sf::Vector2i pixelPosition)
         return;
 
     if (rows[selectedIndex].kind == RowKind::Dropdown &&
-        !GetValueBoxBounds(rows[selectedIndex]).contains(point))
+        !UI::OptionsWidgets::GetValueBoxBounds(rows[selectedIndex].bounds.position.y).contains(point))
     {
         return;
     }
@@ -746,7 +738,7 @@ void OptionsState::UpdateSliderFromMouse(sf::Vector2f position)
     if (action != Action::MusicVolume && action != Action::SoundVolume)
         return;
 
-    const float value{ std::clamp((position.x - SliderLeft) / SliderWidth, 0.f, 1.f) * 100.f };
+    const float value{ UI::OptionsWidgets::SliderValueFromMouseX(position.x) };
     GameSettings& settings{ GetContext().settings.EditSettings() };
     if (action == Action::MusicVolume)
         settings.audio.musicVolume = std::round(value);
@@ -807,7 +799,7 @@ void OptionsState::MoveDropdownSelection(int direction)
 void OptionsState::EnsureDropdownSelectionVisible()
 {
     const std::size_t count{ GetDropdownItemCount() };
-    if (count <= MaximumVisibleDropdownItems)
+    if (count <= UI::OptionsWidgets::MaximumVisibleDropdownItems)
     {
         dropdownFirstVisible = 0u;
         return;
@@ -815,17 +807,17 @@ void OptionsState::EnsureDropdownSelectionVisible()
 
     if (dropdownIndex < dropdownFirstVisible)
         dropdownFirstVisible = dropdownIndex;
-    else if (dropdownIndex >= dropdownFirstVisible + MaximumVisibleDropdownItems)
-        dropdownFirstVisible = dropdownIndex - MaximumVisibleDropdownItems + 1u;
+    else if (dropdownIndex >= dropdownFirstVisible + UI::OptionsWidgets::MaximumVisibleDropdownItems)
+        dropdownFirstVisible = dropdownIndex - UI::OptionsWidgets::MaximumVisibleDropdownItems + 1u;
 
     dropdownFirstVisible = std::min(
         dropdownFirstVisible,
-        count - MaximumVisibleDropdownItems);
+        count - UI::OptionsWidgets::MaximumVisibleDropdownItems);
 }
 
 void OptionsState::HandleDropdownMouseMove(sf::Vector2f position)
 {
-    const std::size_t visibleCount{ std::min(MaximumVisibleDropdownItems,
+    const std::size_t visibleCount{ std::min(UI::OptionsWidgets::MaximumVisibleDropdownItems,
         GetDropdownItemCount() - dropdownFirstVisible) };
     for (std::size_t visibleIndex{ 0u }; visibleIndex < visibleCount; ++visibleIndex)
     {
@@ -850,9 +842,9 @@ void OptionsState::HandleDropdownMouseMove(sf::Vector2f position)
 void OptionsState::HandleDropdownMousePress(sf::Vector2f position)
 {
     const std::size_t count{ GetDropdownItemCount() };
-    const std::size_t visibleCount{ std::min(MaximumVisibleDropdownItems,
+    const std::size_t visibleCount{ std::min(UI::OptionsWidgets::MaximumVisibleDropdownItems,
         count - dropdownFirstVisible) };
-    if (count > MaximumVisibleDropdownItems && GetDropdownScrollbarBounds().contains(position))
+    if (count > UI::OptionsWidgets::MaximumVisibleDropdownItems && GetDropdownScrollbarBounds().contains(position))
     {
         dropdownScrollbarDragging = true;
         UpdateDropdownScrollbar(position);
@@ -875,11 +867,11 @@ void OptionsState::HandleDropdownMousePress(sf::Vector2f position)
 void OptionsState::HandleMouseWheel(float delta)
 {
     const std::size_t count{ GetDropdownItemCount() };
-    if (count <= MaximumVisibleDropdownItems || delta == 0.f)
+    if (count <= UI::OptionsWidgets::MaximumVisibleDropdownItems || delta == 0.f)
         return;
 
     const std::size_t previousSelection{ dropdownIndex };
-    const std::size_t maximumFirst{ count - MaximumVisibleDropdownItems };
+    const std::size_t maximumFirst{ count - UI::OptionsWidgets::MaximumVisibleDropdownItems };
     if (delta > 0.f && dropdownFirstVisible > 0u)
         --dropdownFirstVisible;
     else if (delta < 0.f && dropdownFirstVisible < maximumFirst)
@@ -888,7 +880,7 @@ void OptionsState::HandleMouseWheel(float delta)
     dropdownIndex = std::clamp(
         dropdownIndex,
         dropdownFirstVisible,
-        dropdownFirstVisible + MaximumVisibleDropdownItems - 1u);
+        dropdownFirstVisible + UI::OptionsWidgets::MaximumVisibleDropdownItems - 1u);
     if (dropdownIndex != previousSelection)
     {
         GetContext().audio.PlaySound(
@@ -903,23 +895,23 @@ void OptionsState::HandleMouseWheel(float delta)
 void OptionsState::UpdateDropdownScrollbar(sf::Vector2f position)
 {
     const std::size_t count{ GetDropdownItemCount() };
-    if (count <= MaximumVisibleDropdownItems)
+    if (count <= UI::OptionsWidgets::MaximumVisibleDropdownItems)
         return;
 
     const std::size_t previousSelection{ dropdownIndex };
     const sf::FloatRect track{ GetDropdownScrollbarBounds() };
-    const float thumbHeight{ track.size.y * static_cast<float>(MaximumVisibleDropdownItems) /
+    const float thumbHeight{ track.size.y * static_cast<float>(UI::OptionsWidgets::MaximumVisibleDropdownItems) /
         static_cast<float>(count) };
     const float travel{ track.size.y - thumbHeight };
     const float normalized{ travel <= 0.f
         ? 0.f
         : std::clamp((position.y - track.position.y - thumbHeight * 0.5f) / travel, 0.f, 1.f) };
     dropdownFirstVisible = static_cast<std::size_t>(std::round(
-        normalized * static_cast<float>(count - MaximumVisibleDropdownItems)));
+        normalized * static_cast<float>(count - UI::OptionsWidgets::MaximumVisibleDropdownItems)));
     dropdownIndex = std::clamp(
         dropdownIndex,
         dropdownFirstVisible,
-        dropdownFirstVisible + MaximumVisibleDropdownItems - 1u);
+        dropdownFirstVisible + UI::OptionsWidgets::MaximumVisibleDropdownItems - 1u);
     if (dropdownIndex != previousSelection)
     {
         GetContext().audio.PlaySound(
@@ -1315,13 +1307,6 @@ sf::String OptionsState::GetDropdownItemLabel(std::size_t index) const
     return {};
 }
 
-sf::FloatRect OptionsState::GetValueBoxBounds(const Row& row) const
-{
-    return sf::FloatRect(
-        { ValueBoxLeft, row.bounds.position.y + 12.f },
-        { ValueBoxWidth, ValueBoxHeight });
-}
-
 sf::FloatRect OptionsState::GetDropdownItemBounds(std::size_t visibleIndex) const
 {
     const auto activeRow{ std::ranges::find_if(rows, [this](const Row& row)
@@ -1331,13 +1316,8 @@ sf::FloatRect OptionsState::GetDropdownItemBounds(std::size_t visibleIndex) cons
     if (activeRow == rows.end())
         return {};
 
-    const sf::FloatRect valueBox{ GetValueBoxBounds(*activeRow) };
-    const float itemWidth{ ValueBoxWidth -
-        (GetDropdownItemCount() > MaximumVisibleDropdownItems ? 24.f : 0.f) };
-    return sf::FloatRect(
-        { valueBox.position.x,
-            valueBox.position.y + valueBox.size.y + DropdownItemHeight * static_cast<float>(visibleIndex) },
-        { itemWidth, DropdownItemHeight });
+    const sf::FloatRect valueBox{ UI::OptionsWidgets::GetValueBoxBounds(activeRow->bounds.position.y) };
+    return UI::OptionsWidgets::GetDropdownItemBounds(valueBox, GetDropdownItemCount(), visibleIndex);
 }
 
 sf::FloatRect OptionsState::GetDropdownScrollbarBounds() const
@@ -1349,14 +1329,8 @@ sf::FloatRect OptionsState::GetDropdownScrollbarBounds() const
     if (activeRow == rows.end())
         return {};
 
-    const sf::FloatRect valueBox{ GetValueBoxBounds(*activeRow) };
-    const std::size_t visibleCount{ std::min(
-        MaximumVisibleDropdownItems,
-        GetDropdownItemCount()) };
-    return sf::FloatRect(
-        { valueBox.position.x + valueBox.size.x - 17.f,
-            valueBox.position.y + valueBox.size.y + 8.f },
-        { 10.f, DropdownItemHeight * static_cast<float>(visibleCount) - 16.f });
+    const sf::FloatRect valueBox{ UI::OptionsWidgets::GetValueBoxBounds(activeRow->bounds.position.y) };
+    return UI::OptionsWidgets::GetDropdownScrollbarBounds(valueBox, GetDropdownItemCount());
 }
 
 bool OptionsState::IsSelectedRowEnabled() const
@@ -1397,7 +1371,7 @@ void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
         const std::array<Config::Texture, 7>& icons,
         const std::array<sf::String, 7>& actions)
     {
-        RoundedRectangleShape panel({ 1400.f, 310.f }, 18.f, 12u);
+        UI::RoundedRectangleShape panel({ 1400.f, 310.f }, 18.f, 12u);
         panel.setPosition({ 260.f, top });
         panel.setFillColor(sf::Color(3, 15, 28, 235));
         panel.setOutlineColor(sf::Color(40, 132, 160, 205));
@@ -1434,7 +1408,7 @@ void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
                 top + 86.f + static_cast<float>(row) * 51.f };
             constexpr sf::Vector2f CardSize{ 640.f, 46.f };
 
-            RoundedRectangleShape card(CardSize, 10.f, 8u);
+            UI::RoundedRectangleShape card(CardSize, 10.f, 8u);
             card.setPosition(cardPosition);
             card.setFillColor(sf::Color(5, 27, 43, 218));
             card.setOutlineColor(sf::Color(45, 126, 151, 180));
@@ -1454,7 +1428,9 @@ void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
             icon.setPosition({ cardPosition.x + 48.f, cardPosition.y + CardSize.y * 0.5f });
             target.draw(icon);
 
-            DrawText(target, actions[index],
+            UI::OptionsWidgets::DrawText(target,
+                GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()),
+                actions[index],
                 { cardPosition.x + 100.f, cardPosition.y + 7.f }, 25u, BrightCyan);
         }
     } };
@@ -1511,7 +1487,9 @@ void OptionsState::DrawRows(sf::RenderTarget& target)
 
     if (saveFailed)
     {
-        DrawText(target, GetContext().localization.GetText("options.save_error"),
+        UI::OptionsWidgets::DrawText(target,
+            GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()),
+            GetContext().localization.GetText("options.save_error"),
             { 570.f, 930.f }, 23, Red);
     }
 }
@@ -1523,7 +1501,7 @@ void OptionsState::DrawRow(
     const sf::RenderStates& states)
 {
     const bool selected{ index == selectedIndex && row.enabled };
-    RoundedRectangleShape panel(row.bounds.size, 15.f, 10u);
+    UI::RoundedRectangleShape panel(row.bounds.size, 15.f, 10u);
     panel.setPosition(row.bounds.position);
     panel.setFillColor(selected ? sf::Color(8, 34, 48, 226) : sf::Color(5, 17, 29, 210));
     panel.setOutlineColor(selected ? Cyan : sf::Color(52, 76, 92));
@@ -1539,7 +1517,7 @@ void OptionsState::DrawRow(
         const float value{ row.action == Action::MusicVolume
             ? GetContext().settings.GetSettings().audio.musicVolume
             : GetContext().settings.GetSettings().audio.soundVolume };
-        DrawSlider(target, row, value, states);
+        UI::OptionsWidgets::DrawSlider(target, row.bounds.position.y, value, states);
         rowValues[index].setFillColor(Cyan);
         target.draw(rowValues[index], states);
     }
@@ -1556,42 +1534,17 @@ void OptionsState::DrawRow(
             value = GetContext().settings.GetSettings().gameplay.isScreenShakeEnabled;
         else if (row.action == Action::ShowScorePopups)
             value = GetContext().settings.GetSettings().gameplay.needToShowScorePopups;
-        DrawToggle(target, row, value, states);
+        UI::OptionsWidgets::DrawToggle(target, row.bounds.position.y, value, toggleOnText, toggleOffText, states);
     }
     else if (row.kind == RowKind::Dropdown)
     {
-        const sf::FloatRect bounds{ GetValueBoxBounds(row) };
-        RoundedRectangleShape box(bounds.size, 10.f, 8u);
-        box.setPosition(bounds.position);
-        box.setFillColor(row.enabled ? sf::Color(2, 15, 27, 242) : sf::Color(10, 14, 20, 225));
-        box.setOutlineColor(row.enabled ? sf::Color(60, 126, 151) : sf::Color(45, 51, 59));
-        box.setOutlineThickness(1.5f);
-        target.draw(box, states);
-
-        sf::RectangleShape divider({ 1.f, bounds.size.y - 12.f });
-        divider.setPosition({ bounds.position.x + bounds.size.x - 58.f, bounds.position.y + 6.f });
-        divider.setFillColor(row.enabled ? sf::Color(60, 126, 151) : sf::Color(45, 51, 59));
-        target.draw(divider, states);
-
-        RoundedRectangleShape arrowButton({ 46.f, 46.f }, 7.f, 6u);
-        arrowButton.setPosition({ bounds.position.x + bounds.size.x - 52.f, bounds.position.y + 6.f });
-        arrowButton.setFillColor(row.enabled ? sf::Color(10, 55, 73, 235) : sf::Color(22, 27, 33, 220));
-        arrowButton.setOutlineColor(row.enabled ? sf::Color(75, 170, 196) : sf::Color(48, 55, 63));
-        arrowButton.setOutlineThickness(1.f);
-        target.draw(arrowButton, states);
+        const sf::FloatRect bounds{ UI::OptionsWidgets::GetValueBoxBounds(row.bounds.position.y) };
+        UI::OptionsWidgets::DrawDropdownBox(target, bounds, row.enabled, states);
 
         rowValues[index].setFillColor(row.enabled ? Cyan : Disabled);
         target.draw(rowValues[index], states);
         if (!row.enabled)
             target.draw(rowHints[index], states);
-
-        sf::ConvexShape arrow(3u);
-        arrow.setPoint(0u, { 0.f, 0.f });
-        arrow.setPoint(1u, { 18.f, 0.f });
-        arrow.setPoint(2u, { 9.f, 10.f });
-        arrow.setPosition({ bounds.position.x + bounds.size.x - 38.f, bounds.position.y + 25.f });
-        arrow.setFillColor(row.enabled ? BrightCyan : Disabled);
-        target.draw(arrow, states);
     }
     else
     {
@@ -1603,59 +1556,6 @@ void OptionsState::DrawRow(
     }
 }
 
-void OptionsState::DrawSlider(
-    sf::RenderTarget& target,
-    const Row& row,
-    float value,
-    const sf::RenderStates& states) const
-{
-    sf::RectangleShape track({ SliderWidth, 8.f });
-    track.setPosition({ SliderLeft, row.bounds.position.y + 38.f });
-    track.setFillColor(sf::Color(52, 70, 83));
-    target.draw(track, states);
-
-    sf::RectangleShape fill({ SliderWidth * value / 100.f, 8.f });
-    fill.setPosition(track.getPosition());
-    fill.setFillColor(Cyan);
-    target.draw(fill, states);
-
-    sf::CircleShape knob(13.f);
-    knob.setOrigin({ 13.f, 13.f });
-    knob.setPosition({ SliderLeft + SliderWidth * value / 100.f, row.bounds.position.y + 42.f });
-    knob.setFillColor(BrightCyan);
-    knob.setOutlineColor(sf::Color(40, 210, 245, 90));
-    knob.setOutlineThickness(6.f);
-    target.draw(knob, states);
-}
-
-void OptionsState::DrawToggle(
-    sf::RenderTarget& target,
-    const Row& row,
-    bool value,
-    const sf::RenderStates& states)
-{
-    const sf::Vector2f position{ 1280.f, row.bounds.position.y + 17.f };
-    RoundedRectangleShape shell({ 270.f, 50.f }, 10.f, 8u);
-    shell.setPosition(position);
-    shell.setFillColor(sf::Color(3, 13, 23, 230));
-    shell.setOutlineColor(sf::Color(55, 93, 111));
-    shell.setOutlineThickness(1.f);
-    target.draw(shell, states);
-
-    RoundedRectangleShape active({ 128.f, 42.f }, 8.f, 8u);
-    active.setPosition(position + sf::Vector2f{ value ? 4.f : 138.f, 4.f });
-    active.setFillColor(sf::Color(18, 132, 157, 150));
-    active.setOutlineColor(Cyan);
-    active.setOutlineThickness(1.f);
-    target.draw(active, states);
-    toggleOnText.setPosition(position + sf::Vector2f{ 44.f, 10.f });
-    toggleOnText.setFillColor(value ? BrightCyan : Muted);
-    target.draw(toggleOnText, states);
-    toggleOffText.setPosition(position + sf::Vector2f{ 178.f, 10.f });
-    toggleOffText.setFillColor(value ? Muted : BrightCyan);
-    target.draw(toggleOffText, states);
-}
-
 void OptionsState::DrawDropdown(sf::RenderTarget& target)
 {
     const std::size_t itemCount{ GetDropdownItemCount() };
@@ -1663,7 +1563,7 @@ void OptionsState::DrawDropdown(sf::RenderTarget& target)
         return;
 
     const std::size_t visibleCount{ std::min(
-        MaximumVisibleDropdownItems,
+        UI::OptionsWidgets::MaximumVisibleDropdownItems,
         itemCount - dropdownFirstVisible) };
     const std::size_t selectedVisibleIndex{ dropdownIndex - dropdownFirstVisible };
     const sf::FloatRect selectedBounds{ GetDropdownItemBounds(selectedVisibleIndex) };
@@ -1671,27 +1571,27 @@ void OptionsState::DrawDropdown(sf::RenderTarget& target)
     {
         const std::size_t itemIndex{ dropdownFirstVisible + visibleIndex };
         const sf::FloatRect bounds{ GetDropdownItemBounds(visibleIndex) };
-        DrawDropdownItem(
+        UI::OptionsWidgets::DrawDropdownItem(
             target,
             bounds,
-            itemIndex,
+            dropdownLabels[itemIndex],
             itemIndex == dropdownIndex,
             sf::RenderStates::Default);
     }
 
-    if (itemCount > MaximumVisibleDropdownItems)
+    if (itemCount > UI::OptionsWidgets::MaximumVisibleDropdownItems)
     {
         const sf::FloatRect trackBounds{ GetDropdownScrollbarBounds() };
-        RoundedRectangleShape track(trackBounds.size, 5.f, 6u);
+        UI::RoundedRectangleShape track(trackBounds.size, 5.f, 6u);
         track.setPosition(trackBounds.position);
         track.setFillColor(sf::Color(22, 42, 55, 235));
         target.draw(track);
 
         const float thumbHeight{ trackBounds.size.y *
-            static_cast<float>(MaximumVisibleDropdownItems) / static_cast<float>(itemCount) };
+            static_cast<float>(UI::OptionsWidgets::MaximumVisibleDropdownItems) / static_cast<float>(itemCount) };
         const float progress{ static_cast<float>(dropdownFirstVisible) /
-            static_cast<float>(itemCount - MaximumVisibleDropdownItems) };
-        RoundedRectangleShape thumb({ trackBounds.size.x, thumbHeight }, 5.f, 6u);
+            static_cast<float>(itemCount - UI::OptionsWidgets::MaximumVisibleDropdownItems) };
+        UI::RoundedRectangleShape thumb({ trackBounds.size.x, thumbHeight }, 5.f, 6u);
         thumb.setPosition({ trackBounds.position.x,
             trackBounds.position.y + (trackBounds.size.y - thumbHeight) * progress });
         thumb.setFillColor(Cyan);
@@ -1700,33 +1600,14 @@ void OptionsState::DrawDropdown(sf::RenderTarget& target)
 
 }
 
-void OptionsState::DrawDropdownItem(
-    sf::RenderTarget& target,
-    const sf::FloatRect& bounds,
-    std::size_t itemIndex,
-    bool selected,
-    const sf::RenderStates& states)
-{
-	RoundedRectangleShape item(bounds.size, 7.f, 6u);
-	item.setPosition(bounds.position);
-	item.setFillColor(selected ? sf::Color(12, 58, 76, 250) : sf::Color(3, 16, 28, 248));
-	item.setOutlineColor(selected ? Cyan : sf::Color(50, 78, 94));
-	item.setOutlineThickness(1.f);
-	target.draw(item, states);
-
-	if (itemIndex >= dropdownLabels.size()) return;
-	sf::Text& label{ dropdownLabels[itemIndex] };
-	label.setPosition(bounds.position + sf::Vector2f{ 20.f, 13.f });
-	label.setFillColor(selected ? Orange : BrightCyan);
-	target.draw(label, states);
-}
-
 void OptionsState::DrawDialog(sf::RenderTarget& target)
 {
+    const sf::Font& font{ GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()) };
+
     sf::RectangleShape veil(GetContext().logicalSize);
     veil.setFillColor(sf::Color(0, 2, 6, 190));
     target.draw(veil);
-    RoundedRectangleShape dialog({ 900.f, 260.f }, 22.f, 12u);
+    UI::RoundedRectangleShape dialog({ 900.f, 260.f }, 22.f, 12u);
     dialog.setPosition({ 510.f, 410.f });
     dialog.setFillColor(sf::Color(4, 19, 31, 248));
     dialog.setOutlineColor(Cyan);
@@ -1735,8 +1616,8 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
 
     if (displayConfirmationOpen)
     {
-        DrawCenteredText(target, GetContext().localization.GetText("options.keep_display"), 960.f, 465.f, 36, BrightCyan);
-        DrawCenteredText(target, GetContext().localization.FormatText("options.reverting", "seconds",
+        UI::OptionsWidgets::DrawCenteredText(target, font, GetContext().localization.GetText("options.keep_display"), 960.f, 465.f, 36, BrightCyan);
+        UI::OptionsWidgets::DrawCenteredText(target, font, GetContext().localization.FormatText("options.reverting", "seconds",
 			std::to_string(static_cast<int>(std::ceil(displayConfirmationRemaining)))),
             960.f, 520.f, 24, Orange);
 
@@ -1748,12 +1629,13 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
         dialogGlow.DrawBloom(
             target,
             selectedBounds,
-            [this, &selectedBounds, &selectedLabel](
+            [this, &font, &selectedBounds, &selectedLabel](
                 sf::RenderTarget& glowTarget,
                 const sf::RenderStates& states)
             {
-                DrawDialogButton(
+                UI::OptionsWidgets::DrawDialogButton(
                     glowTarget,
+                    font,
                     selectedBounds,
                     selectedLabel,
                     true,
@@ -1763,8 +1645,9 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
         for (std::size_t index{ 0u }; index < buttons.size(); ++index)
         {
             const auto& [bounds, label]{ buttons[index] };
-            DrawDialogButton(
+            UI::OptionsWidgets::DrawDialogButton(
                 target,
+                font,
                 bounds,
                 label,
                 index == dialogSelectedIndex,
@@ -1774,84 +1657,29 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
     }
     else
     {
-        DrawCenteredText(target, GetContext().localization.GetText("options.press_binding"), 960.f, 475.f, 34, BrightCyan);
+        UI::OptionsWidgets::DrawCenteredText(target, font, GetContext().localization.GetText("options.press_binding"), 960.f, 475.f, 34, BrightCyan);
         const sf::String cancelLabel{ GetContext().localization.GetText("common.cancel") };
         dialogGlow.DrawBloom(
             target,
             BindingCancelBounds,
-            [this, &cancelLabel](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
+            [this, &font, &cancelLabel](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
             {
-                DrawDialogButton(
+                UI::OptionsWidgets::DrawDialogButton(
                     glowTarget,
+                    font,
                     BindingCancelBounds,
                     cancelLabel,
                     true,
                     states);
             },
             SelectionGlowColor);
-        DrawDialogButton(
+        UI::OptionsWidgets::DrawDialogButton(
             target,
+            font,
             BindingCancelBounds,
             cancelLabel,
             true,
             sf::RenderStates::Default);
         dialogGlow.DrawHighlight(target, BindingCancelBounds, SelectionGlowColor);
     }
-}
-
-void OptionsState::DrawDialogButton(
-    sf::RenderTarget& target,
-    const sf::FloatRect& bounds,
-    const sf::String& labelValue,
-    bool selected,
-    const sf::RenderStates& states) const
-{
-    RoundedRectangleShape button(bounds.size, 12.f, 8u);
-    button.setPosition(bounds.position);
-    button.setFillColor(selected ? sf::Color(7, 39, 54, 245) : sf::Color(5, 20, 31, 245));
-    button.setOutlineColor(selected ? BrightCyan : sf::Color(54, 91, 108));
-    button.setOutlineThickness(selected ? 2.f : 1.f);
-    target.draw(button, states);
-
-    sf::Text label(
-        GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()),
-        labelValue,
-        25);
-    const sf::FloatRect textBounds{ label.getLocalBounds() };
-    label.setOrigin({
-        textBounds.position.x + textBounds.size.x * 0.5f,
-        textBounds.position.y
-    });
-    label.setPosition({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y + 13.f });
-    label.setFillColor(selected ? Orange : BrightCyan);
-    target.draw(label, states);
-}
-
-void OptionsState::DrawCenteredText(
-    sf::RenderTarget& target,
-    const sf::String& value,
-    float centerX,
-    float y,
-    unsigned int size,
-    sf::Color color) const
-{
-    sf::Text text(GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()), value, size);
-    const sf::FloatRect bounds{ text.getLocalBounds() };
-    text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f, bounds.position.y });
-    text.setPosition({ centerX, y });
-    text.setFillColor(color);
-    target.draw(text);
-}
-
-void OptionsState::DrawText(
-    sf::RenderTarget& target,
-    const sf::String& value,
-    sf::Vector2f position,
-    unsigned int size,
-    sf::Color color) const
-{
-    sf::Text text(GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()), value, size);
-    text.setPosition(position);
-    text.setFillColor(color);
-    target.draw(text);
 }

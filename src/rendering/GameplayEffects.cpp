@@ -18,7 +18,7 @@ namespace
 {
     sf::Vector2f Normalize(const sf::Vector2f& vector)
     {
-        const float lengthSquared{ vector.x * vector.x + vector.y * vector.y };
+        const float lengthSquared = vector.x * vector.x + vector.y * vector.y;
         if (lengthSquared <= 0.0001f)
             return { 0.f, -1.f };
         return vector / std::sqrt(lengthSquared);
@@ -29,8 +29,8 @@ namespace
         return std::max(1, static_cast<int>(std::round(static_cast<float>(count) * scale)));
     }
 
-    constexpr float ScorePopupDuration{ 0.5f };
-    constexpr float ScorePopupRiseDistance{ 56.f };
+    constexpr float ScorePopupDuration = 0.5f;
+    constexpr float ScorePopupRiseDistance = 56.f;
 }
 
 GameplayEffects::ScorePopup::ScorePopup(
@@ -59,8 +59,8 @@ void GameplayEffects::Update(
     if (!showScorePopups)
         scorePopups.clear();
 
-    shakeEnabled = screenShakeEnabled;
-    if (!shakeEnabled)
+    isShakeEnabled = screenShakeEnabled;
+    if (!isShakeEnabled)
     {
         shakeRemaining = 0.f;
         shakeDuration = 0.f;
@@ -69,7 +69,7 @@ void GameplayEffects::Update(
     }
     projectileGlowParticles.Clear();
 
-    constexpr float EmissionInterval{ 1.f / 70.f };
+    constexpr float EmissionInterval = 1.f / 70.f;
     Player* player{ world.GetPlayer() };
     const auto playerState{ player ? player->GetEffectState() : std::nullopt };
     if (!playerState || !playerState->isThrusting)
@@ -79,7 +79,7 @@ void GameplayEffects::Update(
     else
     {
         engineEmissionAccumulator += deltaTime;
-        int emittedSteps{ 0 };
+        int emittedSteps = 0;
         while (engineEmissionAccumulator >= EmissionInterval && emittedSteps < 8)
         {
             EmitPlayerEngineParticles(world);
@@ -231,7 +231,7 @@ float GameplayEffects::RandomFloat(float minimum, float maximum)
 
 sf::Vector2f GameplayEffects::RandomDirection()
 {
-    const float angle{ RandomFloat(0.f, 2.f * std::numbers::pi_v<float>) };
+    const float angle = RandomFloat(0.f, 2.f * std::numbers::pi_v<float>);
     return { std::cos(angle), std::sin(angle) };
 }
 
@@ -239,8 +239,8 @@ sf::Vector2f GameplayEffects::RandomDirectionAround(
     const sf::Vector2f& direction, float spreadRadians)
 {
     const sf::Vector2f normalized{ Normalize(direction) };
-    const float angle{ std::atan2(normalized.y, normalized.x) +
-        RandomFloat(-spreadRadians, spreadRadians) };
+    const float angle = std::atan2(normalized.y, normalized.x) +
+        RandomFloat(-spreadRadians, spreadRadians);
     return { std::cos(angle), std::sin(angle) };
 }
 
@@ -257,9 +257,9 @@ void GameplayEffects::EmitPlayerEngineParticles(const World& world)
 
     for (const sf::Vector2f& emitterPosition : playerState->enginePositions)
     {
-        const float sidewaysJitter{ RandomFloat(-24.f, 24.f) };
-        const float exhaustSpeed{ RandomFloat(150.f, 235.f) };
-        const float lifetime{ RandomFloat(0.2f, 0.32f) };
+        const float sidewaysJitter = RandomFloat(-24.f, 24.f);
+        const float exhaustSpeed = RandomFloat(150.f, 235.f);
+        const float lifetime = RandomFloat(0.2f, 0.32f);
         engineParticles.Emit({
             emitterPosition + perpendicular * RandomFloat(-1.5f, 1.5f),
             playerState->velocity * 0.18f +
@@ -277,11 +277,11 @@ void GameplayEffects::EmitPlayerEngineParticles(const World& world)
 }
 
 void GameplayEffects::EmitProjectileGlow(bool playerProjectile,
-	const sf::Vector2f& position, const sf::Vector2f& direction, bool homing, bool triple)
+	const sf::Vector2f& position, const sf::Vector2f& direction, bool isHoming, bool isTriple)
 {
-	const sf::Color startColor{ triple
+	const sf::Color startColor{ isTriple
 		? sf::Color{ 65, 255, 115, 240 }
-		: homing
+		: isHoming
 		? sf::Color{ 255, 188, 45, 240 }
 		: playerProjectile
             ? sf::Color{ 85, 235, 255, 235 }
@@ -356,10 +356,10 @@ void GameplayEffects::EmitStationWelding(const sf::Vector2f& position, float sca
 		RandomFloat(18.f, 30.f) * scale, 2.f,
 		{ 225, 250, 255, 255 }, { 45, 145, 255, 0 },
 		0.f, 0.f, 3.f });
-	for (int index{ 0 }; index < 5; ++index)
+	for (int index = 0; index < 5; ++index)
 	{
 		const sf::Vector2f direction{ RandomDirection() };
-		const float angle{ std::atan2(direction.y, direction.x) };
+		const float angle = std::atan2(direction.y, direction.x);
 		impactParticles.Emit({
 			source,
 			direction * RandomFloat(95.f, 240.f),
@@ -381,10 +381,10 @@ void GameplayEffects::EmitStationChainExplosion(
 	impactParticles.Emit({ position, {}, 0.42f,
 		50.f * scale, 125.f * scale,
 		{ 255, 85, 20, 190 }, { 90, 10, 5, 0 } });
-	for (int index{ 0 }; index < 10; ++index)
+	for (int index = 0; index < 10; ++index)
 	{
 		const sf::Vector2f direction{ RandomDirection() };
-		const float angle{ std::atan2(direction.y, direction.x) };
+		const float angle = std::atan2(direction.y, direction.x);
 		impactParticles.Emit({ position,
 			direction * RandomFloat(90.f, 280.f),
 			RandomFloat(0.18f, 0.42f),
@@ -392,7 +392,7 @@ void GameplayEffects::EmitStationChainExplosion(
 			{ 255, 225, 135, 255 }, { 255, 35, 8, 0 },
 			angle, 0.f, 0.8f, RandomFloat(2.f, 4.5f) });
 	}
-	for (int index{ 0 }; index < 2; ++index)
+	for (int index = 0; index < 2; ++index)
 	{
 		smokeParticles.Emit({
 			position + RandomDirection() * RandomFloat(0.f, 10.f),
@@ -415,10 +415,10 @@ void GameplayEffects::EmitPlayerTeleport(
 		position, {}, 0.3f,
 		82.f * scale, 10.f,
 		{ 225, 255, 255, 255 }, { 25, 145, 255, 0 } });
-	for (int index{ 0 }; index < 28; ++index)
+	for (int index = 0; index < 28; ++index)
 	{
 		const sf::Vector2f direction{ RandomDirection() };
-		const float angle{ std::atan2(direction.y, direction.x) };
+		const float angle = std::atan2(direction.y, direction.x);
 		impactParticles.Emit({
 			position + direction * RandomFloat(12.f, 55.f) * scale,
 			direction * RandomFloat(70.f, 230.f),
@@ -462,7 +462,7 @@ void GameplayEffects::EmitMuzzleFlash(bool playerProjectile,
         sf::Color::White,
         fadeColor });
 
-	for (int i{ 0 }; i < ScaledCount(8, scale); ++i)
+	for (int i = 0; i < ScaledCount(8, scale); ++i)
     {
         weaponParticles.Emit({
             position,
@@ -486,10 +486,10 @@ void GameplayEffects::EmitStoneHit(
     impactParticles.Emit({ position, {}, 0.16f, 34.f * scale, 5.f,
         { 255, 210, 125, 220 }, { 150, 80, 25, 0 } });
 
-    for (int i{ 0 }; i < ScaledCount(burst.count, scale); ++i)
+    for (int i = 0; i < ScaledCount(burst.count, scale); ++i)
     {
         const sf::Vector2f particleDirection{ RandomDirectionAround(direction, 1.35f) };
-        const float size{ RandomFloat(burst.minimumSize, burst.maximumSize) * scale };
+        const float size = RandomFloat(burst.minimumSize, burst.maximumSize) * scale;
         debrisParticles.Emit({
             position,
             particleDirection * RandomFloat(burst.minimumSpeed, burst.maximumSpeed),
@@ -503,7 +503,7 @@ void GameplayEffects::EmitStoneHit(
             2.2f });
     }
 
-    for (int i{ 0 }; i < std::max(1, ScaledCount(burst.count, scale) / 5); ++i)
+    for (int i = 0; i < std::max(1, ScaledCount(burst.count, scale) / 5); ++i)
     {
         smokeParticles.Emit({
             position + RandomDirection() * RandomFloat(0.f, 8.f),
@@ -524,11 +524,11 @@ void GameplayEffects::EmitMetalHit(
     impactParticles.Emit({ position, {}, 0.13f, 42.f * scale, 3.f,
         { 220, 250, 255, 255 }, { 30, 145, 255, 0 } });
 
-    for (int i{ 0 }; i < ScaledCount(burst.count, scale); ++i)
+    for (int i = 0; i < ScaledCount(burst.count, scale); ++i)
     {
         const sf::Vector2f sparkDirection{ RandomDirectionAround(direction, 1.55f) };
-        const float speed{ RandomFloat(burst.minimumSpeed, burst.maximumSpeed) };
-        const float angle{ std::atan2(sparkDirection.y, sparkDirection.x) };
+        const float speed = RandomFloat(burst.minimumSpeed, burst.maximumSpeed);
+        const float angle = std::atan2(sparkDirection.y, sparkDirection.x);
         impactParticles.Emit({
             position,
             sparkDirection * speed,
@@ -546,17 +546,17 @@ void GameplayEffects::EmitMetalHit(
 
 void GameplayEffects::EmitAsteroidExplosion(const sf::Vector2f& position, float scale)
 {
-    const bool large{ scale >= 0.8f };
-    const auto& burst{ large ? config.largeAsteroidExplosion : config.smallAsteroidExplosion };
+    const bool isLarge = scale >= 0.8f;
+    const auto& burst{ isLarge ? config.largeAsteroidExplosion : config.smallAsteroidExplosion };
     impactParticles.Emit({ position, {}, 0.34f, 145.f * scale, 8.f,
         { 255, 235, 175, 255 }, { 255, 80, 15, 0 } });
     impactParticles.Emit({ position, {}, 0.5f, 85.f * scale, 185.f * scale,
         { 255, 120, 30, 190 }, { 120, 25, 5, 0 } });
 
-    for (int i{ 0 }; i < ScaledCount(burst.count, scale); ++i)
+    for (int i = 0; i < ScaledCount(burst.count, scale); ++i)
     {
         const sf::Vector2f direction{ RandomDirection() };
-        const float size{ RandomFloat(burst.minimumSize, burst.maximumSize) };
+        const float size = RandomFloat(burst.minimumSize, burst.maximumSize);
         debrisParticles.Emit({
             position + direction * RandomFloat(0.f, 10.f * scale),
             direction * RandomFloat(burst.minimumSpeed, burst.maximumSpeed),
@@ -570,8 +570,8 @@ void GameplayEffects::EmitAsteroidExplosion(const sf::Vector2f& position, float 
             1.6f });
     }
 
-    const int smokeCount{ std::max(3, ScaledCount(burst.count, scale) / 5) };
-    for (int i{ 0 }; i < smokeCount; ++i)
+    const int smokeCount = std::max(3, ScaledCount(burst.count, scale) / 5);
+    for (int i = 0; i < smokeCount; ++i)
     {
         const sf::Vector2f direction{ RandomDirection() };
         smokeParticles.Emit({
@@ -587,7 +587,7 @@ void GameplayEffects::EmitAsteroidExplosion(const sf::Vector2f& position, float 
             0.9f });
     }
 
-    if (large)
+    if (isLarge)
     {
         shockwaveParticles.Emit({ position, {}, 0.42f, 42.f, 245.f * scale,
             { 255, 190, 95, 205 }, { 255, 80, 20, 0 } });
@@ -604,13 +604,13 @@ void GameplayEffects::EmitShipExplosion(const sf::Vector2f& position, float scal
     impactParticles.Emit({ position, {}, 0.52f, 75.f * scale, 205.f * scale,
         { 80, 210, 255, 210 }, { 255, 40, 20, 0 } });
 
-    for (int i{ 0 }; i < ScaledCount(burst.count, scale); ++i)
+    for (int i = 0; i < ScaledCount(burst.count, scale); ++i)
     {
         const sf::Vector2f direction{ RandomDirection() };
-        const float speed{ RandomFloat(burst.minimumSpeed, burst.maximumSpeed) };
+        const float speed = RandomFloat(burst.minimumSpeed, burst.maximumSpeed);
         if (i % 2 == 0)
         {
-            const float angle{ std::atan2(direction.y, direction.x) };
+            const float angle = std::atan2(direction.y, direction.x);
             impactParticles.Emit({
                 position,
                 direction * speed,
@@ -623,7 +623,7 @@ void GameplayEffects::EmitShipExplosion(const sf::Vector2f& position, float scal
         }
         else
         {
-            const float size{ RandomFloat(burst.minimumSize, burst.maximumSize) };
+            const float size = RandomFloat(burst.minimumSize, burst.maximumSize);
             debrisParticles.Emit({
                 position,
                 direction * speed * 0.72f,
@@ -638,8 +638,8 @@ void GameplayEffects::EmitShipExplosion(const sf::Vector2f& position, float scal
         }
     }
 
-    const int smokeCount{ std::max(4, ScaledCount(burst.count, scale) / 6) };
-    for (int i{ 0 }; i < smokeCount; ++i)
+    const int smokeCount = std::max(4, ScaledCount(burst.count, scale) / 6);
+    for (int i = 0; i < smokeCount; ++i)
     {
         const sf::Vector2f direction{ RandomDirection() };
         smokeParticles.Emit({
@@ -672,12 +672,12 @@ void GameplayEffects::EmitStationExplosion(
 		120.f * scale, 320.f * scale,
 		{ 255, 85, 25, 225 }, { 75, 5, 12, 0 } });
 
-	for (int index{ 0 }; index < ScaledCount(burst.count, scale * 1.45f); ++index)
+	for (int index = 0; index < ScaledCount(burst.count, scale * 1.45f); ++index)
 	{
 		const sf::Vector2f direction{ RandomDirection() };
-		const float speed{ RandomFloat(
-			burst.minimumSpeed * 0.9f, burst.maximumSpeed * 1.3f) };
-		const float angle{ std::atan2(direction.y, direction.x) };
+		const float speed = RandomFloat(
+			burst.minimumSpeed * 0.9f, burst.maximumSpeed * 1.3f);
+		const float angle = std::atan2(direction.y, direction.x);
 		impactParticles.Emit({ position,
 			direction * speed,
 			RandomFloat(burst.minimumLifetime, burst.maximumLifetime),
@@ -687,7 +687,7 @@ void GameplayEffects::EmitStationExplosion(
 			RandomFloat(2.f, 5.f) });
 	}
 
-	for (int index{ 0 }; index < 14; ++index)
+	for (int index = 0; index < 14; ++index)
 	{
 		const sf::Vector2f direction{ RandomDirection() };
 		smokeParticles.Emit({
@@ -717,10 +717,10 @@ void GameplayEffects::UpdateScorePopups(float deltaTime)
 {
     for (ScorePopup& popup : scorePopups)
     {
-        popup.elapsed += deltaTime;
-        const float progress{ std::clamp(popup.elapsed / ScorePopupDuration, 0.f, 1.f) };
+        popup.elapsedSeconds += deltaTime;
+        const float progress = std::clamp(popup.elapsedSeconds / ScorePopupDuration, 0.f, 1.f);
         popup.text.move({ 0.f, -ScorePopupRiseDistance * deltaTime / ScorePopupDuration });
-        const float fade{ 1.f - progress * progress };
+        const float fade = 1.f - progress * progress;
         const auto alpha{ static_cast<std::uint8_t>(255.f * fade) };
         popup.text.setFillColor(sf::Color(225, 252, 255, alpha));
         popup.text.setOutlineColor(sf::Color(
@@ -729,14 +729,14 @@ void GameplayEffects::UpdateScorePopups(float deltaTime)
 
     std::erase_if(scorePopups, [](const ScorePopup& popup)
     {
-        return popup.elapsed >= ScorePopupDuration;
+        return popup.elapsedSeconds >= ScorePopupDuration;
     });
 }
 
 void GameplayEffects::StartCameraShake(
     const GameplayData::CameraShakeConfig& shake, float scale)
 {
-    if (!shakeEnabled)
+    if (!isShakeEnabled)
         return;
     shakeDuration = std::max(shakeDuration, shake.duration);
     shakeRemaining = std::max(shakeRemaining, shake.duration);
@@ -753,7 +753,7 @@ void GameplayEffects::UpdateCameraShake(float deltaTime)
     }
 
     shakeRemaining = std::max(0.f, shakeRemaining - deltaTime);
-    const float falloff{ shakeRemaining / shakeDuration };
+    const float falloff = shakeRemaining / shakeDuration;
     const sf::Vector2f target{
         RandomFloat(-shakeAmplitude, shakeAmplitude) * falloff,
         RandomFloat(-shakeAmplitude, shakeAmplitude) * falloff };
@@ -780,19 +780,19 @@ void GameplayEffects::UpdatePostProcess(float deltaTime)
         postProcessState.damageVignette - deltaTime * 2.6f);
 
 	for (Shockwave& shockwave : shockwaves)
-		shockwave.elapsed += deltaTime;
+		shockwave.elapsedSeconds += deltaTime;
 	std::erase_if(shockwaves, [](const Shockwave& shockwave)
 	{
-		return shockwave.elapsed >= shockwave.duration;
+		return shockwave.elapsedSeconds >= shockwave.duration;
 	});
 
 	postProcessState.shockwaveCount = std::min(
 		shockwaves.size(), MaximumShockwaves);
-	for (std::size_t index{ 0u }; index < postProcessState.shockwaveCount; ++index)
+	for (std::size_t index = 0u; index < postProcessState.shockwaveCount; ++index)
 	{
 		const Shockwave& shockwave{ shockwaves[index] };
-		const float progress{ std::clamp(
-			shockwave.elapsed / shockwave.duration, 0.f, 1.f) };
+		const float progress = std::clamp(
+			shockwave.elapsedSeconds / shockwave.duration, 0.f, 1.f);
 		// The explosion particles are rendered with the current camera-shake
 		// transform, so the post-process center must use the same offset.
 		postProcessState.shockwavePositions[index] = shockwave.position + cameraOffset;

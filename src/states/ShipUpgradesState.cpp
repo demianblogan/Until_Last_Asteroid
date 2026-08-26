@@ -51,14 +51,6 @@ namespace
 	constexpr std::array<const char*, 4> EffectKeys{
 		"upgrades.armor_effect", "upgrades.engines_effect",
 		"upgrades.fire_rate_effect", "upgrades.bonus_duration_effect" };
-
-	void CenterText(sf::Text& text, sf::Vector2f position)
-	{
-		const sf::FloatRect bounds{ text.getLocalBounds() };
-		text.setOrigin({ bounds.position.x + bounds.size.x * .5f,
-			bounds.position.y + bounds.size.y * .5f });
-		text.setPosition(position);
-	}
 }
 
 ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
@@ -99,7 +91,7 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 	title.setFillColor(sf::Color(220, 249, 255));
 	title.setOutlineColor(sf::Color(2, 12, 22, 230));
 	title.setOutlineThickness(3.f);
-	CenterText(title, { 960.f, 58.f });
+	UI::TextLayout::CenterText(title, { 960.f, 58.f });
 	partsPanel.SetPosition(PartsPanelPosition);
 	partsPanel.SetFrameOpacity(.92f);
 	partsLabel.setFillColor(Cyan);
@@ -137,15 +129,15 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 		upgradeIcons.back().setScale({ iconScale, iconScale });
 		upgradeIcons.back().setPosition(CardPositions[index] + sf::Vector2f{ 82.f, 70.f });
 		cardTitles.emplace_back(headingFont, context.localization.GetText(NameKeys[index]), 29);
-		TextLayout::FitWidth(cardTitles.back(), 420.f, 20u);
+		UI::TextLayout::FitWidth(cardTitles.back(), 420.f, 20u);
 		cardTitles.back().setFillColor(Cyan);
 		cardTitles.back().setOutlineColor(sf::Color(0, 95, 145, 150));
 		cardTitles.back().setOutlineThickness(2.f);
 		cardTitles.back().setPosition(CardPositions[index] + sf::Vector2f{ 160.f, 24.f });
 		cardDetails.emplace_back(bodyFont, context.localization.GetText(EffectKeys[index]), 29);
-		TextLayout::FitWidth(cardDetails.back(), 600.f, 19u);
+		UI::TextLayout::FitWidth(cardDetails.back(), 600.f, 19u);
 		cardDetails.back().setFillColor(sf::Color(145, 190, 202));
-		CenterText(cardDetails.back(), CardPositions[index] + sf::Vector2f{ 745.f, 70.f });
+		UI::TextLayout::CenterText(cardDetails.back(), CardPositions[index] + sf::Vector2f{ 745.f, 70.f });
 		rankLabels.emplace_back(headingFont, context.localization.GetText("upgrades.rank"), 22);
 		rankValues.emplace_back(headingFont, "0", 22);
 		rankMaximums.emplace_back(headingFont, "/ 4", 22);
@@ -177,7 +169,7 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 		maximumLabels.back().setFillColor(MaximumGreen);
 		maximumLabels.back().setOutlineColor(sf::Color(0, 100, 52, 190));
 		maximumLabels.back().setOutlineThickness(3.f);
-		CenterText(maximumLabels.back(), CardPositions[index] + sf::Vector2f{ 1210.f, 70.f });
+		UI::TextLayout::CenterText(maximumLabels.back(), CardPositions[index] + sf::Vector2f{ 1210.f, 70.f });
 	}
 
 	const sf::Font& menuFont{ context.assets.Fonts().Get(context.localization.GetRegularFont()) };
@@ -225,7 +217,7 @@ void ShipUpgradesState::RefreshLocalizedContent()
 
 	title.setFont(headingFont);
 	title.setString(context.localization.GetText("upgrades.title"));
-	CenterText(title, { 960.f, 58.f });
+	UI::TextLayout::CenterText(title, { 960.f, 58.f });
 
 	partsLabel.setFont(headingFont);
 	partsLabel.setString(context.localization.GetText("upgrades.parts"));
@@ -236,13 +228,13 @@ void ShipUpgradesState::RefreshLocalizedContent()
 		cardTitles[index].setFont(headingFont);
 		cardTitles[index].setString(context.localization.GetText(NameKeys[index]));
 		cardTitles[index].setScale({ 1.f, 1.f });
-		TextLayout::FitWidth(cardTitles[index], 420.f, 20u);
+		UI::TextLayout::FitWidth(cardTitles[index], 420.f, 20u);
 
 		cardDetails[index].setFont(bodyFont);
 		cardDetails[index].setString(context.localization.GetText(EffectKeys[index]));
 		cardDetails[index].setScale({ 1.f, 1.f });
-		TextLayout::FitWidth(cardDetails[index], 600.f, 19u);
-		CenterText(cardDetails[index], CardPositions[index] + sf::Vector2f{ 745.f, 70.f });
+		UI::TextLayout::FitWidth(cardDetails[index], 600.f, 19u);
+		UI::TextLayout::CenterText(cardDetails[index], CardPositions[index] + sf::Vector2f{ 745.f, 70.f });
 
 		rankLabels[index].setFont(headingFont);
 		rankLabels[index].setString(context.localization.GetText("upgrades.rank"));
@@ -252,7 +244,7 @@ void ShipUpgradesState::RefreshLocalizedContent()
 
 		maximumLabels[index].setFont(headingFont);
 		maximumLabels[index].setString(context.localization.GetText("upgrades.max"));
-		CenterText(maximumLabels[index], CardPositions[index] + sf::Vector2f{ 1210.f, 70.f });
+		UI::TextLayout::CenterText(maximumLabels[index], CardPositions[index] + sf::Vector2f{ 1210.f, 70.f });
 	}
 
 	buttons[0].SetFont(menuFont);
@@ -344,7 +336,7 @@ void ShipUpgradesState::Render()
 	}
 	if (selectedIndex < upgradeRows.size())
 	{
-		const MenuButton& selectedRow{ upgradeRows[selectedIndex] };
+		const UI::MenuButton& selectedRow{ upgradeRows[selectedIndex] };
 		glow.DrawBloom(window, selectedRow.GetBounds(),
 			[&selectedRow](sf::RenderTarget& target, const sf::RenderStates& states)
 			{ selectedRow.Draw(target, states); }, Gold);
@@ -365,18 +357,18 @@ void ShipUpgradesState::Render()
 		if (maximumRanks[i]) glow.DrawHighlight(window, upgradeRows[i].GetBounds(), MaximumGreen);
 	if (selectedIndex < upgradeRows.size())
 	{
-		const MenuButton& selectedRow{ upgradeRows[selectedIndex] };
+		const UI::MenuButton& selectedRow{ upgradeRows[selectedIndex] };
 		glow.DrawHighlight(window, selectedRow.GetBounds(), Gold);
 	}
 	else
 	{
-		const MenuButton& selectedButton{ buttons[selectedIndex - upgradeRows.size()] };
+		const UI::MenuButton& selectedButton{ buttons[selectedIndex - upgradeRows.size()] };
 		glow.DrawBloom(window, selectedButton.GetBounds(),
 			[&selectedButton](sf::RenderTarget& target, const sf::RenderStates& states)
 			{ selectedButton.Draw(target, states); }, Gold);
 		glow.DrawHighlight(window, selectedButton.GetBounds(), Gold);
 	}
-	for (const MenuButton& button : buttons) button.Draw(window);
+	for (const UI::MenuButton& button : buttons) button.Draw(window);
 }
 
 void ShipUpgradesState::RenderOverlay()
@@ -561,8 +553,8 @@ void ShipUpgradesState::LayoutPartsPanel()
 	const float contentLeft{ PartsPanelPosition.x + (PartsPanelSize.x - contentWidth) * .5f };
 	const float centerY{ PartsPanelPosition.y + PartsPanelSize.y * .5f };
 
-	CenterText(partsLabel, { contentLeft + labelWidth * .5f, centerY });
-	CenterText(partsValue, {
+	UI::TextLayout::CenterText(partsLabel, { contentLeft + labelWidth * .5f, centerY });
+	UI::TextLayout::CenterText(partsValue, {
 		contentLeft + labelWidth + PartsContentGap + valueWidth * .5f, centerY });
 	partsIcon.setPosition({
 		contentLeft + labelWidth + PartsContentGap + valueWidth + PartsContentGap + iconWidth * .5f,

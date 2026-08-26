@@ -9,7 +9,7 @@
 #include "states/State.h"
 #include "ui/GlowingCursor.h"
 #include "ui/MenuBackground.h"
-#include "ui/MenuButton.h"
+#include "ui/MenuButtonList.h"
 #include "rendering/NeonGlow.h"
 #include "ui/ScreenFade.h"
 
@@ -28,21 +28,21 @@ private:
 	void SelectNext();
 	void Select(std::size_t index, bool playSound = true);
 	void UpdateMouseSelection(sf::Vector2f position);
+	void SyncPartsSelection();
 	void ActivateSelected();
 	void BeginLevel(int level);
 
-	MenuBackground background;
+	UI::MenuBackground background;
 	NeonGlow titleGlow;
 	NeonGlow buttonGlow;
 	NeonGlow partsGlow;
-	GlowingCursor menuCursor;
-	ScreenFade screenFade;
+	UI::GlowingCursor menuCursor;
+	UI::ScreenFade screenFade;
 	sf::Text title;
-	std::vector<MenuButton> buttons;
-	std::vector<MenuButton> partsFrames;
+	UI::MenuButtonList buttonList;
+	std::vector<UI::MenuButton> partsFrames;
 	std::vector<sf::Sprite> partsIcons;
 	std::vector<sf::Text> partsCounts;
 	std::vector<int> buttonLevels;
-	std::size_t selectedIndex{ 0u };
 	bool launchingLevel{ false };
 };

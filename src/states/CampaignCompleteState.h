@@ -23,18 +23,17 @@ public:
 private:
 	void Activate();
 	void ApplyReveal();
-	static void CenterText(sf::Text& text, sf::Vector2f position);
-	MenuBackground background;
-	NineSliceFrame titleFrame;
-	NineSliceFrame messageFrame;
+	UI::MenuBackground background;
+	UI::NineSliceFrame titleFrame;
+	UI::NineSliceFrame messageFrame;
 	sf::Text title;
 	std::vector<sf::Text> messageLines;
 	std::vector<sf::Text> postscriptLines;
-	MenuButton button;
+	UI::MenuButton button;
 	NeonGlow titleGlow;
 	NeonGlow buttonGlow;
-	GlowingCursor cursor;
-	ScreenFade screenFade;
+	UI::GlowingCursor cursor;
+	UI::ScreenFade screenFade;
 	float revealElapsed{ 0.f };
 	float activationDelay{ 0.f };
 	bool interactive{ false };

@@ -130,7 +130,7 @@ Application::Application()
 	// The full loading bar is budgeted across every phase below, each
 	// picking up exactly where the previous one left off so it fills
 	// smoothly with no jump or backward snap: 0-70% asset loading (the
-	// background thread below), 70-90% the TextWarmup pass, 90-96% the
+	// background thread below), 70-90% the UI::TextWarmup pass, 90-96% the
 	// fixed "preparing_game" checkpoint (achievements/state setup has no
 	// incremental progress of its own to report), 96-100% "ready".
 	constexpr float AssetLoadingProgressShare = 0.7f;
@@ -208,7 +208,7 @@ Application::Application()
 	// happens here -- still hidden behind the loading bar -- instead of
 	// piecemeal the first time each screen (or a language switch,
 	// including from the pause menu) needs it.
-	isLoadingSucceeded = TextWarmup::Run(assets, localization,
+	isLoadingSucceeded = UI::TextWarmup::Run(assets, localization,
 		[&](float warmupProgress, std::string_view stageKey)
 		{
 			return RenderLoadingScreen(
@@ -264,7 +264,7 @@ Application::Application()
 
 	// NOTE: ShipUpgrades caching was tried here and reverted -- it broke the
 	// "Continue" button on the second and later visits (root cause not yet
-	// isolated). The real fix for its hitch was elsewhere (ResultScreen's
+	// isolated). The real fix for its hitch was elsewhere (UI::ResultScreen's
 	// text now gets its first, expensive layout at GameplayState
 	// construction instead of at level-complete), so this isn't needed.
 	stateStack.RegisterState<CampaignMenuState>(StateID::CampaignMenu);
@@ -369,13 +369,13 @@ bool Application::RenderLoadingScreen(float progress, std::string_view stageKey,
 		// the first time somewhere in the loop below, one stage at a time as
 		// the background thread reports progress. Touching them all here,
 		// once, up front pays the first-touch glyph-rasterization cost (see
-		// TextWarmup.h) in a single hitch instead of as a brief garbled frame
+		// UI::TextWarmup.h) in a single hitch instead of as a brief garbled frame
 		// every time a new stage label first appears.
 		if (!areLoadingLabelsWarmedUp)
 		{
 			// Every localization key this loading screen ever displays as
 			// its stage label -- keep this in sync with the stageKey values
-			// reported by Assets::Initialize/TextWarmup::Run below.
+			// reported by Assets::Initialize/UI::TextWarmup::Run below.
 			static constexpr std::array LoadingStageKeys =
 			{
 				"loading.title",

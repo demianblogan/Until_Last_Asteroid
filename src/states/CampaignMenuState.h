@@ -10,7 +10,7 @@
 #include "states/State.h"
 #include "ui/GlowingCursor.h"
 #include "ui/MenuBackground.h"
-#include "ui/MenuButton.h"
+#include "ui/MenuButtonList.h"
 #include "rendering/NeonGlow.h"
 #include "ui/ScreenFade.h"
 
@@ -42,10 +42,6 @@ private:
         Back
     };
 
-    void SelectPrevious();
-    void SelectNext();
-    void Select(std::size_t index, bool playSound = true);
-    void UpdateMouseSelection(sf::Vector2i pixelPosition);
     void ActivateSelected();
     void OpenOverwriteConfirmation();
     void OpenTutorialChoice();
@@ -57,22 +53,21 @@ private:
     void BeginGameplay(GameplayLaunchMode mode);
     void PlayPressSound();
 
-    MenuBackground background;
+    UI::MenuBackground background;
     NeonGlow buttonGlow;
     NeonGlow titleGlow;
     NeonGlow dialogGlow;
-    GlowingCursor menuCursor;
-    ScreenFade screenFade;
+    UI::GlowingCursor menuCursor;
+    UI::ScreenFade screenFade;
     sf::Text title;
     sf::Text statusText;
     sf::RectangleShape dialogShade;
     sf::RectangleShape dialogPanel;
     sf::Text dialogTitle;
     sf::Text dialogMessage;
-    std::vector<MenuButton> buttons;
+    UI::MenuButtonList buttonList;
     std::vector<MenuAction> buttonActions;
-    std::vector<MenuButton> dialogButtons;
-    std::size_t selectedIndex{ 0u };
+    std::vector<UI::MenuButton> dialogButtons;
     std::size_t dialogSelectedIndex{ 1u };
     DialogMode dialogMode{ DialogMode::None };
     bool launchingGameplay{ false };

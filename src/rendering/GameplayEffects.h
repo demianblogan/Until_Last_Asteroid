@@ -22,15 +22,15 @@ namespace sf
 class GameplayEffects
 {
 public:
-	static constexpr std::size_t MaximumShockwaves{ 8u };
+	static constexpr std::size_t MaximumShockwaves = 8u;
 
     struct PostProcessState
     {
 		std::array<sf::Vector2f, MaximumShockwaves> shockwavePositions{};
 		std::array<float, MaximumShockwaves> shockwaveRadii{};
 		std::array<float, MaximumShockwaves> shockwaveStrengths{};
-		std::size_t shockwaveCount{ 0u };
-        float damageVignette{ 0.f };
+		std::size_t shockwaveCount = 0u;
+        float damageVignette = 0.f;
     };
 
     GameplayEffects(const GameplayData::EffectsConfig& config, Assets& assets);
@@ -50,16 +50,16 @@ private:
         ScorePopup(const sf::Font& font, int points, sf::Vector2f position);
 
         sf::Text text;
-        float elapsed{ 0.f };
+        float elapsedSeconds = 0.f;
     };
 
 	struct Shockwave
 	{
 		sf::Vector2f position;
-		float elapsed{ 0.f };
-		float duration{ 0.55f };
-		float scale{ 1.f };
-		float strength{ 0.9f };
+		float elapsedSeconds = 0.f;
+		float duration = 0.55f;
+		float scale = 1.f;
+		float strength = 0.9f;
 	};
 
     float RandomFloat(float minimum, float maximum);
@@ -67,7 +67,7 @@ private:
     sf::Vector2f RandomDirectionAround(const sf::Vector2f& direction, float spreadRadians);
     void EmitPlayerEngineParticles(const World& world);
     void EmitProjectileGlow(bool playerProjectile, const sf::Vector2f& position,
-		const sf::Vector2f& direction, bool homing = false, bool triple = false);
+		const sf::Vector2f& direction, bool isHoming = false, bool isTriple = false);
 	void EmitMissileSmoke(const sf::Vector2f& position, const sf::Vector2f& direction);
 	void EmitEnemyEngine(const sf::Vector2f& position, const sf::Vector2f& direction);
 	void EmitStationWelding(const sf::Vector2f& position, float scale);
@@ -101,12 +101,12 @@ private:
     ParticleSystem shockwaveParticles{ ParticleAppearance::Ring };
     std::vector<ScorePopup> scorePopups;
     std::mt19937 random{ 0x51A7F00Du };
-    float engineEmissionAccumulator{ 0.f };
-    float shakeRemaining{ 0.f };
-    float shakeDuration{ 0.f };
-    float shakeAmplitude{ 0.f };
+    float engineEmissionAccumulator = 0.f;
+    float shakeRemaining = 0.f;
+    float shakeDuration = 0.f;
+    float shakeAmplitude = 0.f;
     sf::Vector2f cameraOffset{};
     PostProcessState postProcessState;
 	std::vector<Shockwave> shockwaves;
-    bool shakeEnabled{ true };
+    bool isShakeEnabled = true;
 };

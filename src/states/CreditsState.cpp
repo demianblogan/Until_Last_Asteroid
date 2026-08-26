@@ -59,7 +59,7 @@ CreditsState::CreditsState(StateStack& stack, StateContext context)
 	title.setFillColor({ 215, 247, 252 });
 	title.setOutlineColor({ 3, 18, 31, 235 });
 	title.setOutlineThickness(3.5f);
-	CenterText(title, { 960.f, 82.f });
+	UI::TextLayout::CenterText(title, { 960.f, 82.f });
 
 	bodyLines.reserve(CreditLines.size());
 	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetRegularFont(false)) };
@@ -162,7 +162,7 @@ void CreditsState::RefreshLocalizedContent()
 
 	title.setFont(context.assets.Fonts().Get(context.localization.GetBoldFont()));
 	title.setString(context.localization.GetText("credits.title"));
-	CenterText(title, { 960.f, 82.f });
+	UI::TextLayout::CenterText(title, { 960.f, 82.f });
 	titleGlow.Invalidate();
 
 	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetRegularFont(false)) };
@@ -174,8 +174,8 @@ void CreditsState::RefreshLocalizedContent()
 		text.setString(context.localization.GetText(line.key));
 		const float visualScale{ static_cast<float>(line.size) / static_cast<float>(BodyAtlasSize) };
 		text.setScale({ visualScale, visualScale });
-		TextLayout::FitWidth(text, PanelBounds.size.x - 180.f, 18u);
-		CenterText(text, { 960.f, line.y });
+		UI::TextLayout::FitWidth(text, PanelBounds.size.x - 180.f, 18u);
+		UI::TextLayout::CenterText(text, { 960.f, line.y });
 	}
 
 	returnButton.SetFont(context.assets.Fonts().Get(context.localization.GetRegularFont()));
@@ -189,11 +189,4 @@ void CreditsState::BeginReturn()
 		100.f, 1.f, SoundPlayback::StopPrevious);
 	returning = true;
 	fade.StartFadeOut(FadeDuration);
-}
-
-void CreditsState::CenterText(sf::Text& text, sf::Vector2f position)
-{
-	const sf::FloatRect bounds{ text.getLocalBounds() };
-	text.setOrigin(bounds.position + bounds.size * 0.5f);
-	text.setPosition(position);
 }

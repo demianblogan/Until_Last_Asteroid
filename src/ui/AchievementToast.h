@@ -7,6 +7,7 @@
 
 #include "achievements/AchievementManager.h"
 #include "rendering/NeonGlow.h"
+#include "ui/LocalizationRevision.h"
 #include "ui/RoundedRectangleShape.h"
 
 class Assets;
@@ -18,35 +19,38 @@ namespace sf
 	class RenderTarget;
 }
 
-class AchievementToast
+namespace UI
 {
-public:
-	AchievementToast(Assets& assets, AudioManager& audio,
-		AchievementManager& achievements, LocalizationManager& localization,
-		sf::Vector2f logicalSize);
+	class AchievementToast
+	{
+	public:
+		AchievementToast(Assets& assets, AudioManager& audio,
+			AchievementManager& achievements, LocalizationManager& localization,
+			sf::Vector2f logicalSize);
 
-	void Update(float deltaTime);
-	void Draw(sf::RenderTarget& target);
+		void Update(float deltaTime);
+		void Draw(sf::RenderTarget& target);
 
-private:
-	void BeginToast(AchievementID id);
-	void PositionElements(float y);
-	void RefreshLocalizedContent();
+	private:
+		void BeginToast(AchievementID id);
+		void PositionElements(float y);
+		void RefreshLocalizedContent();
 
-	Assets& assets;
-	AudioManager& audio;
-	AchievementManager& achievements;
-	LocalizationManager& localization;
+		Assets& assets;
+		AudioManager& audio;
+		AchievementManager& achievements;
+		LocalizationManager& localization;
 
-	RoundedRectangleShape panel;
-	std::optional<sf::Sprite> icon;
-	sf::Text unlockedLabel;
-	sf::Text title;
-	sf::Text description;
-	NeonGlow glowEffect;
+		RoundedRectangleShape panel;
+		std::optional<sf::Sprite> icon;
+		sf::Text unlockedLabel;
+		sf::Text title;
+		sf::Text description;
+		NeonGlow glowEffect;
 
-	sf::Vector2f logicalSize;
-	std::size_t localizationRevision = 0u;
-	float toastElapsedSeconds = 0.f;
-	bool isShowingToast = false;
-};
+		sf::Vector2f logicalSize;
+		LocalizationRevision localizationRevision;
+		float toastElapsedSeconds = 0.f;
+		bool isShowingToast = false;
+	};
+}

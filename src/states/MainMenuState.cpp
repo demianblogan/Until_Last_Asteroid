@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Font.hpp>
@@ -58,6 +59,7 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     , screenFade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), "", 92)
     , version(context.assets.Fonts().Get(Config::Font::MenuRegular), std::string(GameVersion::Text), 20)
+    , buttonList(context.audio, neonGlow)
 {
     context.window.setMouseCursorVisible(false);
 	localizationRevision = context.localization.GetLanguageRevision();
@@ -94,14 +96,14 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     const sf::Texture& selectedTexture{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
 
     const std::vector<sf::String> menuLabels{ GetMenuLabels(context.localization) };
-    buttons.reserve(menuLabels.size());
     for (std::size_t index{ 0 }; index < menuLabels.size(); ++index)
     {
-        buttons.emplace_back(menuFont, idleTexture, selectedTexture, "", ButtonSize);
-		buttons.back().SetLabel(menuLabels[index]);
-        buttons.back().SetPosition(
+        UI::MenuButton button(menuFont, idleTexture, selectedTexture, "", ButtonSize);
+		button.SetLabel(menuLabels[index]);
+        button.SetPosition(
             FirstButtonPosition + sf::Vector2f{ 0.f, ButtonSpacing * static_cast<float>(index) });
-        buttons.back().SetFrameOpacity(0.f);
+        button.SetFrameOpacity(0.f);
+        buttonList.Add(std::move(button));
     }
 
     const bool shouldPlayIntro{ !context.mainMenuIntroPlayed };
@@ -114,7 +116,7 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
     {
         static_cast<void>(introAnimation.Skip());
         ApplyAnimationState();
-        Select(0u, false);
+        buttonList.Select(0u, false);
         StartMenuMusic();
     }
     screenFade.StartFadeIn(MenuFadeInDuration);
@@ -146,8 +148,8 @@ void MainMenuState::HandleEvent(const sf::Event& event)
         using enum GamepadManager::NavigationAction;
         switch (navigation)
         {
-        case Up: SelectPrevious(); return;
-        case Down: SelectNext(); return;
+        case Up: buttonList.SelectPrevious(); return;
+        case Down: buttonList.SelectNext(); return;
         case Confirm: ActivateSelected(); return;
         case Back: GetContext().window.close(); return;
         default: break;
@@ -160,7 +162,7 @@ void MainMenuState::HandleEvent(const sf::Event& event)
         background.SetMousePosition(mousePosition);
 
         if (introAnimation.IsInteractive())
-            UpdateMouseSelection(mouseMoved->position);
+            buttonList.UpdateMouseSelection(mousePosition);
 
         return;
     }
@@ -182,12 +184,12 @@ void MainMenuState::HandleEvent(const sf::Event& event)
         {
         case sf::Keyboard::Key::Up:
         case sf::Keyboard::Key::W:
-            SelectPrevious();
+            buttonList.SelectPrevious();
             return;
 
         case sf::Keyboard::Key::Down:
         case sf::Keyboard::Key::S:
-            SelectNext();
+            buttonList.SelectNext();
             return;
 
         case sf::Keyboard::Key::Enter:
@@ -210,11 +212,11 @@ void MainMenuState::HandleEvent(const sf::Event& event)
             return;
 
         const sf::Vector2f mousePosition{ GetContext().window.mapPixelToCoords(mousePressed->position) };
-        for (std::size_t index{ 0 }; index < buttons.size(); ++index)
+        for (std::size_t index{ 0 }; index < buttonList.GetButtons().size(); ++index)
         {
-            if (buttons[index].Contains(mousePosition))
+            if (buttonList.GetButtons()[index].Contains(mousePosition))
             {
-                Select(index, false);
+                buttonList.Select(index, false);
                 ActivateSelected();
                 return;
             }
@@ -266,10 +268,10 @@ void MainMenuState::RefreshLocalizedLabels()
 	titleLeftPosition = GetContext().logicalSize.x * 0.5f - fullTitleBounds.size.x * 0.5f - fullTitleBounds.position.x;
 	title.setOrigin({ 0.f, fullTitleBounds.position.y + fullTitleBounds.size.y * 0.5f });
 	const auto labels{ GetMenuLabels(GetContext().localization) };
-	for (std::size_t i{}; i < buttons.size() && i < labels.size(); ++i)
+	for (std::size_t i{}; i < buttonList.GetButtons().size() && i < labels.size(); ++i)
 	{
-		buttons[i].SetFont(font);
-		buttons[i].SetLabel(labels[i]);
+		buttonList.GetButtons()[i].SetFont(font);
+		buttonList.GetButtons()[i].SetLabel(labels[i]);
 	}
 	neonGlow.Invalidate();
 }
@@ -296,9 +298,9 @@ void MainMenuState::Render()
     if (!title.getString().isEmpty())
         titleNeonGlow.DrawHighlight(window, title.getGlobalBounds(), InterfaceGlowColor);
 
-    if (introAnimation.IsInteractive() && !buttons.empty())
+    if (introAnimation.IsInteractive() && !buttonList.GetButtons().empty())
     {
-        const MenuButton& selectedButton{ buttons[selectedIndex] };
+        const UI::MenuButton& selectedButton{ buttonList.GetButtons()[buttonList.GetSelectedIndex()] };
         neonGlow.DrawBloom(
             window,
             selectedButton.GetBounds(),
@@ -309,11 +311,11 @@ void MainMenuState::Render()
             SelectionGlowColor);
     }
 
-    for (const MenuButton& button : buttons)
+    for (const UI::MenuButton& button : buttonList.GetButtons())
         button.Draw(window);
 
-    if (introAnimation.IsInteractive() && !buttons.empty())
-        neonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), SelectionGlowColor);
+    if (introAnimation.IsInteractive() && !buttonList.GetButtons().empty())
+        neonGlow.DrawHighlight(window, buttonList.GetButtons()[buttonList.GetSelectedIndex()].GetBounds(), SelectionGlowColor);
 
     window.draw(version);
 }
@@ -325,48 +327,6 @@ void MainMenuState::RenderOverlay()
     screenFade.Draw(GetContext().window);
 }
 
-void MainMenuState::SelectPrevious()
-{
-    Select(selectedIndex == 0 ? buttons.size() - 1 : selectedIndex - 1);
-}
-
-void MainMenuState::SelectNext()
-{
-    Select((selectedIndex + 1) % buttons.size());
-}
-
-void MainMenuState::Select(std::size_t index, bool playSound)
-{
-    const bool selectionChanged{ selectedIndex != index };
-    selectedIndex = index;
-    for (std::size_t buttonIndex{ 0 }; buttonIndex < buttons.size(); ++buttonIndex)
-        buttons[buttonIndex].SetSelected(buttonIndex == selectedIndex);
-
-    if (selectionChanged)
-        neonGlow.Invalidate();
-
-    if (selectionChanged && playSound)
-        GetContext().audio.PlaySound(
-            Config::Sound::ItemSelect,
-            SoundGroup::UI,
-            100.f,
-            1.f,
-            SoundPlayback::StopPrevious);
-}
-
-void MainMenuState::UpdateMouseSelection(sf::Vector2i pixelPosition)
-{
-    const sf::Vector2f mousePosition{ GetContext().window.mapPixelToCoords(pixelPosition) };
-    for (std::size_t index{ 0 }; index < buttons.size(); ++index)
-    {
-        if (buttons[index].Contains(mousePosition))
-        {
-            Select(index);
-            return;
-        }
-    }
-}
-
 void MainMenuState::ActivateSelected()
 {
     GetContext().audio.PlaySound(
@@ -376,7 +336,7 @@ void MainMenuState::ActivateSelected()
         1.f,
         SoundPlayback::StopPrevious);
 
-    pendingActivation = selectedIndex;
+    pendingActivation = buttonList.GetSelectedIndex();
     activationDelayRemaining = ActivationDelay;
 }
 
@@ -427,22 +387,22 @@ void MainMenuState::ApplyAnimationState()
     title.setPosition(titlePosition);
 
     const float frameOpacity{ introAnimation.GetFrameOpacity() };
-    for (std::size_t index{ 0 }; index < buttons.size(); ++index)
+    for (std::size_t index{ 0 }; index < buttonList.GetButtons().size(); ++index)
     {
 		if (!localizedLabelsOverride)
-			buttons[index].SetLabel(introAnimation.GetVisibleMenuItem(index));
-        buttons[index].SetFrameOpacity(frameOpacity);
+			buttonList.GetButtons()[index].SetLabel(introAnimation.GetVisibleMenuItem(index));
+        buttonList.GetButtons()[index].SetFrameOpacity(frameOpacity);
     }
 
     const auto versionAlpha{ static_cast<std::uint8_t>(frameOpacity * 175.f) };
     version.setFillColor(sf::Color(145, 160, 175, versionAlpha));
 }
 
-void MainMenuState::HandleAnimationEvents(const MenuIntroAnimation::Events& events)
+void MainMenuState::HandleAnimationEvents(const UI::MenuIntroAnimation::Events& events)
 {
     PlayTypingSounds(events.typedCharacters);
 
-    if (events.activationStarted)
+    if (events.hasActivationStarted)
         GetContext().audio.PlaySound(
             Config::Sound::InterfaceActivation,
             SoundGroup::UI,
@@ -450,9 +410,9 @@ void MainMenuState::HandleAnimationEvents(const MenuIntroAnimation::Events& even
             1.f,
             SoundPlayback::StopPrevious);
 
-    if (events.becameInteractive)
+    if (events.hasBecomeInteractive)
     {
-        Select(0);
+        buttonList.Select(0);
         StartMenuMusic();
     }
 }

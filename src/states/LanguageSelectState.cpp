@@ -138,7 +138,7 @@ void LanguageSelectState::Render()
     window.draw(hint);
     if (!buttons.empty())
     {
-        const MenuButton& selectedButton{ buttons[selected] };
+        const UI::MenuButton& selectedButton{ buttons[selected] };
         buttonGlow.DrawBloom(window, selectedButton.GetBounds(),
             [&selectedButton](sf::RenderTarget& target, const sf::RenderStates& states)
             { selectedButton.Draw(target, states); }, { 255, 178, 42 });
