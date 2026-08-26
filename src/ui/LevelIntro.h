@@ -9,7 +9,10 @@
 class Assets;
 class LocalizationManager;
 
-namespace sf { class RenderTarget; }
+namespace sf
+{
+	class RenderTarget;
+}
 
 class LevelIntro
 {
@@ -18,8 +21,10 @@ public:
 
 	void Start(int levelNumber);
 	void StartMode(const sf::String& modeName, const sf::String& objective);
+
 	[[nodiscard]] bool Update(float deltaTime);
 	void Draw(sf::RenderTarget& target);
+
 	void Reset() noexcept;
 
 	[[nodiscard]] bool IsActive() const noexcept;
@@ -29,18 +34,21 @@ private:
 	void ApplyAnimation();
 	static void CenterText(sf::Text& text, sf::Vector2f position);
 
-	NeonGlow levelGlow;
+	NeonGlow levelGlowEffect;
 	Assets& assets;
 	LocalizationManager& localization;
-	NeonGlow titleGlow;
+
+	NeonGlow titleGlowEffect;
 	sf::RectangleShape shade;
 	RoundedRectangleShape panel;
 	sf::RectangleShape upperLine;
 	sf::RectangleShape lowerLine;
+
 	sf::Text levelLabel;
 	sf::Text title;
 	sf::Vector2f logicalSize;
-	float elapsed{ 0.f };
-	bool active{ false };
-	bool titleGlowEnabled{ true };
+
+	float animationElapsedSeconds = 0.f;
+	bool isBeingShown = false;
+	bool isTitleGlowVisible = true;
 };
