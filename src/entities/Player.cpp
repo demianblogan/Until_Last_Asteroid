@@ -102,7 +102,7 @@ void Player::OnDestroy()
 	StopLaserSounds();
 	SetVisible(true);
 	GetWorld().Effects().Add({
-		EffectEventType::ShipExplosion,
+		Rendering::EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.35f });
 }
 

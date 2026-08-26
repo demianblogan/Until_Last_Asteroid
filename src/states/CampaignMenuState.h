@@ -54,9 +54,9 @@ private:
     void PlayPressSound();
 
     UI::MenuBackground background;
-    NeonGlow buttonGlow;
-    NeonGlow titleGlow;
-    NeonGlow dialogGlow;
+    Rendering::NeonGlow buttonGlow;
+    Rendering::NeonGlow titleGlow;
+    Rendering::NeonGlow dialogGlow;
     UI::GlowingCursor menuCursor;
     UI::ScreenFade screenFade;
     sf::Text title;

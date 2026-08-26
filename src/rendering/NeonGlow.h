@@ -17,6 +17,9 @@ namespace sf
     class Texture;
 }
 
+namespace Rendering
+{
+
 class NeonGlow
 {
 public:
@@ -58,3 +61,5 @@ private:
     float elapsedTime = 0.f;
     bool isDirty = true;
 };
+
+}

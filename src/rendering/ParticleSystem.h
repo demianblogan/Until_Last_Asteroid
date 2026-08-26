@@ -9,6 +9,9 @@
 #include <SFML/Graphics/VertexArray.hpp>
 #include <SFML/System/Vector2.hpp>
 
+namespace Rendering
+{
+
 struct ParticleSpawn
 {
     sf::Vector2f position;
@@ -72,3 +75,5 @@ private:
     std::vector<Particle> particles;
     bool isAdditiveBlend = true;
 };
+
+}

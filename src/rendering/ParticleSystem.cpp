@@ -10,6 +10,9 @@
 #include <SFML/Graphics/RenderTarget.hpp>
 #include <SFML/Graphics/Vertex.hpp>
 
+namespace Rendering
+{
+
 namespace
 {
     sf::Image CreateParticleImage(ParticleAppearance appearance)
@@ -188,4 +191,6 @@ void ParticleSystem::draw(sf::RenderTarget& target, sf::RenderStates states) con
     states.blendMode = isAdditiveBlend ? sf::BlendAdd : sf::BlendAlpha;
     states.texture = &glowTexture;
     target.draw(vertices, states);
+}
+
 }

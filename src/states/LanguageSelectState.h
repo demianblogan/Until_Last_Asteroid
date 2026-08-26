@@ -32,8 +32,8 @@ private:
         Language::Ukrainian, Language::Arabic };
 
     UI::MenuBackground background;
-    NeonGlow glow;
-    NeonGlow buttonGlow;
+    Rendering::NeonGlow glow;
+    Rendering::NeonGlow buttonGlow;
     UI::GlowingCursor cursor;
     UI::ScreenFade fade;
     sf::Text title;

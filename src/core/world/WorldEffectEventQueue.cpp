@@ -12,12 +12,12 @@ WorldEffectEventQueue::WorldEffectEventQueue()
 	events.reserve(EstimatedEventsPerFrame);
 }
 
-void WorldEffectEventQueue::Add(const EffectEvent& event)
+void WorldEffectEventQueue::Add(const Rendering::EffectEvent& event)
 {
 	events.push_back(event);
 }
 
-const std::vector<EffectEvent>& WorldEffectEventQueue::Get() const noexcept
+const std::vector<Rendering::EffectEvent>& WorldEffectEventQueue::Get() const noexcept
 {
 	return events;
 }

@@ -50,7 +50,7 @@ private:
     sf::RectangleShape darkOverlay;
     sf::Text titleGlow;
     sf::Text title;
-    NeonGlow neonGlow;
+    Rendering::NeonGlow neonGlow;
     UI::GlowingCursor menuCursor;
     UI::ScreenFade screenFade;
     UI::MenuButtonList buttonList;

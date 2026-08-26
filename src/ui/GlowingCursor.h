@@ -27,7 +27,7 @@ namespace UI
 
 	private:
 		sf::Sprite sprite;
-		NeonGlow glowEffect;
+		Rendering::NeonGlow glowEffect;
 		sf::Color glowEffectColor;
 	};
 }

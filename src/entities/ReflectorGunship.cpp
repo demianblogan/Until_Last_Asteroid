@@ -131,7 +131,7 @@ void ReflectorGunship::OnDestroy()
 {
 	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion, GetSoundPitch());
 	GetWorld().Effects().Add({
-		EffectEventType::ShipExplosion,
+		Rendering::EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.45f });
 }
 

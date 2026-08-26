@@ -8,7 +8,11 @@
 #include "ui/MenuButton.h"
 
 class AudioManager;
-class NeonGlow;
+
+namespace Rendering
+{
+	class NeonGlow;
+}
 
 namespace UI
 {
@@ -21,7 +25,7 @@ namespace UI
 	class MenuButtonList
 	{
 	public:
-		MenuButtonList(AudioManager& audio, NeonGlow& selectionGlowEffect);
+		MenuButtonList(AudioManager& audio, Rendering::NeonGlow& selectionGlowEffect);
 
 		void Add(MenuButton button);
 
@@ -36,7 +40,7 @@ namespace UI
 
 	private:
 		AudioManager& audio;
-		NeonGlow& selectionGlowEffect;
+		Rendering::NeonGlow& selectionGlowEffect;
 		std::vector<MenuButton> buttons;
 		std::size_t selectedIndex = 0u;
 	};

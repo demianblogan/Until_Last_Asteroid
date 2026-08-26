@@ -8,7 +8,7 @@
 
 namespace UI
 {
-	MenuButtonList::MenuButtonList(AudioManager& audioManager, NeonGlow& glowEffect)
+	MenuButtonList::MenuButtonList(AudioManager& audioManager, Rendering::NeonGlow& glowEffect)
 		: audio(audioManager), selectionGlowEffect(glowEffect)
 	{}
 

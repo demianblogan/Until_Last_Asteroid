@@ -30,7 +30,7 @@ namespace UI
 		constexpr sf::Vector2f FillOffset = { 27.f * HealthBarScale, 19.f * HealthBarScale };
 		constexpr sf::Vector2f FrameSize = { 640.f * HealthBarScale, 100.f * HealthBarScale };
 
-		// Bar fills shrink/grow continuously (health, timers), and NeonGlow
+		// Bar fills shrink/grow continuously (health, timers), and Rendering::NeonGlow
 		// rebuilds its blur render textures whenever the bounds passed to it
 		// change size at all. Quantizing the width to whole steps means the
 		// glow only rebuilds when the visible size actually crosses a step
@@ -607,7 +607,7 @@ namespace UI
 		target.draw(partsText, states);
 	}
 
-	void HUD::DrawResourceBar(sf::RenderTarget& target, NeonGlow& glowEffect,
+	void HUD::DrawResourceBar(sf::RenderTarget& target, Rendering::NeonGlow& glowEffect,
 		const sf::Sprite& frame, const sf::Sprite& fill, const sf::Text& text) const
 	{
 		target.draw(frame);
@@ -631,7 +631,7 @@ namespace UI
 		target.draw(text);
 	}
 
-	void HUD::DrawResourceBarTutorialHighlight(sf::RenderTarget& target, NeonGlow& glowEffect,
+	void HUD::DrawResourceBarTutorialHighlight(sf::RenderTarget& target, Rendering::NeonGlow& glowEffect,
 		const sf::Sprite& frame, const sf::Sprite& fill, const sf::Text& text,
 		float remainingSeconds, sf::Color highlightColor) const
 	{

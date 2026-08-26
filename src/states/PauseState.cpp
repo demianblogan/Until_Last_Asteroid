@@ -20,6 +20,7 @@
 #include "localization/LocalizationManager.h"
 #include "states/StateID.h"
 #include "input/GamepadManager.h"
+#include "rendering/RenderTargetUtils.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -35,25 +36,13 @@ namespace
     {
         return { std::max(1u, size.x), std::max(1u, size.y) };
     }
-
-    sf::Vector2u GetViewportSize(sf::RenderWindow& window)
-    {
-        const sf::IntRect viewport{ window.getViewport(window.getView()) };
-        if (viewport.size.x <= 0 || viewport.size.y <= 0)
-            return EnsureNonZero(window.getSize());
-
-        return {
-            static_cast<unsigned int>(viewport.size.x),
-            static_cast<unsigned int>(viewport.size.y)
-        };
-    }
 }
 
 PauseState::PauseState(StateStack& stateStack, StateContext context)
     : State(stateStack, context)
     , windowSnapshot(EnsureNonZero(context.window.getSize()))
-    , horizontalBlur(GetViewportSize(context.window))
-    , blurredFrame(GetViewportSize(context.window))
+    , horizontalBlur(Rendering::GetViewportSize(context.window))
+    , blurredFrame(Rendering::GetViewportSize(context.window))
     , blurShader(context.assets.GetShader(Config::Shader::GaussianBlur))
     , darkOverlay(context.logicalSize)
     , titleGlow(context.assets.Fonts().Get(context.localization.GetBoldFont()),
@@ -330,26 +319,10 @@ void PauseState::CaptureBlurredFrame()
 
     sf::Sprite source(windowSnapshot, viewport);
 
-    blurShader.setUniform("source", sf::Shader::CurrentTexture);
-    blurShader.setUniform(
-        "direction",
-        sf::Glsl::Vec2(BlurRadius / GetContext().logicalSize.x, 0.f));
-
-    sf::RenderStates blurStates;
-    blurStates.shader = &blurShader;
-
-    horizontalBlur.clear();
-    horizontalBlur.draw(source, blurStates);
-    horizontalBlur.display();
-
-    sf::Sprite horizontalResult(horizontalBlur.getTexture());
-    blurShader.setUniform(
-        "direction",
-        sf::Glsl::Vec2(0.f, BlurRadius / GetContext().logicalSize.y));
-
-    blurredFrame.clear();
-    blurredFrame.draw(horizontalResult, blurStates);
-    blurredFrame.display();
+    Rendering::DrawGaussianBlurPass(horizontalBlur, source, blurShader,
+        { BlurRadius / GetContext().logicalSize.x, 0.f });
+    Rendering::DrawGaussianBlurPass(blurredFrame, sf::Sprite(horizontalBlur.getTexture()), blurShader,
+        { 0.f, BlurRadius / GetContext().logicalSize.y });
 
     capturedWindowSize = windowSize;
     frameCaptured = true;

@@ -30,7 +30,7 @@ namespace UI
 	private:
 		void ApplyAnimation();
 
-		NeonGlow titleGlow;
+		Rendering::NeonGlow titleGlow;
 		Assets& assets;
 		LocalizationManager& localization;
 		sf::Text title;

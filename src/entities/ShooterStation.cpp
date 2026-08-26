@@ -147,7 +147,7 @@ void ShooterStation::Update(float deltaTime)
 				Random::Float(-0.62f, 0.62f) * GetCollisionRadius(),
 				Random::Float(-0.62f, 0.62f) * GetCollisionRadius() };
 			GetWorld().Effects().Add({
-				EffectEventType::StationChainExplosion,
+				Rendering::EffectEventType::StationChainExplosion,
 				GetPosition() + offset, {}, Random::Float(1.05f, 1.45f) });
 		}
 		if (destructionRemaining <= 0.f)
@@ -197,7 +197,7 @@ void ShooterStation::Update(float deltaTime)
 		{
 			weldingAccumulator -= WeldingInterval;
 			GetWorld().Effects().Add({
-				EffectEventType::StationWelding,
+				Rendering::EffectEventType::StationWelding,
 				GetPosition(), {}, 1.f });
 		}
 		if (creationRemaining <= 0.f)
@@ -245,6 +245,6 @@ void ShooterStation::OnDestroy()
 	GetWorld().Sound().StopSound(workingSoundHandle);
 	workingSoundHandle = 0u;
 	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion, 0.58f);
-	GetWorld().Effects().Add({ EffectEventType::StationExplosion,
+	GetWorld().Effects().Add({ Rendering::EffectEventType::StationExplosion,
 		GetPosition(), {}, 2.f });
 }

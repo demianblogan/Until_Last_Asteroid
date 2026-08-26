@@ -19,6 +19,9 @@ namespace sf
     struct RenderStates;
 }
 
+namespace Rendering
+{
+
 class GameplayEffects
 {
 public:
@@ -110,3 +113,5 @@ private:
 	std::vector<Shockwave> shockwaves;
     bool isShakeEnabled = true;
 };
+
+}

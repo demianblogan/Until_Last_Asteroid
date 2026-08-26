@@ -46,7 +46,7 @@ namespace UI
 		sf::Text unlockedLabel;
 		sf::Text title;
 		sf::Text description;
-		NeonGlow glowEffect;
+		Rendering::NeonGlow glowEffect;
 
 		sf::Vector2f logicalSize;
 		LocalizationRevision localizationRevision;

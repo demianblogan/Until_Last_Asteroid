@@ -34,8 +34,8 @@ private:
 	void RefreshLocalizedLabels();
 
     UI::MenuBackground background;
-    NeonGlow neonGlow;
-    NeonGlow titleNeonGlow;
+    Rendering::NeonGlow neonGlow;
+    Rendering::NeonGlow titleNeonGlow;
     UI::GlowingCursor menuCursor;
     UI::MenuIntroAnimation introAnimation;
     UI::ScreenFade screenFade;

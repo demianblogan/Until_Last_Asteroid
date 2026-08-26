@@ -100,8 +100,8 @@ namespace UI
 		std::vector<sf::Text> statisticLabels;
 		std::vector<sf::Text> statisticValues;
 		Statistics statistics;
-		NeonGlow titleGlow;
-		NeonGlow buttonGlow;
+		Rendering::NeonGlow titleGlow;
+		Rendering::NeonGlow buttonGlow;
 		GlowingCursor menuCursor;
 		MenuButtonList buttonList;
 		Mode mode = Mode::LevelComplete;

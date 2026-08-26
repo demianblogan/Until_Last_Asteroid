@@ -10,7 +10,11 @@
 #include <SFML/Graphics/View.hpp>
 
 #include "assets/Assets.h"
+#include "rendering/RenderTargetUtils.h"
 #include "utils/ConfigEnums.h"
+
+namespace Rendering
+{
 
 namespace
 {
@@ -18,20 +22,6 @@ namespace
     constexpr float BloomSoftness = 0.14f;
     constexpr float BlurRadius = 2.15f;
     constexpr unsigned int BlurIterations = 2u;
-
-    sf::Vector2u GetViewportSize(sf::RenderWindow& window)
-    {
-        const sf::IntRect viewport{ window.getViewport(window.getView()) };
-        if (viewport.size.x <= 0 || viewport.size.y <= 0)
-        {
-            const sf::Vector2u windowSize{ window.getSize() };
-            return { std::max(1u, windowSize.x), std::max(1u, windowSize.y) };
-        }
-        return {
-            static_cast<unsigned int>(viewport.size.x),
-            static_cast<unsigned int>(viewport.size.y)
-        };
-    }
 }
 
 GameplayPostProcessor::GameplayPostProcessor(Assets& assets, sf::Vector2f logicalSize)
@@ -170,22 +160,15 @@ void GameplayPostProcessor::ApplyBloom(const sf::Texture& source)
 
     const sf::Texture* current{ &bright.getTexture() };
     sf::RenderStates blurStates;
-    blurStates.shader = &blurShader;
     blurStates.blendMode = sf::BlendNone;
     for (unsigned int iteration = 0u; iteration < BlurIterations; ++iteration)
     {
-        blurShader.setUniform("source", sf::Shader::CurrentTexture);
-        blurShader.setUniform("direction", sf::Glsl::Vec2(
-            BlurRadius / static_cast<float>(bloomSize.x), 0.f));
-        horizontalBlur.clear(sf::Color::Transparent);
-        horizontalBlur.draw(sf::Sprite(*current), blurStates);
-        horizontalBlur.display();
-
-        blurShader.setUniform("direction", sf::Glsl::Vec2(
-            0.f, BlurRadius / static_cast<float>(bloomSize.y)));
-        bloom.clear(sf::Color::Transparent);
-        bloom.draw(sf::Sprite(horizontalBlur.getTexture()), blurStates);
-        bloom.display();
+        DrawGaussianBlurPass(horizontalBlur, sf::Sprite(*current), blurShader,
+            { BlurRadius / static_cast<float>(bloomSize.x), 0.f }, blurStates);
+        DrawGaussianBlurPass(bloom, sf::Sprite(horizontalBlur.getTexture()), blurShader,
+            { 0.f, BlurRadius / static_cast<float>(bloomSize.y) }, blurStates);
         current = &bloom.getTexture();
     }
+}
+
 }

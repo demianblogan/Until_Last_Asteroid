@@ -8,6 +8,9 @@
 // these; it never interprets them -- that's why the vocabulary lives here,
 // next to the rendering code that's the sole consumer, rather than inside
 // World itself.
+namespace Rendering
+{
+
 enum class EffectEventType
 {
 	PlayerProjectileGlow,
@@ -39,3 +42,5 @@ struct EffectEvent
 	float scale = 1.f;
 	int value = 0;
 };
+
+}

@@ -35,11 +35,11 @@ namespace UI
 		void StartWithText(const sf::String& heading, const sf::String& subtitle);
 		void ApplyAnimation();
 
-		NeonGlow levelGlowEffect;
+		Rendering::NeonGlow levelGlowEffect;
 		Assets& assets;
 		LocalizationManager& localization;
 
-		NeonGlow titleGlowEffect;
+		Rendering::NeonGlow titleGlowEffect;
 		sf::RectangleShape shade;
 		RoundedRectangleShape panel;
 		sf::RectangleShape upperLine;

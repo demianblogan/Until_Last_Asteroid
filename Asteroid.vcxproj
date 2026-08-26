@@ -182,6 +182,7 @@
     <ClCompile Include="src\rendering\GameplayEffects.cpp" />
     <ClCompile Include="src\rendering\GameplayPostProcessor.cpp" />
     <ClCompile Include="src\rendering\ParticleSystem.cpp" />
+    <ClCompile Include="src\rendering\RenderTargetUtils.cpp" />
     <ClCompile Include="src\states\CompanySplashState.cpp" />
 	<ClCompile Include="src\states\LanguageSelectState.cpp" />
 	<ClCompile Include="src\states\AchievementsState.cpp" />
@@ -270,6 +271,7 @@
     <ClInclude Include="src\rendering\GameplayEffects.h" />
     <ClInclude Include="src\rendering\GameplayPostProcessor.h" />
     <ClInclude Include="src\rendering\ParticleSystem.h" />
+    <ClInclude Include="src\rendering\RenderTargetUtils.h" />
     <ClInclude Include="src\states\CompanySplashState.h" />
 	<ClInclude Include="src\states\LanguageSelectState.h" />
 	<ClInclude Include="src\states\AchievementsState.h" />

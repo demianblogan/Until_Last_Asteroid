@@ -10,6 +10,9 @@
 #include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 
+namespace Rendering
+{
+
 namespace
 {
     constexpr std::uint32_t FnvOffsetBasis = 2166136261u;
@@ -262,4 +265,6 @@ void GameplayBackground::draw(sf::RenderTarget& target, sf::RenderStates states)
         target.draw(*farBackground, states);
     target.draw(middleStarVertices, states);
     target.draw(nearDustVertices, states);
+}
+
 }

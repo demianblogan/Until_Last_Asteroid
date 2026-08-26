@@ -25,8 +25,8 @@ private:
 	void RefreshLocalizedContent();
 	UI::MenuBackground background;
 	UI::NineSliceFrame panel;
-	NeonGlow titleGlow;
-	NeonGlow buttonGlow;
+	Rendering::NeonGlow titleGlow;
+	Rendering::NeonGlow buttonGlow;
 	UI::GlowingCursor cursor;
 	UI::ScreenFade fade;
 	sf::Text title;

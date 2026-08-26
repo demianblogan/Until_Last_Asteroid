@@ -14,6 +14,9 @@
 #include "entities/Player.h"
 #include "utils/ConfigEnums.h"
 
+namespace Rendering
+{
+
 namespace
 {
     sf::Vector2f Normalize(const sf::Vector2f& vector)
@@ -801,4 +804,6 @@ void GameplayEffects::UpdatePostProcess(float deltaTime)
 		postProcessState.shockwaveStrengths[index] =
 			(1.f - progress) * shockwave.strength;
 	}
+}
+
 }

@@ -42,7 +42,7 @@ private:
 
 	sf::Sprite background;
 	sf::Sprite headerDivider;
-	NeonGlow glow;
+	Rendering::NeonGlow glow;
 	UI::GlowingCursor cursor;
 	UI::ScreenFade fade;
 	sf::Text title;

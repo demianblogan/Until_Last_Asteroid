@@ -20,7 +20,7 @@ namespace sf
 	class RenderWindow;
 }
 
-// Snapshot of the fields GameplayEffects needs to drive the engine-exhaust
+// Snapshot of the fields Rendering::GameplayEffects needs to drive the engine-exhaust
 // particles, sampled once per frame rather than exposing the underlying
 // state directly.
 struct PlayerEffectState

@@ -90,7 +90,7 @@ void Saucer::OnDestroy()
 {
 	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion);
 	GetWorld().Effects().Add({
-		EffectEventType::ShipExplosion,
+		Rendering::EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), mode == Mode::Shooter ? 1.1f : 0.95f });
 }
 

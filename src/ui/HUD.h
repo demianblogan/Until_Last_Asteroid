@@ -61,13 +61,13 @@ namespace UI
 		// Shared by all five resource bars (health/shield/homing/weapon/timeSlowdown):
 		// draws frame, then (if the fill isn't empty) a quantized glow behind a
 		// white-tinted copy of the fill, then the fill itself, then the text.
-		void DrawResourceBar(sf::RenderTarget& target, NeonGlow& glowEffect,
+		void DrawResourceBar(sf::RenderTarget& target, Rendering::NeonGlow& glowEffect,
 			const sf::Sprite& frame, const sf::Sprite& fill, const sf::Text& text) const;
 
 		// The pulsing bloom shown while a tutorial highlight is active on a
 		// resource bar (health/shield only -- the other three bars have no
 		// tutorial highlight). No-op if remainingSeconds <= 0.
-		void DrawResourceBarTutorialHighlight(sf::RenderTarget& target, NeonGlow& glowEffect,
+		void DrawResourceBarTutorialHighlight(sf::RenderTarget& target, Rendering::NeonGlow& glowEffect,
 			const sf::Sprite& frame, const sf::Sprite& fill, const sf::Text& text,
 			float remainingSeconds, sf::Color highlightColor) const;
 
@@ -79,37 +79,37 @@ namespace UI
 
 		sf::Text scoreText;
 		sf::Sprite scorePanel;
-		NeonGlow scoreGlowEffect;
+		Rendering::NeonGlow scoreGlowEffect;
 
 		sf::Text partsText;
 		sf::Sprite partsPanel;
 		sf::Sprite partsIcon;
-		NeonGlow partsGlowEffect;
+		Rendering::NeonGlow partsGlowEffect;
 
 		sf::Text healthText;
 		sf::Sprite healthFrame;
 		sf::Sprite healthFill;
-		NeonGlow healthGlowEffect;
+		Rendering::NeonGlow healthGlowEffect;
 
 		sf::Text shieldText;
 		sf::Sprite shieldFrame;
 		sf::Sprite shieldFill;
-		NeonGlow shieldGlowEffect;
+		Rendering::NeonGlow shieldGlowEffect;
 
 		sf::Text homingText;
 		sf::Sprite homingFrame;
 		sf::Sprite homingFill;
-		NeonGlow homingGlowEffect;
+		Rendering::NeonGlow homingGlowEffect;
 
 		sf::Text weaponText;
 		sf::Sprite weaponFrame;
 		sf::Sprite weaponFill;
-		NeonGlow weaponGlowEffect;
+		Rendering::NeonGlow weaponGlowEffect;
 
 		sf::Text timeSlowdownText;
 		sf::Sprite timeSlowdownFrame;
 		sf::Sprite timeSlowdownFill;
-		NeonGlow timeSlowdownGlowEffect;
+		Rendering::NeonGlow timeSlowdownGlowEffect;
 
 		LocalizationRevision localizationRevision;
 

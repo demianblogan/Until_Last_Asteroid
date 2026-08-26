@@ -38,6 +38,7 @@
     <ClCompile Include="src\rendering\GameplayEffects.cpp" />
     <ClCompile Include="src\rendering\GameplayPostProcessor.cpp" />
     <ClCompile Include="src\rendering\ParticleSystem.cpp" />
+    <ClCompile Include="src\rendering\RenderTargetUtils.cpp" />
     <ClCompile Include="src\states\CompanySplashState.cpp" />
     <ClCompile Include="src\states\CampaignMenuState.cpp" />
     <ClCompile Include="src\states\GameplayState.cpp" />
@@ -130,6 +131,7 @@
     <ClInclude Include="src\rendering\GameplayEffects.h" />
     <ClInclude Include="src\rendering\GameplayPostProcessor.h" />
     <ClInclude Include="src\rendering\ParticleSystem.h" />
+    <ClInclude Include="src\rendering\RenderTargetUtils.h" />
     <ClInclude Include="src\core\GameVersion.h" />
     <ClInclude Include="src\utils\ConfigEnums.h" />
     <ClInclude Include="src\assets\Assets.h" />

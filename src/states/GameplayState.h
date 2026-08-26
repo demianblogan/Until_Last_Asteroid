@@ -127,9 +127,9 @@ private:
 	std::optional<BossEncounter> bossEncounter;
 	ActionMap<Config::PlayerAction> actions;
 	InputHandler<Config::PlayerAction> input;
-	GameplayBackground background;
-	GameplayEffects effects;
-	GameplayPostProcessor postProcessor;
+	Rendering::GameplayBackground background;
+	Rendering::GameplayEffects effects;
+	Rendering::GameplayPostProcessor postProcessor;
 	World world;
 	UI::GlowingCursor crosshair;
 	UI::GameOverScreen gameOverScreen;

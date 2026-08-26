@@ -94,7 +94,7 @@ private:
 	LocalizationManager& localization;
     UI::RoundedRectangleShape panel;
     sf::Text text;
-    NeonGlow glow;
+    Rendering::NeonGlow glow;
     sf::String movementInstruction;
     sf::String fireInstruction;
     Step step{ Step::Movement };

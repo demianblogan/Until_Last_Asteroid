@@ -178,9 +178,9 @@ private:
     UI::MenuBackground background;
     sf::RectangleShape shade;
     sf::Text title;
-    NeonGlow titleGlow;
-    NeonGlow neonGlow;
-    NeonGlow dialogGlow;
+    Rendering::NeonGlow titleGlow;
+    Rendering::NeonGlow neonGlow;
+    Rendering::NeonGlow dialogGlow;
 	sf::RenderTexture gamepadLayoutCache;
 	bool gamepadLayoutCacheDirty{ true };
     UI::GlowingCursor menuCursor;

@@ -10,7 +10,11 @@
 #include <SFML/Graphics/Texture.hpp>
 
 #include "assets/Assets.h"
+#include "rendering/RenderTargetUtils.h"
 #include "utils/ConfigEnums.h"
+
+namespace Rendering
+{
 
 namespace
 {
@@ -186,23 +190,14 @@ void NeonGlow::ApplyBlur(
 {
     const sf::Vector2u textureSize{ input.getSize() };
     sf::RenderStates blurStates;
-    blurStates.shader = &blurShader;
     blurStates.blendMode = sf::BlendNone;
     const sf::Texture* currentInput{ &input };
     for (unsigned int iteration = 0u; iteration < iterations; ++iteration)
     {
-        blurShader.setUniform("source", sf::Shader::CurrentTexture);
-        blurShader.setUniform("direction", sf::Glsl::Vec2(
-            radius / static_cast<float>(textureSize.x), 0.f));
-        horizontalBlur.clear(sf::Color::Transparent);
-        horizontalBlur.draw(sf::Sprite(*currentInput), blurStates);
-        horizontalBlur.display();
-
-        blurShader.setUniform("direction", sf::Glsl::Vec2(
-            0.f, radius / static_cast<float>(textureSize.y)));
-        output.clear(sf::Color::Transparent);
-        output.draw(sf::Sprite(horizontalBlur.getTexture()), blurStates);
-        output.display();
+        DrawGaussianBlurPass(horizontalBlur, sf::Sprite(*currentInput), blurShader,
+            { radius / static_cast<float>(textureSize.x), 0.f }, blurStates);
+        DrawGaussianBlurPass(output, sf::Sprite(horizontalBlur.getTexture()), blurShader,
+            { 0.f, radius / static_cast<float>(textureSize.y) }, blurStates);
         currentInput = &output.getTexture();
     }
 }
@@ -210,4 +205,6 @@ void NeonGlow::ApplyBlur(
 float NeonGlow::GetPulse() const
 {
     return 0.58f + 0.42f * (std::sin(elapsedTime * PulseSpeed) * 0.5f + 0.5f);
+}
+
 }

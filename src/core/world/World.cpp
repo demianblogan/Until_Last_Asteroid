@@ -515,7 +515,7 @@ void World::DamageEnemiesWithPlayerLaser(
 			continue;
 
 		RegisterPlayerAttackHit(attackID);
-		effectEvents.Add({ EffectEventType::ShipHit,
+		effectEvents.Add({ Rendering::EffectEventType::ShipHit,
 			*impactPosition, Normalize(segment),
 			std::clamp(entity->GetCollisionRadius() / 45.f, 0.55f, 1.2f) });
 		if (type == Entity::Type::EnemyMissile)
@@ -550,7 +550,7 @@ void World::DamagePlayerWithBeam(
 	if (player->TakeDamage(damage))
 	{
 		if (player->DidLastDamageReachHealth())
-			effectEvents.Add({ EffectEventType::PlayerHit,
+			effectEvents.Add({ Rendering::EffectEventType::PlayerHit,
 				*closest, Normalize(segment), 1.15f });
 		sound.AddSound(Config::Sound::MetalHit, 0.85f);
 		if (!player->IsAlive())
@@ -588,7 +588,7 @@ void World::ExplodeEnemyMissile(
 			if (damageAccepted)
 			{
 				if (targetPlayer.DidLastDamageReachHealth())
-					effectEvents.Add({ EffectEventType::PlayerHit,
+					effectEvents.Add({ Rendering::EffectEventType::PlayerHit,
 						targetPlayer.GetPosition(), direction, 1.25f });
 				targetPlayer.ApplyImpulse(direction * impulse);
 			}
@@ -605,8 +605,8 @@ void World::ExplodeEnemyMissile(
 		auto& enemy{ static_cast<Enemy&>(entity) };
 		effectEvents.Add({
 			entity.GetType() == Entity::Type::Asteroid
-				? EffectEventType::AsteroidHit
-				: EffectEventType::ShipHit,
+				? Rendering::EffectEventType::AsteroidHit
+				: Rendering::EffectEventType::ShipHit,
 			enemy.GetPosition(), direction,
 			std::clamp(enemy.GetCollisionRadius() / 45.f, 0.65f, 1.25f) });
 		const bool killed{ enemy.TakeDamage(damage) };
@@ -665,7 +665,7 @@ std::vector<World::PlayerProjectileImpact> World::ConsumePlayerProjectilesInCirc
 		impacts.push_back({ center + *direction * radius, shot.GetDamage() });
 		RegisterPlayerAttackHit(shot.GetPlayerAttackID());
 		entity->Destroy();
-		effectEvents.Add({ EffectEventType::ShipHit,
+		effectEvents.Add({ Rendering::EffectEventType::ShipHit,
 			impacts.back().position, *direction, 1.25f });
 		sound.AddSound(Config::Sound::MetalHit, 0.72f);
 	}
@@ -694,7 +694,7 @@ std::vector<World::PlayerProjectileImpact> World::ConsumePlayerProjectilesInAnnu
 		impacts.push_back({ center + *direction * outerRadius, shot.GetDamage() });
 		RegisterPlayerAttackHit(shot.GetPlayerAttackID());
 		entity->Destroy();
-		effectEvents.Add({ EffectEventType::ShipHit,
+		effectEvents.Add({ Rendering::EffectEventType::ShipHit,
 			impacts.back().position, *direction, 1.15f });
 		sound.AddSound(Config::Sound::MetalHit, 0.82f);
 	}
@@ -724,7 +724,7 @@ void World::ConsumePlayerProjectilesInDiamondFrame(
 		const Shot& shot{ static_cast<const Shot&>(*entity) };
 		RegisterPlayerAttackHit(shot.GetPlayerAttackID());
 		entity->Destroy();
-		effectEvents.Add({ EffectEventType::ShipHit,
+		effectEvents.Add({ Rendering::EffectEventType::ShipHit,
 			entity->GetPosition(), *direction, 0.9f });
 		sound.AddSound(Config::Sound::MetalHit, 0.76f);
 	}
@@ -740,7 +740,7 @@ bool World::DamagePlayerFromBoss(int damage, sf::Vector2f sourcePosition)
 	const sf::Vector2f direction{ Normalize(player->GetPosition() - sourcePosition) };
 	if (player->DidLastDamageReachHealth())
 	{
-		effectEvents.Add({ EffectEventType::PlayerHit,
+		effectEvents.Add({ Rendering::EffectEventType::PlayerHit,
 			player->GetPosition(), direction, 1.2f });
 	}
 	sound.AddSound(Config::Sound::MetalHit, 1.08f);
@@ -855,7 +855,7 @@ bool World::DestroyNextBossVictoryTarget()
 			}
 			else
 			{
-				effectEvents.Add({ EffectEventType::ShipExplosion,
+				effectEvents.Add({ Rendering::EffectEventType::ShipExplosion,
 					entity->GetPosition(), {}, 0.7f });
 			}
 			entity->Destroy();
@@ -1097,7 +1097,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		{
 			auto& shot{ static_cast<Shot&>(other) };
 			RegisterPlayerAttackHit(shot.GetPlayerAttackID());
-			effectEvents.Add({ EffectEventType::ShipHit,
+			effectEvents.Add({ Rendering::EffectEventType::ShipHit,
 				missile.GetPosition(), Normalize(shot.GetVelocity()), 0.55f });
 			shot.Destroy();
 			if (!missile.TakeDamage(shot.GetDamage()))
@@ -1120,8 +1120,8 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 			enemy.GetPlayerProjectileImpactPosition(shot) };
 		effectEvents.Add({
 			enemy.GetType() == Entity::Type::Asteroid
-				? EffectEventType::AsteroidHit
-				: EffectEventType::ShipHit,
+				? Rendering::EffectEventType::AsteroidHit
+				: Rendering::EffectEventType::ShipHit,
 			impactPosition,
 			impactDirection,
 			std::clamp(enemy.GetCollisionRadius() / 45.f, 0.55f, 1.15f) });
@@ -1173,7 +1173,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 			if (damageAccepted)
 			{
 				if (targetPlayer.DidLastDamageReachHealth())
-					effectEvents.Add({ EffectEventType::PlayerHit,
+					effectEvents.Add({ Rendering::EffectEventType::PlayerHit,
 						shot.GetPosition(), Normalize(shot.GetVelocity()), 1.f });
 				targetPlayer.ApplyImpulse(Normalize(shot.GetVelocity()) * shot.GetKnockback());
 			}
@@ -1228,12 +1228,12 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 		const sf::Vector2f impactPosition{ collidedPlayer->GetPosition() +
 			impactDirection * collidedPlayer->GetCollisionRadius() };
 		if (collidedPlayer->DidLastDamageReachHealth())
-			effectEvents.Add({ EffectEventType::PlayerHit,
+			effectEvents.Add({ Rendering::EffectEventType::PlayerHit,
 				impactPosition, -impactDirection, 1.15f });
 		effectEvents.Add({
 			collidedEnemy->GetType() == Entity::Type::Asteroid
-				? EffectEventType::AsteroidHit
-				: EffectEventType::ShipHit,
+				? Rendering::EffectEventType::AsteroidHit
+				: Rendering::EffectEventType::ShipHit,
 			impactPosition,
 			impactDirection,
 			1.1f });
@@ -1292,7 +1292,7 @@ void World::AwardScore(const Enemy& enemy)
 		const int points{ enemy.GetScoreValue() };
 		session.AddScore(points);
 		effectEvents.Add({
-			EffectEventType::ScorePopup,
+			Rendering::EffectEventType::ScorePopup,
 			enemy.GetPosition(),
 			{},
 			1.f,

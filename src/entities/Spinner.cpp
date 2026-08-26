@@ -111,7 +111,7 @@ void Spinner::OnDestroy()
 {
 	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion);
 	GetWorld().Effects().Add({
-		EffectEventType::ShipExplosion,
+		Rendering::EffectEventType::ShipExplosion,
 		GetPosition(), GetVelocity(), 1.25f });
 }
 

@@ -870,7 +870,7 @@ void GameplayState::SpawnConfiguredEnemy(
 		waveMaterializationElapsed = 0.f;
 		entity->SetPresentation(0.7f, 0.f, sf::Color(80, 225, 255));
 		materializingEnemies.push_back(entity.get());
-		world.Effects().Add({ EffectEventType::PlayerTeleport,
+		world.Effects().Add({ Rendering::EffectEventType::PlayerTeleport,
 			entity->GetPosition(), {}, 1.25f });
 	}
 	world.Spawn(std::move(entity));
@@ -1951,7 +1951,7 @@ void GameplayState::BeginPlayerWaveTeleport()
 	playerTeleportAnimating = true;
 	playerTeleportMoved = false;
 	world.Effects().Add({
-		EffectEventType::PlayerTeleport,
+		Rendering::EffectEventType::PlayerTeleport,
 		world.GetPlayerPosition(), {}, 0.85f });
 }
 
@@ -1973,7 +1973,7 @@ void GameplayState::UpdatePlayerWaveTeleport(float deltaTime)
 		{
 			world.TeleportPlayerToCenter();
 			world.Effects().Add({
-				EffectEventType::PlayerTeleport,
+				Rendering::EffectEventType::PlayerTeleport,
 				world.GetPlayerPosition(), {}, 1.15f });
 			playerTeleportMoved = true;
 		}

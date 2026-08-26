@@ -71,8 +71,8 @@ namespace UI
 		sf::Sprite titleFrame;
 		sf::Text title;
 		sf::Text finalScore;
-		NeonGlow titleGlowEffect;
-		NeonGlow buttonGlowEffect;
+		Rendering::NeonGlow titleGlowEffect;
+		Rendering::NeonGlow buttonGlowEffect;
 
 		GlowingCursor menuCursor;
 		MenuButtonList buttonList;

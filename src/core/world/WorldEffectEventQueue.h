@@ -11,10 +11,10 @@ class WorldEffectEventQueue
 public:
 	WorldEffectEventQueue();
 
-	void Add(const EffectEvent& event);
-	[[nodiscard]] const std::vector<EffectEvent>& Get() const noexcept;
+	void Add(const Rendering::EffectEvent& event);
+	[[nodiscard]] const std::vector<Rendering::EffectEvent>& Get() const noexcept;
 	void Clear() noexcept;
 
 private:
-	std::vector<EffectEvent> events;
+	std::vector<Rendering::EffectEvent> events;
 };

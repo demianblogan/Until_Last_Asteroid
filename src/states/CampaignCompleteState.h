@@ -30,8 +30,8 @@ private:
 	std::vector<sf::Text> messageLines;
 	std::vector<sf::Text> postscriptLines;
 	UI::MenuButton button;
-	NeonGlow titleGlow;
-	NeonGlow buttonGlow;
+	Rendering::NeonGlow titleGlow;
+	Rendering::NeonGlow buttonGlow;
 	UI::GlowingCursor cursor;
 	UI::ScreenFade screenFade;
 	float revealElapsed{ 0.f };

@@ -18,6 +18,9 @@ namespace sf
     class Texture;
 }
 
+namespace Rendering
+{
+
 class GameplayPostProcessor
 {
 public:
@@ -46,3 +49,5 @@ private:
     sf::Shader& compositeShader;
     bool isBloomTextureCleared = false;
 };
+
+}

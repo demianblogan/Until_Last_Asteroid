@@ -33,9 +33,9 @@ private:
 	void BeginLevel(int level);
 
 	UI::MenuBackground background;
-	NeonGlow titleGlow;
-	NeonGlow buttonGlow;
-	NeonGlow partsGlow;
+	Rendering::NeonGlow titleGlow;
+	Rendering::NeonGlow buttonGlow;
+	Rendering::NeonGlow partsGlow;
 	UI::GlowingCursor menuCursor;
 	UI::ScreenFade screenFade;
 	sf::Text title;

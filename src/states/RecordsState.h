@@ -27,8 +27,8 @@ private:
 	void BeginReturn();
 
 	UI::MenuBackground background;
-	NeonGlow titleGlow;
-	NeonGlow buttonGlow;
+	Rendering::NeonGlow titleGlow;
+	Rendering::NeonGlow buttonGlow;
 	UI::GlowingCursor cursor;
 	UI::ScreenFade fade;
 	sf::Text title;

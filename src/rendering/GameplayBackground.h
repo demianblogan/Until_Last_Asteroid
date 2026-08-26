@@ -13,6 +13,9 @@
 
 class Assets;
 
+namespace Rendering
+{
+
 class GameplayBackground final : public sf::Drawable
 {
 public:
@@ -49,3 +52,5 @@ private:
     std::vector<Star> middleStars;
     std::vector<Star> nearDust;
 };
+
+}
