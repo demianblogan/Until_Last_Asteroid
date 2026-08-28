@@ -11,14 +11,7 @@ namespace sf
 
 namespace Rendering
 {
-	void DrawEnergyShield(
-		sf::RenderTarget& target,
-		sf::Vector2f center,
-		float radius,
-		float pulse,
-		sf::Color shellColor,
-		sf::Color outlineColor,
-		sf::Color glowColor,
-		float hexOpacity,
+	void DrawEnergyShield(sf::RenderTarget& target,	sf::Vector2f center, float radius, float pulse,
+		sf::Color shellColor, sf::Color outlineColor, sf::Color glowColor, float hexOpacity,
 		sf::RenderStates states = {});
 }

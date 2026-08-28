@@ -12,54 +12,50 @@ class Assets;
 
 namespace sf
 {
-    class RenderTarget;
-    class Shader;
-    class Texture;
+	class RenderTarget;
+	class Shader;
+	class Texture;
 }
 
 namespace Rendering
 {
+	class NeonGlow
+	{
+	public:
+		using SourceRenderer = std::function<void(sf::RenderTarget&, const sf::RenderStates&)>;
 
-class NeonGlow
-{
-public:
-    using SourceRenderer = std::function<void(sf::RenderTarget&, const sf::RenderStates&)>;
+		explicit NeonGlow(Assets& assets);
 
-    explicit NeonGlow(Assets& assets);
+		void Update(float deltaTime);
+		void Invalidate() noexcept;
 
-    void Update(float deltaTime);
-    void Invalidate() noexcept;
-    void DrawBloom(
-        sf::RenderTarget& target,
-        const sf::FloatRect& bounds,
-        const SourceRenderer& renderSource,
-        sf::Color color,
-        bool isPulsing = true);
-    void DrawHighlight(
-        sf::RenderTarget& target,
-        const sf::FloatRect& bounds,
-        sf::Color color) const;
+		void DrawBloom(sf::RenderTarget& target, const sf::FloatRect& bounds, const SourceRenderer& renderSource,
+			sf::Color color, bool isPulsing = true);
+		void DrawHighlight(sf::RenderTarget& target, const sf::FloatRect& bounds, sf::Color color) const;
 
-private:
-    void Rebuild(const sf::FloatRect& bounds, const SourceRenderer& renderSource);
-    [[nodiscard]] bool Resize(sf::Vector2f contentSize);
-    void ApplyBlur(
-        const sf::Texture& input,
-        sf::RenderTexture& output,
-        float radius,
-        unsigned int iterations);
-    [[nodiscard]] float GetPulse() const;
+	private:
+		void Rebuild(const sf::FloatRect& bounds, const SourceRenderer& renderSource);
+		[[nodiscard]] bool Resize(sf::Vector2f contentSize);
 
-    sf::RenderTexture source;
-    sf::RenderTexture emissive;
-    sf::RenderTexture horizontalBlur;
-    sf::RenderTexture innerBlur;
-    sf::RenderTexture outerBlur;
-    sf::Shader& brightPassShader;
-    sf::Shader& blurShader;
-    sf::Vector2f cachedContentSize;
-    float elapsedTime = 0.f;
-    bool isDirty = true;
-};
+		void ApplyBlur(const sf::Texture& input, sf::RenderTexture& output, float radius, unsigned int iterations);
+		[[nodiscard]] float GetPulse() const;
 
+		sf::RenderTexture source;
+		sf::RenderTexture emissive;
+		sf::RenderTexture horizontalBlur;
+		sf::RenderTexture innerBlur;
+		sf::RenderTexture outerBlur;
+
+		sf::Shader& brightPassShader;
+		sf::Shader& blurShader;
+
+		sf::Vector2f cachedContentSize;
+		float elapsedTime = 0.f;
+
+		// True when the cached emissive/blur textures don't reflect the current
+		// source content and must go through Rebuild() before they can be drawn --
+		// set on construction, whenever Invalidate() is called, and while Resize()
+		// hasn't yet produced a valid texture.
+		bool needToRebuild = true;
+	};
 }

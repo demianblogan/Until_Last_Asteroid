@@ -10,37 +10,35 @@
 // World itself.
 namespace Rendering
 {
+	enum class EffectEventType
+	{
+		PlayerProjectileGlow,
+		PlayerHomingProjectileGlow,
+		PlayerTripleProjectileGlow,
+		EnemyProjectileGlow,
+		MissileSmoke,
+		EnemyEngine,
+		StationWelding,
+		StationChainExplosion,
+		PlayerMuzzleFlash,
+		EnemyMuzzleFlash,
+		AsteroidHit,
+		ShipHit,
+		PlayerHit,
+		AsteroidExplosion,
+		ShipExplosion,
+		StationExplosion,
+		PlayerTeleport,
+		BossDestructionShake,
+		ScorePopup
+	};
 
-enum class EffectEventType
-{
-	PlayerProjectileGlow,
-	PlayerHomingProjectileGlow,
-	PlayerTripleProjectileGlow,
-	EnemyProjectileGlow,
-	MissileSmoke,
-	EnemyEngine,
-	StationWelding,
-	StationChainExplosion,
-	PlayerMuzzleFlash,
-	EnemyMuzzleFlash,
-	AsteroidHit,
-	ShipHit,
-	PlayerHit,
-	AsteroidExplosion,
-	ShipExplosion,
-	StationExplosion,
-	PlayerTeleport,
-	BossDestructionShake,
-	ScorePopup
-};
-
-struct EffectEvent
-{
-	EffectEventType type;
-	sf::Vector2f position;
-	sf::Vector2f direction;
-	float scale = 1.f;
-	int value = 0;
-};
-
+	struct EffectEvent
+	{
+		EffectEventType type;
+		sf::Vector2f position;
+		sf::Vector2f direction;
+		float scale = 1.f;
+		int value = 0;
+	};
 }

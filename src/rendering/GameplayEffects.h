@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <array>
-#include <random>
 #include <vector>
 
 #include <SFML/Graphics/Text.hpp>
@@ -15,103 +14,102 @@ class Assets;
 
 namespace sf
 {
-    class RenderTarget;
-    struct RenderStates;
+	class RenderTarget;
+	struct RenderStates;
 }
 
 namespace Rendering
 {
-
-class GameplayEffects
-{
-public:
-	static constexpr std::size_t MaximumShockwaves = 8u;
-
-    struct PostProcessState
-    {
-		std::array<sf::Vector2f, MaximumShockwaves> shockwavePositions{};
-		std::array<float, MaximumShockwaves> shockwaveRadii{};
-		std::array<float, MaximumShockwaves> shockwaveStrengths{};
-		std::size_t shockwaveCount = 0u;
-        float damageVignette = 0.f;
-    };
-
-    GameplayEffects(const GameplayData::EffectsConfig& config, Assets& assets);
-
-    void Update(float deltaTime, World& world, bool screenShakeEnabled, bool showScorePopups);
-    void DrawBehindEntities(sf::RenderTarget& target, sf::RenderStates states) const;
-    void DrawAboveEntities(sf::RenderTarget& target, sf::RenderStates states) const;
-    void Clear();
-
-    [[nodiscard]] std::size_t GetParticleCount() const noexcept;
-    [[nodiscard]] sf::Vector2f GetCameraOffset() const noexcept;
-    [[nodiscard]] const PostProcessState& GetPostProcessState() const noexcept;
-
-private:
-    struct ScorePopup
-    {
-        ScorePopup(const sf::Font& font, int points, sf::Vector2f position);
-
-        sf::Text text;
-        float elapsedSeconds = 0.f;
-    };
-
-	struct Shockwave
+	class GameplayEffects
 	{
-		sf::Vector2f position;
-		float elapsedSeconds = 0.f;
-		float duration = 0.55f;
-		float scale = 1.f;
-		float strength = 0.9f;
+	public:
+		static constexpr std::size_t MaximumShockwaves = 8u;
+
+		struct PostProcessState
+		{
+			std::array<sf::Vector2f, MaximumShockwaves> shockwavePositions{};
+			std::array<float, MaximumShockwaves> shockwaveRadii{};
+			std::array<float, MaximumShockwaves> shockwaveStrengths{};
+			std::size_t shockwaveCount = 0u;
+			float damageVignette = 0.f;
+		};
+
+		GameplayEffects(const GameplayData::EffectsConfig& config, Assets& assets);
+
+		void Update(float deltaTime, World& world, bool isScreenShakeEnabled, bool needToShowScorePopups);
+		void DrawBehindEntities(sf::RenderTarget& target, sf::RenderStates states) const;
+		void DrawAboveEntities(sf::RenderTarget& target, sf::RenderStates states) const;
+		void Clear();
+
+		[[nodiscard]] std::size_t GetParticleCount() const noexcept;
+		[[nodiscard]] sf::Vector2f GetCameraOffset() const noexcept;
+		[[nodiscard]] const PostProcessState& GetPostProcessState() const noexcept;
+
+	private:
+		struct ScorePopup
+		{
+			ScorePopup(const sf::Font& font, int points, sf::Vector2f position);
+
+			sf::Text text;
+			float elapsedSeconds = 0.f;
+		};
+
+		struct Shockwave
+		{
+			sf::Vector2f position;
+			float elapsedSeconds = 0.f;
+			float duration = 0.55f;
+			float scale = 1.f;
+			float strength = 0.9f;
+		};
+
+		sf::Vector2f GenerateRandomDirection();
+		sf::Vector2f GenerateRandomDirectionAround(const sf::Vector2f& direction, float spreadRadians);
+
+		void EmitPlayerEngineParticles(const World& world);
+		void EmitProjectileGlow(bool isPlayerProjectile, const sf::Vector2f& position,
+			bool isHomingProjectile = false, bool isTripleShot = false);
+		void EmitMissileSmoke(const sf::Vector2f& position, const sf::Vector2f& direction);
+		void EmitEnemyEngine(const sf::Vector2f& position, const sf::Vector2f& direction);
+		void EmitStationWelding(const sf::Vector2f& position, float scale);
+		void EmitStationChainExplosion(const sf::Vector2f& position, float scale);
+		void EmitPlayerTeleport(const sf::Vector2f& position, float scale);
+		void EmitMuzzleFlash(bool isPlayerProjectile, const sf::Vector2f& position, const sf::Vector2f& direction, float scale);
+		void EmitStoneHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale);
+		void EmitMetalHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale);
+		void EmitAsteroidExplosion(const sf::Vector2f& position, float scale);
+		void EmitShipExplosion(const sf::Vector2f& position, float scale);
+		void EmitStationExplosion(const sf::Vector2f& position, float scale);
+		void EmitScorePopup(const sf::Vector2f& position, int points);
+
+		void UpdateScorePopups(float deltaTime);
+
+		void StartCameraShake(const GameplayData::CameraShakeConfig& shake, float scale);
+		void UpdateCameraShake(float deltaTime);
+		void StartShockwave(const sf::Vector2f& position, float scale, float strength = 0.9f);
+		void UpdatePostProcess(float deltaTime);
+
+		const GameplayData::EffectsConfig& config;
+		const sf::Font& scorePopupFont;
+
+		ParticleSystem engineParticles;
+		ParticleSystem projectileGlowParticles;
+		ParticleSystem weaponParticles;
+		ParticleSystem impactParticles;
+		ParticleSystem smokeParticles{ ParticleAppearance::Smoke };
+		ParticleSystem debrisParticles{ ParticleAppearance::Debris };
+		ParticleSystem shockwaveParticles{ ParticleAppearance::Ring };
+
+		std::vector<ScorePopup> scorePopups;
+		float engineEmissionAccumulator = 0.f;
+		float shakeRemaining = 0.f;
+		float shakeDuration = 0.f;
+		float shakeAmplitude = 0.f;
+
+		sf::Vector2f cameraOffset{};
+		PostProcessState postProcessState;
+
+		std::vector<Shockwave> shockwaves;
+		bool isShakeEnabled = true;
 	};
-
-    float RandomFloat(float minimum, float maximum);
-    sf::Vector2f RandomDirection();
-    sf::Vector2f RandomDirectionAround(const sf::Vector2f& direction, float spreadRadians);
-    void EmitPlayerEngineParticles(const World& world);
-    void EmitProjectileGlow(bool playerProjectile, const sf::Vector2f& position,
-		const sf::Vector2f& direction, bool isHoming = false, bool isTriple = false);
-	void EmitMissileSmoke(const sf::Vector2f& position, const sf::Vector2f& direction);
-	void EmitEnemyEngine(const sf::Vector2f& position, const sf::Vector2f& direction);
-	void EmitStationWelding(const sf::Vector2f& position, float scale);
-	void EmitStationChainExplosion(const sf::Vector2f& position, float scale);
-	void EmitPlayerTeleport(const sf::Vector2f& position, float scale);
-    void EmitMuzzleFlash(bool playerProjectile, const sf::Vector2f& position,
-		const sf::Vector2f& direction, float scale);
-    void EmitStoneHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale);
-    void EmitMetalHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale);
-    void EmitAsteroidExplosion(const sf::Vector2f& position, float scale);
-    void EmitShipExplosion(const sf::Vector2f& position, float scale);
-	void EmitStationExplosion(const sf::Vector2f& position, float scale);
-    void EmitScorePopup(const sf::Vector2f& position, int points);
-    void UpdateScorePopups(float deltaTime);
-    void StartCameraShake(const GameplayData::CameraShakeConfig& shake, float scale);
-    void UpdateCameraShake(float deltaTime);
-	void StartShockwave(
-		const sf::Vector2f& position,
-		float scale,
-		float strength = 0.9f);
-    void UpdatePostProcess(float deltaTime);
-
-    const GameplayData::EffectsConfig& config;
-    const sf::Font& scorePopupFont;
-    ParticleSystem engineParticles;
-    ParticleSystem projectileGlowParticles;
-    ParticleSystem weaponParticles;
-    ParticleSystem impactParticles;
-    ParticleSystem smokeParticles{ ParticleAppearance::Smoke };
-    ParticleSystem debrisParticles{ ParticleAppearance::Debris };
-    ParticleSystem shockwaveParticles{ ParticleAppearance::Ring };
-    std::vector<ScorePopup> scorePopups;
-    std::mt19937 random{ 0x51A7F00Du };
-    float engineEmissionAccumulator = 0.f;
-    float shakeRemaining = 0.f;
-    float shakeDuration = 0.f;
-    float shakeAmplitude = 0.f;
-    sf::Vector2f cameraOffset{};
-    PostProcessState postProcessState;
-	std::vector<Shockwave> shockwaves;
-    bool isShakeEnabled = true;
-};
-
 }
