@@ -357,6 +357,76 @@ namespace
         return result;
     }
 
+    // Reads a "[minimum, maximum]" pair, or returns `fallback` unchanged if
+    // `key` is absent -- every field of a particle preset is optional since
+    // most presets only need a handful of them (see ParticlePresetConfig).
+    GameplayData::ParticleRangeConfig ReadRange(
+        const Json& object,
+        const char* key,
+        GameplayData::ParticleRangeConfig fallback,
+        const std::filesystem::path& path)
+    {
+        if (!object.contains(key))
+            return fallback;
+
+        try
+        {
+            const auto values{ object.at(key).get<std::array<float, 2>>() };
+            return { values[0], values[1] };
+        }
+        catch (const Json::exception& exception)
+        {
+            throw std::runtime_error(
+                "Invalid gameplay value '" + std::string(key) + "' in " +
+                path.string() + ": " + exception.what());
+        }
+    }
+
+    std::array<int, 4> ReadColor(
+        const Json& object,
+        const char* key,
+        std::array<int, 4> fallback,
+        const std::filesystem::path& path)
+    {
+        if (!object.contains(key))
+            return fallback;
+
+        try
+        {
+            return object.at(key).get<std::array<int, 4>>();
+        }
+        catch (const Json::exception& exception)
+        {
+            throw std::runtime_error(
+                "Invalid gameplay value '" + std::string(key) + "' in " +
+                path.string() + ": " + exception.what());
+        }
+    }
+
+    GameplayData::ParticlePresetConfig ReadParticlePreset(
+        const Json& object,
+        const std::filesystem::path& path)
+    {
+        GameplayData::ParticlePresetConfig result;
+        result.count = object.value("count", result.count);
+        result.lifetime = ReadRange(object, "lifetime", result.lifetime, path);
+        result.startSize = ReadRange(object, "start_size", result.startSize, path);
+        result.endSize = ReadRange(object, "end_size", result.endSize, path);
+        result.startColor = ReadColor(object, "start_color", result.startColor, path);
+        result.endColor = ReadColor(object, "end_color", result.endColor, path);
+        result.speed = ReadRange(object, "speed", result.speed, path);
+        result.lateralJitter = ReadRange(object, "lateral_jitter", result.lateralJitter, path);
+        result.spawnOffset = ReadRange(object, "spawn_offset", result.spawnOffset, path);
+        result.drag = object.value("drag", result.drag);
+        result.angularVelocity = ReadRange(object, "angular_velocity", result.angularVelocity, path);
+        result.aspectRatio = ReadRange(object, "aspect_ratio", result.aspectRatio, path);
+
+        RequirePositive(static_cast<float>(result.count), "count", path);
+        RequirePositive(result.lifetime.minimum, "lifetime", path);
+
+        return result;
+    }
+
     GameplayData::LevelConfig::PostProcessConfig ReadPostProcess(
         const Json& object,
         const std::filesystem::path& path)
@@ -771,6 +841,9 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
         effects.damageShake = ReadCameraShake(effectsJson.at("damage_shake"), effectsPath);
         effects.largeExplosionShake = ReadCameraShake(
             effectsJson.at("large_explosion_shake"), effectsPath);
+
+        for (const auto& [name, presetJson] : effectsJson.at("particles").items())
+            effects.particlePresets[name] = ReadParticlePreset(presetJson, effectsPath);
     }
     catch (const Json::exception& exception)
     {
@@ -1062,4 +1135,13 @@ float GameplayData::GetHitFlashDuration() const noexcept
 const GameplayData::EffectsConfig& GameplayData::GetEffects() const noexcept
 {
     return effects;
+}
+
+const GameplayData::ParticlePresetConfig& GameplayData::GetParticlePreset(const std::string& name) const
+{
+    const auto it{ effects.particlePresets.find(name) };
+    if (it == effects.particlePresets.end())
+        throw std::runtime_error("Unknown particle preset '" + name + "'");
+
+    return it->second;
 }

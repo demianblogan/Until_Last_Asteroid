@@ -102,19 +102,7 @@ namespace Rendering
 		if (spawn.lifetime <= 0.f || particles.size() >= MaximumParticles)
 			return;
 
-		particles.push_back({
-			spawn.position,
-			spawn.velocity,
-			spawn.lifetime,
-			spawn.lifetime,
-			spawn.startSize,
-			spawn.endSize,
-			spawn.startColor,
-			spawn.endColor,
-			spawn.rotation,
-			spawn.angularVelocity,
-			spawn.drag,
-			spawn.aspectRatio });
+		particles.push_back({ spawn, spawn.lifetime });
 	}
 
 	void ParticleSystem::Update(float deltaTime)
@@ -139,6 +127,11 @@ namespace Rendering
 			i++;
 		}
 
+		BuildVertices();
+	}
+
+	void ParticleSystem::RefreshVertices()
+	{
 		BuildVertices();
 	}
 

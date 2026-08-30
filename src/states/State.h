@@ -16,6 +16,8 @@ class RecordsManager;
 class StateStack;
 struct GameplayLaunchRequest;
 
+namespace Haptics { class GamepadHaptics; }
+
 namespace sf
 {
     class Event;
@@ -36,6 +38,7 @@ struct StateContext
     sf::Vector2f logicalSize;
     bool& mainMenuIntroPlayed;
     GamepadManager& gamepad;
+    Haptics::GamepadHaptics& gamepadHaptics;
     GameplayLaunchRequest& gameplayLaunch;
 };
 

@@ -22,6 +22,8 @@
     "display_resolution": "Роздільна здатність", "window_mode": "Режим вікна", "show_fps": "Показувати FPS",
     "vsync": "Вертикальна синхронізація", "frame_limit": "Обмеження частоти кадрів", "post_effects": "Постефекти",
     "reset_graphics": "Скинути графіку", "screen_shake": "Тремтіння екрана", "score_popups": "Показувати очки",
+    "gamepad_vibration": "Вібрація геймпада", "gamepad_adaptive_triggers": "Адаптивні тригери",
+    "gamepad_lightbar": "Підсвітка геймпада",
     "reset_gameplay": "Скинути налаштування гри", "music": "Музика", "sounds": "Звуки",
     "reset_audio": "Скинути звук", "move_up": "Рух угору", "move_down": "Рух униз",
     "move_left": "Рух ліворуч", "move_right": "Рух праворуч", "fire": "Вогонь",

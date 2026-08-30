@@ -2,32 +2,32 @@
 
 void WorldStatisticsTracker::RecordAttackFired() noexcept
 {
-	++statistics.playerAttacksFired;
+	statistics.playerAttacksFired++;
 }
 
 void WorldStatisticsTracker::RecordAttackHit() noexcept
 {
-	++statistics.playerAttacksHit;
+	statistics.playerAttacksHit++;
 }
 
 void WorldStatisticsTracker::RecordShieldPickupCollected() noexcept
 {
-	++statistics.shieldPickupsCollected;
+	statistics.shieldPickupsCollected++;
 }
 
 void WorldStatisticsTracker::RecordBigMeteorDestroyed() noexcept
 {
-	++statistics.bigMeteorsDestroyed;
+	statistics.bigMeteorsDestroyed++;
 }
 
 void WorldStatisticsTracker::RecordSmallMeteorDestroyed() noexcept
 {
-	++statistics.smallMeteorsDestroyed;
+	statistics.smallMeteorsDestroyed++;
 }
 
 void WorldStatisticsTracker::RecordShooterDestroyed() noexcept
 {
-	++statistics.shootersDestroyed;
+	statistics.shootersDestroyed++;
 }
 
 const WorldStatistics& WorldStatisticsTracker::Get() const noexcept

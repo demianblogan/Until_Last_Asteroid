@@ -1,7 +1,6 @@
 #include "WorldCampaignPickupQueue.h"
 
-void WorldCampaignPickupQueue::Configure(
-	const std::vector<GameplayData::PickupKind>& newSequence)
+void WorldCampaignPickupQueue::Configure(const std::vector<GameplayData::PickupKind>& newSequence)
 {
 	sequence = newSequence;
 	nextIndex = 0u;
@@ -17,5 +16,6 @@ std::optional<GameplayData::PickupKind> WorldCampaignPickupQueue::TryPop()
 {
 	if (nextIndex >= sequence.size())
 		return std::nullopt;
-	return sequence[nextIndex++];
+	else
+		return sequence[nextIndex++];
 }

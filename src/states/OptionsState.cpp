@@ -16,7 +16,7 @@
 #include "audio/AudioManager.h"
 #include "localization/LocalizationManager.h"
 #include "settings/SettingsManager.h"
-#include "input/GamepadManager.h"
+#include "input/gamepad/GamepadManager.h"
 #include "ui/OptionsWidgets.h"
 #include "ui/TextLayout.h"
 
@@ -453,6 +453,9 @@ void OptionsState::RebuildRows()
     case Page::Gameplay:
         add(GetContext().localization.GetText("options.screen_shake"), RowKind::Toggle, Action::ScreenShake);
         add(GetContext().localization.GetText("options.score_popups"), RowKind::Toggle, Action::ShowScorePopups);
+        add(GetContext().localization.GetText("options.gamepad_vibration"), RowKind::Toggle, Action::GamepadVibration);
+        add(GetContext().localization.GetText("options.gamepad_adaptive_triggers"), RowKind::Toggle, Action::GamepadAdaptiveTriggers);
+        add(GetContext().localization.GetText("options.gamepad_lightbar"), RowKind::Toggle, Action::GamepadLightbar);
         add(GetContext().localization.GetText("options.reset_gameplay"), RowKind::Button, Action::ResetGameplay);
         add(GetContext().localization.GetText("options.back"), RowKind::Button, Action::Back);
         break;
@@ -672,6 +675,21 @@ void OptionsState::AdjustSelected(int direction)
     else if (action == Action::ShowScorePopups)
     {
         settings.gameplay.needToShowScorePopups = !settings.gameplay.needToShowScorePopups;
+        SaveSettings();
+    }
+    else if (action == Action::GamepadVibration)
+    {
+        settings.gamepad.isVibrationEnabled = !settings.gamepad.isVibrationEnabled;
+        SaveSettings();
+    }
+    else if (action == Action::GamepadAdaptiveTriggers)
+    {
+        settings.gamepad.isAdaptiveTriggersEnabled = !settings.gamepad.isAdaptiveTriggersEnabled;
+        SaveSettings();
+    }
+    else if (action == Action::GamepadLightbar)
+    {
+        settings.gamepad.isControllerLightbarEnabled = !settings.gamepad.isControllerLightbarEnabled;
         SaveSettings();
     }
     else if (action == Action::FrameRateLimit)
@@ -1005,6 +1023,10 @@ void OptionsState::Execute(Action action)
         break;
     case Action::ResetGameplay:
         GetContext().settings.EditSettings().gameplay = GetContext().settings.GetDefaults().gameplay;
+        // The gamepad vibration/adaptive-trigger/lightbar toggles live on
+        // this page too (see RebuildRows), so resetting it resets those as
+        // well rather than leaving them out of "Restore Gameplay Defaults".
+        GetContext().settings.EditSettings().gamepad = GetContext().settings.GetDefaults().gamepad;
         SaveSettings();
         RefreshRowTextValues();
         break;
@@ -1237,6 +1259,12 @@ sf::String OptionsState::GetRowValue(const Row& row) const
         return GetContext().localization.GetText(settings.gameplay.isScreenShakeEnabled ? "common.on" : "common.off");
     case Action::ShowScorePopups:
         return GetContext().localization.GetText(settings.gameplay.needToShowScorePopups ? "common.on" : "common.off");
+    case Action::GamepadVibration:
+        return GetContext().localization.GetText(settings.gamepad.isVibrationEnabled ? "common.on" : "common.off");
+    case Action::GamepadAdaptiveTriggers:
+        return GetContext().localization.GetText(settings.gamepad.isAdaptiveTriggersEnabled ? "common.on" : "common.off");
+    case Action::GamepadLightbar:
+        return GetContext().localization.GetText(settings.gamepad.isControllerLightbarEnabled ? "common.on" : "common.off");
     case Action::FrameRateLimit:
         return settings.graphics.frameRateLimit == 0u
             ? GetContext().localization.GetText("options.unlimited")
@@ -1534,6 +1562,12 @@ void OptionsState::DrawRow(
             value = GetContext().settings.GetSettings().gameplay.isScreenShakeEnabled;
         else if (row.action == Action::ShowScorePopups)
             value = GetContext().settings.GetSettings().gameplay.needToShowScorePopups;
+        else if (row.action == Action::GamepadVibration)
+            value = GetContext().settings.GetSettings().gamepad.isVibrationEnabled;
+        else if (row.action == Action::GamepadAdaptiveTriggers)
+            value = GetContext().settings.GetSettings().gamepad.isAdaptiveTriggersEnabled;
+        else if (row.action == Action::GamepadLightbar)
+            value = GetContext().settings.GetSettings().gamepad.isControllerLightbarEnabled;
         UI::OptionsWidgets::DrawToggle(target, row.bounds.position.y, value, toggleOnText, toggleOffText, states);
     }
     else if (row.kind == RowKind::Dropdown)

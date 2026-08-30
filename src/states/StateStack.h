@@ -50,6 +50,7 @@ public:
     void ApplyPendingChanges();
 
     [[nodiscard]] bool IsEmpty() const noexcept;
+    [[nodiscard]] std::optional<StateID> GetTopStateID() const noexcept;
 
 private:
     enum class Action

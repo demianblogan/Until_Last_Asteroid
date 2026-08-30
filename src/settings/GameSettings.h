@@ -74,6 +74,13 @@ struct GameplaySettings
 	bool needToShowScorePopups = true;
 };
 
+struct GamepadSettings
+{
+	bool isVibrationEnabled = true;
+	bool isAdaptiveTriggersEnabled = true;
+	bool isControllerLightbarEnabled = true;
+};
+
 struct GameSettings
 {
 	static constexpr int FormatVersion = 4;
@@ -83,4 +90,5 @@ struct GameSettings
 	AudioSettings audio;
 	GameplaySettings gameplay;
 	ControlSettings controls;
+	GamepadSettings gamepad;
 };

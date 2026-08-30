@@ -2,13 +2,20 @@
 
 #include "audio/AudioManager.h"
 
+namespace
+{
+	// Every in-world sound plays at full base volume -- AudioManager's own
+	// per-group/per-setting attenuation handles the rest.
+	constexpr float FullBaseVolume = 100.f;
+}
+
 WorldSoundSystem::WorldSoundSystem(AudioManager& audioManager) noexcept
 	: audio(audioManager)
 {}
 
 std::uint64_t WorldSoundSystem::AddSound(Config::Sound id, float pitch)
 {
-	return audio.PlaySound(id, SoundGroup::Gameplay, 100.f, pitch);
+	return audio.PlaySound(id, SoundGroup::Gameplay, FullBaseVolume, pitch);
 }
 
 std::uint64_t WorldSoundSystem::AddSustainedSound(
@@ -19,7 +26,7 @@ std::uint64_t WorldSoundSystem::AddSustainedSound(
 	float outroStartSeconds)
 {
 	return audio.PlaySustainedSound(
-		id, SoundGroup::Gameplay, 100.f, pitch,
+		id, SoundGroup::Gameplay, FullBaseVolume, pitch,
 		loopStartSeconds, loopEndSeconds, outroStartSeconds);
 }
 

@@ -99,14 +99,12 @@ namespace Rendering
 		outer.setColor(ModulatedColor(color, 0.92f * pulse));
 
 		target.draw(outer, additive);
-		target.draw(outer, additive);
 
 		sf::Sprite inner(innerBlur.getTexture());
 		inner.setPosition(position);
 		inner.setScale({ 1.f / BloomScale, 1.f / BloomScale });
 		inner.setColor(ModulatedColor(color, 0.96f * (0.72f + pulse * 0.28f)));
 
-		target.draw(inner, additive);
 		target.draw(inner, additive);
 	}
 

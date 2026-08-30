@@ -12,7 +12,7 @@
 #include "audio/AudioManager.h"
 #include "localization/LocalizationManager.h"
 #include "states/StateID.h"
-#include "input/GamepadManager.h"
+#include "input/gamepad/GamepadManager.h"
 #include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 

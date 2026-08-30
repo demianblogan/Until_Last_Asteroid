@@ -9,7 +9,8 @@
 #include "assets/Assets.h"
 #include "core/world/World.h"
 #include "gameplay/GameplaySession.h"
-#include "input/GamepadManager.h"
+#include "input/gamepad/GamepadManager.h"
+#include "input/gamepad/GamepadHaptics.h"
 
 namespace
 {
@@ -44,7 +45,7 @@ Player::~Player()
 
 Entity::Type Player::GetType() const noexcept { return Type::Player; }
 
-bool Player::IsCollideWith(const Entity& other) const
+bool Player::IsCollidingWith(const Entity& other) const
 {
 	return other.GetType() != Type::Projectile_Player && CheckCollision(other);
 }
@@ -336,6 +337,7 @@ void Player::UpdateLaser(float dt)
 		StopLaserSounds();
 		laserFiring = false;
 		laserDamageTimer = 0.f;
+		GetWorld().Haptics().SetRightTriggerSustainedResistance(false);
 		return;
 	}
 	if (!laserFiring)
@@ -348,8 +350,14 @@ void Player::UpdateLaser(float dt)
 			laserSoundHandle = 0u;
 		}
 		laserDamageTimer = 0.f;
+		GetWorld().Haptics().SetRightTriggerSustainedResistance(false);
 		return;
 	}
+
+	// Heavy, constant resistance on the right trigger for as long as the
+	// laser beam is held down; released the instant firing stops (both
+	// early-return branches above).
+	GetWorld().Haptics().SetRightTriggerSustainedResistance(true);
 
 	laserVisualTime += dt;
 	laserDamageTimer += dt;
@@ -398,6 +406,7 @@ void Player::Shoot()
 	const std::uint64_t attackID{ GetWorld().BeginPlayerAttack() };
 	const float rotation{ GetRotation().asDegrees() };
 	const bool tripleShot{ GetWorld().GetSession().IsTripleShotActive() };
+	GetWorld().Haptics().PulseRightTriggerRecoil();
 	GetWorld().SpawnPlayerShot(
 		GetMuzzlePosition(), rotation, attackID, true, tripleShot);
 	if (tripleShot)

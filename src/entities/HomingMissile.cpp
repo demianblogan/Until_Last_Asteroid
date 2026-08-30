@@ -41,7 +41,7 @@ Entity::Type HomingMissile::GetType() const noexcept
 	return Type::EnemyMissile;
 }
 
-bool HomingMissile::IsCollideWith(const Entity& other) const
+bool HomingMissile::IsCollidingWith(const Entity& other) const
 {
 	const Type type{ other.GetType() };
 	return (type == Type::Player || type == Type::Enemy ||

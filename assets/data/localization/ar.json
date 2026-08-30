@@ -22,6 +22,8 @@
     "display_resolution": "دقة العرض", "window_mode": "وضع النافذة", "show_fps": "إظهار معدل الإطارات",
     "vsync": "المزامنة الرأسية", "frame_limit": "حد معدل الإطارات", "post_effects": "المؤثرات البصرية",
     "reset_graphics": "استعادة إعدادات الرسومات", "screen_shake": "اهتزاز الشاشة", "score_popups": "إظهار نقاط النتيجة",
+    "gamepad_vibration": "اهتزاز وحدة التحكم", "gamepad_adaptive_triggers": "الزناد التكيفي",
+    "gamepad_lightbar": "إضاءة وحدة التحكم",
     "reset_gameplay": "استعادة إعدادات اللعب", "music": "الموسيقى", "sounds": "الأصوات",
     "reset_audio": "استعادة إعدادات الصوت", "move_up": "التحرك لأعلى", "move_down": "التحرك لأسفل",
     "move_left": "التحرك لليسار", "move_right": "التحرك لليمين", "fire": "إطلاق النار",

@@ -6,16 +6,13 @@
 #include "core/world/World.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
+#include "utils/VectorMath.h"
 
 namespace
 {
-	sf::Vector2f Normalize(const sf::Vector2f& vector)
-	{
-		const float lengthSquared{ vector.x * vector.x + vector.y * vector.y };
-		if (lengthSquared <= 0.0001f)
-			return { 0.f, -1.f };
-		return vector / std::sqrt(lengthSquared);
-	}
+	// Spinner's travel/emitter direction should point downward by default when
+	// the source vector is degenerate, matching its default facing.
+	constexpr sf::Vector2f DegenerateDirectionFallback{ 0.f, -1.f };
 }
 
 Spinner::Spinner(Assets& assets, World& world)
@@ -42,7 +39,7 @@ Entity::Type Spinner::GetType() const noexcept
 	return Type::Enemy;
 }
 
-bool Spinner::IsCollideWith(const Entity& other) const
+bool Spinner::IsCollidingWith(const Entity& other) const
 {
 	return (other.GetType() == Type::Player ||
 		other.GetType() == Type::Projectile_Player ||
@@ -79,7 +76,7 @@ void Spinner::Update(float deltaTime)
 		if ((position.y < height * 0.16f && travelDirection.y < 0.f) ||
 			(position.y > height * 0.84f && travelDirection.y > 0.f))
 			travelDirection.y = -travelDirection.y;
-		travelDirection = Normalize(travelDirection);
+		travelDirection = VectorMath::Normalize(travelDirection, DegenerateDirectionFallback);
 		lateralDirection = { -travelDirection.y, travelDirection.x };
 		movementPhase += 2.f * std::numbers::pi_v<float> * sineFrequency * deltaTime;
 		SetVelocity(
@@ -102,7 +99,7 @@ void Spinner::Update(float deltaTime)
 void Spinner::ConfigureApproachTarget(sf::Vector2f target) noexcept
 {
 	approachTarget = target;
-	travelDirection = Normalize(target - GetPosition());
+	travelDirection = VectorMath::Normalize(target - GetPosition(), DegenerateDirectionFallback);
 	lateralDirection = { -travelDirection.y, travelDirection.x };
 	approachingCenter = true;
 }
@@ -120,7 +117,7 @@ void Spinner::ShootRadialVolley()
 	for (std::size_t i{ 0 }; i < GetWeaponEmitters().size(); ++i)
 	{
 		const sf::Vector2f emitter{ GetWeaponEmitterPosition(i) };
-		const sf::Vector2f direction{ Normalize(emitter - GetPosition()) };
+		const sf::Vector2f direction{ VectorMath::Normalize(emitter - GetPosition(), DegenerateDirectionFallback) };
 		GetWorld().SpawnSaucerShot(
 			emitter,
 			emitter + direction * 100.f,

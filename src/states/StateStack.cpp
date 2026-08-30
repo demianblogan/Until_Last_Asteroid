@@ -123,6 +123,11 @@ bool StateStack::IsEmpty() const noexcept
     return states.empty();
 }
 
+std::optional<StateID> StateStack::GetTopStateID() const noexcept
+{
+    return states.empty() ? std::nullopt : std::optional<StateID>{ states.back().id };
+}
+
 std::unique_ptr<State> StateStack::CreateState(StateID stateID)
 {
     const auto factory{ factories.find(stateID) };

@@ -117,7 +117,7 @@ float ShooterStation::GetShieldRadius() const noexcept
 	return GetCollisionRadius() * 1.48f;
 }
 
-bool ShooterStation::IsCollideWith(const Entity& other) const
+bool ShooterStation::IsCollidingWith(const Entity& other) const
 {
 	if (destructionActive)
 		return false;

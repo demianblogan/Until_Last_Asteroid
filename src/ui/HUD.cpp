@@ -13,6 +13,7 @@
 #include "assets/Assets.h"
 #include "gameplay/GameplaySession.h"
 #include "localization/LocalizationManager.h"
+#include "ui/HealthColor.h"
 #include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 
@@ -37,13 +38,6 @@ namespace UI
 		// boundary -- a handful of times, not every single frame -- while the
 		// drawn content and its position stay exactly as before.
 		constexpr float GlowSizeStep = 8.f;
-
-		// The health bar's fill color gradient, low to high (not sf::Color::Red/
-		// Yellow/Green -- those are pure primaries; these are custom, softer tones
-		// matching the game's neon palette).
-		constexpr sf::Color HealthLowColor{ 255, 55, 48 };
-		constexpr sf::Color HealthMidColor{ 255, 215, 45 };
-		constexpr sf::Color HealthFullColor{ 55, 235, 105 };
 
 		sf::FloatRect QuantizedGlowBounds(const sf::Sprite& fillSprite)
 		{
@@ -75,7 +69,7 @@ namespace UI
 
 		, partsText(assets.Fonts().Get(localize.GetRegularFont()))
 		, partsPanel(assets.Textures().Get(Config::Texture::ScorePanelFrame))
-		, partsIcon(assets.Textures().Get(Config::Texture::PartToken))
+		, partsIcon(assets.Textures().Get(Config::Texture::ShipUpgradesPartsIcon))
 		, partsGlowEffect(assets)
 
 		, healthText(assets.Fonts().Get(localize.GetBoldFont()))
@@ -506,9 +500,7 @@ namespace UI
 
 		healthFill.setTextureRect(sf::IntRect({ 0, 0 }, { visibleWidth, static_cast<int>(textureSize.y) }));
 
-		sf::Color fillColor{ ratio >= 0.5f
-			? LerpColor(HealthMidColor, HealthFullColor, (ratio - 0.5f) * 2.f)
-			: LerpColor(HealthLowColor, HealthMidColor, ratio * 2.f) };
+		sf::Color fillColor{ GetHealthColor(ratio) };
 
 		if (ratio > CriticalThreshold)
 		{

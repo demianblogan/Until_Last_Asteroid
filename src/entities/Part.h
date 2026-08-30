@@ -14,7 +14,7 @@ public:
 
 private:
 	void Update(float deltaTime) override;
-	bool IsCollideWith(const Entity& other) const override;
+	bool IsCollidingWith(const Entity& other) const override;
 
 	std::string id;
 	float remainingLifetime{ 3.f };

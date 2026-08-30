@@ -24,10 +24,12 @@
 #include "entities/ShooterStation.h"
 #include "entities/Spinner.h"
 #include "gameplay/GameplayLaunch.h"
+#include "input/gamepad/GamepadManager.h"
+#include "input/gamepad/GamepadHaptics.h"
 #include "localization/LocalizationManager.h"
 #include "records/RecordsManager.h"
 #include "settings/SettingsManager.h"
-#include "input/GamepadManager.h"
+#include "ui/HealthColor.h"
 #include "utils/Random.h"
 
 namespace
@@ -83,7 +85,7 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	, postProcessor(context.assets, context.logicalSize)
 	, world(static_cast<unsigned int>(context.logicalSize.x),
 		static_cast<unsigned int>(context.logicalSize.y),
-		context.assets, context.audio, session, context.gamepad)
+		context.assets, context.audio, session, context.gamepad, context.gamepadHaptics)
 	, crosshair(context.assets, Config::Texture::GameplayCrosshair,
 		{ 32.f, 32.f }, CrosshairGlowColor)
 	, gameOverScreen(context.assets, context.audio, context.gamepad, context.localization, context.logicalSize)
@@ -499,6 +501,13 @@ void GameplayState::Update(float dt)
 			hud->SetSurvivalTime(runElapsed);
 		hud->Update(dt);
 	}
+
+	// DualSense lightbar tracks the player's health, same source ratio as
+	// HUD's own health bar but its own more saturated gradient -- see
+	// UI::GetHealthLightbarColor.
+	const sf::Color lightbarColor{ UI::GetHealthLightbarColor(session.GetPlayerHealth().GetRatio()) };
+	GetContext().gamepadHaptics.SetLightbarColor({ lightbarColor.r, lightbarColor.g, lightbarColor.b });
+
 	if (session.IsGameOver() && !gameOverScreen.IsActive())
 		BeginGameOver();
 	if (!session.IsPlaying())

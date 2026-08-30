@@ -15,12 +15,8 @@ public:
 	explicit WorldSoundSystem(AudioManager& audioManager) noexcept;
 
 	std::uint64_t AddSound(Config::Sound id, float pitch = 1.f);
-	std::uint64_t AddSustainedSound(
-		Config::Sound id,
-		float pitch,
-		float loopStartSeconds,
-		float loopEndSeconds,
-		float outroStartSeconds);
+	std::uint64_t AddSustainedSound(Config::Sound id, float pitch,float loopStartSeconds,
+		float loopEndSeconds,float outroStartSeconds);
 	void StopSound(std::uint64_t handle);
 
 	void PauseActiveSounds();

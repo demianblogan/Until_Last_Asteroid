@@ -223,6 +223,14 @@ namespace
 					{ "moveRight", SerializeBinding(settings.controls.moveRight) },
 					{ "fire", SerializeBinding(settings.controls.fire) }
 				}
+			},
+			{
+				"gamepad",
+				{
+					{ "isVibrationEnabled", settings.gamepad.isVibrationEnabled },
+					{ "isAdaptiveTriggersEnabled", settings.gamepad.isAdaptiveTriggersEnabled },
+					{ "isControllerLightbarEnabled", settings.gamepad.isControllerLightbarEnabled }
+				}
 			}
 		};
 	}
@@ -308,6 +316,23 @@ namespace
 			result.controls.moveLeft = readBinding("moveLeft", result.controls.moveLeft);
 			result.controls.moveRight = readBinding("moveRight", result.controls.moveRight);
 			result.controls.fire = readBinding("fire", result.controls.fire);
+		}
+
+		if (const auto gamepad(data.find("gamepad"));
+			gamepad != data.end() && gamepad->is_object())
+		{
+			result.gamepad.isVibrationEnabled = ReadValue(
+				*gamepad,
+				"isVibrationEnabled",
+				result.gamepad.isVibrationEnabled);
+			result.gamepad.isAdaptiveTriggersEnabled = ReadValue(
+				*gamepad,
+				"isAdaptiveTriggersEnabled",
+				result.gamepad.isAdaptiveTriggersEnabled);
+			result.gamepad.isControllerLightbarEnabled = ReadValue(
+				*gamepad,
+				"isControllerLightbarEnabled",
+				result.gamepad.isControllerLightbarEnabled);
 		}
 
 		return result;

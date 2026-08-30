@@ -16,7 +16,7 @@ public:
 		const sf::Vector2f& target);
 
 	Type GetType() const noexcept override;
-	bool IsCollideWith(const Entity& other) const override;
+	bool IsCollidingWith(const Entity& other) const override;
 	void Update(float deltaTime) override;
 	void OnDestroy() override;
 

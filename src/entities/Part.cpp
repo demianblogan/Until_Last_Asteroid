@@ -39,7 +39,7 @@ void Part::Update(float deltaTime)
 	SetPresentation(pulse, opacity);
 }
 
-bool Part::IsCollideWith(const Entity& other) const
+bool Part::IsCollidingWith(const Entity& other) const
 {
 	return other.GetType() == Type::Player;
 }

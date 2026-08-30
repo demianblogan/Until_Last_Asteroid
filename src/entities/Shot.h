@@ -51,7 +51,7 @@ public:
 		bool tripleShotVisual = false);
 	void Update(float deltaTime) override;
 	Type GetType() const noexcept override;
-	bool IsCollideWith(const Entity& other) const override;
+	bool IsCollidingWith(const Entity& other) const override;
 
 private:
 	void AcquireHomingTarget();
@@ -70,7 +70,7 @@ public:
 		GameplayData::ProjectileKind projectileKind = GameplayData::ProjectileKind::Enemy,
 		bool playSound = true);
 	Type GetType() const noexcept override;
-	bool IsCollideWith(const Entity& other) const override;
+	bool IsCollidingWith(const Entity& other) const override;
 };
 
 class HelperShot final : public Shot
@@ -80,7 +80,7 @@ public:
 		const Entity* target);
 	void Update(float deltaTime) override;
 	[[nodiscard]] Type GetType() const noexcept override;
-	[[nodiscard]] bool IsCollideWith(const Entity& other) const override;
+	[[nodiscard]] bool IsCollidingWith(const Entity& other) const override;
 
 private:
 	void AcquireTarget();

@@ -5,6 +5,7 @@
 #include <SFML/System/Vector2.hpp>
 
 namespace sf { class Event; }
+namespace Haptics { class GamepadHaptics; }
 
 // Deliberately self-contained -- does not go through ActionMap/InputBinding/
 // InputHandler like keyboard and mouse do. That trio is built specifically
@@ -52,6 +53,13 @@ public:
 
     GamepadManager();
 
+    // Optional -- when set, GetNavigationAction() pulses a light vibration
+    // on every menu-navigation move/press it reports, giving gamepad
+    // navigation the same tactile feedback across every menu that calls it,
+    // without each of those states having to remember to trigger it
+    // themselves. Not owned; must outlive this object.
+    void SetHaptics(Haptics::GamepadHaptics* newHaptics) noexcept;
+
     void HandleEvent(const sf::Event& event);
 
     [[nodiscard]] GameplayInput GetGameplayInput() const;
@@ -64,6 +72,7 @@ public:
 
 private:
     void RefreshConnection();
+    [[nodiscard]] NavigationAction ComputeNavigationAction(const sf::Event& event) const;
     [[nodiscard]] bool IsActiveJoystick(unsigned int joystickID) const noexcept;
     [[nodiscard]] bool IsButtonPressed(unsigned int button) const;
     [[nodiscard]] sf::Vector2f ReadStick(bool isRightStick) const;
@@ -71,4 +80,5 @@ private:
     std::optional<unsigned int> activeJoystick;
     Layout layout = Layout::Generic;
     bool isInUse = false;
+    Haptics::GamepadHaptics* haptics = nullptr;
 };

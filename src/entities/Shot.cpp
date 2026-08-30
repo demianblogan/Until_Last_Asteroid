@@ -197,7 +197,7 @@ Entity::Type PlayerShot::GetType() const noexcept
 	return IsReflected() ? Type::Projectile_Enemy : Type::Projectile_Player;
 }
 
-bool PlayerShot::IsCollideWith(const Entity& other) const
+bool PlayerShot::IsCollidingWith(const Entity& other) const
 {
 	if (IsReflected())
 		return (other.GetType() == Type::Player ||
@@ -228,7 +228,7 @@ SaucerShot::SaucerShot(Assets& assets, World& world,
 
 Entity::Type SaucerShot::GetType() const noexcept { return Type::Projectile_Enemy; }
 
-bool SaucerShot::IsCollideWith(const Entity& other) const
+bool SaucerShot::IsCollidingWith(const Entity& other) const
 {
 	return (other.GetType() == Type::Player || other.GetType() == Type::Asteroid)
 		&& CheckCollision(other);
@@ -268,7 +268,7 @@ Entity::Type HelperShot::GetType() const noexcept
 	return IsReflected() ? Type::Projectile_Enemy : Type::Projectile_Ally;
 }
 
-bool HelperShot::IsCollideWith(const Entity& other) const
+bool HelperShot::IsCollidingWith(const Entity& other) const
 {
 	if (IsReflected())
 		return (other.GetType() == Type::Player ||

@@ -19,7 +19,8 @@
 #include "settings/SettingsManager.h"
 #include "localization/LocalizationManager.h"
 #include "states/StateStack.h"
-#include "input/GamepadManager.h"
+#include "input/gamepad/GamepadManager.h"
+#include "input/gamepad/GamepadHaptics.h"
 #include "ui/AchievementToast.h"
 
 namespace sf
@@ -95,6 +96,7 @@ private:
 	// Runtime session state and subsystems.
 	bool wasMainMenuIntroPlayed = false;
 	GamepadManager gamepad;
+	Haptics::GamepadHaptics gamepadHaptics;
 	GameplayLaunchRequest gameplayLaunchRequest;
 	StateStack stateStack;
 	std::optional<UI::AchievementToast> achievementToast;

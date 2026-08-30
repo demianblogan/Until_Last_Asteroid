@@ -22,6 +22,8 @@
     "display_resolution": "Разрешение экрана", "window_mode": "Режим окна", "show_fps": "Показывать FPS",
     "vsync": "Вертикальная синхронизация", "frame_limit": "Ограничение частоты кадров", "post_effects": "Постэффекты",
     "reset_graphics": "Сбросить графику", "screen_shake": "Тряска экрана", "score_popups": "Показывать очки",
+    "gamepad_vibration": "Вибрация геймпада", "gamepad_adaptive_triggers": "Адаптивные триггеры",
+    "gamepad_lightbar": "Подсветка геймпада",
     "reset_gameplay": "Сбросить настройки игры", "music": "Музыка", "sounds": "Звуки",
     "reset_audio": "Сбросить звук", "move_up": "Движение вверх", "move_down": "Движение вниз",
     "move_left": "Движение влево", "move_right": "Движение вправо", "fire": "Огонь",

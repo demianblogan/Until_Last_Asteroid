@@ -26,7 +26,7 @@ Entity::Type HelperBot::GetType() const noexcept
 	return Type::Companion;
 }
 
-bool HelperBot::IsCollideWith(const Entity& other) const
+bool HelperBot::IsCollidingWith(const Entity& other) const
 {
 	static_cast<void>(other);
 	return false;

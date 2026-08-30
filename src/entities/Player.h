@@ -39,7 +39,7 @@ public:
 	~Player();
 
 	Type GetType() const noexcept override;
-	bool IsCollideWith(const Entity& other) const override;
+	bool IsCollidingWith(const Entity& other) const override;
 	void Update(float deltaTime) override;
 	void HandleEvent(const sf::Event& event);
 	void HandleRealtime();

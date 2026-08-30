@@ -22,7 +22,7 @@ public:
 	[[nodiscard]] bool AcceptsKnockback() const noexcept override;
 
 	Type GetType() const noexcept override;
-	bool IsCollideWith(const Entity& other) const override;
+	bool IsCollidingWith(const Entity& other) const override;
 	void Update(float deltaTime) override;
 	void OnDestroy() override;
 

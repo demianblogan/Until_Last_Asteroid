@@ -30,6 +30,9 @@ private:
 	UI::ScreenFade fade;
 	sf::Text title;
 	std::vector<UI::RoundedRectangleShape> tiles;
+	// One glow per tile so each unlocked achievement can bloom independently --
+	// only unlocked ones ever get drawn (see RenderTiles), the rest sit unused.
+	std::vector<Rendering::NeonGlow> tileGlows;
 	std::vector<sf::Sprite> icons;
 	std::vector<sf::Text> achievementTitles;
 	std::vector<sf::Text> descriptions;

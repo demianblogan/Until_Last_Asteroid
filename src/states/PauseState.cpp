@@ -19,7 +19,7 @@
 #include "gameplay/GameplayLaunch.h"
 #include "localization/LocalizationManager.h"
 #include "states/StateID.h"
-#include "input/GamepadManager.h"
+#include "input/gamepad/GamepadManager.h"
 #include "rendering/RenderTargetUtils.h"
 #include "utils/ConfigEnums.h"
 

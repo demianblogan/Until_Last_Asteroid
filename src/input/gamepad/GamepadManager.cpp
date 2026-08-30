@@ -6,6 +6,8 @@
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Joystick.hpp>
 
+#include "gameplay/VibrationProfiles.h"
+
 namespace
 {
 	// USB vendor IDs, assigned by the USB Implementers Forum -- Microsoft's
@@ -57,6 +59,11 @@ namespace
 GamepadManager::GamepadManager()
 {
 	RefreshConnection();
+}
+
+void GamepadManager::SetHaptics(Haptics::GamepadHaptics* newHaptics) noexcept
+{
+	haptics = newHaptics;
 }
 
 void GamepadManager::HandleEvent(const sf::Event& event)
@@ -146,6 +153,16 @@ bool GamepadManager::IsPausePressed(const sf::Event& event) const
 }
 
 GamepadManager::NavigationAction GamepadManager::GetNavigationAction(const sf::Event& event) const
+{
+	const NavigationAction action = ComputeNavigationAction(event);
+
+	if (action != NavigationAction::None && haptics != nullptr)
+		VibrationProfiles::Apply(*haptics, VibrationProfiles::MenuNavigation);
+
+	return action;
+}
+
+GamepadManager::NavigationAction GamepadManager::ComputeNavigationAction(const sf::Event& event) const
 {
 	if (const auto* moved = event.getIf<sf::Event::JoystickMoved>())
 	{

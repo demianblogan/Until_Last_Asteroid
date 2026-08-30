@@ -59,11 +59,18 @@
     <ClCompile Include="src\utils\AppDataPath.cpp" />
     <ClCompile Include="src\utils\Random.cpp" />
     <ClCompile Include="src\utils\SafeFileWrite.cpp" />
+    <ClCompile Include="src\utils\VectorMath.cpp" />
     <ClCompile Include="src\core\world\World.cpp" />
+    <ClCompile Include="libs\DualSenseWindows\src\DualSenseWindows\DS5_Input.cpp" />
+    <ClCompile Include="libs\DualSenseWindows\src\DualSenseWindows\DS5_Output.cpp" />
+    <ClCompile Include="libs\DualSenseWindows\src\DualSenseWindows\DS_CRC32.cpp" />
+    <ClCompile Include="libs\DualSenseWindows\src\DualSenseWindows\Helpers.cpp" />
+    <ClCompile Include="libs\DualSenseWindows\src\DualSenseWindows\IO.cpp" />
     <ClCompile Include="src\entities\Saucer.cpp" />
 	<ClCompile Include="src\entities\Spinner.cpp" />
     <ClCompile Include="src\entities\Shot.cpp" />
     <ClCompile Include="src\ui\HUD.cpp" />
+    <ClCompile Include="src\ui\HealthColor.cpp" />
     <ClCompile Include="src\ui\GlowingCursor.cpp" />
 	<ClCompile Include="src\ui\LevelIntro.cpp" />
     <ClCompile Include="src\ui\MenuBackground.cpp" />
@@ -80,12 +87,14 @@
     <ClCompile Include="src\ui\GameOverScreen.cpp" />
     <ClCompile Include="src\ui\ResultScreen.cpp" />
     <ClCompile Include="src\settings\SettingsManager.cpp" />
-    <ClCompile Include="src\input\GamepadManager.cpp" />
+    <ClCompile Include="src\input\gamepad\GamepadManager.cpp" />
+    <ClCompile Include="src\input\gamepad\GamepadHaptics.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\AppDataPath.h" />
     <ClInclude Include="src\utils\Random.h" />
     <ClInclude Include="src\utils\SafeFileWrite.h" />
+    <ClInclude Include="src\utils\VectorMath.h" />
     <ClInclude Include="src\audio\AudioManager.h" />
     <ClInclude Include="src\audio\AudioBalance.h" />
     <ClInclude Include="src\campaign\CampaignProgress.h" />
@@ -105,7 +114,9 @@
     <ClInclude Include="src\input\InputBinding.h" />
     <ClInclude Include="src\input\ActionMap.h" />
     <ClInclude Include="src\input\InputHandler.h" />
-    <ClInclude Include="src\input\GamepadManager.h" />
+    <ClInclude Include="src\input\gamepad\GamepadManager.h" />
+    <ClInclude Include="src\input\gamepad\GamepadHaptics.h" />
+    <ClInclude Include="src\gameplay\VibrationProfiles.h" />
     <ClInclude Include="src\core\world\World.h" />
     <ClInclude Include="src\entities\Shot.h" />
     <ClInclude Include="src\entities\Saucer.h" />
@@ -148,6 +159,7 @@
     <ClInclude Include="src\states\StateId.h" />
     <ClInclude Include="src\states\StateStack.h" />
     <ClInclude Include="src\ui\HUD.h" />
+    <ClInclude Include="src\ui\HealthColor.h" />
     <ClInclude Include="src\ui\GlowingCursor.h" />
 	<ClInclude Include="src\ui\LevelIntro.h" />
     <ClInclude Include="src\ui\MenuBackground.h" />
@@ -166,6 +178,14 @@
     <ClInclude Include="src\settings\GameSettings.h" />
     <ClInclude Include="src\settings\SettingsManager.h" />
     <ClInclude Include="libs\nlohmann\json.hpp" />
+    <ClInclude Include="libs\DualSenseWindows\include\DualSenseWindows\Device.h" />
+    <ClInclude Include="libs\DualSenseWindows\include\DualSenseWindows\DS5State.h" />
+    <ClInclude Include="libs\DualSenseWindows\include\DualSenseWindows\DSW_Api.h" />
+    <ClInclude Include="libs\DualSenseWindows\include\DualSenseWindows\Helpers.h" />
+    <ClInclude Include="libs\DualSenseWindows\include\DualSenseWindows\IO.h" />
+    <ClInclude Include="libs\DualSenseWindows\src\DualSenseWindows\DS5_Input.h" />
+    <ClInclude Include="libs\DualSenseWindows\src\DualSenseWindows\DS5_Output.h" />
+    <ClInclude Include="libs\DualSenseWindows\src\DualSenseWindows\DS_CRC32.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\bright_pass.frag" />

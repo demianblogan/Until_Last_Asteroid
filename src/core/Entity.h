@@ -39,8 +39,7 @@ public:
 		Part
 	};
 
-	Entity(Assets& assets, World& world, sf::Texture& texture,
-		float visualScale, float collisionRadius,
+	Entity(Assets& assets, World& world, sf::Texture& texture, float visualScale, float collisionRadius,
 		std::span<const Collision::LocalCircle> collisionCircles = {});
 
 	virtual ~Entity() = default;
@@ -73,7 +72,7 @@ public:
 	// normal wrap-around behavior while materializing. Defaulting to false
 	// here avoids a dynamic_cast check against every entity, every frame, in
 	// World::Update just to test this for the rare entities that care.
-	[[nodiscard]] virtual bool IsArriving() const noexcept { return false; }
+	[[nodiscard]] virtual bool IsArriving() const noexcept;
 
 protected:
 	[[nodiscard]] World& GetWorld() noexcept;
@@ -91,7 +90,7 @@ protected:
 
 	virtual void Update(float deltaTime) = 0;
 
-	virtual bool IsCollideWith(const Entity& other) const = 0;
+	[[nodiscard]] virtual bool IsCollidingWith(const Entity& other) const = 0;
 	[[nodiscard]] bool CheckCollision(const Entity& other) const noexcept;
 
 	void Move(float deltaTime) noexcept;
@@ -121,10 +120,8 @@ private:
 
 	float visualScale = 1.f;
 
-private:
 	[[nodiscard]] sf::Vector2f GetCollisionCircleCenter(const Collision::LocalCircle& circle) const noexcept;
-	[[nodiscard]] std::optional<Collision::CircleContactInfo> GetCollisionContactInfo(
-		const Entity& other) const noexcept;
+	[[nodiscard]] std::optional<Collision::CircleContactInfo> GetCollisionContactInfo(const Entity& other) const noexcept;
 
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 	void UpdateEffects(float deltaTime) noexcept;

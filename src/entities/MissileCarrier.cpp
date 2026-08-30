@@ -6,16 +6,13 @@
 #include "core/world/World.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
+#include "utils/VectorMath.h"
 
 namespace
 {
-	sf::Vector2f Normalize(const sf::Vector2f& vector)
-	{
-		const float lengthSquared{ vector.x * vector.x + vector.y * vector.y };
-		if (lengthSquared <= 0.0001f)
-			return { 0.f, -1.f };
-		return vector / std::sqrt(lengthSquared);
-	}
+	// MissileCarrier's engine trail and launch direction should point downward
+	// by default when velocity/aim is degenerate, matching its default facing.
+	constexpr sf::Vector2f DegenerateDirectionFallback{ 0.f, -1.f };
 }
 
 MissileCarrier::MissileCarrier(Assets& assets, World& world)
@@ -32,7 +29,7 @@ Entity::Type MissileCarrier::GetType() const noexcept
 	return Type::Enemy;
 }
 
-bool MissileCarrier::IsCollideWith(const Entity& other) const
+bool MissileCarrier::IsCollidingWith(const Entity& other) const
 {
 	return (other.GetType() == Type::Player ||
 		other.GetType() == Type::Projectile_Player ||
@@ -45,7 +42,7 @@ void MissileCarrier::Update(float deltaTime)
 	const sf::Vector2f playerPosition{ GetWorld().GetPlayerPosition() };
 	TurnTowards(playerPosition, GetRotationSpeed(), deltaTime);
 	UpdatePatrolMovement(deltaTime);
-	EmitEngineParticles(-Normalize(GetVelocity()));
+	EmitEngineParticles(-VectorMath::Normalize(GetVelocity(), DegenerateDirectionFallback));
 
 	launchTimer += deltaTime;
 	if (launchTimer >= GetActionInterval())
@@ -99,7 +96,7 @@ void MissileCarrier::OnDestroy()
 void MissileCarrier::LaunchMissile(const sf::Vector2f& target)
 {
 	const sf::Vector2f launcherPosition{ GetLauncherPosition() };
-	const sf::Vector2f direction{ Normalize(target - launcherPosition) };
+	const sf::Vector2f direction{ VectorMath::Normalize(target - launcherPosition, DegenerateDirectionFallback) };
 	GetWorld().Effects().Add({
 		Rendering::EffectEventType::EnemyMuzzleFlash,
 		launcherPosition, direction, 1.15f });

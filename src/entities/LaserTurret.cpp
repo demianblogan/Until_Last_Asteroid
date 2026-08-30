@@ -8,15 +8,7 @@
 #include "assets/Assets.h"
 #include "core/world/World.h"
 #include "utils/ConfigEnums.h"
-
-namespace
-{
-	sf::Vector2f Normalize(const sf::Vector2f& value)
-	{
-		const float length{ std::sqrt(value.x * value.x + value.y * value.y) };
-		return length > 0.001f ? value / length : sf::Vector2f{ 1.f, 0.f };
-	}
-}
+#include "utils/VectorMath.h"
 
 LaserTurret::LaserTurret(Assets& assets, World& world)
 	: Enemy(assets, world, assets.Textures().Get(Config::Texture::LaserTurret),
@@ -35,9 +27,9 @@ void LaserTurret::ConfigurePath(
 {
 	pathStart = first;
 	pathEnd = second;
-	inward = Normalize(beamDirection);
+	inward = VectorMath::Normalize(beamDirection);
 	targetCorner = pathStart;
-	const sf::Vector2f routeDirection{ Normalize(pathEnd - pathStart) };
+	const sf::Vector2f routeDirection{ VectorMath::Normalize(pathEnd - pathStart) };
 	SetPosition(pathStart - routeDirection * (GetCollisionRadius() * 2.5f));
 	SetVelocity(routeDirection * GetMovementSpeed());
 	phase = Phase::Arriving;
@@ -54,10 +46,10 @@ void LaserTurret::ConfigureStationaryArrival(
 {
 	pathStart = destination;
 	pathEnd = destination;
-	inward = Normalize(beamDirection);
+	inward = VectorMath::Normalize(beamDirection);
 	targetCorner = destination;
 	SetPosition(start);
-	const sf::Vector2f routeDirection{ Normalize(destination - start) };
+	const sf::Vector2f routeDirection{ VectorMath::Normalize(destination - start) };
 	SetVelocity(routeDirection * GetMovementSpeed());
 	phase = Phase::Arriving;
 	atFirstCorner = false;
@@ -93,7 +85,7 @@ bool LaserTurret::IsArriving() const noexcept { return phase == Phase::Arriving;
 bool LaserTurret::AcceptsKnockback() const noexcept { return false; }
 Entity::Type LaserTurret::GetType() const noexcept { return Type::Enemy; }
 
-bool LaserTurret::IsCollideWith(const Entity& other) const
+bool LaserTurret::IsCollidingWith(const Entity& other) const
 {
 	return (other.GetType() == Type::Player ||
 		other.GetType() == Type::Projectile_Player ||

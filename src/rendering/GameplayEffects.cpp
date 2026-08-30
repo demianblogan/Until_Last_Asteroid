@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <numbers>
+#include <stdexcept>
 #include <string>
 
 #include <SFML/Graphics/RenderStates.hpp>
@@ -14,21 +15,15 @@
 #include "entities/Player.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
+#include "utils/VectorMath.h"
 
 namespace Rendering
 {
 	namespace
 	{
-		constexpr float NormalizeEpsilonSquared = 0.0001f;
-
-		sf::Vector2f Normalize(const sf::Vector2f& vector)
-		{
-			const float lengthSquared = vector.x * vector.x + vector.y * vector.y;
-			if (lengthSquared <= NormalizeEpsilonSquared)
-				return { 0.f, -1.f };
-
-			return vector / std::sqrt(lengthSquared);
-		}
+		// These effects' directions should point downward by default when the
+		// source vector (e.g. a stationary emitter's velocity) is degenerate.
+		constexpr sf::Vector2f DegenerateDirectionFallback{ 0.f, -1.f };
 
 		int ScaledCount(int count, float scale)
 		{
@@ -39,26 +34,45 @@ namespace Rendering
 		constexpr float EngineEmissionIntervalSeconds = 1.f / EngineEmissionRateHz;
 		constexpr int MaximumEngineEmissionCatchUpSteps = 8;
 
-		constexpr int WeldingSparkCount = 5;
-		constexpr int StationChainExplosionDebrisCount = 10;
-		constexpr int StationChainExplosionSmokeCount = 2;
-		constexpr int PlayerTeleportSparkCount = 28;
-		constexpr int MuzzleFlashSparkCount = 8;
-
 		constexpr int StoneHitMinimumSmokeCount = 1;
 		constexpr int StoneHitSmokeCountDivisor = 5;
+		// How wide a cone (in radians) each hit's directional particles
+		// scatter into around the impact direction -- debris scatters wider
+		// than the dust cloud drifting off of it.
+		constexpr float StoneHitDebrisSpreadRadians = 1.35f;
+		constexpr float StoneHitDustSpreadRadians = 1.5f;
+		constexpr float StoneHitDebrisEndSizeFraction = 0.45f;
+
+		constexpr float MetalHitSpreadRadians = 1.55f;
 
 		constexpr int AsteroidExplosionMinimumSmokeCount = 3;
 		constexpr int AsteroidExplosionSmokeCountDivisor = 5;
+		constexpr float AsteroidExplosionDebrisEndSizeFraction = 0.55f;
+		constexpr float AsteroidLargeSizeThreshold = 0.8f;
 
 		constexpr int ShipExplosionMinimumSmokeCount = 4;
 		constexpr int ShipExplosionSmokeCountDivisor = 6;
+		// The spark/debris split below fires every other burst particle as a
+		// spark (short-lived, small) instead of debris (full lifetime); this
+		// is that spark's lifetime as a fraction of the debris burst's own,
+		// and the fraction of the debris burst's velocity a debris chunk
+		// (versus a spark) actually flies out at.
+		constexpr float ShipExplosionSparkLifetimeFraction = 0.65f;
+		constexpr float ShipExplosionDebrisSpeedFraction = 0.72f;
 
 		constexpr float StationExplosionDebrisScaleMultiplier = 1.45f;
-		constexpr int StationExplosionSmokeCount = 14;
+		constexpr float StationExplosionDebrisMinimumSpeedFraction = 0.9f;
+		constexpr float StationExplosionDebrisMaximumSpeedFraction = 1.3f;
 
 		constexpr float ScorePopupDuration = 0.5f;
 		constexpr float ScorePopupRiseDistance = 56.f;
+
+		sf::Color ToColor(const std::array<int, 4>& channels)
+		{
+			return sf::Color(
+				static_cast<std::uint8_t>(channels[0]), static_cast<std::uint8_t>(channels[1]),
+				static_cast<std::uint8_t>(channels[2]), static_cast<std::uint8_t>(channels[3]));
+		}
 	}
 
 	GameplayEffects::ScorePopup::ScorePopup(const sf::Font& font, int points, sf::Vector2f position)
@@ -117,6 +131,16 @@ namespace Rendering
 			engineEmissionAccumulator = std::min(engineEmissionAccumulator, EngineEmissionIntervalSeconds);
 		}
 
+		// A dispatch table (EffectEventType -> std::function/member-pointer)
+		// was considered here instead of this switch, but doesn't actually
+		// come out simpler: half these cases need extra per-event data the
+		// others don't (PlayerHit also drives the damage vignette and a
+		// camera shake; BossDestructionShake and ScorePopup don't call an
+		// Emit* at all), so a table's entries would need to be lambdas
+		// anyway -- no less code than the switch, just harder to read -- and
+		// a switch with no default: gets a compiler warning for free if a
+		// new EffectEventType is ever added and forgotten here, which a
+		// table can't offer.
 		for (const EffectEvent& event : world.Effects().Get())
 		{
 			switch (event.type)
@@ -158,9 +182,7 @@ namespace Rendering
 				EmitMetalHit(event.position, event.direction, event.scale);
 				break;
 			case EffectEventType::PlayerHit:
-				EmitMetalHit(event.position, event.direction, event.scale);
-				postProcessState.damageVignette = 1.f;
-				StartCameraShake(config.damageShake, event.scale);
+				HandlePlayerHit(event.position, event.direction, event.scale);
 				break;
 			case EffectEventType::AsteroidExplosion:
 				EmitAsteroidExplosion(event.position, event.scale);
@@ -187,7 +209,11 @@ namespace Rendering
 		world.Effects().Clear();
 
 		engineParticles.Update(deltaTime);
-		projectileGlowParticles.Update(0.f);
+		// Glow particles are cleared and fully re-emitted from scratch this
+		// same frame above (see world.Effects().Get()'s loop) rather than
+		// aging across frames, so there's nothing here for Update() to
+		// simulate -- just rebuild the vertex data for what was just spawned.
+		projectileGlowParticles.RefreshVertices();
 		weaponParticles.Update(deltaTime);
 		impactParticles.Update(deltaTime);
 		smokeParticles.Update(deltaTime);
@@ -254,17 +280,37 @@ namespace Rendering
 		return postProcessState;
 	}
 
-	sf::Vector2f GameplayEffects::GenerateRandomDirection()
+	const GameplayData::ParticlePresetConfig& GameplayEffects::Preset(const char* name) const
 	{
-		const float angle = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
-		return { std::cos(angle), std::sin(angle) };
+		const auto it{ config.particlePresets.find(name) };
+		if (it == config.particlePresets.end())
+			throw std::runtime_error(std::string("Unknown particle preset '") + name + "'");
+
+		return it->second;
 	}
 
-	sf::Vector2f GameplayEffects::GenerateRandomDirectionAround(const sf::Vector2f& direction, float spreadRadians)
+	ParticleSpawn GameplayEffects::MakeSpawn(
+		const GameplayData::ParticlePresetConfig& preset,
+		const sf::Vector2f& position,
+		const sf::Vector2f& velocity,
+		float rotation,
+		float startSizeScale,
+		float endSizeScale) const
 	{
-		const sf::Vector2f normalized{ Normalize(direction) };
-		const float angle = std::atan2(normalized.y, normalized.x) + Random::Float(-spreadRadians, spreadRadians);
-		return { std::cos(angle), std::sin(angle) };
+		return ParticleSpawn
+		{
+			.position = position,
+			.velocity = velocity,
+			.lifetime = Random::Float(preset.lifetime.minimum, preset.lifetime.maximum),
+			.startSize = Random::Float(preset.startSize.minimum, preset.startSize.maximum) * startSizeScale,
+			.endSize = Random::Float(preset.endSize.minimum, preset.endSize.maximum) * endSizeScale,
+			.startColor = ToColor(preset.startColor),
+			.endColor = ToColor(preset.endColor),
+			.rotation = rotation,
+			.angularVelocity = Random::Float(preset.angularVelocity.minimum, preset.angularVelocity.maximum),
+			.drag = preset.drag,
+			.aspectRatio = Random::Float(preset.aspectRatio.minimum, preset.aspectRatio.maximum)
+		};
 	}
 
 	void GameplayEffects::EmitPlayerEngineParticles(const World& world)
@@ -276,110 +322,79 @@ namespace Rendering
 			return;
 
 		const sf::Vector2f perpendicular{ -playerState->exhaustDirection.y,	playerState->exhaustDirection.x };
+		const auto& preset{ Preset("engine_player_thruster") };
+
+		// The exhaust plume drags along a fraction of the ship's own motion
+		// on top of its outward blast, so it visibly trails behind a turning
+		// or accelerating ship instead of firing in a fixed direction.
+		constexpr float ShipVelocityInheritance = 0.18f;
+		constexpr float PositionJitter = 1.5f;
 
 		for (const sf::Vector2f& emitterPosition : playerState->enginePositions)
 		{
-			const float sidewaysJitter = Random::Float(-24.f, 24.f);
-			const float exhaustSpeed = Random::Float(150.f, 235.f);
-			const float lifetime = Random::Float(0.2f, 0.32f);
+			const float exhaustSpeed{ Random::Float(preset.speed.minimum, preset.speed.maximum) };
+			const float sidewaysJitter{ Random::Float(preset.lateralJitter.minimum, preset.lateralJitter.maximum) };
 
-			const ParticleSpawn spawn
-			{
-				.position = emitterPosition + perpendicular * Random::Float(-1.5f, 1.5f),
-				.velocity = playerState->velocity * 0.18f + playerState->exhaustDirection * exhaustSpeed +
-					perpendicular * sidewaysJitter,
-				.lifetime = lifetime,
-				.startSize = Random::Float(14.f, 19.f),
-				.endSize = Random::Float(2.f, 4.f),
-				.startColor = { 155, 255, 255, 250 },
-				.endColor = { 25, 95, 255, 0 },
-				.drag = 2.5f
-			};
+			const sf::Vector2f position{ emitterPosition + perpendicular * Random::Float(-PositionJitter, PositionJitter) };
+			const sf::Vector2f velocity{
+				playerState->velocity * ShipVelocityInheritance +
+				playerState->exhaustDirection * exhaustSpeed +
+				perpendicular * sidewaysJitter };
 
-			engineParticles.Emit(spawn);
+			engineParticles.Emit(MakeSpawn(preset, position, velocity));
 		}
 	}
 
 	void GameplayEffects::EmitProjectileGlow(bool isPlayerProjectile, const sf::Vector2f& position,
 		bool isHomingProjectile, bool isTripleShot)
 	{
-		sf::Color startColor;
+		const char* presetName;
 		if (isTripleShot)
-			startColor = { 65, 255, 115, 240 };
+			presetName = "projectile_glow_triple";
 		else if (isHomingProjectile)
-			startColor = { 255, 188, 45, 240 };
+			presetName = "projectile_glow_homing";
 		else if (isPlayerProjectile)
-			startColor = { 85, 235, 255, 235 };
+			presetName = "projectile_glow_player";
 		else
-			startColor = { 255, 55, 110, 235 };
+			presetName = "projectile_glow_enemy";
 
-		const ParticleSpawn spawn
-		{
-			.position = position,
-			.lifetime = 1.f,
-			.startSize = isPlayerProjectile ? 34.f : 31.f,
-			.endSize = isPlayerProjectile ? 34.f : 31.f,
-			.startColor = startColor,
-			.endColor = startColor
-		};
-
-		projectileGlowParticles.Emit(spawn);
+		projectileGlowParticles.Emit(MakeSpawn(Preset(presetName), position));
 	}
 
 	void GameplayEffects::EmitMissileSmoke(const sf::Vector2f& position, const sf::Vector2f& direction)
 	{
-		const sf::Vector2f normalized{ Normalize(direction) };
+		const sf::Vector2f normalized{ VectorMath::Normalize(direction, DegenerateDirectionFallback) };
 		const sf::Vector2f perpendicular{ -normalized.y, normalized.x };
 		const sf::Vector2f exhaustPosition{ position - normalized * 20.f };
 
-		const ParticleSpawn smokeSpawn
-		{
-			.position = exhaustPosition + perpendicular * Random::Float(-2.5f, 2.5f),
-			.velocity = -normalized * Random::Float(35.f, 65.f) + perpendicular * Random::Float(-22.f, 22.f),
-			.lifetime = Random::Float(0.38f, 0.62f),
-			.startSize = Random::Float(13.f, 19.f),
-			.endSize = Random::Float(25.f, 34.f),
-			.startColor = { 125, 130, 145, 155 },
-			.endColor = { 35, 38, 48, 0 },
-			.angularVelocity = Random::Float(-0.8f, 0.8f),
-			.drag = 1.2f
-		};
+		const auto& trailPreset{ Preset("missile_smoke_trail") };
+		const sf::Vector2f trailPosition{
+			exhaustPosition + perpendicular * Random::Float(trailPreset.spawnOffset.minimum, trailPreset.spawnOffset.maximum) };
+		const sf::Vector2f trailVelocity{
+			-normalized * Random::Float(trailPreset.speed.minimum, trailPreset.speed.maximum) +
+			perpendicular * Random::Float(trailPreset.lateralJitter.minimum, trailPreset.lateralJitter.maximum) };
 
-		smokeParticles.Emit(smokeSpawn);
+		smokeParticles.Emit(MakeSpawn(trailPreset, trailPosition, trailVelocity));
 
-		const ParticleSpawn flareSpawn
-		{
-			.position = exhaustPosition,
-			.velocity = -normalized * Random::Float(30.f, 55.f),
-			.lifetime = Random::Float(0.08f, 0.13f),
-			.startSize = Random::Float(13.f, 17.f),
-			.endSize = Random::Float(4.f, 7.f),
-			.startColor = { 255, 245, 135, 255 },
-			.endColor = { 255, 90, 15, 0 },
-			.drag = 2.f
-		};
+		const auto& flarePreset{ Preset("missile_smoke_flare") };
+		const sf::Vector2f flareVelocity{ -normalized * Random::Float(flarePreset.speed.minimum, flarePreset.speed.maximum) };
 
-		weaponParticles.Emit(flareSpawn);
+		weaponParticles.Emit(MakeSpawn(flarePreset, exhaustPosition, flareVelocity));
 	}
 
 	void GameplayEffects::EmitEnemyEngine(const sf::Vector2f& position, const sf::Vector2f& direction)
 	{
-		const sf::Vector2f normalized{ Normalize(direction) };
+		const sf::Vector2f normalized{ VectorMath::Normalize(direction, DegenerateDirectionFallback) };
 		const sf::Vector2f perpendicular{ -normalized.y, normalized.x };
+		const auto& preset{ Preset("enemy_engine_trail") };
 
-		const ParticleSpawn spawn
-		{
-			.position = position + perpendicular * Random::Float(-1.5f, 1.5f),
-			.velocity = normalized * Random::Float(125.f, 190.f) + perpendicular * Random::Float(-20.f, 20.f),
-			.lifetime = Random::Float(0.18f, 0.28f),
-			.startSize = Random::Float(11.f, 16.f),
-			.endSize = Random::Float(2.f, 4.f),
-			.startColor = { 255, 105, 75, 245 },
-			.endColor = { 130, 12, 28, 0 },
-			.drag = 2.2f
-		};
+		const sf::Vector2f spawnPosition{
+			position + perpendicular * Random::Float(preset.spawnOffset.minimum, preset.spawnOffset.maximum) };
+		const sf::Vector2f velocity{
+			normalized * Random::Float(preset.speed.minimum, preset.speed.maximum) +
+			perpendicular * Random::Float(preset.lateralJitter.minimum, preset.lateralJitter.maximum) };
 
-		engineParticles.Emit(spawn);
+		engineParticles.Emit(MakeSpawn(preset, spawnPosition, velocity));
 	}
 
 	void GameplayEffects::EmitStationWelding(const sf::Vector2f& position, float scale)
@@ -390,381 +405,194 @@ namespace Rendering
 			position.y + Random::Float(-26.f, 26.f) * scale
 		};
 
-		const ParticleSpawn glowSpawn
-		{
-			.position = source,
-			.lifetime = Random::Float(0.06f, 0.1f),
-			.startSize = Random::Float(18.f, 30.f) * scale,
-			.endSize = 2.f,
-			.startColor = { 225, 250, 255, 255 },
-			.endColor = { 45, 145, 255, 0 },
-			.drag = 3.f
-		};
+		const auto& glowPreset{ Preset("station_welding_glow") };
+		impactParticles.Emit(MakeSpawn(glowPreset, source, {}, 0.f, scale, 1.f));
 
-		impactParticles.Emit(glowSpawn);
-
-		for (int index = 0; index < WeldingSparkCount; index++)
+		const auto& sparkPreset{ Preset("station_welding_spark") };
+		for (int index = 0; index < sparkPreset.count; index++)
 		{
-			const sf::Vector2f direction{ GenerateRandomDirection() };
+			const sf::Vector2f direction{ VectorMath::RandomDirection() };
 			const float angle = std::atan2(direction.y, direction.x);
+			const sf::Vector2f velocity{ direction * Random::Float(sparkPreset.speed.minimum, sparkPreset.speed.maximum) };
 
-			const ParticleSpawn sparkSpawn
-			{
-				.position = source,
-				.velocity = direction * Random::Float(95.f, 240.f),
-				.lifetime = Random::Float(0.12f, 0.28f),
-				.startSize = Random::Float(3.f, 7.f) * scale,
-				.endSize = 0.7f,
-				.startColor = { 225, 250, 255, 255 },
-				.endColor = { 255, 90, 20, 0 },
-				.rotation = angle,
-				.drag = 0.7f,
-				.aspectRatio = Random::Float(2.5f, 5.f)
-			};
-
-			impactParticles.Emit(sparkSpawn);
+			impactParticles.Emit(MakeSpawn(sparkPreset, source, velocity, angle, scale, 1.f));
 		}
 	}
 
 	void GameplayEffects::EmitStationChainExplosion(const sf::Vector2f& position, float scale)
 	{
-		const ParticleSpawn coreSpawn
+		impactParticles.Emit(MakeSpawn(Preset("station_chain_explosion_core"), position, {}, 0.f, scale, scale));
+		impactParticles.Emit(MakeSpawn(Preset("station_chain_explosion_glow"), position, {}, 0.f, scale, scale));
+
+		const auto& debrisPreset{ Preset("station_chain_explosion_debris") };
+		for (int index = 0; index < debrisPreset.count; index++)
 		{
-			.position = position,
-			.lifetime = 0.24f,
-			.startSize = 90.f * scale,
-			.endSize = 9.f,
-			.startColor = { 255, 235, 170, 255 },
-			.endColor = { 255, 45, 10, 0 }
-		};
-
-		impactParticles.Emit(coreSpawn);
-
-		const ParticleSpawn glowSpawn
-		{
-			.position = position,
-			.lifetime = 0.42f,
-			.startSize = 50.f * scale,
-			.endSize = 125.f * scale,
-			.startColor = { 255, 85, 20, 190 },
-			.endColor = { 90, 10, 5, 0 }
-		};
-
-		impactParticles.Emit(glowSpawn);
-
-		for (int index = 0; index < StationChainExplosionDebrisCount; index++)
-		{
-			const sf::Vector2f direction{ GenerateRandomDirection() };
+			const sf::Vector2f direction{ VectorMath::RandomDirection() };
 			const float angle = std::atan2(direction.y, direction.x);
-			const ParticleSpawn debrisSpawn
-			{
-				.position = position,
-				.velocity = direction * Random::Float(90.f, 280.f),
-				.lifetime = Random::Float(0.18f, 0.42f),
-				.startSize = Random::Float(3.f, 8.f) * scale,
-				.endSize = 0.8f,
-				.startColor = { 255, 225, 135, 255 },
-				.endColor = { 255, 35, 8, 0 },
-				.rotation = angle,
-				.drag = 0.8f,
-				.aspectRatio = Random::Float(2.f, 4.5f)
-			};
+			const sf::Vector2f velocity{ direction * Random::Float(debrisPreset.speed.minimum, debrisPreset.speed.maximum) };
 
-			impactParticles.Emit(debrisSpawn);
+			impactParticles.Emit(MakeSpawn(debrisPreset, position, velocity, angle, scale, 1.f));
 		}
 
-		for (int index = 0; index < StationChainExplosionSmokeCount; index++)
+		const auto& smokePreset{ Preset("station_chain_explosion_smoke") };
+		for (int index = 0; index < smokePreset.count; index++)
 		{
-			const ParticleSpawn smokeSpawn
-			{
-				.position = position + GenerateRandomDirection() * Random::Float(0.f, 10.f),
-				.velocity = GenerateRandomDirection() * Random::Float(20.f, 60.f),
-				.lifetime = Random::Float(0.5f, 0.9f),
-				.startSize = Random::Float(30.f, 46.f) * scale,
-				.endSize = Random::Float(68.f, 98.f) * scale,
-				.startColor = { 95, 65, 55, 170 },
-				.endColor = { 22, 20, 24, 0 }
-			};
+			const sf::Vector2f spawnPosition{
+				position + VectorMath::RandomDirection() * Random::Float(smokePreset.spawnOffset.minimum, smokePreset.spawnOffset.maximum) };
+			const sf::Vector2f velocity{
+				VectorMath::RandomDirection() * Random::Float(smokePreset.speed.minimum, smokePreset.speed.maximum) };
 
-			smokeParticles.Emit(smokeSpawn);
+			smokeParticles.Emit(MakeSpawn(smokePreset, spawnPosition, velocity, 0.f, scale, scale));
 		}
 	}
 
 	void GameplayEffects::EmitPlayerTeleport(const sf::Vector2f& position, float scale)
 	{
-		const ParticleSpawn shockwaveSpawn
+		shockwaveParticles.Emit(MakeSpawn(Preset("player_teleport_shockwave"), position, {}, 0.f, scale, scale));
+		impactParticles.Emit(MakeSpawn(Preset("player_teleport_flash"), position, {}, 0.f, scale, 1.f));
+
+		const auto& sparkPreset{ Preset("player_teleport_spark") };
+		for (int index = 0; index < sparkPreset.count; ++index)
 		{
-			.position = position,
-			.lifetime = 0.5f,
-			.startSize = 28.f * scale,
-			.endSize = 175.f * scale,
-			.startColor = { 165, 255, 255, 245 },
-			.endColor = { 20, 105, 255, 0 }
-		};
-
-		shockwaveParticles.Emit(shockwaveSpawn);
-
-		const ParticleSpawn flashSpawn
-		{
-			.position = position,
-			.lifetime = 0.3f,
-			.startSize = 82.f * scale,
-			.endSize = 10.f,
-			.startColor = { 225, 255, 255, 255 },
-			.endColor = { 25, 145, 255, 0 }
-		};
-
-		impactParticles.Emit(flashSpawn);
-
-		for (int index = 0; index < PlayerTeleportSparkCount; ++index)
-		{
-			const sf::Vector2f direction{ GenerateRandomDirection() };
+			const sf::Vector2f direction{ VectorMath::RandomDirection() };
 			const float angle = std::atan2(direction.y, direction.x);
-			const ParticleSpawn sparkSpawn
-			{
-				.position = position + direction * Random::Float(12.f, 55.f) * scale,
-				.velocity = direction * Random::Float(70.f, 230.f),
-				.lifetime = Random::Float(0.25f, 0.55f),
-				.startSize = Random::Float(4.f, 9.f) * scale,
-				.endSize = 0.8f,
-				.startColor = { 205, 255, 255, 255 },
-				.endColor = { 25, 90, 255, 0 },
-				.rotation = angle,
-				.drag = 0.8f,
-				.aspectRatio = Random::Float(2.f, 4.f)
-			};
+			const sf::Vector2f spawnPosition{
+				position + direction * Random::Float(sparkPreset.spawnOffset.minimum, sparkPreset.spawnOffset.maximum) * scale };
+			const sf::Vector2f velocity{ direction * Random::Float(sparkPreset.speed.minimum, sparkPreset.speed.maximum) };
 
-			impactParticles.Emit(sparkSpawn);
+			impactParticles.Emit(MakeSpawn(sparkPreset, spawnPosition, velocity, angle, scale, 1.f));
 		}
 	}
 
 	void GameplayEffects::EmitMuzzleFlash(bool isPlayerProjectile, const sf::Vector2f& position,
 		const sf::Vector2f& direction, float scale)
 	{
-		const sf::Color coreColor{ isPlayerProjectile ? sf::Color{ 185, 255, 255, 255 } : sf::Color{ 255, 175, 195, 255 } };
-		const sf::Color fadeColor{ isPlayerProjectile ? sf::Color{ 30, 135, 255, 0 } : sf::Color{ 255, 25, 75, 0 } };
+		const auto& corePreset{ Preset(isPlayerProjectile ? "muzzle_core_player" : "muzzle_core_enemy") };
+		const sf::Vector2f coreVelocity{ direction * Random::Float(corePreset.speed.minimum, corePreset.speed.maximum) };
+		weaponParticles.Emit(MakeSpawn(corePreset, position + direction * 3.f, coreVelocity, 0.f, scale, scale));
 
-		const ParticleSpawn coreSpawn
-		{
-			.position = position + direction * 3.f,
-			.velocity = direction * Random::Float(15.f, 35.f),
-			.lifetime = Random::Float(0.14f, 0.18f),
-			.startSize = (isPlayerProjectile ? 58.f : 50.f) * scale,
-			.endSize = 5.f * scale,
-			.startColor = coreColor,
-			.endColor = fadeColor,
-			.drag = 5.f
-		};
-
-		weaponParticles.Emit(coreSpawn);
+		const auto& haloPreset{ Preset(isPlayerProjectile ? "muzzle_halo_player" : "muzzle_halo_enemy") };
+		const sf::Vector2f haloVelocity{ direction * Random::Float(haloPreset.speed.minimum, haloPreset.speed.maximum) };
+		weaponParticles.Emit(MakeSpawn(haloPreset, position + direction * 7.f, haloVelocity, 0.f, scale, scale));
 
 		const sf::Vector2f perpendicular{ -direction.y, direction.x };
-		const ParticleSpawn haloSpawn
+		const auto& sparkPreset{ Preset(isPlayerProjectile ? "muzzle_spark_player" : "muzzle_spark_enemy") };
+		for (int i = 0; i < ScaledCount(sparkPreset.count, scale); i++)
 		{
-			.position = position + direction * 7.f,
-			.velocity = direction * Random::Float(35.f, 65.f),
-			.lifetime = Random::Float(0.1f, 0.14f),
-			.startSize = (isPlayerProjectile ? 27.f : 24.f) * scale,
-			.endSize = 2.f * scale,
-			.startColor = sf::Color::White,
-			.endColor = fadeColor
-		};
+			const sf::Vector2f velocity{
+				direction * Random::Float(sparkPreset.speed.minimum, sparkPreset.speed.maximum) +
+				perpendicular * Random::Float(sparkPreset.lateralJitter.minimum, sparkPreset.lateralJitter.maximum) };
 
-		weaponParticles.Emit(haloSpawn);
-
-		for (int i = 0; i < ScaledCount(MuzzleFlashSparkCount, scale); i++)
-		{
-			const ParticleSpawn sparkSpawn
-			{
-				.position = position,
-				.velocity = direction * Random::Float(80.f, 175.f) + perpendicular * Random::Float(-95.f, 95.f),
-				.lifetime = Random::Float(0.08f, 0.16f),
-				.startSize = Random::Float(5.f, 9.f) * scale,
-				.endSize = Random::Float(1.f, 2.5f) * scale,
-				.startColor = coreColor,
-				.endColor = fadeColor,
-				.drag = 3.f
-			};
-
-			weaponParticles.Emit(sparkSpawn);
+			weaponParticles.Emit(MakeSpawn(sparkPreset, position, velocity, 0.f, scale, scale));
 		}
 	}
 
 	void GameplayEffects::EmitStoneHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale)
 	{
 		const auto& burst = config.stoneHit;
-		const ParticleSpawn flashSpawn
-		{
-			.position = position,
-			.lifetime = 0.16f,
-			.startSize = 34.f * scale,
-			.endSize = 5.f,
-			.startColor = { 255, 210, 125, 220 },
-			.endColor = { 150, 80, 25, 0 }
-		};
+		impactParticles.Emit(MakeSpawn(Preset("stone_hit_flash"), position, {}, 0.f, scale, 1.f));
 
-		impactParticles.Emit(flashSpawn);
-
+		const auto& debrisPreset{ Preset("stone_hit_debris") };
 		for (int i = 0; i < ScaledCount(burst.count, scale); i++)
 		{
-			const sf::Vector2f particleDirection{ GenerateRandomDirectionAround(direction, 1.35f) };
+			const sf::Vector2f particleDirection{ VectorMath::RandomDirectionAround(direction, StoneHitDebrisSpreadRadians, DegenerateDirectionFallback) };
 			const float size = Random::Float(burst.minimumSize, burst.maximumSize) * scale;
-			const ParticleSpawn debrisSpawn
-			{
-				.position = position,
-				.velocity = particleDirection * Random::Float(burst.minimumSpeed, burst.maximumSpeed),
-				.lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime),
-				.startSize = size,
-				.endSize = size * 0.45f,
-				.startColor = { 185, 150, 105, 245 },
-				.endColor = { 75, 55, 40, 0 },
-				.rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>),
-				.angularVelocity = Random::Float(-8.f, 8.f),
-				.drag = 2.2f
-			};
+			const float lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime);
+			const sf::Vector2f velocity{ particleDirection * Random::Float(burst.minimumSpeed, burst.maximumSpeed) };
+			const float rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
 
-			debrisParticles.Emit(debrisSpawn);
+			ParticleSpawn spawn{ MakeSpawn(debrisPreset, position, velocity, rotation) };
+			spawn.lifetime = lifetime;
+			spawn.startSize = size;
+			spawn.endSize = size * StoneHitDebrisEndSizeFraction;
+
+			debrisParticles.Emit(spawn);
 		}
 
+		const auto& dustPreset{ Preset("stone_hit_dust") };
 		for (int i = 0; i < std::max(StoneHitMinimumSmokeCount, ScaledCount(burst.count, scale) / StoneHitSmokeCountDivisor); i++)
 		{
-			const ParticleSpawn dustSpawn
-			{
-				.position = position + GenerateRandomDirection() * Random::Float(0.f, 8.f),
-				.velocity = GenerateRandomDirectionAround(direction, 1.5f) * Random::Float(20.f, 65.f),
-				.lifetime = Random::Float(0.3f, 0.55f),
-				.startSize = Random::Float(18.f, 28.f) * scale,
-				.endSize = Random::Float(32.f, 48.f) * scale,
-				.startColor = { 135, 115, 90, 150 },
-				.endColor = { 45, 40, 38, 0 },
-				.drag = 1.4f
-			};
+			const sf::Vector2f spawnPosition{
+				position + VectorMath::RandomDirection() * Random::Float(dustPreset.spawnOffset.minimum, dustPreset.spawnOffset.maximum) };
+			const sf::Vector2f velocity{
+				VectorMath::RandomDirectionAround(direction, StoneHitDustSpreadRadians, DegenerateDirectionFallback) *
+				Random::Float(dustPreset.speed.minimum, dustPreset.speed.maximum) };
 
-			smokeParticles.Emit(dustSpawn);
+			smokeParticles.Emit(MakeSpawn(dustPreset, spawnPosition, velocity, 0.f, scale, scale));
 		}
 	}
 
 	void GameplayEffects::EmitMetalHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale)
 	{
 		const auto& burst = config.metalHit;
-		const ParticleSpawn flashSpawn
-		{
-			.position = position,
-			.lifetime = 0.13f,
-			.startSize = 42.f * scale,
-			.endSize = 3.f,
-			.startColor = { 220, 250, 255, 255 },
-			.endColor = { 30, 145, 255, 0 }
-		};
+		impactParticles.Emit(MakeSpawn(Preset("metal_hit_flash"), position, {}, 0.f, scale, 1.f));
 
-		impactParticles.Emit(flashSpawn);
-
+		const auto& sparkPreset{ Preset("metal_hit_spark") };
 		for (int i = 0; i < ScaledCount(burst.count, scale); i++)
 		{
-			const sf::Vector2f sparkDirection{ GenerateRandomDirectionAround(direction, 1.55f) };
+			const sf::Vector2f sparkDirection{ 
+				VectorMath::RandomDirectionAround(direction, MetalHitSpreadRadians, DegenerateDirectionFallback) };
 			const float speed = Random::Float(burst.minimumSpeed, burst.maximumSpeed);
 			const float angle = std::atan2(sparkDirection.y, sparkDirection.x);
-			const ParticleSpawn sparkSpawn
-			{
-				.position = position,
-				.velocity = sparkDirection * speed,
-				.lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime),
-				.startSize = Random::Float(burst.minimumSize, burst.maximumSize) * scale,
-				.endSize = 0.8f,
-				.startColor = { 210, 250, 255, 255 },
-				.endColor = { 20, 110, 255, 0 },
-				.rotation = angle,
-				.drag = 0.8f,
-				.aspectRatio = Random::Float(2.5f, 4.5f)
-			};
+			const float lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime);
+			const float size = Random::Float(burst.minimumSize, burst.maximumSize) * scale;
 
-			impactParticles.Emit(sparkSpawn);
+			ParticleSpawn spawn{ MakeSpawn(sparkPreset, position, sparkDirection * speed, angle) };
+			spawn.lifetime = lifetime;
+			spawn.startSize = size;
+
+			impactParticles.Emit(spawn);
 		}
+	}
+
+	void GameplayEffects::HandlePlayerHit(const sf::Vector2f& position, const sf::Vector2f& direction, float scale)
+	{
+		EmitMetalHit(position, direction, scale);
+		postProcessState.damageVignette = 1.f;
+		StartCameraShake(config.damageShake, scale);
 	}
 
 	void GameplayEffects::EmitAsteroidExplosion(const sf::Vector2f& position, float scale)
 	{
-		const bool isLarge = scale >= 0.8f;
+		const bool isLarge = scale >= AsteroidLargeSizeThreshold;
 		const auto& burst = isLarge ? config.largeAsteroidExplosion : config.smallAsteroidExplosion;
-		const ParticleSpawn flashSpawn
-		{
-			.position = position,
-			.lifetime = 0.34f,
-			.startSize = 145.f * scale,
-			.endSize = 8.f,
-			.startColor = { 255, 235, 175, 255 },
-			.endColor = { 255, 80, 15, 0 }
-		};
+		impactParticles.Emit(MakeSpawn(Preset("asteroid_explosion_flash"), position, {}, 0.f, scale, 1.f));
+		impactParticles.Emit(MakeSpawn(Preset("asteroid_explosion_glow"), position, {}, 0.f, scale, scale));
 
-		impactParticles.Emit(flashSpawn);
-
-		const ParticleSpawn glowSpawn
-		{
-			.position = position,
-			.lifetime = 0.5f,
-			.startSize = 85.f * scale,
-			.endSize = 185.f * scale,
-			.startColor = { 255, 120, 30, 190 },
-			.endColor = { 120, 25, 5, 0 }
-		};
-
-		impactParticles.Emit(glowSpawn);
-
+		const auto& debrisPreset{ Preset("asteroid_explosion_debris") };
 		for (int i = 0; i < ScaledCount(burst.count, scale); i++)
 		{
-			const sf::Vector2f direction{ GenerateRandomDirection() };
+			const sf::Vector2f direction{ VectorMath::RandomDirection() };
 			const float size = Random::Float(burst.minimumSize, burst.maximumSize);
-			const ParticleSpawn debrisSpawn
-			{
-				.position = position + direction * Random::Float(0.f, 10.f * scale),
-				.velocity = direction * Random::Float(burst.minimumSpeed, burst.maximumSpeed),
-				.lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime),
-				.startSize = size,
-				.endSize = size * 0.55f,
-				.startColor = { 195, 155, 105, 255 },
-				.endColor = { 55, 42, 35, 0 },
-				.rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>),
-				.angularVelocity = Random::Float(-7.f, 7.f),
-				.drag = 1.6f
-			};
+			const sf::Vector2f spawnPosition{ position + direction * Random::Float(0.f, 10.f * scale) };
+			const sf::Vector2f velocity{ direction * Random::Float(burst.minimumSpeed, burst.maximumSpeed) };
+			const float lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime);
+			const float rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
 
-			debrisParticles.Emit(debrisSpawn);
+			ParticleSpawn spawn{ MakeSpawn(debrisPreset, spawnPosition, velocity, rotation) };
+			spawn.lifetime = lifetime;
+			spawn.startSize = size;
+			spawn.endSize = size * AsteroidExplosionDebrisEndSizeFraction;
+
+			debrisParticles.Emit(spawn);
 		}
 
+		const auto& smokePreset{ Preset("asteroid_explosion_smoke") };
 		const int smokeCount = std::max(AsteroidExplosionMinimumSmokeCount, ScaledCount(burst.count, scale) / AsteroidExplosionSmokeCountDivisor);
 		for (int i = 0; i < smokeCount; i++)
 		{
-			const sf::Vector2f direction{ GenerateRandomDirection() };
-			const ParticleSpawn smokeSpawn
-			{
-				.position = position + direction * Random::Float(0.f, 22.f * scale),
-				.velocity = direction * Random::Float(25.f, 95.f),
-				.lifetime = Random::Float(0.65f, 1.25f),
-				.startSize = Random::Float(28.f, 50.f) * scale,
-				.endSize = Random::Float(65.f, 105.f) * scale,
-				.startColor = { 100, 82, 70, 185 },
-				.endColor = { 28, 27, 30, 0 },
-				.rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>),
-				.angularVelocity = Random::Float(-1.3f, 1.3f),
-				.drag = 0.9f
-			};
+			const sf::Vector2f direction{ VectorMath::RandomDirection() };
+			const sf::Vector2f spawnPosition{
+				position + direction * Random::Float(smokePreset.spawnOffset.minimum, smokePreset.spawnOffset.maximum) * scale };
+			const sf::Vector2f velocity{ direction * Random::Float(smokePreset.speed.minimum, smokePreset.speed.maximum) };
+			const float rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
 
-			smokeParticles.Emit(smokeSpawn);
+			smokeParticles.Emit(MakeSpawn(smokePreset, spawnPosition, velocity, rotation, scale, scale));
 		}
 
 		if (isLarge)
 		{
-			const ParticleSpawn shockwaveSpawn
-			{
-				.position = position,
-				.lifetime = 0.42f,
-				.startSize = 42.f,
-				.endSize = 245.f * scale,
-				.startColor = { 255, 190, 95, 205 },
-				.endColor = { 255, 80, 20, 0 }
-			};
-
-			shockwaveParticles.Emit(shockwaveSpawn);
+			shockwaveParticles.Emit(MakeSpawn(Preset("asteroid_explosion_shockwave"), position, {}, 0.f, 1.f, scale));
 
 			StartCameraShake(config.largeExplosionShake, 0.8f * scale);
 			StartShockwave(position, scale);
@@ -774,106 +602,54 @@ namespace Rendering
 	void GameplayEffects::EmitShipExplosion(const sf::Vector2f& position, float scale)
 	{
 		const auto& burst = config.shipExplosion;
-		const ParticleSpawn flashSpawn
-		{
-			.position = position,
-			.lifetime = 0.28f,
-			.startSize = 165.f * scale,
-			.endSize = 9.f,
-			.startColor = { 235, 255, 255, 255 },
-			.endColor = { 25, 130, 255, 0 }
-		};
+		impactParticles.Emit(MakeSpawn(Preset("ship_explosion_flash"), position, {}, 0.f, scale, 1.f));
+		impactParticles.Emit(MakeSpawn(Preset("ship_explosion_glow"), position, {}, 0.f, scale, scale));
 
-		impactParticles.Emit(flashSpawn);
-
-		const ParticleSpawn glowSpawn
-		{
-			.position = position,
-			.lifetime = 0.52f,
-			.startSize = 75.f * scale,
-			.endSize = 205.f * scale,
-			.startColor = { 80, 210, 255, 210 },
-			.endColor = { 255, 40, 20, 0 }
-		};
-
-		impactParticles.Emit(glowSpawn);
-
+		const auto& sparkPreset{ Preset("ship_explosion_spark") };
+		const auto& debrisPreset{ Preset("ship_explosion_debris") };
 		for (int i = 0; i < ScaledCount(burst.count, scale); ++i)
 		{
-			const sf::Vector2f direction{ GenerateRandomDirection() };
+			const sf::Vector2f direction{ VectorMath::RandomDirection() };
 			const float speed = Random::Float(burst.minimumSpeed, burst.maximumSpeed);
 			if (i % 2 == 0)
 			{
 				const float angle = std::atan2(direction.y, direction.x);
-				const ParticleSpawn sparkSpawn
-				{
-					.position = position,
-					.velocity = direction * speed,
-					.lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime) * 0.65f,
-					.startSize = Random::Float(2.f, 5.f),
-					.endSize = 0.7f,
-					.startColor = { 220, 250, 255, 255 },
-					.endColor = { 255, 65, 20, 0 },
-					.rotation = angle,
-					.drag = 0.8f,
-					.aspectRatio = Random::Float(2.5f, 5.f)
-				};
+				const float lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime) * ShipExplosionSparkLifetimeFraction;
 
-				impactParticles.Emit(sparkSpawn);
+				ParticleSpawn spawn{ MakeSpawn(sparkPreset, position, direction * speed, angle) };
+				spawn.lifetime = lifetime;
+
+				impactParticles.Emit(spawn);
 			}
 			else
 			{
 				const float size = Random::Float(burst.minimumSize, burst.maximumSize);
-				const ParticleSpawn debrisSpawn
-				{
-					.position = position,
-					.velocity = direction * speed * 0.72f,
-					.lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime),
-					.startSize = size,
-					.endSize = size * 0.5f,
-					.startColor = { 135, 175, 190, 255 },
-					.endColor = { 45, 52, 60, 0 },
-					.rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>),
-					.angularVelocity = Random::Float(-11.f, 11.f),
-					.drag = 1.2f
-				};
+				const float lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime);
+				const float rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
 
-				debrisParticles.Emit(debrisSpawn);
+				ParticleSpawn spawn{ MakeSpawn(debrisPreset, position, direction * speed * ShipExplosionDebrisSpeedFraction, rotation) };
+				spawn.lifetime = lifetime;
+				spawn.startSize = size;
+				spawn.endSize = size * 0.5f;
+
+				debrisParticles.Emit(spawn);
 			}
 		}
 
+		const auto& smokePreset{ Preset("ship_explosion_smoke") };
 		const int smokeCount = std::max(ShipExplosionMinimumSmokeCount, ScaledCount(burst.count, scale) / ShipExplosionSmokeCountDivisor);
 		for (int i = 0; i < smokeCount; i++)
 		{
-			const sf::Vector2f direction{ GenerateRandomDirection() };
-			const ParticleSpawn smokeSpawn
-			{
-				.position = position + direction * Random::Float(0.f, 20.f * scale),
-				.velocity = direction * Random::Float(25.f, 105.f),
-				.lifetime = Random::Float(0.7f, 1.35f),
-				.startSize = Random::Float(26.f, 48.f) * scale,
-				.endSize = Random::Float(70.f, 115.f) * scale,
-				.startColor = { 80, 88, 98, 190 },
-				.endColor = { 20, 23, 30, 0 },
-				.rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>),
-				.angularVelocity = Random::Float(-1.5f, 1.5f),
-				.drag = 0.8f
-			};
+			const sf::Vector2f direction{ VectorMath::RandomDirection() };
+			const sf::Vector2f spawnPosition{
+				position + direction * Random::Float(smokePreset.spawnOffset.minimum, smokePreset.spawnOffset.maximum) * scale };
+			const sf::Vector2f velocity{ direction * Random::Float(smokePreset.speed.minimum, smokePreset.speed.maximum) };
+			const float rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
 
-			smokeParticles.Emit(smokeSpawn);
+			smokeParticles.Emit(MakeSpawn(smokePreset, spawnPosition, velocity, rotation, scale, scale));
 		}
 
-		const ParticleSpawn shockwaveSpawn
-		{
-			.position = position,
-			.lifetime = 0.46f,
-			.startSize = 48.f,
-			.endSize = 265.f * scale,
-			.startColor = { 120, 225, 255, 220 },
-			.endColor = { 255, 65, 30, 0 }
-		};
-
-		shockwaveParticles.Emit(shockwaveSpawn);
+		shockwaveParticles.Emit(MakeSpawn(Preset("ship_explosion_shockwave"), position, {}, 0.f, 1.f, scale));
 
 		StartCameraShake(config.largeExplosionShake, scale);
 		StartShockwave(position, scale);
@@ -882,84 +658,38 @@ namespace Rendering
 	void GameplayEffects::EmitStationExplosion(const sf::Vector2f& position, float scale)
 	{
 		const auto& burst = config.shipExplosion;
-		const ParticleSpawn flashSpawn
-		{
-			.position = position,
-			.lifetime = 0.42f,
-			.startSize = 230.f * scale,
-			.endSize = 14.f,
-			.startColor = { 255, 245, 215, 255 },
-			.endColor = { 255, 45, 15, 0 }
-		};
+		impactParticles.Emit(MakeSpawn(Preset("station_explosion_flash"), position, {}, 0.f, scale, 1.f));
+		impactParticles.Emit(MakeSpawn(Preset("station_explosion_glow"), position, {}, 0.f, scale, scale));
 
-		impactParticles.Emit(flashSpawn);
-
-		const ParticleSpawn glowSpawn
-		{
-			.position = position,
-			.lifetime = 0.72f,
-			.startSize = 120.f * scale,
-			.endSize = 320.f * scale,
-			.startColor = { 255, 85, 25, 225 },
-			.endColor = { 75, 5, 12, 0 }
-		};
-
-		impactParticles.Emit(glowSpawn);
-
+		const auto& debrisPreset{ Preset("station_explosion_debris") };
 		for (int index = 0; index < ScaledCount(burst.count, scale * StationExplosionDebrisScaleMultiplier); index++)
 		{
-			const sf::Vector2f direction{ GenerateRandomDirection() };
-			const float speed = Random::Float(burst.minimumSpeed * 0.9f, burst.maximumSpeed * 1.3f);
+			const sf::Vector2f direction{ VectorMath::RandomDirection() };
+			const float speed = Random::Float(
+				burst.minimumSpeed * StationExplosionDebrisMinimumSpeedFraction,
+				burst.maximumSpeed * StationExplosionDebrisMaximumSpeedFraction);
 			const float angle = std::atan2(direction.y, direction.x);
-			const ParticleSpawn debrisSpawn
-			{
-				.position = position,
-				.velocity = direction * speed,
-				.lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime),
-				.startSize = Random::Float(4.f, 14.f),
-				.endSize = 0.9f,
-				.startColor = { 255, 225, 170, 255 },
-				.endColor = { 255, 30, 12, 0 },
-				.rotation = angle,
-				.angularVelocity = Random::Float(-6.f, 6.f),
-				.drag = 0.8f,
-				.aspectRatio = Random::Float(2.f, 5.f)
-			};
+			const float lifetime = Random::Float(burst.minimumLifetime, burst.maximumLifetime);
 
-			impactParticles.Emit(debrisSpawn);
+			ParticleSpawn spawn{ MakeSpawn(debrisPreset, position, direction * speed, angle) };
+			spawn.lifetime = lifetime;
+
+			impactParticles.Emit(spawn);
 		}
 
-		for (int index = 0; index < StationExplosionSmokeCount; ++index)
+		const auto& smokePreset{ Preset("station_explosion_smoke") };
+		for (int index = 0; index < smokePreset.count; ++index)
 		{
-			const sf::Vector2f direction{ GenerateRandomDirection() };
-			const ParticleSpawn smokeSpawn
-			{
-				.position = position + direction * Random::Float(0.f, 55.f),
-				.velocity = direction * Random::Float(35.f, 145.f),
-				.lifetime = Random::Float(0.9f, 1.7f),
-				.startSize = Random::Float(38.f, 68.f) * scale,
-				.endSize = Random::Float(95.f, 155.f) * scale,
-				.startColor = { 105, 72, 62, 205 },
-				.endColor = { 18, 18, 24, 0 },
-				.rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>),
-				.angularVelocity = Random::Float(-1.5f, 1.5f),
-				.drag = 0.8f
-			};
+			const sf::Vector2f direction{ VectorMath::RandomDirection() };
+			const sf::Vector2f spawnPosition{
+				position + direction * Random::Float(smokePreset.spawnOffset.minimum, smokePreset.spawnOffset.maximum) };
+			const sf::Vector2f velocity{ direction * Random::Float(smokePreset.speed.minimum, smokePreset.speed.maximum) };
+			const float rotation = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
 
-			smokeParticles.Emit(smokeSpawn);
+			smokeParticles.Emit(MakeSpawn(smokePreset, spawnPosition, velocity, rotation, scale, scale));
 		}
 
-		const ParticleSpawn shockwaveSpawn
-		{
-			.position = position,
-			.lifetime = 0.7f,
-			.startSize = 75.f,
-			.endSize = 520.f * scale,
-			.startColor = { 255, 155, 80, 240 },
-			.endColor = { 255, 25, 15, 0 }
-		};
-
-		shockwaveParticles.Emit(shockwaveSpawn);
+		shockwaveParticles.Emit(MakeSpawn(Preset("station_explosion_shockwave"), position, {}, 0.f, 1.f, scale));
 
 		StartCameraShake(config.largeExplosionShake, scale * 1.7f);
 		StartShockwave(position, 2.05f, 1.55f);

@@ -22,6 +22,8 @@
     "display_resolution": "Resolución", "window_mode": "Modo de ventana", "show_fps": "Mostrar FPS",
     "vsync": "Sincronización vertical", "frame_limit": "Límite de fotogramas", "post_effects": "Efectos visuales",
     "reset_graphics": "Restaurar gráficos", "screen_shake": "Vibración de pantalla", "score_popups": "Mostrar puntos emergentes",
+    "gamepad_vibration": "Vibración del mando", "gamepad_adaptive_triggers": "Gatillos adaptativos",
+    "gamepad_lightbar": "Luz del mando",
     "reset_gameplay": "Restaurar juego", "music": "Música", "sounds": "Sonidos",
     "reset_audio": "Restaurar audio", "move_up": "Mover arriba", "move_down": "Mover abajo",
     "move_left": "Mover a la izquierda", "move_right": "Mover a la derecha", "fire": "Disparar",

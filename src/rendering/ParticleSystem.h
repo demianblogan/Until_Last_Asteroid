@@ -41,25 +41,26 @@ namespace Rendering
 
 		void Emit(const ParticleSpawn& spawn);
 		void Update(float deltaTime);
+
+		// For a system that's fully cleared and re-emitted every frame instead
+		// of aging (e.g. projectile glows, which just track a moving position
+		// with no genuine lifetime) -- rebuilds the vertex data for this
+		// frame's freshly spawned particles without applying Update()'s
+		// per-frame motion/drag/aging, none of which should happen to a
+		// particle that only exists for the one frame it was just spawned in.
+		void RefreshVertices();
+
 		void Clear();
 
 		[[nodiscard]] std::size_t GetParticleCount() const noexcept;
 
 	private:
-		struct Particle
+		// A spawned particle's live simulation state: everything ParticleSpawn
+		// specified at birth, plus the one field that only makes sense once a
+		// particle actually exists -- how much longer it has left to live.
+		struct Particle : ParticleSpawn
 		{
-			sf::Vector2f position;
-			sf::Vector2f velocity;
-			float lifetime = 1.f;
 			float remaining = 1.f;
-			float startSize = 1.f;
-			float endSize = 1.f;
-			sf::Color startColor{ sf::Color::White };
-			sf::Color endColor{ sf::Color::Transparent };
-			float rotation = 0.f;
-			float angularVelocity = 0.f;
-			float drag = 0.f;
-			float aspectRatio = 1.f;
 		};
 
 		void BuildVertices();

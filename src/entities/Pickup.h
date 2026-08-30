@@ -13,7 +13,7 @@ public:
     Pickup(Assets& assets, World& world, Kind kind);
 
     [[nodiscard]] Type GetType() const noexcept override;
-    [[nodiscard]] bool IsCollideWith(const Entity& other) const override;
+    [[nodiscard]] bool IsCollidingWith(const Entity& other) const override;
     void Update(float deltaTime) override;
     [[nodiscard]] bool Apply(GameplaySession& session);
     [[nodiscard]] Kind GetKind() const noexcept;

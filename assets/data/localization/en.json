@@ -22,6 +22,8 @@
     "display_resolution": "Display Resolution", "window_mode": "Window Mode", "show_fps": "Show FPS",
     "vsync": "Vertical Synchronization", "frame_limit": "Frame Rate Limit", "post_effects": "Post Effects",
     "reset_graphics": "Restore Graphics Defaults", "screen_shake": "Screen Shake", "score_popups": "Show Score Popups",
+    "gamepad_vibration": "Gamepad Vibration", "gamepad_adaptive_triggers": "Adaptive Triggers",
+    "gamepad_lightbar": "Controller Lightbar",
     "reset_gameplay": "Restore Gameplay Defaults", "music": "Music", "sounds": "Sounds",
     "reset_audio": "Restore Audio Defaults", "move_up": "Move Up", "move_down": "Move Down",
     "move_left": "Move Left", "move_right": "Move Right", "fire": "Fire",

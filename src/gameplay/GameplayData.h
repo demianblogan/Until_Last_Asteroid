@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "core/Collision.h"
@@ -271,6 +272,49 @@ public:
         float amplitude{ 1.f };
     };
 
+    // A tunable [minimum, maximum] pair -- Random::Float(minimum, maximum) is
+    // drawn from it wherever it's used. minimum == maximum for a fixed value.
+    struct ParticleRangeConfig
+    {
+        float minimum{ 0.f };
+        float maximum{ 0.f };
+    };
+
+    // Every numeric "look and feel" knob a single particle sub-spawn (one
+    // ParticleSpawn's worth of values inside a GameplayEffects::Emit*
+    // method) can have, loaded by name from effects.json's "particles"
+    // object. What still lives in code, deliberately: which of these fields
+    // a given Emit* method actually uses, and the position/velocity formula
+    // (e.g. "along the impact direction" vs "a random direction" vs
+    // "perpendicular to the exhaust") that combines them -- that's the
+    // particle's *shape*, analogous to picking a module in Unity's particle
+    // system, and isn't meaningfully expressible as flat data. Everything
+    // that IS just a number -- colors, sizes, speeds, drag, spin, how many
+    // to spawn -- lives here instead, so retuning an effect's look doesn't
+    // need a recompile.
+    struct ParticlePresetConfig
+    {
+        int count{ 1 };
+        ParticleRangeConfig lifetime{ 1.f, 1.f };
+        ParticleRangeConfig startSize{ 1.f, 1.f };
+        ParticleRangeConfig endSize{ 1.f, 1.f };
+        std::array<int, 4> startColor{ 255, 255, 255, 255 };
+        std::array<int, 4> endColor{ 255, 255, 255, 255 };
+        // Speed along the emitter's main direction (e.g. the impact/exhaust
+        // direction, or a random direction -- decided in code per effect).
+        ParticleRangeConfig speed{ 0.f, 0.f };
+        // Sideways velocity component, along the direction perpendicular to
+        // the main one.
+        ParticleRangeConfig lateralJitter{ 0.f, 0.f };
+        // Position offset applied at spawn -- along whichever direction the
+        // calling Emit* method uses for it (perpendicular, main, or random;
+        // that choice is the "shape", and stays in code).
+        ParticleRangeConfig spawnOffset{ 0.f, 0.f };
+        float drag{ 0.f };
+        ParticleRangeConfig angularVelocity{ 0.f, 0.f };
+        ParticleRangeConfig aspectRatio{ 1.f, 1.f };
+    };
+
     struct EffectsConfig
     {
         BurstConfig stoneHit;
@@ -280,6 +324,7 @@ public:
         BurstConfig shipExplosion;
         CameraShakeConfig damageShake;
         CameraShakeConfig largeExplosionShake;
+        std::unordered_map<std::string, ParticlePresetConfig> particlePresets;
     };
 
     explicit GameplayData(const std::filesystem::path& directory);
@@ -295,6 +340,10 @@ public:
     [[nodiscard]] int GetLevelCount() const noexcept;
     [[nodiscard]] float GetHitFlashDuration() const noexcept;
     [[nodiscard]] const EffectsConfig& GetEffects() const noexcept;
+    // Throws if `name` isn't a preset defined in effects.json's "particles" --
+    // deliberately fail-fast rather than silently drawing some default look,
+    // the same way a missing required gameplay value elsewhere does.
+    [[nodiscard]] const ParticlePresetConfig& GetParticlePreset(const std::string& name) const;
 
 private:
     PlayerConfig player;

@@ -13,6 +13,7 @@
 #include <SFML/Graphics/VertexArray.hpp>
 
 #include "assets/Assets.h"
+#include "gameplay/VibrationProfiles.h"
 #include "localization/LocalizationManager.h"
 #include "core/world/World.h"
 #include "rendering/EnergyShield.h"
@@ -711,6 +712,8 @@ void BossEncounter::BeginOuterRingDestruction()
 
 void BossEncounter::UpdateOuterRingDestruction(float deltaTime, World& world)
 {
+	VibrationProfiles::Apply(world.Haptics(), VibrationProfiles::BossExplosionSustain);
+
 	stateElapsed += deltaTime;
 	destructionExplosionElapsed += deltaTime;
 	outerRing.setPosition(position + sf::Vector2f{
@@ -867,6 +870,8 @@ void BossEncounter::BeginDiamondDestruction()
 
 void BossEncounter::UpdateDiamondDestruction(float deltaTime, World& world)
 {
+	VibrationProfiles::Apply(world.Haptics(), VibrationProfiles::BossExplosionSustain);
+
 	stateElapsed += deltaTime;
 	destructionExplosionElapsed += deltaTime;
 	diamond.setPosition(position + sf::Vector2f{
@@ -1103,6 +1108,8 @@ void BossEncounter::ApplyCoreDamage(
 
 void BossEncounter::UpdateCoreDestruction(float deltaTime, World& world)
 {
+	VibrationProfiles::Apply(world.Haptics(), VibrationProfiles::BossExplosionSustain);
+
 	stateElapsed += deltaTime;
 	coreExplosionElapsed += deltaTime;
 	victoryCleanupElapsed += deltaTime;

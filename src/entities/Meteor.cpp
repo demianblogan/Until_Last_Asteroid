@@ -27,7 +27,7 @@ Entity::Type Meteor::GetType() const noexcept
 	return Type::Asteroid;
 }
 
-bool Meteor::IsCollideWith(const Entity& other) const
+bool Meteor::IsCollidingWith(const Entity& other) const
 {
 	if (other.GetType() == Type::Asteroid)
 		return false;

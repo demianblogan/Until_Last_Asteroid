@@ -1,18 +1,8 @@
 #include "WorldRewardExclusionZone.h"
 
 #include <algorithm>
-#include <cmath>
 
-namespace
-{
-	sf::Vector2f Normalize(const sf::Vector2f& vector)
-	{
-		const float lengthSquared{ vector.x * vector.x + vector.y * vector.y };
-		if (lengthSquared <= 0.0001f)
-			return { 1.f, 0.f };
-		return vector / std::sqrt(lengthSquared);
-	}
-}
+#include "utils/VectorMath.h"
 
 void WorldRewardExclusionZone::Set(sf::Vector2f newCenter, float newRadius) noexcept
 {
@@ -32,9 +22,9 @@ sf::Vector2f WorldRewardExclusionZone::PushOutside(sf::Vector2f position) const 
 		return position;
 
 	const sf::Vector2f offset{ position - *center };
-	const float distanceSquared{ offset.x * offset.x + offset.y * offset.y };
+	const float distanceSquared = offset.x * offset.x + offset.y * offset.y;
 	if (distanceSquared >= radius * radius)
 		return position;
 
-	return *center + Normalize(offset) * radius;
+	return *center + VectorMath::Normalize(offset) * radius;
 }

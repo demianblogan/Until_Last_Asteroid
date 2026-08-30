@@ -23,11 +23,9 @@ namespace Collision
 		float penetration;   // How deep the circles currently overlap along that direction.
 	};
 
-	[[nodiscard]] bool Circle(
-		const sf::Vector2f& firstCenter, float firstRadius,
+	[[nodiscard]] bool Circle(const sf::Vector2f& firstCenter, float firstRadius,
 		const sf::Vector2f& secondCenter, float secondRadius);
 
-	[[nodiscard]] std::optional<CircleContactInfo> GetCircleContactInfo(
-		const sf::Vector2f& firstCenter, float firstRadius,
+	[[nodiscard]] std::optional<CircleContactInfo> GetCircleContactInfo(const sf::Vector2f& firstCenter, float firstRadius,
 		const sf::Vector2f& secondCenter, float secondRadius);
 }

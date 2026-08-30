@@ -104,8 +104,11 @@ Application::Application()
 		LogicalSize,
 		wasMainMenuIntroPlayed,
 		gamepad,
+		gamepadHaptics,
 		gameplayLaunchRequest })
 {
+	gamepad.SetHaptics(&gamepadHaptics);
+
 	display.RestoreLogicalView();
 
 	// Loading state renders on explicit progress notifications. Frame limiting here
@@ -477,6 +480,30 @@ void Application::Update(float deltaTime, float frameTime)
 {
 	stateStack.HandleRealtime();
 	stateStack.Update(deltaTime);
+
+	// Re-applied every frame (cheap, and correct as soon as the Controls ->
+	// Gamepad settings toggles land) rather than once at startup, so a
+	// setting change takes effect immediately without extra wiring.
+	const GamepadSettings& gamepadSettings{ settings.GetSettings().gamepad };
+	gamepadHaptics.SetVibrationEnabled(gamepadSettings.isVibrationEnabled);
+	gamepadHaptics.SetLightbarEnabled(gamepadSettings.isControllerLightbarEnabled);
+	gamepadHaptics.SetAdaptiveTriggersEnabled(gamepadSettings.isAdaptiveTriggersEnabled);
+
+	// Gameplay drives the lightbar and the right trigger's adaptive
+	// resistance itself (tracking player health / the laser being held, see
+	// GameplayState::Update and Player::UpdateLaser); everywhere else --
+	// menus, splash, loading -- the lightbar just shows a calm, constant
+	// blue, and the trigger is force-released, so neither one is ever left
+	// stuck on a stale value from a run that ended (e.g. the player dying
+	// mid-laser) without Player itself getting a chance to release it.
+	if (stateStack.GetTopStateID() != StateID::Gameplay)
+	{
+		if (gamepadHaptics.IsLightbarEnabled())
+			gamepadHaptics.SetLightbarColor({ 40u, 110u, 255u });
+		gamepadHaptics.SetRightTriggerSustainedResistance(false);
+	}
+
+	gamepadHaptics.Update(deltaTime);
 
 	if (achievementToast)
 		achievementToast->Update(deltaTime);

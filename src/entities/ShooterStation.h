@@ -23,7 +23,7 @@ public:
 		const Entity& projectile) const noexcept override;
 	[[nodiscard]] float GetShieldRadius() const noexcept;
 	Type GetType() const noexcept override;
-	bool IsCollideWith(const Entity& other) const override;
+	bool IsCollidingWith(const Entity& other) const override;
 	void Update(float deltaTime) override;
 	void OnDestroy() override;
 

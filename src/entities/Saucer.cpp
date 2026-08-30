@@ -19,7 +19,7 @@ Entity::Type Saucer::GetType() const noexcept
 	return Type::Enemy;
 }
 
-bool Saucer::IsCollideWith(const Entity& other) const
+bool Saucer::IsCollidingWith(const Entity& other) const
 {
 	if (other.GetType() != Type::Player &&
 		other.GetType() != Type::Projectile_Player &&

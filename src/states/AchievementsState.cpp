@@ -9,7 +9,7 @@
 #include "assets/Assets.h"
 #include "audio/AudioManager.h"
 #include "localization/LocalizationManager.h"
-#include "input/GamepadManager.h"
+#include "input/gamepad/GamepadManager.h"
 #include "ui/TextLayout.h"
 
 namespace
@@ -53,6 +53,7 @@ AchievementsState::AchievementsState(StateStack& stack, StateContext context)
 	const sf::Font& bodyFont{ context.assets.Fonts().Get(context.localization.GetRegularFont(false)) };
 	tiles.reserve(definitions.size()); icons.reserve(definitions.size());
 	achievementTitles.reserve(definitions.size()); descriptions.reserve(definitions.size());
+	tileGlows.reserve(definitions.size());
 	for (std::size_t index{ 0u }; index < definitions.size(); ++index)
 	{
 		const auto& definition{ definitions[index] };
@@ -62,6 +63,7 @@ AchievementsState::AchievementsState(StateStack& stack, StateContext context)
 		tiles.emplace_back(TileSize, 18.f, 10u);
 		tiles.back().setPosition(position);
 		tiles.back().setOutlineThickness(2.5f);
+		tileGlows.emplace_back(context.assets);
 		icons.emplace_back(context.assets.Textures().Get(GetAchievementTexture(definition.id)));
 		const auto textureSize{ icons.back().getTexture().getSize() };
 		const float scale{ 154.f / static_cast<float>(std::max(textureSize.x, textureSize.y)) };
@@ -108,6 +110,8 @@ void AchievementsState::HandleEvent(const sf::Event& event)
 void AchievementsState::Update(float dt)
 {
 	background.Update(dt); titleGlow.Update(dt); buttonGlow.Update(dt); cursor.Update(dt); fade.Update(dt);
+	for (Rendering::NeonGlow& glow : tileGlows)
+		glow.Update(dt);
 	if (GetContext().gamepad.IsInUse() && !returnButtonSelected)
 	{
 		returnButtonSelected = true;
@@ -125,10 +129,19 @@ void AchievementsState::Render()
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
 		{ target.draw(title, states); }, Cyan);
 	window.draw(title);
+	const auto& definitions{ GetContext().achievements.GetDefinitions() };
 	for (std::size_t i{ 0u }; i < tiles.size(); ++i)
 	{
+		const bool isUnlocked{ i < definitions.size() &&
+			GetContext().achievements.IsUnlocked(definitions[i].id) };
+		if (isUnlocked)
+			tileGlows[i].DrawBloom(window, tiles[i].getGlobalBounds(),
+				[this, i](sf::RenderTarget& target, const sf::RenderStates& states)
+				{ target.draw(tiles[i], states); }, Gold);
 		window.draw(tiles[i]); window.draw(icons[i]);
 		window.draw(achievementTitles[i]); window.draw(descriptions[i]);
+		if (isUnlocked)
+			tileGlows[i].DrawHighlight(window, tiles[i].getGlobalBounds(), Gold);
 	}
 	if (returnButtonSelected)
 		buttonGlow.DrawBloom(window, returnButton.GetBounds(),
@@ -202,6 +215,7 @@ void AchievementsState::RefreshUnlockState()
 		icons[index].setColor(unlocked ? sf::Color::White : sf::Color(72, 72, 72));
 		achievementTitles[index].setFillColor(unlocked ? Gold : sf::Color(125, 125, 125));
 		descriptions[index].setFillColor(unlocked ? sf::Color(195, 225, 232) : sf::Color(105, 105, 105));
+		tileGlows[index].Invalidate();
 	}
 }
 

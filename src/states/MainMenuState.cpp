@@ -17,7 +17,8 @@
 #include "core/GameVersion.h"
 #include "localization/LocalizationManager.h"
 #include "states/StateID.h"
-#include "input/GamepadManager.h"
+#include "gameplay/VibrationProfiles.h"
+#include "input/gamepad/GamepadManager.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -401,6 +402,9 @@ void MainMenuState::ApplyAnimationState()
 void MainMenuState::HandleAnimationEvents(const UI::MenuIntroAnimation::Events& events)
 {
     PlayTypingSounds(events.typedCharacters);
+
+    if (events.typedCharacters > 0)
+        VibrationProfiles::Apply(GetContext().gamepadHaptics, VibrationProfiles::Light);
 
     if (events.hasActivationStarted)
         GetContext().audio.PlaySound(

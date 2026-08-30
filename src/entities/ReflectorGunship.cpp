@@ -86,7 +86,7 @@ Entity::Type ReflectorGunship::GetType() const noexcept
 	return Type::Enemy;
 }
 
-bool ReflectorGunship::IsCollideWith(const Entity& other) const
+bool ReflectorGunship::IsCollidingWith(const Entity& other) const
 {
 	if (other.GetType() == Type::Projectile_Player ||
 		other.GetType() == Type::Projectile_Ally)

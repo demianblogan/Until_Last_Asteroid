@@ -14,7 +14,7 @@
 #include "audio/AudioManager.h"
 #include "records/RecordsManager.h"
 #include "localization/LocalizationManager.h"
-#include "input/GamepadManager.h"
+#include "input/gamepad/GamepadManager.h"
 #include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 

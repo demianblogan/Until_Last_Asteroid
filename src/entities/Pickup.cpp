@@ -48,7 +48,7 @@ Entity::Type Pickup::GetType() const noexcept
     return Type::Pickup;
 }
 
-bool Pickup::IsCollideWith(const Entity& other) const
+bool Pickup::IsCollidingWith(const Entity& other) const
 {
     return other.GetType() == Type::Player && CheckCollision(other);
 }

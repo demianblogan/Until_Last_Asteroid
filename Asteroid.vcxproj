@@ -111,17 +111,17 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;DS5W_BUILD_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
 	  <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)libs;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)libs\DualSenseWindows\include;$(ProjectDir)libs\DualSenseWindows\src;$(ProjectDir)libs;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)libs\SFML\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sfml-system-d.lib;sfml-window-d.lib;sfml-graphics-d.lib;sfml-audio-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sfml-system-d.lib;sfml-window-d.lib;sfml-graphics-d.lib;sfml-audio-d.lib;xinput.lib;setupapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
@@ -131,17 +131,17 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;DS5W_BUILD_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
 	  <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)libs;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)libs\SFML\include;$(ProjectDir)libs\DualSenseWindows\include;$(ProjectDir)libs\DualSenseWindows\src;$(ProjectDir)libs;$(ProjectDir)/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)libs\SFML\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sfml-system.lib;sfml-window.lib;sfml-graphics.lib;sfml-audio.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sfml-system.lib;sfml-window.lib;sfml-graphics.lib;sfml-audio.lib;xinput.lib;setupapi.lib;hid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
@@ -164,7 +164,8 @@
     <ClCompile Include="src\core\world\WorldStatisticsTracker.cpp" />
     <ClCompile Include="src\core\world\WorldEffectEventQueue.cpp" />
     <ClCompile Include="src\core\world\WorldSoundSystem.cpp" />
-    <ClCompile Include="src\input\GamepadManager.cpp" />
+    <ClCompile Include="src\input\gamepad\GamepadManager.cpp" />
+    <ClCompile Include="src\input\gamepad\GamepadHaptics.cpp" />
     <ClCompile Include="src\entities\Enemy.cpp" />
     <ClCompile Include="src\entities\Pickup.cpp" />
     <ClCompile Include="src\entities\Part.cpp" />
@@ -199,6 +200,7 @@
     <ClCompile Include="src\states\State.cpp" />
     <ClCompile Include="src\states\StateStack.cpp" />
     <ClCompile Include="src\ui\HUD.cpp" />
+    <ClCompile Include="src\ui\HealthColor.cpp" />
     <ClCompile Include="src\ui\GlowingCursor.cpp" />
 	<ClCompile Include="src\ui\LevelIntro.cpp" />
     <ClCompile Include="src\ui\MenuBackground.cpp" />
@@ -229,10 +231,16 @@
     <ClCompile Include="src\utils\AppDataPath.cpp" />
     <ClCompile Include="src\utils\Random.cpp" />
     <ClCompile Include="src\utils\SafeFileWrite.cpp" />
+    <ClCompile Include="src\utils\VectorMath.cpp" />
     <ClCompile Include="src\entities\Saucer.cpp" />
 	<ClCompile Include="src\entities\Spinner.cpp" />
     <ClCompile Include="src\entities\Shot.cpp" />
     <ClCompile Include="src\core\world\World.cpp" />
+    <ClCompile Include="libs\DualSenseWindows\src\DualSenseWindows\DS5_Input.cpp" />
+    <ClCompile Include="libs\DualSenseWindows\src\DualSenseWindows\DS5_Output.cpp" />
+    <ClCompile Include="libs\DualSenseWindows\src\DualSenseWindows\DS_CRC32.cpp" />
+    <ClCompile Include="libs\DualSenseWindows\src\DualSenseWindows\Helpers.cpp" />
+    <ClCompile Include="libs\DualSenseWindows\src\DualSenseWindows\IO.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\utils\ConfigEnums.h" />
@@ -249,12 +257,15 @@
     <ClInclude Include="src\app\Application.h" />
     <ClInclude Include="src\core\GameVersion.h" />
     <ClInclude Include="src\ui\HUD.h" />
+    <ClInclude Include="src\ui\HealthColor.h" />
     <ClInclude Include="src\ui\GlowingCursor.h" />
 	<ClInclude Include="src\ui\LevelIntro.h" />
     <ClInclude Include="src\input\InputBinding.h" />
     <ClInclude Include="src\input\ActionMap.h" />
     <ClInclude Include="src\input\InputHandler.h" />
-    <ClInclude Include="src\input\GamepadManager.h" />
+    <ClInclude Include="src\input\gamepad\GamepadManager.h" />
+    <ClInclude Include="src\input\gamepad\GamepadHaptics.h" />
+    <ClInclude Include="src\gameplay\VibrationProfiles.h" />
     <ClInclude Include="src\settings\GameSettings.h" />
     <ClInclude Include="src\settings\SettingsManager.h" />
     <ClInclude Include="src\gameplay\GameplaySession.h" />
@@ -293,6 +304,7 @@
     <ClInclude Include="src\utils\AppDataPath.h" />
     <ClInclude Include="src\utils\Random.h" />
     <ClInclude Include="src\utils\SafeFileWrite.h" />
+    <ClInclude Include="src\utils\VectorMath.h" />
     <ClInclude Include="src\assets\AssetCache.h" />
     <ClInclude Include="src\core\Collision.h" />
     <ClInclude Include="src\core\world\ProjectileGeometry.h" />
@@ -335,6 +347,14 @@
     <ClInclude Include="src\ui\GameOverScreen.h" />
     <ClInclude Include="src\ui\ResultScreen.h" />
     <ClInclude Include="libs\nlohmann\json.hpp" />
+    <ClInclude Include="libs\DualSenseWindows\include\DualSenseWindows\Device.h" />
+    <ClInclude Include="libs\DualSenseWindows\include\DualSenseWindows\DS5State.h" />
+    <ClInclude Include="libs\DualSenseWindows\include\DualSenseWindows\DSW_Api.h" />
+    <ClInclude Include="libs\DualSenseWindows\include\DualSenseWindows\Helpers.h" />
+    <ClInclude Include="libs\DualSenseWindows\include\DualSenseWindows\IO.h" />
+    <ClInclude Include="libs\DualSenseWindows\src\DualSenseWindows\DS5_Input.h" />
+    <ClInclude Include="libs\DualSenseWindows\src\DualSenseWindows\DS5_Output.h" />
+    <ClInclude Include="libs\DualSenseWindows\src\DualSenseWindows\DS_CRC32.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\bright_pass.frag" />
