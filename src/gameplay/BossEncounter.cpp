@@ -18,6 +18,7 @@
 #include "core/world/World.h"
 #include "rendering/EnergyShield.h"
 #include "utils/ConfigEnums.h"
+#include "utils/Pulse.h"
 #include "utils/Random.h"
 
 namespace
@@ -1300,7 +1301,7 @@ void BossEncounter::draw(sf::RenderTarget& target, sf::RenderStates states) cons
 		state == State::CoreShield ||
 		warningShieldVisible)
 	{
-		const float pulse{ 0.72f + 0.28f * std::abs(std::sin(shieldPulse * 5.f)) };
+		const float pulse{ Pulse::Value(shieldPulse, 5.f, 0.72f, 0.28f) };
 		Rendering::DrawEnergyShield(
 			target, GetCollisionCenter(), GetShieldRadius(), pulse,
 			{ 255, 88, 12 }, { 255, 142, 24 }, { 255, 105, 16 }, 34.f, states);

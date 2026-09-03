@@ -14,15 +14,16 @@
 #include "achievements/AchievementManager.h"
 #include "audio/AudioManager.h"
 #include "campaign/CampaignSaveManager.h"
-#include "entities/LaserTurret.h"
-#include "entities/Meteor.h"
-#include "entities/MissileCarrier.h"
+#include "entities/enemies/KamikazeSaucer.h"
+#include "entities/enemies/LaserTurret.h"
+#include "entities/enemies/Meteor.h"
+#include "entities/enemies/MissileCarrier.h"
 #include "entities/Part.h"
 #include "entities/Player.h"
-#include "entities/ReflectorGunship.h"
-#include "entities/Saucer.h"
-#include "entities/ShooterStation.h"
-#include "entities/Spinner.h"
+#include "entities/enemies/ReflectorGunship.h"
+#include "entities/enemies/ShooterSaucer.h"
+#include "entities/enemies/ShooterStation.h"
+#include "entities/enemies/Spinner.h"
 #include "gameplay/GameplayLaunch.h"
 #include "input/gamepad/GamepadManager.h"
 #include "input/gamepad/GamepadHaptics.h"
@@ -666,11 +667,11 @@ void GameplayState::SpawnConfiguredEnemy(
 		entity = std::make_unique<Meteor>(GetContext().assets, world, Meteor::Size::Small);
 		break;
 	case Kind::Kamikaze:
-		entity = std::make_unique<Saucer>(GetContext().assets, world, Saucer::Mode::Kamikaze);
+		entity = std::make_unique<KamikazeSaucer>(GetContext().assets, world);
 		edgeSpawn = true;
 		break;
 	case Kind::Shooter:
-		entity = std::make_unique<Saucer>(GetContext().assets, world, Saucer::Mode::Shooter);
+		entity = std::make_unique<ShooterSaucer>(GetContext().assets, world);
 		edgeSpawn = true;
 		break;
 	case Kind::Spinner:
@@ -864,14 +865,7 @@ void GameplayState::SpawnConfiguredEnemy(
 					: sf::Vector2f{ 0.f, 1.f } };
 				entryTarget = *forcedPosition + outward * 420.f;
 			}
-			if (auto* saucer{ dynamic_cast<Saucer*>(entity.get()) })
-				saucer->ConfigureApproachTarget(entryTarget);
-			else if (auto* spinner{ dynamic_cast<Spinner*>(entity.get()) })
-				spinner->ConfigureApproachTarget(entryTarget);
-			else if (auto* carrier{ dynamic_cast<MissileCarrier*>(entity.get()) })
-				carrier->ConfigureApproachTarget(entryTarget);
-			else if (auto* reflector{ dynamic_cast<ReflectorGunship*>(entity.get()) })
-				reflector->ConfigureApproachTarget(entryTarget);
+			enemy.ConfigureApproachTarget(entryTarget);
 		}
 	}
 	if (materialize)
@@ -979,8 +973,7 @@ void GameplayState::ExecuteTutorialAction(TutorialDirector::Action action)
 		break;
 	case SpawnShooter:
 	{
-		auto shooter{ std::make_unique<Saucer>(
-			GetContext().assets, world, Saucer::Mode::Shooter) };
+		auto shooter{ std::make_unique<ShooterSaucer>(GetContext().assets, world) };
 		shooter->SetPosition({ 180.f, world.GetHeight() * 0.42f });
 		shooter->SetVelocity({ 115.f, 45.f });
 		world.Spawn(std::move(shooter));
@@ -1235,6 +1228,13 @@ UI::ResultScreen::Statistics GameplayState::FinalizeLevelStatistics()
 void GameplayState::CompleteCurrentLevel()
 {
 	const UI::ResultScreen::Statistics levelStatistics{ FinalizeLevelStatistics() };
+	// The last enemy can die while the player is still holding down a
+	// sustained/looping sound (e.g. the laser beam) -- session.IsPlaying()
+	// becomes false below, which stops world.Update() (and therefore
+	// Player::UpdateLaser, which would otherwise stop it) from ever running
+	// again, so it would loop forever under the result screen if not
+	// stopped explicitly here. Same reasoning as BeginGameOver().
+	world.Sound().StopActiveSounds();
 	session.ClearTemporaryEffects();
 	world.ClearPickups();
 	if (hud)

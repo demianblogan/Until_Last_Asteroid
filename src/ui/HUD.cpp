@@ -16,6 +16,7 @@
 #include "ui/HealthColor.h"
 #include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
+#include "utils/Pulse.h"
 
 namespace UI
 {
@@ -630,7 +631,7 @@ namespace UI
 		if (remainingSeconds <= 0.f)
 			return;
 
-		const float flash = 0.35f + 0.65f * std::abs(std::sin(remainingSeconds * 9.f));
+		const float flash = Pulse::Value(remainingSeconds, 9.f, 0.35f, 0.65f);
 
 		glowEffect.DrawBloom(target, frame.getGlobalBounds(),
 			[&frame, &fill, &text](sf::RenderTarget& glowTarget, const sf::RenderStates& states)
@@ -650,7 +651,7 @@ namespace UI
 		{
 			const float normalized = scorePulseRemaining / ScorePulseDuration;
 			const float tutorialFlash = tutorialScoreHighlightRemaining > 0.f
-				? 0.35f + 0.65f * std::abs(std::sin(tutorialScoreHighlightRemaining * 9.f))
+				? Pulse::Value(tutorialScoreHighlightRemaining, 9.f, 0.35f, 0.65f)
 				: 0.f;
 			const float flash = std::max(normalized * normalized, tutorialFlash);
 
@@ -677,12 +678,11 @@ namespace UI
 		{
 			const float normalized = partsPulseRemaining / PartsPulseDuration;
 			const float tutorialFlash = tutorialPartsHighlightRemaining > 0.f
-				? 0.4f + 0.6f * std::abs(std::sin(tutorialPartsHighlightRemaining * 9.f))
+				? Pulse::Value(tutorialPartsHighlightRemaining, 9.f, 0.4f, 0.6f)
 				: 0.f;
 
 			const float oscillationPhase = normalized * 4.f * std::numbers::pi_v<float>;
-			const float oscillationIntensity = std::abs(std::sin(oscillationPhase));
-			const float pulseBrightness = 0.62f + 0.38f * oscillationIntensity;
+			const float pulseBrightness = Pulse::Value(oscillationPhase, 1.f, 0.62f, 0.38f);
 			const float blink = std::max(normalized * pulseBrightness, tutorialFlash);
 
 			partsGlowEffect.DrawBloom(target, partsPanel.getGlobalBounds(),

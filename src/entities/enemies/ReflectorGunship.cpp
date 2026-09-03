@@ -8,13 +8,14 @@
 #include "core/world/World.h"
 #include "core/Collision.h"
 #include "utils/ConfigEnums.h"
+#include "utils/Pulse.h"
 
 ReflectorGunship::ReflectorGunship(Assets& assets, World& world)
 	: Enemy(assets, world, assets.Textures().Get(Config::Texture::ReflectorGunship),
 		assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::ReflectorGunship))
 {
-	const auto& config{
-		assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::ReflectorGunship) };
+	const auto& config = assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::ReflectorGunship);
+
 	shootInterval = std::max(0.05f, config.actionInterval);
 	shieldDuration = std::max(0.1f, config.shieldDuration);
 	figureEightAmplitude = std::max(1.f, config.sineAmplitude);
@@ -23,19 +24,22 @@ ReflectorGunship::ReflectorGunship(Assets& assets, World& world)
 
 void ReflectorGunship::ConfigureApproachTarget(sf::Vector2f target) noexcept
 {
-	approachTarget = target;
+	Enemy::ConfigureApproachTarget(target);
 	figureEightCenter = target;
-	approachingCenter = true;
 }
 
 bool ReflectorGunship::IsShieldActive() const noexcept
 {
-	return shieldActive;
+	return isShieldActive;
 }
 
 float ReflectorGunship::GetShieldPulse() const noexcept
 {
-	return 0.76f + 0.24f * std::abs(std::sin(shieldPhaseElapsed * 7.f));
+	// A brightness multiplier for the shield's visual glow, oscillating over
+	// time (see Pulse::Value) -- purely cosmetic, doesn't affect whether the
+	// shield is actually up (see IsShieldActive/isShieldActive). 7
+	// radians/second, kept from ever dimming below 76% brightness.
+	return Pulse::Value(shieldPhaseElapsed, 7.f, 0.76f, 0.24f);
 }
 
 float ReflectorGunship::GetShieldRadius() const noexcept
@@ -58,26 +62,26 @@ bool ReflectorGunship::AcceptsKnockback() const noexcept
 	return false;
 }
 
-bool ReflectorGunship::CollidesWithPlayerProjectile(
-	const Entity& projectile) const
+bool ReflectorGunship::CollidesWithPlayerProjectile(const Entity& projectile) const
 {
 	if (!IsShieldActive())
 		return CheckCollision(projectile);
+
 	return Collision::Circle(
-		GetPosition(), GetShieldRadius(),
+		GetPosition(),
+		GetShieldRadius(),
 		projectile.GetPosition(), projectile.GetCollisionRadius());
 }
 
-sf::Vector2f ReflectorGunship::GetPlayerProjectileImpactPosition(
-	const Entity& projectile) const noexcept
+sf::Vector2f ReflectorGunship::GetPlayerProjectileImpactPosition(const Entity& projectile) const noexcept
 {
 	if (!IsShieldActive())
 		return projectile.GetPosition();
+
 	const sf::Vector2f offset{ projectile.GetPosition() - GetPosition() };
-	const float length{ std::sqrt(offset.x * offset.x + offset.y * offset.y) };
-	const sf::Vector2f direction{ length > 0.001f
-		? offset / length
-		: sf::Vector2f{ 0.f, -1.f } };
+	const float length = std::sqrt(offset.x * offset.x + offset.y * offset.y);
+	const sf::Vector2f direction{ length > 0.001f ? offset / length : sf::Vector2f{ 0.f, -1.f } };
+
 	return GetPosition() + direction * GetShieldRadius();
 }
 
@@ -93,8 +97,8 @@ bool ReflectorGunship::IsCollidingWith(const Entity& other) const
 	{
 		return CollidesWithPlayerProjectile(other);
 	}
-	return (other.GetType() == Type::Player ||
-		other.GetType() == Type::EnemyMissile) && CheckCollision(other);
+
+	return (other.GetType() == Type::Player || other.GetType() == Type::EnemyMissile) && CheckCollision(other);
 }
 
 void ReflectorGunship::Update(float deltaTime)
@@ -102,10 +106,12 @@ void ReflectorGunship::Update(float deltaTime)
 	const sf::Vector2f playerPosition{ GetWorld().GetPlayerPosition() };
 	TurnTowards(playerPosition, GetRotationSpeed(), deltaTime);
 
-	if (approachingCenter)
+	if (isApproachingCenter)
 	{
-		if (MoveToApproachTarget(deltaTime))
-			approachingCenter = false;
+		// The return value (whether it just arrived) isn't needed -- the
+		// else branch below naturally takes over the very next frame once
+		// isApproachingCenter flips false, with nothing extra to do here.
+		static_cast<void>(UpdateApproach(deltaTime));
 	}
 	else
 	{
@@ -113,64 +119,49 @@ void ReflectorGunship::Update(float deltaTime)
 	}
 
 	shieldPhaseElapsed += deltaTime;
+
 	while (shieldPhaseElapsed >= shieldDuration)
 	{
 		shieldPhaseElapsed -= shieldDuration;
-		shieldActive = !shieldActive;
+		isShieldActive = !isShieldActive;
 	}
 
 	shootTimer += deltaTime;
+
 	while (shootTimer >= shootInterval)
 	{
 		shootTimer -= shootInterval;
-		ShootDoubleVolley(playerPosition);
+		ShootDoubleVolley();
 	}
 }
 
 void ReflectorGunship::OnDestroy()
 {
-	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion, GetSoundPitch());
-	GetWorld().Effects().Add({
-		Rendering::EffectEventType::ShipExplosion,
-		GetPosition(), GetVelocity(), 1.45f });
-}
-
-bool ReflectorGunship::MoveToApproachTarget(float deltaTime)
-{
-	const sf::Vector2f delta{ approachTarget - GetPosition() };
-	const float distance{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
-	const float step{ GetMovementSpeed() * deltaTime };
-	if (distance <= std::max(step, 0.001f))
-	{
-		SetPosition(approachTarget);
-		SetVelocity({});
-		return true;
-	}
-	SetVelocity(delta / distance * GetMovementSpeed());
-	Move(deltaTime);
-	return false;
+	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion, GetSoundPitchMultiplier());
+	GetWorld().Effects().Add({ Rendering::EffectEventType::ShipExplosion,GetPosition(), GetVelocity(), 1.45f });
 }
 
 void ReflectorGunship::UpdateFigureEight(float deltaTime)
 {
-	movementPhase = std::fmod(
-		movementPhase + figureEightFrequency * deltaTime,
-		2.f * std::numbers::pi_v<float>);
-	const float verticalAmplitude{ figureEightAmplitude * 0.52f };
+	movementPhase = std::fmod(movementPhase + figureEightFrequency * deltaTime, 2.f * std::numbers::pi_v<float>);
+	const float verticalAmplitude = figureEightAmplitude * 0.52f;
 	const sf::Vector2f previousPosition{ GetPosition() };
-	const sf::Vector2f nextPosition{
+	const sf::Vector2f nextPosition
+	{
 		figureEightCenter.x + figureEightAmplitude * std::sin(movementPhase),
-		figureEightCenter.y + verticalAmplitude * std::sin(2.f * movementPhase) };
+		figureEightCenter.y + verticalAmplitude * std::sin(2.f * movementPhase)
+	};
+
 	SetPosition(nextPosition);
+
 	if (deltaTime > 0.f)
 		SetVelocity((nextPosition - previousPosition) / deltaTime);
 }
 
-void ReflectorGunship::ShootDoubleVolley(const sf::Vector2f& playerPosition)
+void ReflectorGunship::ShootDoubleVolley()
 {
-	(void)playerPosition;
-	const auto& emitters{ GetWeaponEmitters() };
-	for (std::size_t index{ 0 }; index < emitters.size(); ++index)
+	const auto& emitters = GetWeaponEmitters();
+	for (std::size_t index = 0; index < emitters.size(); index++)
 	{
 		const sf::Vector2f muzzle{ GetWeaponEmitterPosition(index) };
 		GetWorld().SpawnSaucerShot(
@@ -181,13 +172,5 @@ void ReflectorGunship::ShootDoubleVolley(const sf::Vector2f& playerPosition)
 
 sf::Vector2f ReflectorGunship::GetWeaponEmitterPosition(std::size_t index) const
 {
-	const sf::Sprite& entitySprite{ GetSprite() };
-	const sf::IntRect textureRect{ entitySprite.getTextureRect() };
-	const GameplayData::NormalizedPoint& emitter{ GetWeaponEmitters().at(index) };
-	const sf::Vector2f localPosition{
-		static_cast<float>(textureRect.position.x) +
-			static_cast<float>(textureRect.size.x) * emitter.x,
-		static_cast<float>(textureRect.position.y) +
-			static_cast<float>(textureRect.size.y) * emitter.y };
-	return entitySprite.getTransform().transformPoint(localPosition);
+	return TransformNormalizedPoint(GetWeaponEmitters().at(index));
 }

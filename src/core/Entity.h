@@ -11,6 +11,7 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "core/Collision.h"
+#include "gameplay/GameplayData.h"
 
 namespace sf
 {
@@ -86,7 +87,22 @@ protected:
 
 	void TurnTowards(const sf::Vector2f& target, float maximumDegreesPerSecond, float deltaTime) noexcept;
 
+	// Moves this entity toward `target` at up to `speed` units/second and
+	// returns true once it has arrived -- arriving snaps the position exactly
+	// onto `target` and zeroes velocity, rather than letting the entity
+	// overshoot by a fraction of a frame's travel distance. Returns false
+	// (having moved a step closer) while travel is still in progress. Shared
+	// by every enemy that flies to a fixed point before switching to its own
+	// movement pattern (see Enemy::UpdateApproach for that specific case).
+	[[nodiscard]] bool MoveToward(const sf::Vector2f& target, float speed, float deltaTime) noexcept;
+
 	[[nodiscard]] sf::Vector2f GetForwardDirection() const noexcept;
+
+	// Converts a 0..1-normalized point (as authored in GameplayData, e.g. a
+	// weapon or engine emitter position) into this entity's current world
+	// position -- 0,0 is the sprite's top-left corner, 1,1 its bottom-right,
+	// already accounting for this entity's current position/rotation/scale.
+	[[nodiscard]] sf::Vector2f TransformNormalizedPoint(const GameplayData::NormalizedPoint& point) const noexcept;
 
 	virtual void Update(float deltaTime) = 0;
 

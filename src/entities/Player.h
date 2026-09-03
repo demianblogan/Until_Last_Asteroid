@@ -28,9 +28,17 @@ struct PlayerEffectState
 	std::array<sf::Vector2f, 2> enginePositions;
 	sf::Vector2f velocity;
 	sf::Vector2f exhaustDirection;
-	bool isThrusting{ false };
+	bool isThrusting = false;
 };
 
+// The player-controlled ship. Handles its own input (keyboard/mouse or
+// gamepad, see HandleEvent/HandleRealtime), movement with inertia and a
+// speed cap (UpdateMovement), aiming/rotation toward the mouse or gamepad
+// stick, regular shooting with an optional triple-shot spread, an
+// alternative continuous laser beam that damages enemies on a tick timer
+// while held, brief invulnerability with a blink effect after taking
+// damage, and driving the DualSense adaptive trigger/vibration feedback for
+// shots and the laser. Exactly one exists per gameplay session.
 class Player final : public Entity
 {
 public:
@@ -43,51 +51,61 @@ public:
 	void Update(float deltaTime) override;
 	void HandleEvent(const sf::Event& event);
 	void HandleRealtime();
-	void SetControlEnabled(bool enabled) noexcept;
-	void SetFiringEnabled(bool enabled) noexcept;
-	void SetCinematicInvulnerable(bool enabled) noexcept;
 	void OnDestroy() override;
+
+	void SetControlEnabled(bool isEnabled) noexcept;
+	void SetFiringEnabled(bool isEnabled) noexcept;
+	void SetCinematicInvulnerable(bool isEnabled) noexcept;
 
 	[[nodiscard]] bool TakeDamage(int damage);
 	[[nodiscard]] bool DidLastDamageReachHealth() const noexcept;
 	[[nodiscard]] bool IsInvulnerable() const noexcept;
+
 	[[nodiscard]] bool IsThrusting() const noexcept;
 	[[nodiscard]] std::array<sf::Vector2f, 2> GetEngineEmitterPositions() const;
+	[[nodiscard]] sf::Vector2f GetExhaustDirection() const noexcept;
+
 	[[nodiscard]] sf::Vector2f GetMuzzlePosition() const;
 	[[nodiscard]] sf::Vector2f GetLaserEndPosition() const;
 	[[nodiscard]] bool IsLaserFiring() const noexcept;
 	[[nodiscard]] float GetLaserVisualTime() const noexcept;
-	[[nodiscard]] sf::Vector2f GetExhaustDirection() const noexcept;
+
 	[[nodiscard]] std::optional<sf::Vector2f> GetGamepadAimPoint() const;
 	[[nodiscard]] std::optional<PlayerEffectState> GetEffectState() const;
 
 private:
 	void BindInput();
 	void Shoot();
-	void UpdateMovement(float dt);
+
+	void UpdateMovement(float deltaTime);
 	void UpdateRotation();
-	void UpdateInvulnerability(float dt);
-	void UpdateLaser(float dt);
-	void StopLaserSounds();
 	[[nodiscard]] sf::Vector2f GetAimDirection() const noexcept;
+
+	void UpdateInvulnerability(float deltaTime);
+	void UpdateLaser(float deltaTime);
+	void StopLaserSounds();
 
 	InputHandler<Config::PlayerAction>& input;
 	GamepadManager& gamepad;
 	sf::RenderWindow& window;
+
 	sf::Vector2f moveInput{ 0.f, 0.f };
 	sf::Vector2f gamepadAimDirection{ 0.f, -1.f };
-	float shootTimer{ 0.f };
-	float invulnerabilityTimer{ 0.f };
-	float laserDamageTimer{ 0.f };
-	float laserVisualTime{ 0.f };
-	std::uint64_t laserSoundHandle{ 0u };
-	bool laserRequested{ false };
-	bool laserFiring{ false };
-	bool blinkDuringInvulnerability{ false };
-	bool lastDamageReachedHealth{ false };
-	bool isThrusting{ false };
-	bool aimingWithGamepad{ false };
-	bool controlEnabled{ true };
-	bool firingEnabled{ true };
-	bool cinematicInvulnerable{ false };
+	bool isAimingWithGamepad = false;
+	bool isThrusting = false;
+	bool isControlEnabled = true;
+	bool isFiringEnabled = true;
+
+	float shootTimer = 0.f;
+
+	float invulnerabilityTimer = 0.f;
+	bool isBlinkingDuringInvulnerability = false;
+	bool didLastDamageReachHealth = false;
+	bool isCinematicInvulnerable = false;
+
+	float laserDamageTimer = 0.f;
+	float laserVisualTime = 0.f;
+	std::uint64_t laserSoundHandle = 0u;
+	bool isLaserRequested = false;
+	bool isLaserFiring = false;
 };

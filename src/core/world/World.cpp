@@ -18,22 +18,23 @@
 #include "audio/AudioManager.h"
 #include "core/Collision.h"
 #include "core/world/ProjectileGeometry.h"
-#include "entities/Enemy.h"
+#include "entities/enemies/Enemy.h"
 #include "entities/HelperBot.h"
 #include "entities/HomingMissile.h"
-#include "entities/LaserTurret.h"
-#include "entities/Meteor.h"
+#include "entities/enemies/LaserTurret.h"
+#include "entities/enemies/Meteor.h"
 #include "entities/Part.h"
 #include "entities/Pickup.h"
 #include "entities/Player.h"
-#include "entities/ReflectorGunship.h"
-#include "entities/Saucer.h"
-#include "entities/ShooterStation.h"
+#include "entities/enemies/ReflectorGunship.h"
+#include "entities/enemies/ShooterSaucer.h"
+#include "entities/enemies/ShooterStation.h"
 #include "entities/Shot.h"
 #include "gameplay/GameplaySession.h"
 #include "gameplay/VibrationProfiles.h"
 #include "input/gamepad/GamepadManager.h"
 #include "rendering/EnergyShield.h"
+#include "utils/Pulse.h"
 #include "utils/VectorMath.h"
 
 namespace
@@ -91,7 +92,7 @@ namespace
 	void DrawPartAura(sf::RenderTarget& target, const Part& part, float visualTime, sf::RenderStates states)
 	{
 		const sf::Color color{ 255, 184, 38 };
-		const float pulse = 0.55f + 0.45f * std::abs(std::sin(visualTime * 2.f * std::numbers::pi_v<float>));
+		const float pulse = Pulse::Value(visualTime, 2.f * std::numbers::pi_v<float>, 0.55f, 0.45f);
 		states.blendMode = sf::BlendAdd;
 
 		for (int layer = 0; layer < 3; layer++)
@@ -114,11 +115,11 @@ namespace
 		float pulse = 0.9f + 0.1f * std::sin(visualTime * 3.5f);
 
 		if (ratio <= 0.25f)
-			pulse = 0.35f + 0.65f * std::abs(std::sin(visualTime * 14.f));
+			pulse = Pulse::Value(visualTime, 14.f, 0.35f, 0.65f);
 
 		if (hitFlashRatio > 0.f)
 		{
-			const float hitBlink = 0.18f + 0.82f * std::abs(std::sin(hitFlashRatio * 8.f * std::numbers::pi_v<float>));
+			const float hitBlink = Pulse::Value(hitFlashRatio, 8.f * std::numbers::pi_v<float>, 0.18f, 0.82f);
 			pulse = std::max(pulse, hitBlink * (1.f + hitFlashRatio * 0.55f));
 		}
 
@@ -486,7 +487,7 @@ void World::SpawnHomingMissile(const sf::Vector2f& pos, const sf::Vector2f& targ
 
 void World::SpawnStationShooter(const sf::Vector2f& position, float materializationDuration, const Entity* station)
 {
-	auto shooter = std::make_unique<Saucer>(assets, *this, Saucer::Mode::Shooter);
+	auto shooter = std::make_unique<ShooterSaucer>(assets, *this);
 	shooter->SetPosition(position);
 	shooter->SetRewardsEnabled(false);
 	shooter->BeginMaterialization(materializationDuration, station);
@@ -1223,7 +1224,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 			if (isEnemyKilled)
 				AwardScore(enemy);
 			else if (enemy.GetType() == Entity::Type::Asteroid)
-				sound.AddSound(Config::Sound::BulletHitAsteroid, enemy.GetSoundPitch());
+				sound.AddSound(Config::Sound::BulletHitAsteroid, enemy.GetSoundPitchMultiplier());
 			else if (enemy.GetType() == Entity::Type::Enemy)
 				sound.AddSound(Config::Sound::MetalHit);
 		};
@@ -1334,7 +1335,7 @@ void World::HandleCollisionPair(Entity& first, Entity& second)
 			? Config::Sound::HitAsteroid
 			: Config::Sound::HitEnemySaucer };
 
-		sound.AddSound(impactSound, collidedEnemy->GetSoundPitch());
+		sound.AddSound(impactSound, collidedEnemy->GetSoundPitchMultiplier());
 		VibrationProfiles::Apply(gamepadHaptics, VibrationProfiles::Collision);
 
 		const bool isEnemyKilled = collidedEnemy->TakeDamage(assets.GetGameplayData().GetPlayer().collisionDamage);
@@ -1378,8 +1379,7 @@ void World::AwardScore(const Enemy& enemy)
 			else
 				statisticsTracker.RecordSmallMeteorDestroyed();
 		}
-		else if (const Saucer* saucer = dynamic_cast<const Saucer*>(&enemy);
-			saucer != nullptr && saucer->GetMode() == Saucer::Mode::Shooter)
+		else if (dynamic_cast<const ShooterSaucer*>(&enemy) != nullptr)
 		{
 			statisticsTracker.RecordShooterDestroyed();
 		}

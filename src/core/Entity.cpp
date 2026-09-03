@@ -226,6 +226,37 @@ void Entity::TurnTowards(const sf::Vector2f& target, float maximumDegreesPerSeco
 	SetRotation(sf::radians(current + std::clamp(difference, -maximumStep, maximumStep)));
 }
 
+bool Entity::MoveToward(const sf::Vector2f& target, float speed, float deltaTime) noexcept
+{
+	const sf::Vector2f delta{ target - GetPosition() };
+	const float distance{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
+
+	// Guards against overshooting `target` (and against a divide-by-zero
+	// below) when this frame's travel distance would cover the remaining
+	// gap -- snap exactly onto it and stop instead.
+	const float step{ std::max(speed, 0.f) * deltaTime };
+	if (distance <= std::max(step, 0.001f))
+	{
+		SetPosition(target);
+		SetVelocity({});
+		return true;
+	}
+
+	SetVelocity(delta / distance * speed);
+	Move(deltaTime);
+	return false;
+}
+
+sf::Vector2f Entity::TransformNormalizedPoint(const GameplayData::NormalizedPoint& point) const noexcept
+{
+	const sf::IntRect textureRect{ sprite.getTextureRect() };
+	const sf::Vector2f localPosition{
+		static_cast<float>(textureRect.position.x) + static_cast<float>(textureRect.size.x) * point.x,
+		static_cast<float>(textureRect.position.y) + static_cast<float>(textureRect.size.y) * point.y };
+
+	return sprite.getTransform().transformPoint(localPosition);
+}
+
 sf::Vector2f Entity::GetForwardDirection() const noexcept
 {
 	const float angle = GetRotation().asRadians() - std::numbers::pi_v<float> *0.5f;

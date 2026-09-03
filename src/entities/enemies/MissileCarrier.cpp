@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <numbers>
+
 #include "assets/Assets.h"
 #include "core/world/World.h"
 #include "utils/ConfigEnums.h"
@@ -16,38 +17,29 @@ namespace
 }
 
 MissileCarrier::MissileCarrier(Assets& assets, World& world)
-	: Enemy(
-		assets,
-		world,
-		assets.Textures().Get(Config::Texture::MissileCarrier),
+	: Enemy(assets, world, assets.Textures().Get(Config::Texture::MissileCarrier),
 		assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::MissileCarrier))
-{
-}
+	, launchInterval(assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::MissileCarrier).actionInterval)
+{}
 
 Entity::Type MissileCarrier::GetType() const noexcept
 {
 	return Type::Enemy;
 }
 
-bool MissileCarrier::IsCollidingWith(const Entity& other) const
-{
-	return (other.GetType() == Type::Player ||
-		other.GetType() == Type::Projectile_Player ||
-		other.GetType() == Type::Projectile_Ally ||
-		other.GetType() == Type::EnemyMissile) && CheckCollision(other);
-}
-
 void MissileCarrier::Update(float deltaTime)
 {
 	const sf::Vector2f playerPosition{ GetWorld().GetPlayerPosition() };
+
 	TurnTowards(playerPosition, GetRotationSpeed(), deltaTime);
 	UpdatePatrolMovement(deltaTime);
 	EmitEngineParticles(-VectorMath::Normalize(GetVelocity(), DegenerateDirectionFallback));
 
 	launchTimer += deltaTime;
-	if (launchTimer >= GetActionInterval())
+
+	if (launchTimer >= launchInterval)
 	{
-		launchTimer -= GetActionInterval();
+		launchTimer -= launchInterval;
 		LaunchMissile(playerPosition);
 	}
 }
@@ -60,11 +52,14 @@ void MissileCarrier::ConfigureApproachTarget(sf::Vector2f target) noexcept
 
 void MissileCarrier::ChooseCentralPatrolTarget()
 {
-	const float width{ static_cast<float>(GetWorld().GetWidth()) };
-	const float height{ static_cast<float>(GetWorld().GetHeight()) };
-	patrolTarget = {
+	const float width = static_cast<float>(GetWorld().GetWidth());
+	const float height = static_cast<float>(GetWorld().GetHeight());
+
+	patrolTarget =
+	{
 		Random::Float(width * 0.2f, width * 0.8f),
-		Random::Float(height * 0.18f, height * 0.82f) };
+		Random::Float(height * 0.18f, height * 0.82f)
+	};
 	hasPatrolTarget = true;
 }
 
@@ -72,62 +67,37 @@ void MissileCarrier::UpdatePatrolMovement(float deltaTime)
 {
 	if (!hasPatrolTarget)
 		ChooseCentralPatrolTarget();
-	const sf::Vector2f delta{ patrolTarget - GetPosition() };
-	const float distance{ std::sqrt(delta.x * delta.x + delta.y * delta.y) };
-	const float step{ GetMovementSpeed() * deltaTime };
-	if (distance <= std::max(step, 0.001f))
-	{
-		SetPosition(patrolTarget);
+
+	if (MoveToward(patrolTarget, GetMovementSpeed(), deltaTime))
 		ChooseCentralPatrolTarget();
-		return;
-	}
-	SetVelocity(delta / distance * GetMovementSpeed());
-	Move(deltaTime);
 }
 
 void MissileCarrier::OnDestroy()
 {
 	GetWorld().Sound().AddSound(Config::Sound::ShipExplosion);
-	GetWorld().Effects().Add({
-		Rendering::EffectEventType::ShipExplosion,
-		GetPosition(), GetVelocity(), 1.3f });
+	GetWorld().Effects().Add({ Rendering::EffectEventType::ShipExplosion, GetPosition(), GetVelocity(), 1.3f });
 }
 
 void MissileCarrier::LaunchMissile(const sf::Vector2f& target)
 {
 	const sf::Vector2f launcherPosition{ GetLauncherPosition() };
 	const sf::Vector2f direction{ VectorMath::Normalize(target - launcherPosition, DegenerateDirectionFallback) };
-	GetWorld().Effects().Add({
-		Rendering::EffectEventType::EnemyMuzzleFlash,
-		launcherPosition, direction, 1.15f });
+
+	GetWorld().Effects().Add({ Rendering::EffectEventType::EnemyMuzzleFlash,launcherPosition, direction, 1.15f });
 	GetWorld().Sound().AddSound(Config::Sound::EnemyShot, 0.72f);
 	GetWorld().SpawnHomingMissile(launcherPosition, target);
 }
 
 sf::Vector2f MissileCarrier::GetLauncherPosition() const
 {
-	return GetEmitterPosition(GetWeaponEmitters().front());
+	return TransformNormalizedPoint(GetWeaponEmitters().front());
 }
 
 void MissileCarrier::EmitEngineParticles(const sf::Vector2f& exhaustDirection)
 {
 	for (const GameplayData::NormalizedPoint& emitter : GetEngineEmitters())
 	{
-		GetWorld().Effects().Add({
-			Rendering::EffectEventType::EnemyEngine,
-			GetEmitterPosition(emitter), exhaustDirection });
+		GetWorld().Effects().Add(
+			{ Rendering::EffectEventType::EnemyEngine,	TransformNormalizedPoint(emitter), exhaustDirection });
 	}
-}
-
-sf::Vector2f MissileCarrier::GetEmitterPosition(
-	const GameplayData::NormalizedPoint& emitter) const
-{
-	const sf::Sprite& entitySprite{ GetSprite() };
-	const sf::IntRect textureRect{ entitySprite.getTextureRect() };
-	const sf::Vector2f localPosition{
-		static_cast<float>(textureRect.position.x) +
-			static_cast<float>(textureRect.size.x) * emitter.x,
-		static_cast<float>(textureRect.position.y) +
-			static_cast<float>(textureRect.size.y) * emitter.y };
-	return entitySprite.getTransform().transformPoint(localPosition);
 }

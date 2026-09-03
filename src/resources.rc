@@ -1,0 +1,5 @@
+// Embeds the .exe's icon (shown in Explorer, the taskbar, and the window's
+// title bar) into the executable at link time. IDI_APPICON is just a name for
+// this one resource; nothing in the code needs to reference it -- Windows
+// automatically uses the first icon resource in the .exe as the app icon.
+IDI_APPICON ICON "../assets/other/exe_icon.ico"

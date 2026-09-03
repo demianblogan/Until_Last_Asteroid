@@ -419,3 +419,7 @@ FodyWeavers.xsd
 
 # Project build output
 build/
+
+# Locally-fetched SFML dependency binaries (not project source)
+libs/SFML/include/
+libs/SFML/lib/

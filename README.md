@@ -128,7 +128,7 @@ campaign progress.
 
 ## ▶️ Run
 
-1. Open `Asteroid.slnx`
+1. Open `UntilLastAsteroid.slnx`
 2. Build the project (Debug or Release)
 3. Make sure SFML DLLs are available next to the executable
    > DLLs can be found in the SFML `bin` folder
