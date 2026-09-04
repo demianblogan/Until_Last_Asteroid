@@ -4,54 +4,54 @@
 
 Health::Health(int maximum) noexcept
 {
-    SetMaximum(maximum);
+	SetMaximum(maximum);
 }
 
 void Health::SetMaximum(int newMaximum, bool needToRestoreToFull) noexcept
 {
-    maximum = std::max(1, newMaximum);
-    current = needToRestoreToFull ? maximum : std::min(current, maximum);
+	maximum = std::max(1, newMaximum);
+	current = needToRestoreToFull ? maximum : std::min(current, maximum);
 }
 
 bool Health::ApplyDamage(int amount) noexcept
 {
-    if (amount <= 0 || IsDepleted())
-        return false;
+	if (amount <= 0 || IsDepleted())
+		return false;
 
-    current = std::max(0, current - amount);
-    return true;
+	current = std::max(0, current - amount);
+	return true;
 }
 
 bool Health::Restore(int amount) noexcept
 {
-    if (amount <= 0 || current >= maximum)
-        return false;
+	if (amount <= 0 || current >= maximum)
+		return false;
 
-    current = std::min(maximum, current + amount);
-    return true;
+	current = std::min(maximum, current + amount);
+	return true;
 }
 
 void Health::Reset() noexcept
 {
-    current = maximum;
+	current = maximum;
 }
 
 int Health::GetCurrent() const noexcept
 {
-    return current;
+	return current;
 }
 
 int Health::GetMaximum() const noexcept
 {
-    return maximum;
+	return maximum;
 }
 
 float Health::GetRatio() const noexcept
 {
-    return static_cast<float>(current) / static_cast<float>(maximum);
+	return static_cast<float>(current) / static_cast<float>(maximum);
 }
 
 bool Health::IsDepleted() const noexcept
 {
-    return current <= 0;
+	return current <= 0;
 }

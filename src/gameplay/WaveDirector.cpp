@@ -2,83 +2,75 @@
 
 void WaveDirector::LoadLevel(const GameplayData::LevelConfig& level)
 {
-    waves = &level.waves;
-    nextWaveIndex = 0u;
-    currentWaveIndex = 0u;
-    nextScheduledSpawn = 0u;
-    timeUntilNextSpawn = 0.f;
-    isWaveActive = false;
+	waves = &level.waves;
+	nextWaveIndex = 0u;
+	currentWaveIndex = 0u;
+	nextScheduledSpawn = 0u;
+	timeUntilNextSpawn = 0.f;
+	isWaveActive = false;
 }
 
 bool WaveDirector::StartNextWave(const SpawnEnemy& spawnEnemy)
 {
-    if (waves == nullptr || nextWaveIndex >= waves->size())
-        return false;
+	if (waves == nullptr || nextWaveIndex >= waves->size())
+		return false;
 
-    currentWaveIndex = nextWaveIndex++;
-    nextScheduledSpawn = 0u;
-    isWaveActive = true;
+	currentWaveIndex = nextWaveIndex++;
+	nextScheduledSpawn = 0u;
+	isWaveActive = true;
 
-    const GameplayData::WaveConfig& wave{ waves->at(currentWaveIndex) };
-    for (const GameplayData::SpawnGroup& group : wave.initialSpawns)
-        SpawnGroup(group, spawnEnemy);
+	const GameplayData::WaveConfig& wave = waves->at(currentWaveIndex);
 
-    timeUntilNextSpawn = wave.scheduledSpawns.empty()
-        ? 0.f
-        : wave.scheduledSpawns.front().delay;
-    return true;
+	for (const GameplayData::SpawnGroup& group : wave.initialSpawns)
+		SpawnGroupMembers(group, spawnEnemy);
+
+	timeUntilNextSpawn = wave.scheduledSpawns.empty() ? 0.f : wave.scheduledSpawns.front().delay;
+	return true;
 }
 
 void WaveDirector::Update(float deltaTime, const SpawnEnemy& spawnEnemy)
 {
-    if (!isWaveActive || waves == nullptr)
-        return;
+	if (!isWaveActive || waves == nullptr)
+		return;
 
-    const GameplayData::WaveConfig& wave{ waves->at(currentWaveIndex) };
-    if (nextScheduledSpawn >= wave.scheduledSpawns.size())
-        return;
+	const GameplayData::WaveConfig& wave = waves->at(currentWaveIndex);
 
-    timeUntilNextSpawn -= deltaTime;
-    while (nextScheduledSpawn < wave.scheduledSpawns.size() && timeUntilNextSpawn <= 0.f)
-    {
-        SpawnGroup(wave.scheduledSpawns[nextScheduledSpawn], spawnEnemy);
-        ++nextScheduledSpawn;
-        if (nextScheduledSpawn < wave.scheduledSpawns.size())
-            timeUntilNextSpawn += wave.scheduledSpawns[nextScheduledSpawn].delay;
-    }
-}
+	if (nextScheduledSpawn >= wave.scheduledSpawns.size())
+		return;
 
-bool WaveDirector::HasActiveWave() const noexcept
-{
-    return isWaveActive;
+	timeUntilNextSpawn -= deltaTime;
+
+	while (nextScheduledSpawn < wave.scheduledSpawns.size() && timeUntilNextSpawn <= 0.f)
+	{
+		SpawnGroupMembers(wave.scheduledSpawns[nextScheduledSpawn], spawnEnemy);
+
+		nextScheduledSpawn++;
+
+		if (nextScheduledSpawn < wave.scheduledSpawns.size())
+			timeUntilNextSpawn += wave.scheduledSpawns[nextScheduledSpawn].delay;
+	}
 }
 
 bool WaveDirector::HasMoreWaves() const noexcept
 {
-    return waves != nullptr && nextWaveIndex < waves->size();
+	return waves != nullptr && nextWaveIndex < waves->size();
 }
 
 bool WaveDirector::IsDeploymentComplete() const noexcept
 {
-    if (!isWaveActive || waves == nullptr)
-        return false;
-    return nextScheduledSpawn >= waves->at(currentWaveIndex).scheduledSpawns.size();
+	if (!isWaveActive || waves == nullptr)
+		return false;
+
+	return nextScheduledSpawn >= waves->at(currentWaveIndex).scheduledSpawns.size();
 }
 
 int WaveDirector::GetCurrentWaveNumber() const noexcept
 {
-    return isWaveActive ? static_cast<int>(currentWaveIndex + 1u) : 0;
+	return isWaveActive ? static_cast<int>(currentWaveIndex + 1u) : 0;
 }
 
-int WaveDirector::GetWaveCount() const noexcept
+void WaveDirector::SpawnGroupMembers(const GameplayData::SpawnGroup& group, const SpawnEnemy& spawnEnemy)
 {
-    return waves == nullptr ? 0 : static_cast<int>(waves->size());
-}
-
-void WaveDirector::SpawnGroup(
-    const GameplayData::SpawnGroup& group,
-    const SpawnEnemy& spawnEnemy)
-{
-    for (int count{ 0 }; count < group.count; ++count)
-        spawnEnemy(group, static_cast<std::size_t>(count));
+	for (int count = 0; count < group.count; count++)
+		spawnEnemy(group, static_cast<std::size_t>(count));
 }

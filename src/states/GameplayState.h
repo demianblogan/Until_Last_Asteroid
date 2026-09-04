@@ -88,9 +88,6 @@ private:
 	void UnlockCompletionAchievements(int completedLevel);
 	[[nodiscard]] UI::ResultScreen::Statistics FinalizeLevelStatistics();
 	void CompleteCurrentLevel();
-#ifdef _DEBUG
-	void DebugCompleteCurrentLevel();
-#endif
 	void NextLevel();
 	void SpawnLevel();
 	void PrepareCampaignRewards(const GameplayData::LevelConfig& level);
@@ -177,6 +174,5 @@ private:
 	bool bossVictorySequenceStarted{ false };
 	bool preserveGameplayMusicOnDestruction{ false };
 	bool mainCampaignRun{ false };
-	bool debugAchievementSuppressed{ false };
 	std::vector<Entity*> materializingEnemies;
 };

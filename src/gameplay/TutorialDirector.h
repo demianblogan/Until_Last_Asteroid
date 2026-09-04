@@ -15,101 +15,107 @@ class LocalizationManager;
 
 namespace sf
 {
-    class RenderTarget;
+	class RenderTarget;
 }
 
 class TutorialDirector
 {
 public:
-    enum class Action
-    {
-        SpawnBigMeteor,
-        HighlightScore,
-        HighlightArmor,
-        HighlightShield,
-        HighlightParts,
-        SpawnShooter,
-        SpawnShield,
-        SpawnPart,
-        Complete
-    };
+	enum class Action
+	{
+		SpawnBigMeteor,
+		HighlightScore,
+		HighlightArmor,
+		HighlightShield,
+		HighlightParts,
+		SpawnShooter,
+		SpawnShield,
+		SpawnPart,
+		Complete
+	};
 
-    struct Snapshot
-    {
-        sf::Vector2f playerPosition;
-        unsigned int playerAttacksFired{ 0u };
-        unsigned int bigMeteorsDestroyed{ 0u };
-        unsigned int smallMeteorsDestroyed{ 0u };
-        unsigned int shootersDestroyed{ 0u };
-        unsigned int shieldPickupsCollected{ 0u };
-        int partsCollected{ 0 };
-    };
+	struct Snapshot
+	{
+		sf::Vector2f playerPosition;
+		unsigned int playerAttacksFired = 0u;
+		unsigned int bigMeteorsDestroyed = 0u;
+		unsigned int smallMeteorsDestroyed = 0u;
+		unsigned int shootersDestroyed = 0u;
+		unsigned int shieldPickupsCollected = 0u;
+		int partsCollected = 0;
+	};
 
-    TutorialDirector(
-        Assets& assets,
-		LocalizationManager& localization,
-        sf::Vector2f logicalSize,
-        const ControlSettings& controls);
+	TutorialDirector(Assets& assets, LocalizationManager& localization, sf::Vector2f logicalSize, const ControlSettings& controls);
 
-    void Start(const Snapshot& snapshot);
-    [[nodiscard]] std::optional<Action> Update(float deltaTime, const Snapshot& snapshot);
-    void Draw(sf::RenderTarget& target);
-    [[nodiscard]] bool IsActive() const noexcept;
+	void Start(const Snapshot& snapshot);
+	[[nodiscard]] std::optional<Action> Update(float deltaTime, const Snapshot& snapshot);
+	void Draw(sf::RenderTarget& target);
 
 private:
-    enum class Step
-    {
-        Movement,
-        Fire,
-        BigAsteroid,
-        Fragments,
-        Score,
-        Armor,
-        Enemies,
-        Shooter,
-        Collision,
-        ShieldPickup,
-        ShieldInfo,
-        PartPickup,
-        PartInfo,
-        Finish,
-        Complete
-    };
+	enum class Step
+	{
+		Movement,
+		Fire,
+		BigAsteroid,
+		Fragments,
+		Score,
+		Armor,
+		Enemies,
+		Shooter,
+		Collision,
+		ShieldPickup,
+		ShieldInfo,
+		PartPickup,
+		PartInfo,
+		Finish,
+		Complete
+	};
 
-    void RequestStep(Step nextStep);
-    [[nodiscard]] std::optional<Action> EnterStep(Step nextStep, const Snapshot& snapshot);
-    void SetInstruction(const sf::String& instruction);
-    [[nodiscard]] std::optional<Action> UpdateCurrentStep(
-        float deltaTime,
-        const Snapshot& snapshot);
-    [[nodiscard]] sf::String BindingName(const ControlBinding& binding) const;
-    [[nodiscard]] static float DistanceSquared(sf::Vector2f first, sf::Vector2f second) noexcept;
+	void RequestStep(Step nextStep);
+	[[nodiscard]] std::optional<Action> EnterStep(Step nextStep, const Snapshot& snapshot);
 
-    static constexpr float HoldAfterInput{ 5.f };
-    static constexpr float StandardMessageDuration{ 5.f };
-    static constexpr float ShieldMessageDuration{ 5.f };
-    static constexpr float SlideSpeed{ 4.5f };
+	void SetInstruction(const sf::String& instruction);
+	[[nodiscard]] std::optional<Action> UpdateCurrentStep(float deltaTime, const Snapshot& snapshot);
+	[[nodiscard]] sf::String BindingName(const ControlBinding& binding) const;
 
-    sf::Vector2f logicalSize;
+	static constexpr float HoldAfterInput = 5.f;
+	static constexpr float StandardMessageDuration = 5.f;
+	static constexpr float ShieldMessageDuration = 5.f;
+	static constexpr float SlideSpeed = 4.5f;
+
+	// How far (squared, in world units) the player has to move away from
+	// movementStart before the movement step counts as "done" -- 20 units.
+	static constexpr float MovementCompletionDistanceSquared = 400.f;
+
+	// How often the part-pickup step re-spawns a fresh Part if the player
+	// hasn't grabbed the current one yet.
+	static constexpr float PartRetryInterval = 5.5f;
+
+	sf::Vector2f logicalSize;
 	LocalizationManager& localization;
-    UI::RoundedRectangleShape panel;
-    sf::Text text;
-    Rendering::NeonGlow glow;
-    sf::String movementInstruction;
-    sf::String fireInstruction;
-    Step step{ Step::Movement };
-    Step pendingStep{ Step::Movement };
-    sf::Vector2f movementStart;
-    unsigned int shotBaseline{ 0u };
-    unsigned int bigMeteorBaseline{ 0u };
-    unsigned int smallMeteorBaseline{ 0u };
-    unsigned int shooterBaseline{ 0u };
-    unsigned int shieldPickupBaseline{ 0u };
-    int partsBaseline{ 0 };
-    float visibleAmount{ 0.f };
-    float stepElapsed{ 0.f };
-    bool isConditionMet{ false };
-    bool isHidingCurrentStep{ false };
-    bool isSwitchingStep{ false };
-    bool isActive{ false };
+	UI::RoundedRectangleShape panel;
+	sf::Text text;
+	Rendering::NeonGlow glow;
+
+	sf::String movementInstruction;
+	sf::String fireInstruction;
+
+	Step step = Step::Movement;
+	Step pendingStep = Step::Movement;
+	sf::Vector2f movementStart;
+
+	unsigned int shotBaseline = 0u;
+	unsigned int bigMeteorBaseline = 0u;
+	unsigned int smallMeteorBaseline = 0u;
+	unsigned int shooterBaseline = 0u;
+	unsigned int shieldPickupBaseline = 0u;
+
+	int partsBaseline = 0;
+	float visibleAmount = 0.f;
+	float stepElapsed = 0.f;
+
+	bool isConditionMet = false;
+	bool isHidingCurrentStep = false;
+	bool isSwitchingStep = false;
+	bool isActive = false;
 };

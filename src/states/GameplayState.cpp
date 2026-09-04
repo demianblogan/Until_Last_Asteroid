@@ -235,22 +235,6 @@ void GameplayState::HandleEvent(const sf::Event& event)
 
 	if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
 	{
-#ifdef _DEBUG
-		if (key->code == sf::Keyboard::Key::F1 && session.IsPlaying() &&
-			bossEncounter)
-		{
-			debugAchievementSuppressed = true;
-			bossEncounter->DebugDefeat(world);
-			return;
-		}
-		if (key->code == sf::Keyboard::Key::F2 && session.IsPlaying() &&
-			bossEncounter)
-		{
-			debugAchievementSuppressed = true;
-			bossEncounter->DebugAdvancePhase(world);
-			return;
-		}
-#endif
 		if (key->code == sf::Keyboard::Key::Escape && session.IsPlaying())
 		{
 			OpenPauseMenu();
@@ -597,7 +581,7 @@ void GameplayState::Render()
 	if (session.IsPlaying())
 	{
 		if (bossEncounter && !bossVictorySequenceStarted)
-			bossEncounter->DrawHud(window);
+			bossEncounter->DrawHUD(window);
 		if (hud && !bossVictorySequenceStarted) hud->Draw(window);
 		if (tutorialActive && tutorial)
 			tutorial->Draw(window);
@@ -1168,7 +1152,6 @@ void GameplayState::EvaluateEntryAchievements()
 
 void GameplayState::UnlockCompletionAchievements(int completedLevel)
 {
-	if (debugAchievementSuppressed) return;
 	if (completedLevel == 1)
 		static_cast<void>(GetContext().achievements.Unlock(AchievementID::FirstStep));
 	if (completedLevel == 5)
@@ -1253,22 +1236,6 @@ void GameplayState::CompleteCurrentLevel()
 		resultScreen.Start(UI::ResultScreen::Mode::LevelComplete,
 			session.GetLevel(), levelStatistics);
 }
-
-#ifdef _DEBUG
-void GameplayState::DebugCompleteCurrentLevel()
-{
-	debugAchievementSuppressed = true;
-	constexpr int CompleteUpgradeTestBalance{ 36 };
-	const auto& level{ gameplayData.GetLevel(session.GetLevel()) };
-	for (const std::string& id : level.partIds)
-		static_cast<void>(session.RecoverPart(id));
-	session.DebugPreparePartsBalance(CompleteUpgradeTestBalance);
-
-	world.Sound().StopActiveSounds();
-	world.ClearProjectiles();
-	CompleteCurrentLevel();
-}
-#endif
 
 void GameplayState::BeginGameOver()
 {

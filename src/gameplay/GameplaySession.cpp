@@ -22,43 +22,51 @@ int GameplaySession::GetScore() const noexcept
 	return score;
 }
 
-int GameplaySession::GetPartsBalance() const noexcept { return partsBalance; }
+int GameplaySession::GetPartsBalance() const noexcept
+{
+	return partsBalance;
+}
+
 int GameplaySession::GetDisplayedParts() const noexcept
 {
 	return static_cast<int>(pendingPartIds.size());
 }
-int GameplaySession::GetPartsRecoveredThisLevel() const noexcept
-{
-	return static_cast<int>(pendingPartIds.size());
-}
+
 float GameplaySession::GetArmorMultiplier() const noexcept
 {
 	return 1.f + ShipUpgradeRules::ArmorPerRank * upgradeRanks.armor;
 }
+
 float GameplaySession::GetSpeedMultiplier() const noexcept
 {
 	return 1.f + ShipUpgradeRules::SpeedPerRank * upgradeRanks.engines;
 }
+
 float GameplaySession::GetFireRateMultiplier() const noexcept
 {
 	return 1.f + ShipUpgradeRules::FireRatePerRank * upgradeRanks.fireRate;
 }
+
 float GameplaySession::GetBonusDurationAddition() const noexcept
 {
 	return ShipUpgradeRules::BonusSecondsPerRank * upgradeRanks.bonusDuration;
 }
+
 const ShipUpgradeRanks& GameplaySession::GetUpgradeRanks() const noexcept
 {
 	return upgradeRanks;
 }
+
 bool GameplaySession::HasTakenDamageThisLevel() const noexcept
 {
 	return hasTakenDamageThisLevel;
 }
+
 bool GameplaySession::IsPartCollected(const std::string& id) const noexcept
 {
 	return collectedPartIds.contains(id) || pendingPartIds.contains(id);
 }
+
 const std::unordered_set<std::string>& GameplaySession::GetCollectedPartIds() const noexcept
 {
 	return collectedPartIds;
@@ -72,16 +80,6 @@ bool GameplaySession::IsPlaying() const noexcept
 bool GameplaySession::IsGameOver() const noexcept
 {
 	return state == State::GameOver;
-}
-
-bool GameplaySession::IsLevelComplete() const noexcept
-{
-	return state == State::LevelComplete;
-}
-
-bool GameplaySession::IsWin() const noexcept
-{
-	return state == State::Win;
 }
 
 void GameplaySession::SetWin() noexcept
@@ -109,16 +107,9 @@ bool GameplaySession::IsHomingBulletsActive() const noexcept
 	return homingBulletsRemaining > 0.f;
 }
 
-float GameplaySession::GetHomingBulletsRemaining() const noexcept
-{
-	return homingBulletsRemaining;
-}
-
 float GameplaySession::GetHomingBulletsRatio() const noexcept
 {
-	return homingBulletsDuration > 0.f
-		? homingBulletsRemaining / homingBulletsDuration
-		: 0.f;
+	return homingBulletsDuration > 0.f ? homingBulletsRemaining / homingBulletsDuration : 0.f;
 }
 
 bool GameplaySession::IsTimeSlowdownActive() const noexcept
@@ -128,9 +119,7 @@ bool GameplaySession::IsTimeSlowdownActive() const noexcept
 
 float GameplaySession::GetTimeSlowdownRatio() const noexcept
 {
-	return timeSlowdownDuration > 0.f
-		? timeSlowdownRemaining / timeSlowdownDuration
-		: 0.f;
+	return timeSlowdownDuration > 0.f ? timeSlowdownRemaining / timeSlowdownDuration : 0.f;
 }
 
 void GameplaySession::ConfigurePlayerHealth(int maximumHealth) noexcept
@@ -170,13 +159,10 @@ bool GameplaySession::IsHelperBotActive() const noexcept
 
 float GameplaySession::GetWeaponBonusRatio() const noexcept
 {
-	return weaponBonusDuration > 0.f
-		? weaponBonusRemaining / weaponBonusDuration
-		: 0.f;
+	return weaponBonusDuration > 0.f ? weaponBonusRemaining / weaponBonusDuration : 0.f;
 }
 
-void GameplaySession::ConfigureParts(
-	int balance, const std::vector<std::string>& collectedIds)
+void GameplaySession::ConfigureParts(int balance, const std::vector<std::string>& collectedIds)
 {
 	partsBalance = std::max(0, balance);
 	collectedPartIds.clear();
@@ -184,13 +170,14 @@ void GameplaySession::ConfigureParts(
 	pendingPartIds.clear();
 }
 
-void GameplaySession::ConfigureUpgrades(
-	const ShipUpgradeRanks& ranks,
-	bool needToClampToCampaignMaximum) noexcept
+void GameplaySession::ConfigureUpgrades(const ShipUpgradeRanks& ranks, bool needToClampToCampaignMaximum) noexcept
 {
 	upgradeRanks = ranks;
+
 	if (needToClampToCampaignMaximum)
+	{
 		ShipUpgradeRules::Clamp(upgradeRanks);
+	}
 	else
 	{
 		upgradeRanks.armor = std::max(0, upgradeRanks.armor);
@@ -204,13 +191,15 @@ bool GameplaySession::RecoverPart(const std::string& id)
 {
 	if (id.empty() || IsPartCollected(id))
 		return false;
-	return pendingPartIds.insert(id).second;
+	else
+		return pendingPartIds.insert(id).second;
 }
 
 void GameplaySession::AcceptRecoveredParts()
 {
 	partsBalance += static_cast<int>(pendingPartIds.size());
 	collectedPartIds.insert(pendingPartIds.begin(), pendingPartIds.end());
+
 	pendingPartIds.clear();
 }
 
@@ -219,20 +208,14 @@ void GameplaySession::DiscardRecoveredParts() noexcept
 	pendingPartIds.clear();
 }
 
-#ifdef _DEBUG
-void GameplaySession::DebugPreparePartsBalance(int acceptedBalance) noexcept
-{
-	partsBalance = std::max(
-		0, acceptedBalance - static_cast<int>(pendingPartIds.size()));
-}
-#endif
-
 void GameplaySession::Update(float deltaTime) noexcept
 {
 	playerShield.Update(deltaTime);
+
 	homingBulletsRemaining = std::max(0.f, homingBulletsRemaining - deltaTime);
 	timeSlowdownRemaining = std::max(0.f, timeSlowdownRemaining - deltaTime);
 	weaponBonusRemaining = std::max(0.f, weaponBonusRemaining - deltaTime);
+
 	if (weaponBonusRemaining <= 0.f)
 		weaponMode = WeaponMode::Normal;
 }
@@ -242,15 +225,17 @@ GameplaySession::PlayerDamageResult GameplaySession::ApplyPlayerDamage(int damag
 	if (damage <= 0)
 		return {};
 
-	const float shieldBefore{ playerShield.GetCurrent() };
-	const int remainingDamage{ playerShield.AbsorbDamage(damage) };
-	const bool wasShieldDamaged{ playerShield.GetCurrent() < shieldBefore };
-	bool wasHealthDamaged{ false };
+	const float shieldBefore = playerShield.GetCurrent();
+	const int remainingDamage = playerShield.AbsorbDamage(damage);
+	const bool wasShieldDamaged = playerShield.GetCurrent() < shieldBefore;
+	bool wasHealthDamaged = false;
+
 	if (remainingDamage > 0)
-		wasHealthDamaged = playerHealth.ApplyDamage(
-			isOneHitModeEnabled ? playerHealth.GetCurrent() : remainingDamage);
-	const bool wasAccepted{ wasShieldDamaged || wasHealthDamaged };
+		wasHealthDamaged = playerHealth.ApplyDamage(isOneHitModeEnabled ? playerHealth.GetCurrent() : remainingDamage);
+
+	const bool wasAccepted = wasShieldDamaged || wasHealthDamaged;
 	hasTakenDamageThisLevel = hasTakenDamageThisLevel || wasAccepted;
+
 	return { wasAccepted, wasShieldDamaged, wasHealthDamaged };
 }
 
@@ -294,6 +279,7 @@ bool GameplaySession::ActivateHelperBot() noexcept
 {
 	if (isHelperBotActive)
 		return false;
+
 	isHelperBotActive = true;
 	return true;
 }
@@ -301,6 +287,7 @@ bool GameplaySession::ActivateHelperBot() noexcept
 void GameplaySession::ClearTemporaryEffects() noexcept
 {
 	playerShield.Deactivate();
+
 	homingBulletsRemaining = 0.f;
 	timeSlowdownRemaining = 0.f;
 	weaponMode = WeaponMode::Normal;
@@ -311,6 +298,7 @@ void GameplaySession::ClearTemporaryEffects() noexcept
 void GameplaySession::Reset() noexcept
 {
 	playerHealth.Reset();
+
 	ClearTemporaryEffects();
 	level = 1;
 	score = 0;
@@ -324,7 +312,7 @@ void GameplaySession::Reset() noexcept
 
 void GameplaySession::StartAtLevel(int levelNumber) noexcept
 {
-	pendingPartIds.clear();
+	DiscardRecoveredParts();
 	playerHealth.Reset();
 	ClearTemporaryEffects();
 	level = levelNumber;
