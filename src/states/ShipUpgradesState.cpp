@@ -71,7 +71,7 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 	, partsValue(context.assets.Fonts().Get(context.localization.GetBoldFont()), "0", 31)
 	, partsIcon(context.assets.Textures().Get(Config::Texture::ShipUpgradesPartsIcon))
 {
-	returnToLevelSelect = context.gameplayLaunch.upgradesReturnToLevelSelect;
+	returnToLevelSelect = context.gameplayLaunch.needToReturnToLevelSelectAfterUpgrades;
 	context.window.setMouseCursorVisible(false);
 	const sf::Vector2u backgroundSize{ background.getTexture().getSize() };
 	const float backgroundScale{ std::max(
@@ -194,7 +194,7 @@ ShipUpgradesState::ShipUpgradesState(StateStack& stack, StateContext context)
 void ShipUpgradesState::OnReactivated()
 {
 	GetContext().window.setMouseCursorVisible(false);
-	returnToLevelSelect = GetContext().gameplayLaunch.upgradesReturnToLevelSelect;
+	returnToLevelSelect = GetContext().gameplayLaunch.needToReturnToLevelSelectAfterUpgrades;
 	if (localizationRevision != GetContext().localization.GetLanguageRevision())
 		RefreshLocalizedContent();
 	Refresh();
@@ -563,7 +563,7 @@ void ShipUpgradesState::LayoutPartsPanel()
 
 void ShipUpgradesState::BeginExit(ExitTarget target)
 {
-	GetContext().gameplayLaunch.upgradesReturnToLevelSelect = false;
+	GetContext().gameplayLaunch.needToReturnToLevelSelectAfterUpgrades = false;
 	exitTarget = target; fade.StartFadeOut(.38f);
 }
 

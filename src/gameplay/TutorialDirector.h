@@ -108,8 +108,8 @@ private:
     int partsBaseline{ 0 };
     float visibleAmount{ 0.f };
     float stepElapsed{ 0.f };
-    bool conditionMet{ false };
-    bool hidingCurrentStep{ false };
-    bool switchingStep{ false };
-    bool active{ false };
+    bool isConditionMet{ false };
+    bool isHidingCurrentStep{ false };
+    bool isSwitchingStep{ false };
+    bool isActive{ false };
 };

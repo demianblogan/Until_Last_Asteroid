@@ -29,5 +29,5 @@ private:
     std::size_t currentWaveIndex{ 0u };
     std::size_t nextScheduledSpawn{ 0u };
     float timeUntilNextSpawn{ 0.f };
-    bool activeWave{ false };
+    bool isWaveActive{ false };
 };

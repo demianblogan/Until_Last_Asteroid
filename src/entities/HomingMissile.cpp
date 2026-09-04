@@ -1,12 +1,11 @@
 #include "HomingMissile.h"
 
 #include <algorithm>
-#include <cmath>
-#include <numbers>
 
 #include "assets/Assets.h"
 #include "core/world/World.h"
 #include "utils/ConfigEnums.h"
+#include "utils/VectorMath.h"
 
 HomingMissile::HomingMissile(Assets& assets, World& world, const sf::Vector2f& position, const sf::Vector2f& target)
 	: Entity(assets, world,
@@ -18,7 +17,7 @@ HomingMissile::HomingMissile(Assets& assets, World& world, const sf::Vector2f& p
 	const auto& config = assets.GetGameplayData().GetMissile();
 
 	speed = config.speed;
-	turnSpeedRadians = config.turnSpeedDegrees * std::numbers::pi_v<float> / 180.f;
+	turnSpeedDegrees = config.turnSpeedDegrees;
 	explosionRadius = config.explosionRadius;
 	explosionImpulse = config.explosionImpulse;
 	lifetimeRemaining = config.lifetime;
@@ -26,11 +25,10 @@ HomingMissile::HomingMissile(Assets& assets, World& world, const sf::Vector2f& p
 
 	SetPosition(position);
 
-	const sf::Vector2f toTarget{ target - position };
-	const float angle = std::atan2(toTarget.y, toTarget.x);
-
-	SetVelocity({ std::cos(angle) * speed, std::sin(angle) * speed });
-	SetRotation(sf::radians(angle + std::numbers::pi_v<float> *0.5f));
+	const sf::Vector2f direction{ VectorMath::Normalize(target - position, { 0.f, -1.f }) };
+	SetVelocity(direction * speed);
+	// Sprite art points up at rotation 0, so facing = heading angle + 90.
+	SetRotation(direction.angle() + sf::degrees(90.f));
 }
 
 Entity::Type HomingMissile::GetType() const noexcept
@@ -58,18 +56,16 @@ void HomingMissile::Update(float deltaTime)
 		return;
 	}
 
-	const sf::Vector2f currentVelocity{ GetVelocity() };
-	const sf::Vector2f toPlayer{ GetWorld().GetPlayerPosition() - GetPosition() };
-	const float currentAngle = std::atan2(currentVelocity.y, currentVelocity.x);
-	const float targetAngle = std::atan2(toPlayer.y, toPlayer.x);
-	const float angleDifference =
-		std::atan2(std::sin(targetAngle - currentAngle), std::cos(targetAngle - currentAngle));
-	const float maximumTurn = turnSpeedRadians * deltaTime;
-	const float finalAngle = currentAngle + std::clamp(angleDifference, -maximumTurn, maximumTurn);
-	const sf::Vector2f direction{ std::cos(finalAngle), std::sin(finalAngle) };
+	// Turn the current heading toward the player by a bounded amount this
+	// frame (a gradual chase, not an instant lock), keeping speed constant.
+	const sf::Vector2f direction{ VectorMath::RotateToward(
+		GetVelocity(),
+		GetWorld().GetPlayerPosition() - GetPosition(),
+		sf::degrees(turnSpeedDegrees * deltaTime),
+		GetForwardDirection()) };
 
 	SetVelocity(direction * speed);
-	SetRotation(sf::radians(finalAngle + std::numbers::pi_v<float> *0.5f));
+	SetRotation(direction.angle() + sf::degrees(90.f));
 	Move(deltaTime);
 
 	GetWorld().Effects().Add({ Rendering::EffectEventType::MissileSmoke,	GetPosition(), direction });

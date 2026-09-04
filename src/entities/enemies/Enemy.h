@@ -112,6 +112,12 @@ protected:
 	[[nodiscard]] const std::vector<GameplayData::NormalizedPoint>& GetWeaponEmitters() const noexcept;
 	[[nodiscard]] const std::vector<GameplayData::NormalizedPoint>& GetEngineEmitters() const noexcept;
 
+	// World position of weapon emitter `index` (authored 0..1-normalized in
+	// GameplayData), transformed by this enemy's current position/rotation/
+	// scale. Folds together the GetWeaponEmitters().at(index) +
+	// TransformNormalizedPoint() pair every shooting subclass repeated.
+	[[nodiscard]] sf::Vector2f GetWeaponEmitterPosition(std::size_t index) const;
+
 	// Moves toward approachTarget (set via ConfigureApproachTarget) at
 	// GetMovementSpeed(); once arrived, clears isApproachingCenter and
 	// returns true so the caller can react to the arrival exactly once (e.g.

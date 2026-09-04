@@ -28,7 +28,6 @@ private:
 
 	void ChooseCentralPatrolTarget();
 	void Shoot();
-	[[nodiscard]] sf::Vector2f GetWeaponEmitterPosition(std::size_t index) const;
 
 	sf::Vector2f patrolTarget;
 	bool hasPatrolTarget = false;

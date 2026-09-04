@@ -304,6 +304,7 @@
     <ClInclude Include="src\states\StateStack.h" />
     <ClInclude Include="src\assets\Assets.h" />
     <ClInclude Include="src\utils\AppDataPath.h" />
+    <ClInclude Include="src\utils\Easing.h" />
     <ClInclude Include="src\utils\Pulse.h" />
     <ClInclude Include="src\utils\Random.h" />
     <ClInclude Include="src\utils\SafeFileWrite.h" />

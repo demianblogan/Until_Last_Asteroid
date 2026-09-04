@@ -103,7 +103,7 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	hud.emplace(context.assets, session, context.localization);
 	SetupInput();
 	Reset();
-	context.gameplayLaunch.tutorialRunning = false;
+	context.gameplayLaunch.isTutorialRunning = false;
 	const GameplayLaunchMode launchMode{ context.gameplayLaunch.mode };
 	mainCampaignRun = launchMode == GameplayLaunchMode::ContinueCampaign ||
 		launchMode == GameplayLaunchMode::NewCampaign ||
@@ -175,7 +175,7 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 
 GameplayState::~GameplayState()
 {
-	GetContext().gameplayLaunch.tutorialRunning = false;
+	GetContext().gameplayLaunch.isTutorialRunning = false;
 	GetContext().audio.SetGameplayAudioPitch(1.f);
 	if (!preserveGameplayMusicOnDestruction)
 		GetContext().audio.StopGameplayMusic();
@@ -918,7 +918,7 @@ void GameplayState::StartTutorial()
 	waveIntro.Reset();
 	gameplayTransition = GameplayTransition::None;
 	tutorialActive = true;
-	GetContext().gameplayLaunch.tutorialRunning = true;
+	GetContext().gameplayLaunch.isTutorialRunning = true;
 
 	const auto& level{ gameplayData.GetLevel(1) };
 	background.SetTheme(level.background, level.backgroundBrightness);
@@ -1013,7 +1013,7 @@ void GameplayState::ExecuteTutorialAction(TutorialDirector::Action action)
 
 void GameplayState::FinishTutorial()
 {
-	GetContext().gameplayLaunch.tutorialRunning = false;
+	GetContext().gameplayLaunch.isTutorialRunning = false;
 	if (CampaignProgress* progress{ GetContext().campaignSave.EditProgress() })
 	{
 		progress->isTutorialCompleted = true;
@@ -1085,7 +1085,7 @@ void GameplayState::Reset()
 	materializingEnemies.clear();
 	tutorial.reset();
 	tutorialActive = false;
-	GetContext().gameplayLaunch.tutorialRunning = false;
+	GetContext().gameplayLaunch.isTutorialRunning = false;
 	if (hud) hud->Update(0.f);
 }
 
@@ -1321,12 +1321,12 @@ void GameplayState::BeginResultTransition(UI::ResultScreen::Action action)
 	}
 	session.AcceptRecoveredParts();
 	SaveCompletedLevel();
-	GetContext().gameplayLaunch.upgradesReturnToLevelSelect = false;
+	GetContext().gameplayLaunch.needToReturnToLevelSelectAfterUpgrades = false;
 	if (action == UI::ResultScreen::Action::MainMenu)
 		gameplayTransition = GameplayTransition::MainMenu;
 	else if (resultScreen.GetMode() == UI::ResultScreen::Mode::LevelReplay)
 	{
-		GetContext().gameplayLaunch.upgradesReturnToLevelSelect = true;
+		GetContext().gameplayLaunch.needToReturnToLevelSelectAfterUpgrades = true;
 		gameplayTransition = GameplayTransition::ShipUpgrades;
 	}
 	else

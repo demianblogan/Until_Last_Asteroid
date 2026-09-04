@@ -1,11 +1,10 @@
 #include "KamikazeSaucer.h"
 
-#include <cmath>
-
 #include "assets/Assets.h"
 #include "core/world/World.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
+#include "utils/VectorMath.h"
 
 KamikazeSaucer::KamikazeSaucer(Assets& assets, World& world)
 	: Enemy(assets, world, assets.Textures().Get(Config::Texture::BigEnemySaucer),
@@ -18,12 +17,10 @@ void KamikazeSaucer::Update(float deltaTime)
 {
 	SetRotation(GetRotation() + sf::degrees(GetRotationSpeed() * spinDirection * deltaTime));
 
-	const sf::Vector2f playerPosition{ GetWorld().GetPlayerPosition() };
-	const sf::Vector2f toPlayer{ playerPosition - GetPosition() };
-	const float angle = std::atan2(toPlayer.y, toPlayer.x);
-	const sf::Vector2f direction{ std::cos(angle), std::sin(angle) };
-
-	SetVelocity(direction * GetMovementSpeed());
+	// Charges straight at the player's current position; the cosmetic spin
+	// above is separate from which way it's actually flying.
+	const sf::Vector2f toPlayer{ GetWorld().GetPlayerPosition() - GetPosition() };
+	SetVelocity(VectorMath::Normalize(toPlayer) * GetMovementSpeed());
 	Move(deltaTime);
 }
 

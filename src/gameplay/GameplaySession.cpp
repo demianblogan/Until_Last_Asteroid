@@ -53,15 +53,15 @@ const ShipUpgradeRanks& GameplaySession::GetUpgradeRanks() const noexcept
 }
 bool GameplaySession::HasTakenDamageThisLevel() const noexcept
 {
-	return damageTakenThisLevel;
+	return hasTakenDamageThisLevel;
 }
 bool GameplaySession::IsPartCollected(const std::string& id) const noexcept
 {
-	return collectedPartIDs.contains(id) || pendingPartIds.contains(id);
+	return collectedPartIds.contains(id) || pendingPartIds.contains(id);
 }
 const std::unordered_set<std::string>& GameplaySession::GetCollectedPartIds() const noexcept
 {
-	return collectedPartIDs;
+	return collectedPartIds;
 }
 
 bool GameplaySession::IsPlaying() const noexcept
@@ -143,9 +143,9 @@ void GameplaySession::ConfigureShield(float capacity, float duration) noexcept
 	playerShield.Configure(capacity, duration);
 }
 
-void GameplaySession::ConfigureOneHitMode(bool enabled) noexcept
+void GameplaySession::ConfigureOneHitMode(bool isEnabled) noexcept
 {
-	oneHitMode = enabled;
+	isOneHitModeEnabled = isEnabled;
 }
 
 GameplaySession::WeaponMode GameplaySession::GetWeaponMode() const noexcept
@@ -165,7 +165,7 @@ bool GameplaySession::IsTripleShotActive() const noexcept
 
 bool GameplaySession::IsHelperBotActive() const noexcept
 {
-	return helperBotActive;
+	return isHelperBotActive;
 }
 
 float GameplaySession::GetWeaponBonusRatio() const noexcept
@@ -179,17 +179,17 @@ void GameplaySession::ConfigureParts(
 	int balance, const std::vector<std::string>& collectedIds)
 {
 	partsBalance = std::max(0, balance);
-	collectedPartIDs.clear();
-	collectedPartIDs.insert(collectedIds.begin(), collectedIds.end());
+	collectedPartIds.clear();
+	collectedPartIds.insert(collectedIds.begin(), collectedIds.end());
 	pendingPartIds.clear();
 }
 
 void GameplaySession::ConfigureUpgrades(
 	const ShipUpgradeRanks& ranks,
-	bool clampToCampaignMaximum) noexcept
+	bool needToClampToCampaignMaximum) noexcept
 {
 	upgradeRanks = ranks;
-	if (clampToCampaignMaximum)
+	if (needToClampToCampaignMaximum)
 		ShipUpgradeRules::Clamp(upgradeRanks);
 	else
 	{
@@ -210,7 +210,7 @@ bool GameplaySession::RecoverPart(const std::string& id)
 void GameplaySession::AcceptRecoveredParts()
 {
 	partsBalance += static_cast<int>(pendingPartIds.size());
-	collectedPartIDs.insert(pendingPartIds.begin(), pendingPartIds.end());
+	collectedPartIds.insert(pendingPartIds.begin(), pendingPartIds.end());
 	pendingPartIds.clear();
 }
 
@@ -244,14 +244,14 @@ GameplaySession::PlayerDamageResult GameplaySession::ApplyPlayerDamage(int damag
 
 	const float shieldBefore{ playerShield.GetCurrent() };
 	const int remainingDamage{ playerShield.AbsorbDamage(damage) };
-	const bool shieldDamaged{ playerShield.GetCurrent() < shieldBefore };
-	bool healthDamaged{ false };
+	const bool wasShieldDamaged{ playerShield.GetCurrent() < shieldBefore };
+	bool wasHealthDamaged{ false };
 	if (remainingDamage > 0)
-		healthDamaged = playerHealth.ApplyDamage(
-			oneHitMode ? playerHealth.GetCurrent() : remainingDamage);
-	const bool accepted{ shieldDamaged || healthDamaged };
-	damageTakenThisLevel = damageTakenThisLevel || accepted;
-	return { accepted, shieldDamaged, healthDamaged };
+		wasHealthDamaged = playerHealth.ApplyDamage(
+			isOneHitModeEnabled ? playerHealth.GetCurrent() : remainingDamage);
+	const bool wasAccepted{ wasShieldDamaged || wasHealthDamaged };
+	hasTakenDamageThisLevel = hasTakenDamageThisLevel || wasAccepted;
+	return { wasAccepted, wasShieldDamaged, wasHealthDamaged };
 }
 
 bool GameplaySession::RestorePlayerHealth(int amount) noexcept
@@ -292,9 +292,9 @@ void GameplaySession::ActivateTripleShot(float duration) noexcept
 
 bool GameplaySession::ActivateHelperBot() noexcept
 {
-	if (helperBotActive)
+	if (isHelperBotActive)
 		return false;
-	helperBotActive = true;
+	isHelperBotActive = true;
 	return true;
 }
 
@@ -305,58 +305,43 @@ void GameplaySession::ClearTemporaryEffects() noexcept
 	timeSlowdownRemaining = 0.f;
 	weaponMode = WeaponMode::Normal;
 	weaponBonusRemaining = 0.f;
-	helperBotActive = false;
+	isHelperBotActive = false;
 }
 
 void GameplaySession::Reset() noexcept
 {
 	playerHealth.Reset();
-	playerShield.Deactivate();
-	homingBulletsRemaining = 0.f;
-	timeSlowdownRemaining = 0.f;
-	weaponMode = WeaponMode::Normal;
-	weaponBonusRemaining = 0.f;
-	helperBotActive = false;
+	ClearTemporaryEffects();
 	level = 1;
 	score = 0;
 	levelStartScore = 0;
 	partsBalance = 0;
-	collectedPartIDs.clear();
+	collectedPartIds.clear();
 	pendingPartIds.clear();
 	state = State::Playing;
-	damageTakenThisLevel = false;
+	hasTakenDamageThisLevel = false;
 }
 
 void GameplaySession::StartAtLevel(int levelNumber) noexcept
 {
 	pendingPartIds.clear();
 	playerHealth.Reset();
-	playerShield.Deactivate();
-	homingBulletsRemaining = 0.f;
-	timeSlowdownRemaining = 0.f;
-	weaponMode = WeaponMode::Normal;
-	weaponBonusRemaining = 0.f;
-	helperBotActive = false;
+	ClearTemporaryEffects();
 	level = levelNumber;
 	score = 0;
 	levelStartScore = 0;
 	state = State::Playing;
-	damageTakenThisLevel = false;
+	hasTakenDamageThisLevel = false;
 }
 
 void GameplaySession::RestartLevel() noexcept
 {
 	DiscardRecoveredParts();
 	playerHealth.Reset();
-	playerShield.Deactivate();
-	homingBulletsRemaining = 0.f;
-	timeSlowdownRemaining = 0.f;
-	weaponMode = WeaponMode::Normal;
-	weaponBonusRemaining = 0.f;
-	helperBotActive = false;
+	ClearTemporaryEffects();
 	score = levelStartScore;
 	state = State::Playing;
-	damageTakenThisLevel = false;
+	hasTakenDamageThisLevel = false;
 }
 
 void GameplaySession::AddScore(int points) noexcept
@@ -373,7 +358,7 @@ void GameplaySession::NextLevel() noexcept
 	levelStartScore = 0;
 	level++;
 	state = State::Playing;
-	damageTakenThisLevel = false;
+	hasTakenDamageThisLevel = false;
 }
 
 int GameplaySession::GetLevelScore() const noexcept

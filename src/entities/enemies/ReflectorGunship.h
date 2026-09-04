@@ -37,7 +37,6 @@ private:
 	void UpdateFigureEight(float deltaTime);
 
 	void ShootDoubleVolley();
-	[[nodiscard]] sf::Vector2f GetWeaponEmitterPosition(std::size_t index) const;
 
 	sf::Vector2f figureEightCenter;
 	float movementPhase = 0.f;

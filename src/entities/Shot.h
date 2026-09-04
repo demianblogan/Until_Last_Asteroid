@@ -46,7 +46,20 @@ public:
 	void ReflectToward(const sf::Vector2f& targetPosition);
 
 protected:
-	void SetDirection(const sf::Vector2f& direction) noexcept;
+	// Points the shot along `direction`: its velocity becomes that heading at
+	// the shot's fixed speed, and its sprite turns to face the same way. A
+	// projectile has no steering independent of its velocity, so "where it's
+	// aimed" and "how it moves" are one thing, set together here. `direction`
+	// need not be unit length; a degenerate (zero) vector leaves the shot
+	// pointing straight up.
+	void SetHeading(const sf::Vector2f& direction) noexcept;
+
+	// Rotates the current heading toward `targetPosition` by at most
+	// `turnRateDegrees` per second (a gradual lock-on), then re-aims the shot
+	// along it via SetHeading. No-op while the shot is momentarily stationary
+	// or already sitting on the target. Shared by every homing shot kind.
+	void SteerToward(const sf::Vector2f& targetPosition, float turnRateDegrees, float deltaTime) noexcept;
+
 	[[nodiscard]] bool IsReflected() const noexcept;
 
 private:
@@ -67,7 +80,7 @@ private:
 class PlayerShot final : public Shot
 {
 public:
-	PlayerShot(Assets& assets, World& world, const sf::Vector2f& position, float rotationDegrees,
+	PlayerShot(Assets& assets, World& world, const sf::Vector2f& position, const sf::Vector2f& aimDirection,
 		std::uint64_t attackID, bool needToPlaySound = true, bool isTripleShotVisual = false);
 
 	void Update(float deltaTime) override;

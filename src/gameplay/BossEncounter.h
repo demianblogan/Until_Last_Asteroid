@@ -78,7 +78,7 @@ private:
 	void UpdateOuterRingDestruction(float deltaTime, World& world);
 	void HandleOuterRingImpacts(World& world);
 	void UpdateInnerPhase(float deltaTime, World& world,
-		const SpawnReinforcement& spawnReinforcement, bool shielded);
+		const SpawnReinforcement& spawnReinforcement, bool isShielded);
 	void HandlePortalImpacts(World& world);
 	void BeginInnerShield();
 	void BeginDiamondDestruction();
@@ -87,7 +87,7 @@ private:
 		const SpawnReinforcement& spawnReinforcement);
 	void BeginCoreShieldCycle(int cycle,
 		const SpawnReinforcement& spawnReinforcement,
-		bool useWarning);
+		bool needToShowWarning);
 	void SpawnCoreTurrets(const SpawnReinforcement& spawnReinforcement);
 	void SpawnCoreStations(const SpawnReinforcement& spawnReinforcement);
 	void HandleCoreImpacts(World& world,
@@ -144,10 +144,10 @@ private:
 	float hudCenterX{ 0.f };
 	int shieldCycle{ 0 };
 	int coreCycle{ 0 };
-	bool corePhaseInitialized{ false };
-	bool outerRingVisible{ true };
-	bool diamondVisible{ true };
-	bool coreVisible{ true };
+	bool isCorePhaseInitialized{ false };
+	bool isOuterRingVisible{ true };
+	bool isDiamondVisible{ true };
+	bool isCoreVisible{ true };
 	std::size_t nextPortalIndex{ 0u };
 	std::size_t nextPhaseOneBonus{ 0u };
 	std::size_t nextPhaseTwoBonus{ 0u };

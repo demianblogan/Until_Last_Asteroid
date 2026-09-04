@@ -7,10 +7,10 @@ Health::Health(int maximum) noexcept
     SetMaximum(maximum);
 }
 
-void Health::SetMaximum(int newMaximum, bool restore) noexcept
+void Health::SetMaximum(int newMaximum, bool needToRestoreToFull) noexcept
 {
     maximum = std::max(1, newMaximum);
-    current = restore ? maximum : std::min(current, maximum);
+    current = needToRestoreToFull ? maximum : std::min(current, maximum);
 }
 
 bool Health::ApplyDamage(int amount) noexcept

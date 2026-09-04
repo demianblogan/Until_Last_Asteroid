@@ -12,6 +12,7 @@
 #include "localization/LocalizationManager.h"
 #include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
+#include "utils/Easing.h"
 
 namespace
 {
@@ -53,11 +54,11 @@ TutorialDirector::TutorialDirector(
 
 void TutorialDirector::Start(const Snapshot& snapshot)
 {
-    active = true;
-    switchingStep = false;
+    isActive = true;
+    isSwitchingStep = false;
     visibleAmount = 0.f;
     stepElapsed = 0.f;
-    conditionMet = false;
+    isConditionMet = false;
     static_cast<void>(EnterStep(Step::Movement, snapshot));
 }
 
@@ -65,24 +66,24 @@ std::optional<TutorialDirector::Action> TutorialDirector::Update(
     float deltaTime,
     const Snapshot& snapshot)
 {
-    if (!active || deltaTime <= 0.f)
+    if (!isActive || deltaTime <= 0.f)
         return std::nullopt;
 
     glow.Update(deltaTime);
     glow.Invalidate();
 
-    if (switchingStep)
+    if (isSwitchingStep)
     {
         visibleAmount = std::max(0.f, visibleAmount - deltaTime * SlideSpeed);
         if (visibleAmount <= 0.f)
         {
-            switchingStep = false;
+            isSwitchingStep = false;
             return EnterStep(pendingStep, snapshot);
         }
         return std::nullopt;
     }
 
-    if (hidingCurrentStep)
+    if (isHidingCurrentStep)
     {
         visibleAmount = std::max(0.f, visibleAmount - deltaTime * SlideSpeed);
         return UpdateCurrentStep(deltaTime, snapshot);
@@ -97,11 +98,10 @@ std::optional<TutorialDirector::Action> TutorialDirector::Update(
 
 void TutorialDirector::Draw(sf::RenderTarget& target)
 {
-    if (!active || visibleAmount <= 0.f)
+    if (!isActive || visibleAmount <= 0.f)
         return;
 
-    const float eased{ visibleAmount * visibleAmount * (3.f - 2.f * visibleAmount) };
-    const float panelY{ std::lerp(HiddenY, VisibleY, eased) };
+    const float panelY{ std::lerp(HiddenY, VisibleY, Easing::SmoothStep(visibleAmount)) };
     const sf::Vector2f panelPosition{ (logicalSize.x - PanelSize.x) * 0.5f, panelY };
     panel.setPosition(panelPosition);
     UI::TextLayout::CenterText(text, panelPosition + PanelSize * 0.5f);
@@ -123,13 +123,13 @@ void TutorialDirector::Draw(sf::RenderTarget& target)
 
 bool TutorialDirector::IsActive() const noexcept
 {
-    return active;
+    return isActive;
 }
 
 void TutorialDirector::RequestStep(Step nextStep)
 {
     pendingStep = nextStep;
-    switchingStep = true;
+    isSwitchingStep = true;
 }
 
 std::optional<TutorialDirector::Action> TutorialDirector::EnterStep(
@@ -138,8 +138,8 @@ std::optional<TutorialDirector::Action> TutorialDirector::EnterStep(
 {
     step = nextStep;
     stepElapsed = 0.f;
-    conditionMet = false;
-    hidingCurrentStep = false;
+    isConditionMet = false;
+    isHidingCurrentStep = false;
 
     switch (step)
     {
@@ -193,7 +193,7 @@ std::optional<TutorialDirector::Action> TutorialDirector::EnterStep(
 		SetInstruction(localization.GetText("tutorial.complete"));
         break;
     case Step::Complete:
-        active = false;
+        isActive = false;
         return Action::Complete;
     }
     return std::nullopt;
@@ -216,26 +216,26 @@ std::optional<TutorialDirector::Action> TutorialDirector::UpdateCurrentStep(
     switch (step)
     {
     case Step::Movement:
-		if (!conditionMet && DistanceSquared(snapshot.playerPosition, movementStart) > 400.f)
+		if (!isConditionMet && DistanceSquared(snapshot.playerPosition, movementStart) > 400.f)
 		{
-			conditionMet = true;
+			isConditionMet = true;
 			stepElapsed = 0.f;
 		}
-        if (conditionMet && stepElapsed >= HoldAfterInput)
+        if (isConditionMet && stepElapsed >= HoldAfterInput)
             RequestStep(Step::Fire);
         break;
     case Step::Fire:
-        if (!conditionMet && snapshot.playerAttacksFired > shotBaseline)
+        if (!isConditionMet && snapshot.playerAttacksFired > shotBaseline)
         {
-            conditionMet = true;
+            isConditionMet = true;
             stepElapsed = 0.f;
         }
-        if (conditionMet && stepElapsed >= HoldAfterInput)
+        if (isConditionMet && stepElapsed >= HoldAfterInput)
             RequestStep(Step::BigAsteroid);
         break;
     case Step::BigAsteroid:
         if (stepElapsed >= StandardMessageDuration)
-            hidingCurrentStep = true;
+            isHidingCurrentStep = true;
         if (stepElapsed >= StandardMessageDuration &&
             snapshot.bigMeteorsDestroyed > bigMeteorBaseline)
             RequestStep(Step::Fragments);

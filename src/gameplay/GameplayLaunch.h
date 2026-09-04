@@ -21,7 +21,7 @@ struct GameplayLaunchRequest
 {
     GameplayLaunchMode mode{ GameplayLaunchMode::ContinueCampaign };
     GameplayRuntimeCommand pendingCommand{ GameplayRuntimeCommand::None };
-	bool tutorialRunning{ false };
-	bool upgradesReturnToLevelSelect{ false };
+	bool isTutorialRunning{ false };
+	bool needToReturnToLevelSelectAfterUpgrades{ false };
 	int selectedLevel{ 1 };
 };

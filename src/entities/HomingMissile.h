@@ -28,7 +28,7 @@ public:
 private:
 	Health health;
 	float speed = 0.f;
-	float turnSpeedRadians = 0.f;
+	float turnSpeedDegrees = 0.f;
 	float explosionRadius = 0.f;
 	float explosionImpulse = 0.f;
 	float lifetimeRemaining = 0.f;

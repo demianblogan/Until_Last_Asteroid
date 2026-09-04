@@ -59,7 +59,7 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
     , buttonList(context.audio, neonGlow)
 {
     context.window.setMouseCursorVisible(false);
-	const bool tutorialMenu{ context.gameplayLaunch.tutorialRunning };
+	const bool tutorialMenu{ context.gameplayLaunch.isTutorialRunning };
 	const sf::Vector2f firstButtonPosition{ 90.f, tutorialMenu ? 455.f : 570.f };
 	const float buttonSpacing{ tutorialMenu ? 108.f : 112.f };
 	const float titleY{ tutorialMenu ? 365.f : 480.f };
@@ -332,7 +332,7 @@ void PauseState::RefreshLocalizedContent()
 {
     const StateContext& context{ GetContext() };
     localizationRevision = context.localization.GetLanguageRevision();
-    const bool tutorialMenu{ context.gameplayLaunch.tutorialRunning };
+    const bool tutorialMenu{ context.gameplayLaunch.isTutorialRunning };
 
     const sf::Font& headingFont{ context.assets.Fonts().Get(context.localization.GetBoldFont()) };
     titleGlow.setFont(headingFont);

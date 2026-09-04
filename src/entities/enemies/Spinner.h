@@ -23,7 +23,6 @@ public:
 
 private:
 	void ShootRadialVolley();
-	[[nodiscard]] sf::Vector2f GetWeaponEmitterPosition(std::size_t index) const;
 
 	// Spinner doesn't fly in a straight line -- it weaves along one while
 	// drifting across the screen, like a sine wave traced over a straight

@@ -21,10 +21,9 @@ Spinner::Spinner(Assets& assets, World& world)
 		assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::Spinner))
 {
 	const auto& config = assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::Spinner);
-	const float angle = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
 
-	travelDirection = { std::cos(angle), std::sin(angle) };
-	lateralDirection = { -travelDirection.y, travelDirection.x };
+	travelDirection = VectorMath::RandomDirection();
+	lateralDirection = travelDirection.perpendicular();
 	sineAmplitude = config.sineAmplitude;
 	sineFrequency = config.sineFrequency;
 	movementPhase = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
@@ -62,7 +61,7 @@ void Spinner::Update(float deltaTime)
 			travelDirection.y = -travelDirection.y;
 
 		travelDirection = VectorMath::Normalize(travelDirection, DegenerateDirectionFallback);
-		lateralDirection = { -travelDirection.y, travelDirection.x };
+		lateralDirection = travelDirection.perpendicular();
 		movementPhase += 2.f * std::numbers::pi_v<float> *sineFrequency * deltaTime;
 
 		SetVelocity(
@@ -87,7 +86,7 @@ void Spinner::ConfigureApproachTarget(sf::Vector2f target) noexcept
 	Enemy::ConfigureApproachTarget(target);
 
 	travelDirection = VectorMath::Normalize(target - GetPosition(), DegenerateDirectionFallback);
-	lateralDirection = { -travelDirection.y, travelDirection.x };
+	lateralDirection = travelDirection.perpendicular();
 }
 
 void Spinner::OnDestroy()
@@ -105,9 +104,4 @@ void Spinner::ShootRadialVolley()
 
 		GetWorld().SpawnSaucerShot(emitter, emitter + direction * 100.f, GameplayData::ProjectileKind::Spinner, i == 0);
 	}
-}
-
-sf::Vector2f Spinner::GetWeaponEmitterPosition(std::size_t index) const
-{
-	return TransformNormalizedPoint(GetWeaponEmitters().at(index));
 }

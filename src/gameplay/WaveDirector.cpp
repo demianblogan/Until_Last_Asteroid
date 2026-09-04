@@ -7,7 +7,7 @@ void WaveDirector::LoadLevel(const GameplayData::LevelConfig& level)
     currentWaveIndex = 0u;
     nextScheduledSpawn = 0u;
     timeUntilNextSpawn = 0.f;
-    activeWave = false;
+    isWaveActive = false;
 }
 
 bool WaveDirector::StartNextWave(const SpawnEnemy& spawnEnemy)
@@ -17,7 +17,7 @@ bool WaveDirector::StartNextWave(const SpawnEnemy& spawnEnemy)
 
     currentWaveIndex = nextWaveIndex++;
     nextScheduledSpawn = 0u;
-    activeWave = true;
+    isWaveActive = true;
 
     const GameplayData::WaveConfig& wave{ waves->at(currentWaveIndex) };
     for (const GameplayData::SpawnGroup& group : wave.initialSpawns)
@@ -31,7 +31,7 @@ bool WaveDirector::StartNextWave(const SpawnEnemy& spawnEnemy)
 
 void WaveDirector::Update(float deltaTime, const SpawnEnemy& spawnEnemy)
 {
-    if (!activeWave || waves == nullptr)
+    if (!isWaveActive || waves == nullptr)
         return;
 
     const GameplayData::WaveConfig& wave{ waves->at(currentWaveIndex) };
@@ -50,7 +50,7 @@ void WaveDirector::Update(float deltaTime, const SpawnEnemy& spawnEnemy)
 
 bool WaveDirector::HasActiveWave() const noexcept
 {
-    return activeWave;
+    return isWaveActive;
 }
 
 bool WaveDirector::HasMoreWaves() const noexcept
@@ -60,14 +60,14 @@ bool WaveDirector::HasMoreWaves() const noexcept
 
 bool WaveDirector::IsDeploymentComplete() const noexcept
 {
-    if (!activeWave || waves == nullptr)
+    if (!isWaveActive || waves == nullptr)
         return false;
     return nextScheduledSpawn >= waves->at(currentWaveIndex).scheduledSpawns.size();
 }
 
 int WaveDirector::GetCurrentWaveNumber() const noexcept
 {
-    return activeWave ? static_cast<int>(currentWaveIndex + 1u) : 0;
+    return isWaveActive ? static_cast<int>(currentWaveIndex + 1u) : 0;
 }
 
 int WaveDirector::GetWaveCount() const noexcept

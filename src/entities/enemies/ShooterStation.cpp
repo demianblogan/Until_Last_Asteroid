@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <numbers>
 
 #include "assets/Assets.h"
 #include "core/world/World.h"
@@ -10,6 +9,7 @@
 #include "utils/ConfigEnums.h"
 #include "utils/Pulse.h"
 #include "utils/Random.h"
+#include "utils/VectorMath.h"
 
 ShooterStation::ShooterStation(Assets& assets, World& world)
 	: Enemy(assets, world, assets.Textures().Get(Config::Texture::ShooterStation),
@@ -29,16 +29,10 @@ void ShooterStation::ConfigurePath(sf::Vector2f first, sf::Vector2f second)
 	pathEnd = second;
 	targetPoint = pathStart;
 
-	const sf::Vector2f route{ pathEnd - pathStart };
-	const float routeLength = std::sqrt(route.x * route.x + route.y * route.y);
-	const sf::Vector2f routeDirection{ routeLength > 0.001f ? route / routeLength : sf::Vector2f{ 1.f, 0.f } };
-
+	const sf::Vector2f routeDirection{ VectorMath::Normalize(pathEnd - pathStart, { 1.f, 0.f }) };
 	SetPosition(pathStart - routeDirection * (GetCollisionRadius() * 2.5f));
 
-	const sf::Vector2f delta{ targetPoint - GetPosition() };
-	const float length = std::sqrt(delta.x * delta.x + delta.y * delta.y);
-
-	SetVelocity(length > 0.001f ? delta / length * GetMovementSpeed() : sf::Vector2f{});
+	SetVelocity(VectorMath::Normalize(targetPoint - GetPosition(), {}) * GetMovementSpeed());
 
 	isPathConfigured = true;
 	isArriving = true;
@@ -51,11 +45,7 @@ void ShooterStation::ConfigureStationaryArrival(sf::Vector2f start, sf::Vector2f
 	targetPoint = destination;
 
 	SetPosition(start);
-
-	const sf::Vector2f delta{ destination - start };
-	const float length = std::sqrt(delta.x * delta.x + delta.y * delta.y);
-
-	SetVelocity(length > 0.001f ? delta / length * GetMovementSpeed() : sf::Vector2f{});
+	SetVelocity(VectorMath::Normalize(destination - start, {}) * GetMovementSpeed());
 
 	isPathConfigured = true;
 	isArriving = true;
@@ -123,10 +113,7 @@ sf::Vector2f ShooterStation::GetPlayerProjectileImpactPosition(const Entity& pro
 		return projectile.GetPosition();
 
 	const sf::Vector2f offset{ projectile.GetPosition() - GetPosition() };
-	const float length = std::sqrt(offset.x * offset.x + offset.y * offset.y);
-	const sf::Vector2f direction{ length > 0.001f ? offset / length : sf::Vector2f{ 0.f, -1.f } };
-
-	return GetPosition() + direction * GetShieldRadius();
+	return GetPosition() + VectorMath::Normalize(offset, { 0.f, -1.f }) * GetShieldRadius();
 }
 
 float ShooterStation::GetShieldRadius() const noexcept
@@ -210,10 +197,7 @@ void ShooterStation::Update(float deltaTime)
 			targetPoint = targetPoint == pathEnd ? pathStart : pathEnd;
 		}
 
-		const sf::Vector2f delta{ targetPoint - GetPosition() };
-		const float length = std::sqrt(delta.x * delta.x + delta.y * delta.y);
-
-		SetVelocity(length > 0.001f ? delta / length * GetMovementSpeed() : sf::Vector2f{});
+		SetVelocity(VectorMath::Normalize(targetPoint - GetPosition(), {}) * GetMovementSpeed());
 	}
 
 	SetRotation(GetRotation() + sf::degrees(5.f * deltaTime));
@@ -273,9 +257,8 @@ void ShooterStation::BeginDestruction()
 
 bool ShooterStation::ReachedTarget() const noexcept
 {
-	const sf::Vector2f remaining{ targetPoint - GetPosition() };
-	const sf::Vector2f currentVelocity{ GetVelocity() };
-	return remaining.x * currentVelocity.x + remaining.y * currentVelocity.y <= 0.f;
+	// Dot product <= 0: the target is no longer ahead along our heading.
+	return (targetPoint - GetPosition()).dot(GetVelocity()) <= 0.f;
 }
 
 void ShooterStation::OnDestroy()

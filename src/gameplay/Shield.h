@@ -19,7 +19,7 @@ public:
 private:
     static constexpr float HitFlashDuration{ 0.36f };
 
-    float current{ 0.f };
+    float currentCharge{ 0.f };
     float capacity{ 100.f };
     float duration{ 10.f };
     float activeDuration{ 10.f };

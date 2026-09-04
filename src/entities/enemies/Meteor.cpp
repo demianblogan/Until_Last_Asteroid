@@ -1,12 +1,12 @@
 #include "Meteor.h"
 
 #include <array>
-#include <cmath>
-#include <numbers>
+#include <utility>
 
 #include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Random.h"
+#include "utils/VectorMath.h"
 #include "core/world/World.h"
 
 Meteor::Meteor(Assets& assets, World& world, Size size)
@@ -20,19 +20,9 @@ Meteor::Meteor(Assets& assets, World& world, Size size)
 
 	// Meteor never sets its own velocity again after this -- unlike every
 	// other Enemy, it just drifts in a straight line for its whole life, so
-	// (unlike the other subclasses) this initial direction actually matters
-	// and needs to be random here. A full circle is 2*pi radians (radians
-	// are just another unit for angles, like degrees -- 2*pi radians = 360
-	// degrees), so picking a random angle between 0 and 2*pi picks a
-	// uniformly random direction all the way around the circle.
-	// cos(angle)/sin(angle) then convert that angle into the actual x/y
-	// direction vector to move along -- the standard way to turn "an angle"
-	// into "a direction you can multiply a speed by".
-	constexpr float TwoPi = 2.f * std::numbers::pi_v<float>;
-	const float travelAngle = Random::Float(0.f, TwoPi);
-	const sf::Vector2f travelDirection{ std::cos(travelAngle), std::sin(travelAngle) };
-
-	SetVelocity(travelDirection * GetMovementSpeed());
+	// (unlike the other subclasses) this initial heading actually matters and
+	// is picked as a uniformly random direction around the full circle.
+	SetVelocity(VectorMath::RandomDirection() * GetMovementSpeed());
 }
 
 void Meteor::Update(float deltaTime)
@@ -83,11 +73,7 @@ void Meteor::OnDestroy()
 		auto meteor = std::make_unique<Meteor>(GetAssets(), GetWorld(), newSize);
 
 		meteor->SetPosition(GetPosition());
-
-		const float angle = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
-		sf::Vector2f direction{ std::cos(angle), std::sin(angle) };
-
-		meteor->SetVelocity(direction * fragmentSpeed);
+		meteor->SetVelocity(VectorMath::RandomDirection() * fragmentSpeed);
 
 		GetWorld().Spawn(std::move(meteor));
 	}

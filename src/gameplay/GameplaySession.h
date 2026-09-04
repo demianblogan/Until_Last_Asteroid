@@ -20,9 +20,9 @@ public:
 
 	struct PlayerDamageResult
 	{
-		bool accepted{ false };
-		bool shieldDamaged{ false };
-		bool healthDamaged{ false };
+		bool wasAccepted{ false };
+		bool wasShieldDamaged{ false };
+		bool wasHealthDamaged{ false };
 	};
 
 	enum class State
@@ -72,11 +72,11 @@ public:
 
 	void ConfigurePlayerHealth(int maximumHealth) noexcept;
 	void ConfigureShield(float capacity, float duration) noexcept;
-	void ConfigureOneHitMode(bool enabled) noexcept;
+	void ConfigureOneHitMode(bool isEnabled) noexcept;
 	void ConfigureParts(int balance, const std::vector<std::string>& collectedIds);
 	void ConfigureUpgrades(
 		const ShipUpgradeRanks& ranks,
-		bool clampToCampaignMaximum = true) noexcept;
+		bool needToClampToCampaignMaximum = true) noexcept;
 	[[nodiscard]] bool RecoverPart(const std::string& id);
 	void AcceptRecoveredParts();
 	void DiscardRecoveredParts() noexcept;
@@ -111,14 +111,14 @@ private:
 	WeaponMode weaponMode{ WeaponMode::Normal };
 	float weaponBonusRemaining{ 0.f };
 	float weaponBonusDuration{ 1.f };
-	bool helperBotActive{ false };
+	bool isHelperBotActive{ false };
 	int level{ 1 };
 	int score{ 0 };
 	int levelStartScore{ 0 };
 	int partsBalance{ 0 };
-	std::unordered_set<std::string> collectedPartIDs;
+	std::unordered_set<std::string> collectedPartIds;
 	std::unordered_set<std::string> pendingPartIds;
 	ShipUpgradeRanks upgradeRanks;
-	bool oneHitMode{ false };
-	bool damageTakenThisLevel{ false };
+	bool isOneHitModeEnabled{ false };
+	bool hasTakenDamageThisLevel{ false };
 };

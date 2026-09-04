@@ -90,7 +90,7 @@ void MissileCarrier::LaunchMissile(const sf::Vector2f& target)
 
 sf::Vector2f MissileCarrier::GetLauncherPosition() const
 {
-	return TransformNormalizedPoint(GetWeaponEmitters().front());
+	return GetWeaponEmitterPosition(0u);
 }
 
 void MissileCarrier::EmitEngineParticles(const sf::Vector2f& exhaustDirection)

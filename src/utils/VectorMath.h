@@ -1,5 +1,6 @@
 #pragma once
 
+#include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
 
 // Small shared helpers for 2D vector math, used across core/entities/rendering
@@ -30,4 +31,16 @@ public:
 	// Normalize().
 	[[nodiscard]] static sf::Vector2f RandomDirectionAround(
 		const sf::Vector2f& direction, float spreadRadians, sf::Vector2f fallback = { 1.f, 0.f });
+
+	// Turns `heading` toward `desired` by at most `maximumStep`, returning the
+	// result as a unit vector -- the standard "gradual lock-on" step for a
+	// homing projectile: each frame it rotates a bounded amount toward its
+	// target instead of snapping straight at it. If `heading` is degenerate
+	// the (normalized) `fallback` is returned; if only `desired` is
+	// degenerate `heading` is kept (just normalized), i.e. no turn this frame.
+	// Replaces the hand-rolled atan2()/atan2(sin,cos)/clamp/cos-sin dance
+	// that was copy-pasted into every homing entity.
+	[[nodiscard]] static sf::Vector2f RotateToward(
+		sf::Vector2f heading, sf::Vector2f desired, sf::Angle maximumStep,
+		sf::Vector2f fallback = { 1.f, 0.f });
 };

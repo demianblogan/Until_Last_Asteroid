@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <numbers>
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Window/Mouse.hpp>
@@ -134,11 +133,11 @@ bool Player::TakeDamage(int damage)
 	auto& session = GetWorld().GetSession();
 	const GameplaySession::PlayerDamageResult result{ session.ApplyPlayerDamage(damage) };
 
-	if (!result.accepted)
+	if (!result.wasAccepted)
 		return false;
 
-	didLastDamageReachHealth = result.healthDamaged;
-	isBlinkingDuringInvulnerability = result.healthDamaged;
+	didLastDamageReachHealth = result.wasHealthDamaged;
+	isBlinkingDuringInvulnerability = result.wasHealthDamaged;
 
 	if (session.GetPlayerHealth().IsDepleted())
 	{
@@ -234,8 +233,8 @@ float Player::GetLaserVisualTime() const noexcept
 
 sf::Vector2f Player::GetExhaustDirection() const noexcept
 {
-	const float angle = GetRotation().asRadians() + std::numbers::pi_v<float> *0.5f;
-	return { std::cos(angle), std::sin(angle) };
+	// Exhaust fires out the back -- directly opposite where the nose points.
+	return -GetForwardDirection();
 }
 
 std::optional<sf::Vector2f> Player::GetGamepadAimPoint() const
@@ -281,13 +280,13 @@ void Player::UpdateMovement(float deltaTime)
 
 	if (isThrusting)
 	{
-		const float length = std::sqrt(moveInput.x * moveInput.x + moveInput.y * moveInput.y);
+		const float length = moveInput.length();
 		const float intensity = std::min(length, 1.f);
 
 		currentVelocity += moveInput / length * config.acceleration * speedMultiplier * intensity * deltaTime;
 	}
 
-	const float speed = std::sqrt(currentVelocity.x * currentVelocity.x + currentVelocity.y * currentVelocity.y);
+	const float speed = currentVelocity.length();
 	const float maximumSpeed = config.maximumSpeed * speedMultiplier;
 
 	if (speed > maximumSpeed)
@@ -302,11 +301,12 @@ void Player::UpdateMovement(float deltaTime)
 
 void Player::UpdateRotation()
 {
+	// Sprite art points up at rotation 0, so facing an aim vector means its
+	// angle turned a further +90 degrees.
 	if (isAimingWithGamepad)
 	{
-		SetRotation(sf::radians(std::atan2(gamepadAimDirection.y, gamepadAimDirection.x) +
-			std::numbers::pi_v<float> / 2.f));
-
+		if (gamepadAimDirection.lengthSquared() > 0.0001f)
+			SetRotation(gamepadAimDirection.angle() + sf::degrees(90.f));
 		return;
 	}
 
@@ -314,7 +314,8 @@ void Player::UpdateRotation()
 	const sf::Vector2f mouseWorld{ window.mapPixelToCoords(mousePixel) };
 	const sf::Vector2f toMouse{ mouseWorld - GetPosition() };
 
-	SetRotation(sf::radians(std::atan2(toMouse.y, toMouse.x) + std::numbers::pi_v<float> / 2.f));
+	if (toMouse.lengthSquared() > 0.0001f)
+		SetRotation(toMouse.angle() + sf::degrees(90.f));
 }
 
 void Player::UpdateInvulnerability(float deltaTime)
@@ -347,8 +348,8 @@ void Player::UpdateInvulnerability(float deltaTime)
 
 sf::Vector2f Player::GetAimDirection() const noexcept
 {
-	const float angle = GetRotation().asRadians() - std::numbers::pi_v<float> *0.5f;
-	return { std::cos(angle), std::sin(angle) };
+	// The ship aims straight out its nose -- that's exactly "forward".
+	return GetForwardDirection();
 }
 
 void Player::UpdateLaser(float deltaTime)
@@ -443,17 +444,17 @@ void Player::Shoot()
 		return;
 
 	const std::uint64_t attackID = GetWorld().BeginPlayerAttack();
-	const float rotation = GetRotation().asDegrees();
+	const sf::Vector2f aim{ GetAimDirection() };
 	const bool tripleShot = GetWorld().GetSession().IsTripleShotActive();
 
 	GetWorld().Haptics().PulseRightTriggerRecoil();
-	GetWorld().SpawnPlayerShot(GetMuzzlePosition(), rotation, attackID, true, tripleShot);
+	GetWorld().SpawnPlayerShot(GetMuzzlePosition(), aim, attackID, true, tripleShot);
 
 	if (tripleShot)
 	{
-		const float spread = GetAssets().GetGameplayData().GetPickups().tripleShotAngleDegrees;
-		GetWorld().SpawnPlayerShot(GetMuzzlePosition(), rotation - spread, attackID, false, true);
-		GetWorld().SpawnPlayerShot(GetMuzzlePosition(), rotation + spread, attackID, false, true);
+		const sf::Angle spread{ sf::degrees(GetAssets().GetGameplayData().GetPickups().tripleShotAngleDegrees) };
+		GetWorld().SpawnPlayerShot(GetMuzzlePosition(), aim.rotatedBy(-spread), attackID, false, true);
+		GetWorld().SpawnPlayerShot(GetMuzzlePosition(), aim.rotatedBy(spread), attackID, false, true);
 	}
 
 	shootTimer = 0.f;

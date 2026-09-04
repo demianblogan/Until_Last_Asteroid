@@ -1,5 +1,6 @@
 #include "VectorMath.h"
 
+#include <algorithm>
 #include <cmath>
 #include <numbers>
 
@@ -12,6 +13,21 @@ namespace
 	// comparing against a squared length, not a length: this is (0.01f *
 	// 0.01f), so vectors shorter than 0.01 units are treated as zero.
 	constexpr float NormalizeEpsilonSquared = 0.0001f;
+}
+
+sf::Vector2f VectorMath::RotateToward(
+	sf::Vector2f heading, sf::Vector2f desired, sf::Angle maximumStep, sf::Vector2f fallback)
+{
+	if (heading.lengthSquared() <= NormalizeEpsilonSquared)
+		return Normalize(fallback);
+	if (desired.lengthSquared() <= NormalizeEpsilonSquared)
+		return heading.normalized();
+
+	// angleTo() already gives the shortest signed turn (wrapped to
+	// (-180, 180]), so clamping it to +/- maximumStep and rotating by the
+	// result is the whole operation.
+	const sf::Angle step{ std::clamp(heading.angleTo(desired), -maximumStep, maximumStep) };
+	return heading.rotatedBy(step).normalized();
 }
 
 sf::Vector2f VectorMath::Normalize(const sf::Vector2f& vector, sf::Vector2f fallback)

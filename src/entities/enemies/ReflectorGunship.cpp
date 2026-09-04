@@ -9,6 +9,7 @@
 #include "core/Collision.h"
 #include "utils/ConfigEnums.h"
 #include "utils/Pulse.h"
+#include "utils/VectorMath.h"
 
 ReflectorGunship::ReflectorGunship(Assets& assets, World& world)
 	: Enemy(assets, world, assets.Textures().Get(Config::Texture::ReflectorGunship),
@@ -79,10 +80,7 @@ sf::Vector2f ReflectorGunship::GetPlayerProjectileImpactPosition(const Entity& p
 		return projectile.GetPosition();
 
 	const sf::Vector2f offset{ projectile.GetPosition() - GetPosition() };
-	const float length = std::sqrt(offset.x * offset.x + offset.y * offset.y);
-	const sf::Vector2f direction{ length > 0.001f ? offset / length : sf::Vector2f{ 0.f, -1.f } };
-
-	return GetPosition() + direction * GetShieldRadius();
+	return GetPosition() + VectorMath::Normalize(offset, { 0.f, -1.f }) * GetShieldRadius();
 }
 
 Entity::Type ReflectorGunship::GetType() const noexcept
@@ -168,9 +166,4 @@ void ReflectorGunship::ShootDoubleVolley()
 			muzzle, muzzle + GetForwardDirection() * 1000.f,
 			GameplayData::ProjectileKind::Enemy, index == 0u);
 	}
-}
-
-sf::Vector2f ReflectorGunship::GetWeaponEmitterPosition(std::size_t index) const
-{
-	return TransformNormalizedPoint(GetWeaponEmitters().at(index));
 }

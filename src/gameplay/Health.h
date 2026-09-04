@@ -5,7 +5,7 @@ class Health
 public:
     explicit Health(int maximum = 1) noexcept;
 
-    void SetMaximum(int maximum, bool restore = true) noexcept;
+    void SetMaximum(int maximum, bool needToRestoreToFull = true) noexcept;
     [[nodiscard]] bool ApplyDamage(int amount) noexcept;
     [[nodiscard]] bool Restore(int amount) noexcept;
     void Reset() noexcept;

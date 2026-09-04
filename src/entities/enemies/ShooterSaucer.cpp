@@ -102,8 +102,3 @@ void ShooterSaucer::Shoot()
 	GetWorld().SpawnSaucerShot(muzzle, muzzle + GetForwardDirection() * 1000.f);
 	nextWeaponEmitter = (nextWeaponEmitter + 1) % GetWeaponEmitters().size();
 }
-
-sf::Vector2f ShooterSaucer::GetWeaponEmitterPosition(std::size_t index) const
-{
-	return TransformNormalizedPoint(GetWeaponEmitters().at(index));
-}

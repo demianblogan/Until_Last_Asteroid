@@ -70,7 +70,7 @@ public:
 	[[nodiscard]] std::uint64_t BeginPlayerAttack() noexcept;
 	void RegisterPlayerAttackHit(std::uint64_t attackID) noexcept;
 
-	void SpawnPlayerShot(const sf::Vector2f& pos, float rotation, std::uint64_t attackID,
+	void SpawnPlayerShot(const sf::Vector2f& pos, const sf::Vector2f& aimDirection, std::uint64_t attackID,
 		bool needToPlaySound = true, bool isTripleShotVisual = false);
 	void SpawnHelperShot(const sf::Vector2f& pos, const Entity* target);
 	[[nodiscard]] bool SpawnHelperPickup(const sf::Vector2f& pos);

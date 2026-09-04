@@ -239,6 +239,11 @@ const std::vector<GameplayData::NormalizedPoint>& Enemy::GetEngineEmitters() con
 	return engineEmitters;
 }
 
+sf::Vector2f Enemy::GetWeaponEmitterPosition(std::size_t index) const
+{
+	return TransformNormalizedPoint(weaponEmitters.at(index));
+}
+
 bool Enemy::UpdateApproach(float deltaTime) noexcept
 {
 	if (!MoveToward(approachTarget, GetMovementSpeed(), deltaTime))

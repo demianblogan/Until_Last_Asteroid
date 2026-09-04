@@ -18,6 +18,7 @@
 #include "core/world/World.h"
 #include "rendering/EnergyShield.h"
 #include "utils/ConfigEnums.h"
+#include "utils/Easing.h"
 #include "utils/Pulse.h"
 #include "utils/Random.h"
 
@@ -38,12 +39,6 @@ namespace
 		sprite.setOrigin(origin);
 		const float scale{ displayedWidth / static_cast<float>(size.x) };
 		sprite.setScale({ scale, scale });
-	}
-
-	float SmoothStep(float value)
-	{
-		value = std::clamp(value, 0.f, 1.f);
-		return value * value * (3.f - 2.f * value);
 	}
 
 	// Appends a filled circle (as a triangle fan) into a shared Triangles
@@ -271,10 +266,10 @@ void BossEncounter::Reset()
 	victoryCleanupElapsed = 0.f;
 	shieldCycle = 0;
 	coreCycle = 0;
-	corePhaseInitialized = false;
-	outerRingVisible = true;
-	diamondVisible = true;
-	coreVisible = true;
+	isCorePhaseInitialized = false;
+	isOuterRingVisible = true;
+	isDiamondVisible = true;
+	isCoreVisible = true;
 	nextPortalIndex = 0u;
 	nextPhaseOneBonus = 0u;
 	nextPhaseTwoBonus = 0u;
@@ -424,7 +419,7 @@ void BossEncounter::Update(
 	UpdateShield(deltaTime);
 	if (state == State::Arriving)
 	{
-		const float progress{ SmoothStep(stateElapsed / ArrivalDuration) };
+		const float progress{ Easing::SmoothStep(stateElapsed / ArrivalDuration) };
 		SetPosition(startPosition + (battlePosition - startPosition) * progress);
 		if (stateElapsed >= ArrivalDuration)
 		{
@@ -516,8 +511,8 @@ void BossEncounter::DebugAdvancePhase(World& world)
 		health = static_cast<int>(std::lround(
 			static_cast<float>(config.maximumHealth) * config.outerRingEndHealthRatio));
 		UpdateArmorLabel();
-		outerRingVisible = false;
-		diamondVisible = true;
+		isOuterRingVisible = false;
+		isDiamondVisible = true;
 		outerRing.setPosition(position);
 		diamond.setPosition(position);
 		state = State::InnerPhase;
@@ -531,13 +526,13 @@ void BossEncounter::DebugAdvancePhase(World& world)
 	{
 		health = config.maximumHealth * 3 / 10;
 		UpdateArmorLabel();
-		outerRingVisible = false;
-		diamondVisible = false;
+		isOuterRingVisible = false;
+		isDiamondVisible = false;
 		diamond.setPosition(position);
 		portalHealth.fill(0);
 		state = State::CoreShieldWarning;
 		stateElapsed = 0.f;
-		corePhaseInitialized = false;
+		isCorePhaseInitialized = false;
 	}
 }
 
@@ -548,9 +543,9 @@ void BossEncounter::DebugDefeat(World& world)
 	SetPosition(battlePosition);
 	health = 0;
 	UpdateArmorLabel();
-	outerRingVisible = false;
-	diamondVisible = false;
-	coreVisible = true;
+	isOuterRingVisible = false;
+	isDiamondVisible = false;
+	isCoreVisible = true;
 	portalHealth.fill(0);
 	state = State::CoreDying;
 	stateElapsed = 0.f;
@@ -736,7 +731,7 @@ void BossEncounter::UpdateOuterRingDestruction(float deltaTime, World& world)
 	if (stateElapsed >= config.outerRingDestructionDuration)
 	{
 		outerRing.setPosition(position);
-		outerRingVisible = false;
+		isOuterRingVisible = false;
 		world.Sound().AddSound(Config::Sound::ShipExplosion, 0.68f);
 		world.Effects().Add({
 			Rendering::EffectEventType::ShipExplosion, position, {}, 1.8f });
@@ -751,7 +746,7 @@ void BossEncounter::UpdateInnerPhase(
 	float deltaTime,
 	World& world,
 	const SpawnReinforcement& spawnReinforcement,
-	bool shielded)
+	bool isShielded)
 {
 	diamondRotationDegrees = std::fmod(
 		diamondRotationDegrees + config.diamondRotationSpeedDegrees * deltaTime,
@@ -803,7 +798,7 @@ void BossEncounter::UpdateInnerPhase(
 		nextEdgeShooterSpawn += config.edgeShooterSpawnInterval;
 	}
 
-	if (!shielded)
+	if (!isShielded)
 		HandlePortalImpacts(world);
 }
 
@@ -835,9 +830,9 @@ void BossEncounter::HandlePortalImpacts(World& world)
 			GetPortalPosition(index), {}, 0.72f });
 		world.SpawnPickupAt(
 			GameplayData::PickupKind::Health, GetSafePickupPosition(index));
-		const bool allDestroyed{ std::none_of(
+		const bool areAllPortalsDestroyed{ std::none_of(
 			portalHealth.begin(), portalHealth.end(), [](int value) { return value > 0; }) };
-		if (allDestroyed)
+		if (areAllPortalsDestroyed)
 		{
 			world.Effects().Add({ Rendering::EffectEventType::BossDestructionShake,
 				position, {}, 8.f, 1000 });
@@ -890,13 +885,13 @@ void BossEncounter::UpdateDiamondDestruction(float deltaTime, World& world)
 	if (stateElapsed >= config.diamondDestructionDuration)
 	{
 		diamond.setPosition(position);
-		diamondVisible = false;
+		isDiamondVisible = false;
 		world.Sound().AddSound(Config::Sound::ShipExplosion, 0.76f);
 		world.Effects().Add({ Rendering::EffectEventType::ShipExplosion,
 			position, {}, 1.45f });
 		state = State::CoreShieldWarning;
 		stateElapsed = 0.f;
-		corePhaseInitialized = false;
+		isCorePhaseInitialized = false;
 	}
 }
 
@@ -933,7 +928,7 @@ void BossEncounter::UpdateCorePhase(
 	World& world,
 	const SpawnReinforcement& spawnReinforcement)
 {
-	if (!corePhaseInitialized)
+	if (!isCorePhaseInitialized)
 		BeginCoreShieldCycle(0, spawnReinforcement, false);
 
 	coreBeamAngleDegrees = std::fmod(
@@ -989,11 +984,11 @@ void BossEncounter::UpdateCorePhase(
 void BossEncounter::BeginCoreShieldCycle(
 	int cycle,
 	const SpawnReinforcement& spawnReinforcement,
-	bool useWarning)
+	bool needToShowWarning)
 {
 	coreCycle = cycle;
-	corePhaseInitialized = true;
-	state = useWarning ? State::CoreShieldWarning : State::CoreShield;
+	isCorePhaseInitialized = true;
+	state = needToShowWarning ? State::CoreShieldWarning : State::CoreShield;
 	stateElapsed = 0.f;
 	SpawnCoreTurrets(spawnReinforcement);
 	if (cycle == 1)
@@ -1131,7 +1126,7 @@ void BossEncounter::UpdateCoreDestruction(float deltaTime, World& world)
 	}
 	if (stateElapsed < 3.f)
 		return;
-	coreVisible = false;
+	isCoreVisible = false;
 	world.DestroyAllBossVictoryTargets();
 	world.Sound().AddSound(Config::Sound::ShipExplosion, 0.48f);
 	world.Effects().Add({ Rendering::EffectEventType::ShipExplosion,
@@ -1168,16 +1163,16 @@ float BossEncounter::GetShieldRadius() const noexcept
 
 float BossEncounter::GetEnemyExclusionRadius() const noexcept
 {
-	if (outerRingVisible)
+	if (isOuterRingVisible)
 		return OuterShieldRadius;
-	if (diamondVisible)
+	if (isDiamondVisible)
 		return DiamondShieldRadius;
 	return config.coreShieldRadius;
 }
 
 sf::Vector2f BossEncounter::GetCollisionCenter() const noexcept
 {
-	return !outerRingVisible && !diamondVisible
+	return !isOuterRingVisible && !isDiamondVisible
 		? position + CoreVisualOffset
 		: position;
 }
@@ -1194,9 +1189,9 @@ float BossEncounter::GetPlayerExclusionRadius() const noexcept
 {
 	if (IsShieldCollisionActive())
 		return GetShieldRadius();
-	if (outerRingVisible)
+	if (isOuterRingVisible)
 		return config.outerRingOuterRadius;
-	if (diamondVisible)
+	if (isDiamondVisible)
 		return config.diamondFrameVertexRadius + config.diamondFrameHalfThickness;
 	return config.coreCollisionRadius;
 }
@@ -1241,27 +1236,29 @@ void BossEncounter::draw(sf::RenderTarget& target, sf::RenderStates states) cons
 {
 	if (!IsActive())
 		return;
-	sf::RenderStates ringStates{ states };
-	if (ringHitFlashRemaining > 0.f && hitFlashDuration > 0.f)
+
+	// Each boss part (ring/diamond/core) briefly tints white when hit. The
+	// hit-flash shader is a single shared instance whose uniforms get
+	// rewritten per draw, so this returns a fresh RenderStates pointing at
+	// it -- configured for `remaining` seconds of flash left -- right before
+	// that part is drawn, rather than three copies of the same setup.
+	const auto flashStates{ [&](float remaining)
 	{
-		hitFlashShader.setUniform("source", sf::Shader::CurrentTexture);
-		hitFlashShader.setUniform(
-			"intensity", ringHitFlashRemaining / hitFlashDuration);
-		ringStates.shader = &hitFlashShader;
-	}
-	if (outerRingVisible)
-		target.draw(outerRing, ringStates);
-	sf::RenderStates diamondStates{ states };
-	if (diamondHitFlashRemaining > 0.f && hitFlashDuration > 0.f)
-	{
-		hitFlashShader.setUniform("source", sf::Shader::CurrentTexture);
-		hitFlashShader.setUniform(
-			"intensity", diamondHitFlashRemaining / hitFlashDuration);
-		diamondStates.shader = &hitFlashShader;
-	}
-	if (diamondVisible)
-		target.draw(diamond, diamondStates);
-	if (diamondVisible)
+		sf::RenderStates result{ states };
+		if (remaining > 0.f && hitFlashDuration > 0.f)
+		{
+			hitFlashShader.setUniform("source", sf::Shader::CurrentTexture);
+			hitFlashShader.setUniform("intensity", remaining / hitFlashDuration);
+			result.shader = &hitFlashShader;
+		}
+		return result;
+	} };
+
+	if (isOuterRingVisible)
+		target.draw(outerRing, flashStates(ringHitFlashRemaining));
+	if (isDiamondVisible)
+		target.draw(diamond, flashStates(diamondHitFlashRemaining));
+	if (isDiamondVisible)
 	{
 		for (std::size_t index{ 0u }; index < portalHealth.size(); ++index)
 		{
@@ -1272,34 +1269,26 @@ void BossEncounter::draw(sf::RenderTarget& target, sf::RenderStates states) cons
 			target.draw(mask, states);
 		}
 	}
-	sf::RenderStates coreStates{ states };
-	if (coreHitFlashRemaining > 0.f && hitFlashDuration > 0.f)
-	{
-		hitFlashShader.setUniform("source", sf::Shader::CurrentTexture);
-		hitFlashShader.setUniform(
-			"intensity", coreHitFlashRemaining / hitFlashDuration);
-		coreStates.shader = &hitFlashShader;
-	}
-	if (coreVisible)
-		target.draw(core, coreStates);
-	const bool coreCombatActive{ state == State::CoreShieldWarning ||
+	if (isCoreVisible)
+		target.draw(core, flashStates(coreHitFlashRemaining));
+	const bool isCoreCombatActive{ state == State::CoreShieldWarning ||
 		state == State::CoreShield || state == State::CoreExposed };
-	if (coreCombatActive)
+	if (isCoreCombatActive)
 	{
 		const float pulse{ 0.82f + 0.18f * std::abs(
 			std::sin(coreBeamAngleDegrees * 0.12f)) };
 		DrawCoreBeam(target, position + CoreVisualOffset, GetCoreBeamEnd(),
 			config.coreBeamWidth, pulse, coreBeamVisualTime, states);
 	}
-	const bool warningState{ state == State::OuterShieldWarning ||
+	const bool isWarningState{ state == State::OuterShieldWarning ||
 		state == State::InnerShieldWarning || state == State::CoreShieldWarning };
-	const bool warningShieldVisible{ warningState &&
+	const bool isWarningShieldVisible{ isWarningState &&
 		std::fmod(stateElapsed, config.shieldWarningBlinkInterval * 2.f) <
 			config.shieldWarningBlinkInterval };
 	if (state == State::Arriving || state == State::ShieldDelay ||
 		state == State::OuterShield || state == State::InnerShield ||
 		state == State::CoreShield ||
-		warningShieldVisible)
+		isWarningShieldVisible)
 	{
 		const float pulse{ Pulse::Value(shieldPulse, 5.f, 0.72f, 0.28f) };
 		Rendering::DrawEnergyShield(

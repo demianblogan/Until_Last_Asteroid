@@ -1,8 +1,6 @@
 #include "LaserTurret.h"
 
 #include <algorithm>
-#include <cmath>
-#include <numbers>
 #include <SFML/Audio/SoundBuffer.hpp>
 
 #include "assets/Assets.h"
@@ -37,8 +35,8 @@ void LaserTurret::ConfigurePath(sf::Vector2f first, sf::Vector2f second, sf::Vec
 	phase = Phase::Arriving;
 	isAtFirstCorner = false;
 
-	const float angle = std::atan2(inward.y, inward.x) + std::numbers::pi_v<float> *0.5f;
-	SetRotation(sf::radians(angle));
+	// Face the beam direction (sprite art points up at rotation 0, hence +90).
+	SetRotation(inward.angle() + sf::degrees(90.f));
 }
 
 void LaserTurret::ConfigureStationaryArrival(sf::Vector2f start, sf::Vector2f destination, sf::Vector2f beamDirection)
@@ -56,8 +54,8 @@ void LaserTurret::ConfigureStationaryArrival(sf::Vector2f start, sf::Vector2f de
 	phase = Phase::Arriving;
 	isAtFirstCorner = false;
 
-	const float angle = std::atan2(inward.y, inward.x) + std::numbers::pi_v<float> *0.5f;
-	SetRotation(sf::radians(angle));
+	// Face the beam direction (sprite art points up at rotation 0, hence +90).
+	SetRotation(inward.angle() + sf::degrees(90.f));
 }
 
 sf::Vector2f LaserTurret::GetBeamStart() const noexcept
@@ -184,10 +182,9 @@ void LaserTurret::BeginTraversal()
 
 bool LaserTurret::ReachedTarget(sf::Vector2f target) const noexcept
 {
-	const sf::Vector2f remaining{ target - GetPosition() };
-	const sf::Vector2f currentVelocity{ GetVelocity() };
-
-	return remaining.x * currentVelocity.x + remaining.y * currentVelocity.y <= 0.f;
+	// Dot product <= 0 means the target is no longer ahead of us along our
+	// current heading -- i.e. we've reached or passed it.
+	return (target - GetPosition()).dot(GetVelocity()) <= 0.f;
 }
 
 void LaserTurret::OnDestroy()

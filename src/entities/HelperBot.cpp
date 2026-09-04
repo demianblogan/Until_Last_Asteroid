@@ -8,6 +8,7 @@
 #include "core/world/World.h"
 #include "gameplay/GameplaySession.h"
 #include "utils/ConfigEnums.h"
+#include "utils/VectorMath.h"
 
 HelperBot::HelperBot(Assets& assets, World& world)
 	: Entity(assets, world,
@@ -38,16 +39,14 @@ void HelperBot::Update(float deltaTime)
 	}
 
 	const auto& config = GetAssets().GetGameplayData().GetPickups();
-	const float orbitSpeedRadians = config.helperBotOrbitSpeedDegrees * std::numbers::pi_v<float> / 180.f;
+	const float orbitSpeedRadians =
+		sf::degrees(config.helperBotOrbitSpeedDegrees).asRadians();
 
 	orbitPhaseRadians =
 		std::fmod(orbitPhaseRadians + orbitSpeedRadians * deltaTime, 2.f * std::numbers::pi_v<float>);
 
-	const sf::Vector2f orbitOffset
-	{
-		std::cos(orbitPhaseRadians) * config.helperBotOrbitRadius,
-		std::sin(orbitPhaseRadians) * config.helperBotOrbitRadius
-	};
+	// Polar -> cartesian: a point orbitRadius units out at angle orbitPhase.
+	const sf::Vector2f orbitOffset{ config.helperBotOrbitRadius, sf::radians(orbitPhaseRadians) };
 
 	SetPosition(GetWorld().GetPlayerPosition() + orbitOffset);
 
@@ -57,15 +56,14 @@ void HelperBot::Update(float deltaTime)
 	if (target == nullptr)
 		return;
 
-	const sf::Vector2f toTarget{ target->GetPosition() - GetPosition() };
-	const float targetAngle = std::atan2(toTarget.y, toTarget.x);
+	const sf::Vector2f direction{ VectorMath::Normalize(target->GetPosition() - GetPosition()) };
 
-	SetRotation(sf::radians(targetAngle));
+	// HelperBot's sprite art already points along its firing direction (no
+	// +90 nose offset like the ships), so its facing is the raw aim angle.
+	SetRotation(direction.angle());
 
 	if (shotCooldown > 0.f)
 		return;
-
-	const sf::Vector2f direction{ std::cos(targetAngle), std::sin(targetAngle) };
 
 	GetWorld().SpawnHelperShot(GetPosition() + direction * 32.f, target);
 	shotCooldown = config.helperBotShotInterval;

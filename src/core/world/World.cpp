@@ -432,10 +432,10 @@ void World::RegisterPlayerAttackHit(std::uint64_t attackID) noexcept
 		statisticsTracker.RecordAttackHit();
 }
 
-void World::SpawnPlayerShot(const sf::Vector2f& pos, float rotation, std::uint64_t attackID,
+void World::SpawnPlayerShot(const sf::Vector2f& pos, const sf::Vector2f& aimDirection, std::uint64_t attackID,
 	bool needToPlaySound, bool isTripleShotVisual)
 {
-	Spawn(std::make_unique<PlayerShot>(assets, *this, pos, rotation, attackID, needToPlaySound, isTripleShotVisual));
+	Spawn(std::make_unique<PlayerShot>(assets, *this, pos, aimDirection, attackID, needToPlaySound, isTripleShotVisual));
 }
 
 void World::SpawnHelperShot(const sf::Vector2f& pos, const Entity* target)

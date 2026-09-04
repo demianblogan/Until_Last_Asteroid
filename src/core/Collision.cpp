@@ -8,7 +8,7 @@ namespace Collision
 		const sf::Vector2f& secondCenter, float secondRadius)
 	{
 		const sf::Vector2f delta = secondCenter - firstCenter;
-		const float distanceSquared = delta.x * delta.x + delta.y * delta.y;
+		const float distanceSquared = delta.lengthSquared();
 		const float radiusSum = firstRadius + secondRadius;
 
 		if (distanceSquared > radiusSum * radiusSum)
