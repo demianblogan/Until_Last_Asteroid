@@ -27,6 +27,7 @@ HomingMissile::HomingMissile(Assets& assets, World& world, const sf::Vector2f& p
 
 	const sf::Vector2f direction{ VectorMath::Normalize(target - position, { 0.f, -1.f }) };
 	SetVelocity(direction * speed);
+
 	// Sprite art points up at rotation 0, so facing = heading angle + 90.
 	SetRotation(direction.angle() + sf::degrees(90.f));
 }
@@ -68,7 +69,7 @@ void HomingMissile::Update(float deltaTime)
 	SetRotation(direction.angle() + sf::degrees(90.f));
 	Move(deltaTime);
 
-	GetWorld().Effects().Add({ Rendering::EffectEventType::MissileSmoke,	GetPosition(), direction });
+	GetWorld().Effects().Add({ Rendering::EffectEventType::MissileSmoke, GetPosition(), direction });
 	GetWorld().Effects().Add({ Rendering::EffectEventType::EnemyProjectileGlow,GetPosition(), direction, 1.2f });
 
 	constexpr float DespawnMargin = 160.f;

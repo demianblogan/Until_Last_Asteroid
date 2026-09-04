@@ -110,11 +110,6 @@ bool LaserTurret::AcceptsKnockback() const noexcept
 	return false;
 }
 
-Entity::Type LaserTurret::GetType() const noexcept
-{
-	return Type::Enemy;
-}
-
 void LaserTurret::Update(float deltaTime)
 {
 	if (phase == Phase::Waiting)
@@ -132,7 +127,7 @@ void LaserTurret::Update(float deltaTime)
 		beamTime += deltaTime;
 		Move(deltaTime);
 
-		if (ReachedTarget(targetCorner))
+		if (IsTargetReached(targetCorner))
 		{
 			SetPosition(targetCorner);
 			SetVelocity({});
@@ -180,7 +175,7 @@ void LaserTurret::BeginTraversal()
 	laserSoundHandle = GetWorld().Sound().AddSound(Config::Sound::EnemyLaserShot);
 }
 
-bool LaserTurret::ReachedTarget(sf::Vector2f target) const noexcept
+bool LaserTurret::IsTargetReached(sf::Vector2f target) const noexcept
 {
 	// Dot product <= 0 means the target is no longer ahead of us along our
 	// current heading -- i.e. we've reached or passed it.

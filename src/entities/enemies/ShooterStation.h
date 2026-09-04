@@ -32,14 +32,13 @@ public:
 	[[nodiscard]] bool TakeDamage(int damage) override;
 	[[nodiscard]] bool AcceptsKnockback() const noexcept override;
 
-	Type GetType() const noexcept override;
 	bool IsCollidingWith(const Entity& other) const override;
 	void Update(float deltaTime) override;
 	void OnDestroy() override;
 
 private:
 	void BeginDestruction() override;
-	[[nodiscard]] bool ReachedTarget() const noexcept;
+	[[nodiscard]] bool IsTargetReached() const noexcept;
 
 	sf::Vector2f pathStart;
 	sf::Vector2f pathEnd;

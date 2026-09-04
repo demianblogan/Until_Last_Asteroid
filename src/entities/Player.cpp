@@ -37,12 +37,7 @@ Player::Player(Assets& assets, World& world, InputHandler<Config::PlayerAction>&
 Player::~Player()
 {
 	StopLaserSounds();
-
-	input.UnsubscribeAll(Config::PlayerAction::Up);
-	input.UnsubscribeAll(Config::PlayerAction::Down);
-	input.UnsubscribeAll(Config::PlayerAction::Left);
-	input.UnsubscribeAll(Config::PlayerAction::Right);
-	input.UnsubscribeAll(Config::PlayerAction::Fire);
+	UnbindInput();
 }
 
 Entity::Type Player::GetType() const noexcept
@@ -270,6 +265,17 @@ void Player::BindInput()
 	input.Subscribe(Fire, [this]() { Shoot(); });
 }
 
+void Player::UnbindInput()
+{
+	using enum Config::PlayerAction;
+
+	input.UnsubscribeAll(Up);
+	input.UnsubscribeAll(Down);
+	input.UnsubscribeAll(Left);
+	input.UnsubscribeAll(Right);
+	input.UnsubscribeAll(Fire);
+}
+
 void Player::UpdateMovement(float deltaTime)
 {
 	const auto& config = GetAssets().GetGameplayData().GetPlayer();
@@ -327,7 +333,10 @@ void Player::UpdateInvulnerability(float deltaTime)
 		return;
 	}
 
-	invulnerabilityTimer = std::max(0.f, invulnerabilityTimer - deltaTime);
+	// No std::max(0.f, ...) clamp needed here: the check right below already
+	// catches a negative result and returns before anything else reads
+	// invulnerabilityTimer, so it's never observed negative regardless.
+	invulnerabilityTimer -= deltaTime;
 
 	if (invulnerabilityTimer <= 0.f)
 	{

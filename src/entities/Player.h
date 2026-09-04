@@ -75,6 +75,7 @@ public:
 
 private:
 	void BindInput();
+	void UnbindInput();
 	void Shoot();
 
 	void UpdateMovement(float deltaTime);

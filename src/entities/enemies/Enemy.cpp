@@ -244,11 +244,8 @@ sf::Vector2f Enemy::GetWeaponEmitterPosition(std::size_t index) const
 	return TransformNormalizedPoint(weaponEmitters.at(index));
 }
 
-bool Enemy::UpdateApproach(float deltaTime) noexcept
+void Enemy::UpdateApproach(float deltaTime) noexcept
 {
-	if (!MoveToward(approachTarget, GetMovementSpeed(), deltaTime))
-		return false;
-
-	isApproachingCenter = false;
-	return true;
+	if (MoveToward(approachTarget, GetMovementSpeed(), deltaTime))
+		isApproachingCenter = false;
 }

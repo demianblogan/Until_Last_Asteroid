@@ -28,7 +28,6 @@ public:
 	[[nodiscard]] bool IsArriving() const noexcept override;
 	[[nodiscard]] bool AcceptsKnockback() const noexcept override;
 
-	Type GetType() const noexcept override;
 	void Update(float deltaTime) override;
 	void OnDestroy() override;
 
@@ -41,7 +40,7 @@ private:
 	};
 
 	void BeginTraversal();
-	[[nodiscard]] bool ReachedTarget(sf::Vector2f target) const noexcept;
+	[[nodiscard]] bool IsTargetReached(sf::Vector2f target) const noexcept;
 
 	sf::Vector2f pathStart;
 	sf::Vector2f pathEnd;

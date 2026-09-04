@@ -14,8 +14,7 @@ Meteor::Meteor(Assets& assets, World& world, Size size)
 	, size(size)
 	, fragmentSpeed(GetConfig(assets, size).fragmentSpeed)
 {
-	const float direction = Random::Int(0, 1) == 0 ? -1.f : 1.f;
-	angularVelocity = GetRotationSpeed() * Random::Float(0.65f, 1.35f) * direction;
+	angularVelocity = GetRotationSpeed() * Random::Float(0.65f, 1.35f) * Random::Sign();
 	SetRotation(sf::degrees(Random::Float(0.f, 360.f)));
 
 	// Meteor never sets its own velocity again after this -- unlike every

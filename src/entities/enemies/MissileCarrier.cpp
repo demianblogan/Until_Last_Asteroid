@@ -22,11 +22,6 @@ MissileCarrier::MissileCarrier(Assets& assets, World& world)
 	, launchInterval(assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::MissileCarrier).actionInterval)
 {}
 
-Entity::Type MissileCarrier::GetType() const noexcept
-{
-	return Type::Enemy;
-}
-
 void MissileCarrier::Update(float deltaTime)
 {
 	const sf::Vector2f playerPosition{ GetWorld().GetPlayerPosition() };

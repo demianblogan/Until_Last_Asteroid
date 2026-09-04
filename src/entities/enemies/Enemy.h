@@ -119,14 +119,14 @@ protected:
 	[[nodiscard]] sf::Vector2f GetWeaponEmitterPosition(std::size_t index) const;
 
 	// Moves toward approachTarget (set via ConfigureApproachTarget) at
-	// GetMovementSpeed(); once arrived, clears isApproachingCenter and
-	// returns true so the caller can react to the arrival exactly once (e.g.
-	// switch to its own patrol/pattern movement from here on). Returns false
-	// every frame travel is still in progress. Subclasses that use the
-	// shared approach state check `isApproachingCenter` themselves at the
-	// top of Update() and call this instead of their own movement while it's
-	// true -- see Spinner::Update for the reference shape.
-	[[nodiscard]] bool UpdateApproach(float deltaTime) noexcept;
+	// GetMovementSpeed(); once arrived, clears isApproachingCenter so the
+	// caller naturally falls into its own patrol/pattern movement starting
+	// the very next frame -- see Spinner::Update for the reference shape,
+	// which checks `isApproachingCenter` itself at the top of Update() and
+	// calls this instead of its own movement while it's still true. No
+	// return value: nothing needs to react on the exact frame of arrival,
+	// only on subsequent frames once isApproachingCenter has flipped false.
+	void UpdateApproach(float deltaTime) noexcept;
 
 	sf::Vector2f approachTarget;
 	bool isApproachingCenter = false;

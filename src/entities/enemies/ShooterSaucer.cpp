@@ -54,11 +54,10 @@ void ShooterSaucer::Update(float deltaTime)
 
 	if (isApproachingCenter)
 	{
-		// The return value (whether it just arrived) isn't needed here --
 		// hasPatrolTarget is already false from ConfigureApproachTarget, so
 		// the patrol branch below picks a fresh target on its own the moment
-		// isApproachingCenter flips false, without any extra handling.
-		static_cast<void>(UpdateApproach(deltaTime));
+		// isApproachingCenter flips false, without any extra handling here.
+		UpdateApproach(deltaTime);
 	}
 	else
 	{

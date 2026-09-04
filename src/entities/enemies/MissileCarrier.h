@@ -16,7 +16,6 @@ public:
 
 	void ConfigureApproachTarget(sf::Vector2f target) noexcept override;
 
-	Type GetType() const noexcept override;
 	void Update(float deltaTime) override;
 	void OnDestroy() override;
 

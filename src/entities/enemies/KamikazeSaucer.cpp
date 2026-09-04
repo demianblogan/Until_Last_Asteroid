@@ -10,7 +10,7 @@ KamikazeSaucer::KamikazeSaucer(Assets& assets, World& world)
 	: Enemy(assets, world, assets.Textures().Get(Config::Texture::BigEnemySaucer),
 		assets.GetGameplayData().GetEnemy(GameplayData::EnemyKind::Kamikaze))
 {
-	spinDirection = Random::Float(0.f, 1.f) < 0.5f ? -1.f : 1.f;
+	spinDirection = Random::Sign();
 }
 
 void KamikazeSaucer::Update(float deltaTime)

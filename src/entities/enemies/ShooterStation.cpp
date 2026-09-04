@@ -85,11 +85,6 @@ bool ShooterStation::TakeDamage(int damage)
 	return isDestructionStarted && !isDestructionActive;
 }
 
-Entity::Type ShooterStation::GetType() const noexcept
-{
-	return Type::Enemy;
-}
-
 bool ShooterStation::AcceptsKnockback() const noexcept
 {
 	return false;
@@ -178,7 +173,7 @@ void ShooterStation::Update(float deltaTime)
 
 	Move(deltaTime);
 
-	if (isPathConfigured && ReachedTarget())
+	if (isPathConfigured && IsTargetReached())
 	{
 		SetPosition(targetPoint);
 
@@ -255,7 +250,7 @@ void ShooterStation::BeginDestruction()
 	workingSoundHandle = 0u;
 }
 
-bool ShooterStation::ReachedTarget() const noexcept
+bool ShooterStation::IsTargetReached() const noexcept
 {
 	// Dot product <= 0: the target is no longer ahead along our heading.
 	return (targetPoint - GetPosition()).dot(GetVelocity()) <= 0.f;

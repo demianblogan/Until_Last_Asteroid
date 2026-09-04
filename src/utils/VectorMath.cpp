@@ -47,7 +47,10 @@ sf::Vector2f VectorMath::RandomDirection()
 
 sf::Vector2f VectorMath::RandomDirectionAround(const sf::Vector2f& direction, float spreadRadians, sf::Vector2f fallback)
 {
-	const sf::Vector2f normalized{ Normalize(direction, fallback) };
-	const float angle = std::atan2(normalized.y, normalized.x) + Random::Float(-spreadRadians, spreadRadians);
-	return { std::cos(angle), std::sin(angle) };
+	// angle() only cares about direction, not length, so there's no need to
+	// pay for a full normalize here -- `direction` is used as-is unless it's
+	// degenerate, in which case `fallback` stands in for it.
+	const sf::Vector2f baseDirection{ direction.lengthSquared() > NormalizeEpsilonSquared ? direction : fallback };
+	const sf::Angle angle{ baseDirection.angle() + sf::radians(Random::Float(-spreadRadians, spreadRadians)) };
+	return sf::Vector2f{ 1.f, angle };
 }

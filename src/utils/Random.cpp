@@ -20,6 +20,11 @@ float Random::Float(float min, float max)
 	return distribution(GetGenerator());
 }
 
+float Random::Sign()
+{
+	return Int(0, 1) == 0 ? -1.f : 1.f;
+}
+
 std::mt19937_64& Random::GetGenerator()
 {
 	static std::mt19937_64 generator{ std::random_device{}() };

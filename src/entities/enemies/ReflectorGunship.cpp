@@ -83,11 +83,6 @@ sf::Vector2f ReflectorGunship::GetPlayerProjectileImpactPosition(const Entity& p
 	return GetPosition() + VectorMath::Normalize(offset, { 0.f, -1.f }) * GetShieldRadius();
 }
 
-Entity::Type ReflectorGunship::GetType() const noexcept
-{
-	return Type::Enemy;
-}
-
 bool ReflectorGunship::IsCollidingWith(const Entity& other) const
 {
 	if (other.GetType() == Type::Projectile_Player ||
@@ -106,10 +101,7 @@ void ReflectorGunship::Update(float deltaTime)
 
 	if (isApproachingCenter)
 	{
-		// The return value (whether it just arrived) isn't needed -- the
-		// else branch below naturally takes over the very next frame once
-		// isApproachingCenter flips false, with nothing extra to do here.
-		static_cast<void>(UpdateApproach(deltaTime));
+		UpdateApproach(deltaTime);
 	}
 	else
 	{
@@ -162,8 +154,6 @@ void ReflectorGunship::ShootDoubleVolley()
 	for (std::size_t index = 0; index < emitters.size(); index++)
 	{
 		const sf::Vector2f muzzle{ GetWeaponEmitterPosition(index) };
-		GetWorld().SpawnSaucerShot(
-			muzzle, muzzle + GetForwardDirection() * 1000.f,
-			GameplayData::ProjectileKind::Enemy, index == 0u);
+		GetWorld().SpawnSaucerShot(muzzle, muzzle + GetForwardDirection() * 1000.f, GameplayData::ProjectileKind::Enemy, index == 0u);
 	}
 }

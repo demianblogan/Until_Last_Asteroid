@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <utility>
+
 #include "assets/Assets.h"
 #include "utils/ConfigEnums.h"
 #include "utils/VectorMath.h"
@@ -96,6 +97,7 @@ void Shot::SetHeading(const sf::Vector2f& direction) noexcept
 {
 	const sf::Vector2f unitDirection{ VectorMath::Normalize(direction, { 0.f, -1.f }) };
 	SetVelocity(unitDirection * speed);
+
 	// Sprite art points up at rotation 0, so facing = heading angle + 90.
 	SetRotation(unitDirection.angle() + sf::degrees(90.f));
 }
@@ -158,8 +160,7 @@ void PlayerShot::AcquireHomingTarget()
 	const float coneCosine = std::cos(sf::degrees(config.homingConeDegrees * 0.5f).asRadians());
 
 	homingTarget = GetWorld().FindHomingTarget(GetPosition(), GetVelocity(), coneCosine);
-	bossHomingTarget =
-		GetWorld().BossHomingTargets().FindClosest(GetPosition(), GetVelocity(), coneCosine);
+	bossHomingTarget = GetWorld().BossHomingTargets().FindClosest(GetPosition(), GetVelocity(), coneCosine);
 
 	if (homingTarget != nullptr && bossHomingTarget)
 	{
@@ -232,8 +233,7 @@ SaucerShot::SaucerShot(Assets& assets, World& world, const sf::Vector2f& positio
 	SetPosition(position);
 	SetHeading(targetPosition - position);
 
-	GetWorld().Effects().Add({
-		Rendering::EffectEventType::EnemyMuzzleFlash, position, GetForwardDirection() });
+	GetWorld().Effects().Add({ Rendering::EffectEventType::EnemyMuzzleFlash, position, GetForwardDirection() });
 
 	if (needToPlaySound)
 		GetWorld().Sound().AddSound(Config::Sound::EnemyShot);
@@ -259,8 +259,7 @@ HelperShot::HelperShot(Assets& assets, World& world, const sf::Vector2f& positio
 
 	SetHeading(target != nullptr ? target->GetPosition() - position : sf::Vector2f{ 1.f, 0.f });
 
-	GetWorld().Effects().Add({
-		Rendering::EffectEventType::PlayerMuzzleFlash, position, GetForwardDirection() });
+	GetWorld().Effects().Add({ Rendering::EffectEventType::PlayerMuzzleFlash, position, GetForwardDirection() });
 
 	GetWorld().Sound().AddSound(Config::Sound::PlayerShot, 1.35f);
 }

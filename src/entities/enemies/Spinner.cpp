@@ -27,24 +27,16 @@ Spinner::Spinner(Assets& assets, World& world)
 	sineAmplitude = config.sineAmplitude;
 	sineFrequency = config.sineFrequency;
 	movementPhase = Random::Float(0.f, 2.f * std::numbers::pi_v<float>);
-	spinDirection = Random::Float(0.f, 1.f) < 0.5f ? -1.f : 1.f;
+	spinDirection = Random::Sign();
 	shootTimer = 0.f;
 	shootInterval = config.actionInterval;
-}
-
-Entity::Type Spinner::GetType() const noexcept
-{
-	return Type::Enemy;
 }
 
 void Spinner::Update(float deltaTime)
 {
 	if (isApproachingCenter)
 	{
-		// The return value (whether it just arrived) isn't needed -- the
-		// else branch below naturally takes over the very next frame once
-		// isApproachingCenter flips false, with nothing extra to do here.
-		static_cast<void>(UpdateApproach(deltaTime));
+		UpdateApproach(deltaTime);
 	}
 	else
 	{
