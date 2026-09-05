@@ -1,6 +1,7 @@
 #include "GameplaySession.h"
 
 #include <algorithm>
+#include <utility>
 
 const Health& GameplaySession::GetPlayerHealth() const noexcept
 {
@@ -277,11 +278,9 @@ void GameplaySession::ActivateTripleShot(float duration) noexcept
 
 bool GameplaySession::ActivateHelperBot() noexcept
 {
-	if (isHelperBotActive)
-		return false;
-
-	isHelperBotActive = true;
-	return true;
+	// Returns whether this call is what turned the bot on -- the pickup is only
+	// consumed on the transition, same contract as RestorePlayerHealth().
+	return !std::exchange(isHelperBotActive, true);
 }
 
 void GameplaySession::ClearTemporaryEffects() noexcept

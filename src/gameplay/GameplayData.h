@@ -186,6 +186,10 @@ public:
 		float outerRingRotationSpeedDegrees = 8.f;
 		float outerRingInnerRadius = 232.f;
 		float outerRingOuterRadius = 355.f;
+		// Radius of the energy-shield bubble drawn/collided against while the
+		// outer ring's shield is up -- a separate knob from outerRingOuterRadius
+		// so the shield can be sized independently of the ring sprite itself.
+		float outerShieldRadius = 355.f;
 		int cannonCount = 6;
 		float cannonOrbitRadius = 310.f;
 		float cannonFireInterval = 0.6f;
@@ -207,6 +211,10 @@ public:
 		float innerShieldDuration = 5.f;
 		float diamondFrameVertexRadius = 155.f;
 		float diamondFrameHalfThickness = 20.f;
+		// Radius of the energy-shield bubble for the inner (diamond) phase --
+		// same idea as outerShieldRadius, independent of the diamond frame's
+		// own geometry above.
+		float innerShieldRadius = 225.f;
 		float diamondDestructionDuration = 2.f;
 		float diamondExplosionInterval = 0.14f;
 		float coreShieldRadius = 140.f;
@@ -342,6 +350,18 @@ public:
     [[nodiscard]] const EffectsConfig& GetEffects() const noexcept;
 
 private:
+    // Each loads one gameplay/*.json file into its own section of this
+    // object's state. Split out of the constructor (which just calls all
+    // seven in order) purely so each file's worth of parsing has its own
+    // named, independently-navigable chunk instead of one ~600-line function.
+    void LoadBoss(const std::filesystem::path& directory);
+    void LoadPlayer(const std::filesystem::path& directory);
+    void LoadEnemies(const std::filesystem::path& directory);
+    void LoadWeapons(const std::filesystem::path& directory);
+    void LoadEffects(const std::filesystem::path& directory);
+    void LoadPickups(const std::filesystem::path& directory);
+    void LoadLevels(const std::filesystem::path& directory);
+
     PlayerConfig player;
     std::array<EnemyConfig, static_cast<std::size_t>(EnemyKind::Count)> enemies;
     std::array<ProjectileConfig, static_cast<std::size_t>(ProjectileKind::Count)> projectiles;

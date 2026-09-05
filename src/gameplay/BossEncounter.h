@@ -6,12 +6,9 @@
 #include <vector>
 
 #include <SFML/Graphics/Drawable.hpp>
-#include <SFML/Graphics/CircleShape.hpp>
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/Shader.hpp>
-#include <SFML/Graphics/Text.hpp>
 #include <SFML/System/Vector2.hpp>
 
+#include "gameplay/BossVisual.h"
 #include "gameplay/GameplayData.h"
 
 class Assets;
@@ -24,6 +21,12 @@ public:
 	using SpawnReinforcement =
 		std::function<void(GameplayData::EnemyKind, std::optional<sf::Vector2f>, std::optional<GameplayData::PickupKind>)>;
 
+	// The core sprite sits a bit above the boss's logical position, and the
+	// retaliation-lightning bolts fade out over this many seconds. Both are
+	// needed by BossVisual too, hence public.
+	static constexpr sf::Vector2f CoreVisualOffset{ 0.f, -37.f };
+	static constexpr float LightningDuration = 0.32f;
+
 	BossEncounter(Assets& assets, LocalizationManager& localization, sf::Vector2f logicalSize);
 
 	// Lifecycle: Reset() rewinds to Dormant (level (re)start), Start() begins
@@ -33,7 +36,8 @@ public:
 	void Update(float deltaTime, World& world, const SpawnReinforcement& spawnReinforcement);
 
 	// HUD (health bar + armor label). Separate from the boss sprite itself,
-	// which draws through the inherited sf::Drawable::draw() below.
+	// which draws through the inherited sf::Drawable::draw() below. Both just
+	// forward to the BossVisual member.
 	void DrawHUD(sf::RenderTarget& target) const;
 
 	// State queries GameplayState reacts to.
@@ -43,6 +47,11 @@ public:
 	[[nodiscard]] bool IsVictoryReady() const noexcept;
 
 private:
+	// BossVisual reads this class's state directly (state enum, positions,
+	// hit-flash timers, ...) to render the boss -- the two are a tightly
+	// coupled pair, so friendship rather than a wide public accessor surface.
+	friend class BossVisual;
+
 	enum class State
 	{
 		Dormant,
@@ -64,6 +73,15 @@ private:
 		VictoryReady
 	};
 
+	// A single retaliation bolt: a jagged line drawn from where a player shot
+	// hit the boss's shield back to the player, fading over LightningDuration.
+	struct Lightning
+	{
+		sf::Vector2f start;
+		sf::Vector2f end;
+		float elapsed = 0.f;
+	};
+
 	// --- Shared across every phase --------------------------------------
 	void SetPosition(sf::Vector2f position);
 	void UpdateShield(float deltaTime);
@@ -75,7 +93,7 @@ private:
 	[[nodiscard]] float GetEnemyExclusionRadius() const noexcept;
 	[[nodiscard]] float GetPlayerExclusionRadius() const noexcept;
 	[[nodiscard]] sf::Vector2f GetSafePickupPosition(std::size_t quadrantIndex) const;
-	void UpdateArmorLabel();
+
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
 	// --- Phase 1: outer ring ---------------------------------------------
@@ -109,22 +127,36 @@ private:
 	static constexpr float ArrivalDuration = 4.f;
 	static constexpr float ShieldDelayDuration = 2.f;
 
-	// --- Arena layout & visuals -------------------------------------------
+	// How long the core's death animation plays before the fight goes quiet
+	// (VictorySilence), and how long that silence itself lasts before the
+	// level is reported complete (VictoryReady). Two different waits that
+	// happen to share a duration, not one value used twice.
+	static constexpr float CoreDeathAnimationDuration = 3.f;
+	static constexpr float VictorySilenceDuration = 3.f;
+
+	// How often the death sequence removes one more visible enemy/pickup
+	// from the arena, and how often it spawns one more explosion around the
+	// core -- siblings of outerRingExplosionInterval/diamondExplosionInterval
+	// (which ARE in boss.json) that never got their own config entry.
+	static constexpr float VictoryCleanupInterval = 0.1f;
+	static constexpr float CoreExplosionInterval = 0.11f;
+
+	// --- Arena layout ----------------------------------------------------
 	sf::Vector2f startPosition;
 	sf::Vector2f battlePosition;
 	sf::Vector2f arenaSize;
 	sf::Vector2f position;
-	sf::Sprite outerRing;
-	sf::Sprite diamond;
-	sf::Sprite core;
-	sf::Text armorLabel;
-	float hudCenterX = 0.f;
+
+	BossVisual visual;
+	const GameplayData::BossConfig& config;
 
 	// --- Overall state machine ---------------------------------------------
 	State state = State::Dormant;
 	float stateElapsed = 0.f;
 	int health = 0;
 	float shieldPulse = 0.f;
+	float hitFlashDuration = 0.f;
+	std::vector<Lightning> lightning;
 
 	// --- Phase 1: outer ring state ------------------------------------------
 	float ringRotationDegrees = 0.f;
@@ -144,7 +176,6 @@ private:
 	bool isDiamondVisible = true;
 	float diamondHitFlashRemaining = 0.f;
 	std::array<int, 4> portalHealth{};
-	std::array<sf::CircleShape, 4> destroyedPortalMasks;
 	std::size_t nextPortalIndex = 0u;
 
 	// --- Phase 3: core state --------------------------------------------------
@@ -167,18 +198,4 @@ private:
 	std::size_t nextPhaseOneBonus = 0u;
 	std::size_t nextPhaseTwoBonus = 0u;
 	std::size_t nextPhaseThreeBonus = 0u;
-
-	// --- Shared references / cross-phase visuals -----------------------------------
-	float hitFlashDuration = 0.f;
-	LocalizationManager& localization;
-	sf::Shader& hitFlashShader;
-	const GameplayData::BossConfig& config;
-
-	struct Lightning
-	{
-		sf::Vector2f start;
-		sf::Vector2f end;
-		float elapsed = 0.f;
-	};
-	std::vector<Lightning> lightning;
 };

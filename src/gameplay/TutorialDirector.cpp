@@ -66,7 +66,7 @@ void TutorialDirector::Start(const Snapshot& snapshot)
 
 std::optional<TutorialDirector::Action> TutorialDirector::Update(float deltaTime, const Snapshot& snapshot)
 {
-	if (!isActive || deltaTime <= 0.f)
+	if (!isActive)
 		return std::nullopt;
 
 	glow.Update(deltaTime);

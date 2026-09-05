@@ -54,26 +54,33 @@ namespace
 			throw std::runtime_error("Gameplay value '" + std::string(key) + "' cannot be negative in " + path.string());
 	}
 
+	// Single source of truth for enemy-kind name <-> enum mapping, used both
+	// to parse a name into a GameplayData::EnemyKind (ParseEnemyKind below)
+	// and to drive the loop in GameplayData::LoadEnemies that looks up each
+	// kind's block in enemies.json by name. Keeping this as one shared table
+	// (rather than two independently-maintained lists) means adding an enemy
+	// kind is a one-line change instead of two, and the two directions can
+	// never disagree with each other.
+	constexpr std::array<std::pair<const char*, GameplayData::EnemyKind>, 9> EnemyKindNames =
+	{
+		std::pair{ "big_meteor", GameplayData::EnemyKind::BigMeteor },
+		std::pair{ "small_meteor", GameplayData::EnemyKind::SmallMeteor },
+		std::pair{ "kamikaze", GameplayData::EnemyKind::Kamikaze },
+		std::pair{ "shooter", GameplayData::EnemyKind::Shooter },
+		std::pair{ "spinner", GameplayData::EnemyKind::Spinner },
+		std::pair{ "missile_carrier", GameplayData::EnemyKind::MissileCarrier },
+		std::pair{ "laser_turret", GameplayData::EnemyKind::LaserTurret },
+		std::pair{ "shooter_station", GameplayData::EnemyKind::ShooterStation },
+		std::pair{ "reflector_gunship", GameplayData::EnemyKind::ReflectorGunship }
+	};
+
 	GameplayData::EnemyKind ParseEnemyKind(const std::string& value, const std::filesystem::path& path)
 	{
-		if (value == "big_meteor")
-			return GameplayData::EnemyKind::BigMeteor;
-		if (value == "small_meteor")
-			return GameplayData::EnemyKind::SmallMeteor;
-		if (value == "kamikaze")
-			return GameplayData::EnemyKind::Kamikaze;
-		if (value == "shooter")
-			return GameplayData::EnemyKind::Shooter;
-		if (value == "spinner")
-			return GameplayData::EnemyKind::Spinner;
-		if (value == "missile_carrier")
-			return GameplayData::EnemyKind::MissileCarrier;
-		if (value == "laser_turret")
-			return GameplayData::EnemyKind::LaserTurret;
-		if (value == "shooter_station")
-			return GameplayData::EnemyKind::ShooterStation;
-		if (value == "reflector_gunship")
-			return GameplayData::EnemyKind::ReflectorGunship;
+		for (const auto& [name, kind] : EnemyKindNames)
+		{
+			if (value == name)
+				return kind;
+		}
 
 		throw std::runtime_error("Unknown gameplay enemy type '" + value + "' in " + path.string());
 	}
@@ -180,6 +187,42 @@ namespace
 		return result;
 	}
 
+	// Reads a single {x, y} point, normalized to [0, 1] (an emitter position
+	// authored relative to a sprite's own bounds). `label` names the field in
+	// the thrown message (e.g. "Weapon emitter") if the point is out of range.
+	GameplayData::NormalizedPoint ReadNormalizedPoint(const Json& object, const char* label, const std::filesystem::path& path)
+	{
+		GameplayData::NormalizedPoint point;
+		point.x = Require<float>(object, "x", path);
+		point.y = Require<float>(object, "y", path);
+
+		if (point.x < 0.f || point.x > 1.f || point.y < 0.f || point.y > 1.f)
+			throw std::runtime_error(std::string(label) + " coordinates must be normalized to [0, 1] in " + path.string());
+
+		return point;
+	}
+
+	// Reads `key` as a JSON array of one or more normalized points (see
+	// ReadNormalizedPoint) -- the shape shared by every enemy's
+	// weapon_emitters/engine_emitters. `label` is passed through for the
+	// per-point range-check message.
+	std::vector<GameplayData::NormalizedPoint> ReadNormalizedPointArray(
+		const Json& object, const char* key, const char* label, const std::filesystem::path& path)
+	{
+		const Json& points = object.at(key);
+		if (!points.is_array() || points.empty())
+			throw std::runtime_error(
+				"Gameplay value '" + std::string(key) + "' must contain at least one point in " + path.string());
+
+		std::vector<GameplayData::NormalizedPoint> result;
+		result.reserve(points.size());
+
+		for (const Json& pointJson : points)
+			result.push_back(ReadNormalizedPoint(pointJson, label, path));
+
+		return result;
+	}
+
 	GameplayData::EnemyConfig ReadEnemy(const Json& object, const std::filesystem::path& path)
 	{
 		GameplayData::EnemyConfig result;
@@ -211,47 +254,9 @@ namespace
 		if (object.contains("spawn_animation_duration"))
 			result.spawnAnimationDuration = Require<float>(object, "spawn_animation_duration", path);
 		if (object.contains("weapon_emitters"))
-		{
-			const Json& emitters = object.at("weapon_emitters");
-			if (!emitters.is_array() || emitters.empty())
-				throw std::runtime_error(
-					"Gameplay value 'weapon_emitters' must contain at least one point in " + path.string());
-
-			result.weaponEmitters.reserve(emitters.size());
-
-			for (const Json& emitterJson : emitters)
-			{
-				GameplayData::NormalizedPoint emitter;
-				emitter.x = Require<float>(emitterJson, "x", path);
-				emitter.y = Require<float>(emitterJson, "y", path);
-
-				if (emitter.x < 0.f || emitter.x > 1.f || emitter.y < 0.f || emitter.y > 1.f)
-					throw std::runtime_error("Weapon emitter coordinates must be normalized to [0, 1] in " + path.string());
-
-				result.weaponEmitters.push_back(emitter);
-			}
-		}
+			result.weaponEmitters = ReadNormalizedPointArray(object, "weapon_emitters", "Weapon emitter", path);
 		if (object.contains("engine_emitters"))
-		{
-			const Json& emitters = object.at("engine_emitters");
-			if (!emitters.is_array() || emitters.empty())
-				throw std::runtime_error(
-					"Gameplay value 'engine_emitters' must contain at least one point in " + path.string());
-
-			result.engineEmitters.reserve(emitters.size());
-
-			for (const Json& emitterJson : emitters)
-			{
-				GameplayData::NormalizedPoint emitter;
-				emitter.x = Require<float>(emitterJson, "x", path);
-				emitter.y = Require<float>(emitterJson, "y", path);
-
-				if (emitter.x < 0.f || emitter.x > 1.f || emitter.y < 0.f || emitter.y > 1.f)
-					throw std::runtime_error("Engine emitter coordinates must be normalized to [0, 1] in " + path.string());
-
-				result.engineEmitters.push_back(emitter);
-			}
-		}
+			result.engineEmitters = ReadNormalizedPointArray(object, "engine_emitters", "Engine emitter", path);
 
 		RequirePositive(static_cast<float>(result.maximumHealth), "maximum_health", path);
 		RequireNonNegative(static_cast<float>(result.contactDamage), "contact_damage", path);
@@ -428,6 +433,17 @@ namespace
 
 GameplayData::GameplayData(const std::filesystem::path& directory)
 {
+	LoadBoss(directory);
+	LoadPlayer(directory);
+	LoadEnemies(directory);
+	LoadWeapons(directory);
+	LoadEffects(directory);
+	LoadPickups(directory);
+	LoadLevels(directory);
+}
+
+void GameplayData::LoadBoss(const std::filesystem::path& directory)
+{
 	const std::filesystem::path bossPath{ directory / "boss.json" };
 	const Json bossJson{ LoadJson(bossPath) };
 
@@ -439,6 +455,7 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 	boss.outerRingRotationSpeedDegrees = Require<float>(bossJson, "outer_ring_rotation_speed_degrees", bossPath);
 	boss.outerRingInnerRadius = Require<float>(bossJson, "outer_ring_inner_radius", bossPath);
 	boss.outerRingOuterRadius = Require<float>(bossJson, "outer_ring_outer_radius", bossPath);
+	boss.outerShieldRadius = Require<float>(bossJson, "outer_shield_radius", bossPath);
 	boss.cannonCount = Require<int>(bossJson, "cannon_count", bossPath);
 	boss.cannonOrbitRadius = Require<float>(bossJson, "cannon_orbit_radius", bossPath);
 	boss.cannonFireInterval = Require<float>(bossJson, "cannon_fire_interval", bossPath);
@@ -460,6 +477,7 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 	boss.innerShieldDuration = Require<float>(bossJson, "inner_shield_duration", bossPath);
 	boss.diamondFrameVertexRadius = Require<float>(bossJson, "diamond_frame_vertex_radius", bossPath);
 	boss.diamondFrameHalfThickness = Require<float>(bossJson, "diamond_frame_half_thickness", bossPath);
+	boss.innerShieldRadius = Require<float>(bossJson, "inner_shield_radius", bossPath);
 	boss.diamondDestructionDuration = Require<float>(bossJson, "diamond_destruction_duration", bossPath);
 	boss.diamondExplosionInterval = Require<float>(bossJson, "diamond_explosion_interval", bossPath);
 	boss.coreShieldRadius = Require<float>(bossJson, "core_shield_radius", bossPath);
@@ -492,6 +510,7 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 	RequirePositive(boss.outerRingRotationSpeedDegrees, "outer_ring_rotation_speed_degrees", bossPath);
 	RequirePositive(boss.outerRingInnerRadius, "outer_ring_inner_radius", bossPath);
 	RequirePositive(boss.outerRingOuterRadius, "outer_ring_outer_radius", bossPath);
+	RequirePositive(boss.outerShieldRadius, "outer_shield_radius", bossPath);
 
 	if (boss.outerRingInnerRadius >= boss.outerRingOuterRadius)
 		throw std::runtime_error("Boss outer-ring inner radius must be below its outer radius in " + bossPath.string());
@@ -525,6 +544,7 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 	RequirePositive(boss.innerShieldDuration, "inner_shield_duration", bossPath);
 	RequirePositive(boss.diamondFrameVertexRadius, "diamond_frame_vertex_radius", bossPath);
 	RequirePositive(boss.diamondFrameHalfThickness, "diamond_frame_half_thickness", bossPath);
+	RequirePositive(boss.innerShieldRadius, "inner_shield_radius", bossPath);
 	RequirePositive(boss.diamondDestructionDuration, "diamond_destruction_duration", bossPath);
 	RequirePositive(boss.diamondExplosionInterval, "diamond_explosion_interval", bossPath);
 	RequirePositive(boss.coreShieldRadius, "core_shield_radius", bossPath);
@@ -549,7 +569,10 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 		throw std::runtime_error(
 			"Boss bonus-drop phases must contain exactly two, four, and two pickups in " + bossPath.string());
 	}
+}
 
+void GameplayData::LoadPlayer(const std::filesystem::path& directory)
+{
 	const std::filesystem::path playerPath{ directory / "player.json" };
 	const Json playerJson{ LoadJson(playerPath) };
 
@@ -573,16 +596,7 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 				"Gameplay value 'engine_emitters' must contain exactly two points in " + playerPath.string());
 
 		for (std::size_t i = 0; i < player.engineEmitters.size(); i++)
-		{
-			player.engineEmitters[i].x = Require<float>(emitters.at(i), "x", playerPath);
-			player.engineEmitters[i].y = Require<float>(emitters.at(i), "y", playerPath);
-
-			if (player.engineEmitters[i].x < 0.f || player.engineEmitters[i].x > 1.f ||
-				player.engineEmitters[i].y < 0.f || player.engineEmitters[i].y > 1.f)
-			{
-				throw std::runtime_error("Engine emitter coordinates must be normalized to [0, 1] in " + playerPath.string());
-			}
-		}
+			player.engineEmitters[i] = ReadNormalizedPoint(emitters.at(i), "Engine emitter", playerPath);
 	}
 	catch (const Json::exception& exception)
 	{
@@ -590,16 +604,7 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 	}
 	try
 	{
-		const Json& muzzle = playerJson.at("muzzle_emitter");
-
-		player.muzzleEmitter.x = Require<float>(muzzle, "x", playerPath);
-		player.muzzleEmitter.y = Require<float>(muzzle, "y", playerPath);
-
-		if (player.muzzleEmitter.x < 0.f || player.muzzleEmitter.x > 1.f ||
-			player.muzzleEmitter.y < 0.f || player.muzzleEmitter.y > 1.f)
-		{
-			throw std::runtime_error("Muzzle emitter coordinates must be normalized to [0, 1] in " + playerPath.string());
-		}
+		player.muzzleEmitter = ReadNormalizedPoint(playerJson.at("muzzle_emitter"), "Muzzle emitter", playerPath);
 	}
 	catch (const Json::exception& exception)
 	{
@@ -622,24 +627,14 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 	RequirePositive(player.visualScale, "visual_scale", playerPath);
 	RequirePositive(player.collisionRadius, "collision_radius", playerPath);
 	RequirePositive(hitFlashDuration, "hit_flash_duration", playerPath);
+}
 
+void GameplayData::LoadEnemies(const std::filesystem::path& directory)
+{
 	const std::filesystem::path enemiesPath{ directory / "enemies.json" };
 	const Json enemiesJson{ LoadJson(enemiesPath) };
 
-	const std::array<std::pair<const char*, EnemyKind>, 9> enemyNames =
-	{
-		std::pair{ "big_meteor", EnemyKind::BigMeteor },
-		std::pair{ "small_meteor", EnemyKind::SmallMeteor },
-		std::pair{ "kamikaze", EnemyKind::Kamikaze },
-		std::pair{ "shooter", EnemyKind::Shooter },
-		std::pair{ "spinner", EnemyKind::Spinner },
-		std::pair{ "missile_carrier", EnemyKind::MissileCarrier },
-		std::pair{ "laser_turret", EnemyKind::LaserTurret },
-		std::pair{ "shooter_station", EnemyKind::ShooterStation },
-		std::pair{ "reflector_gunship", EnemyKind::ReflectorGunship }
-	};
-
-	for (const auto& [name, kind] : enemyNames)
+	for (const auto& [name, kind] : EnemyKindNames)
 	{
 		try
 		{
@@ -718,7 +713,10 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 				"Invalid enemy '" + std::string(name) + "' in " + enemiesPath.string() + ": " + exception.what());
 		}
 	}
+}
 
+void GameplayData::LoadWeapons(const std::filesystem::path& directory)
+{
 	const std::filesystem::path weaponsPath{ directory / "weapons.json" };
 	const Json weaponsJson{ LoadJson(weaponsPath) };
 
@@ -759,7 +757,10 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 	{
 		throw std::runtime_error("Invalid projectile data in " + weaponsPath.string() + ": " + exception.what());
 	}
+}
 
+void GameplayData::LoadEffects(const std::filesystem::path& directory)
+{
 	const std::filesystem::path effectsPath{ directory / "effects.json" };
 	const Json effectsJson{ LoadJson(effectsPath) };
 
@@ -780,7 +781,10 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 	{
 		throw std::runtime_error("Invalid visual effect data in " + effectsPath.string() + ": " + exception.what());
 	}
+}
 
+void GameplayData::LoadPickups(const std::filesystem::path& directory)
+{
 	const std::filesystem::path pickupsPath{ directory / "pickups.json" };
 	const Json pickupsJson{ LoadJson(pickupsPath) };
 
@@ -863,7 +867,10 @@ GameplayData::GameplayData(const std::filesystem::path& directory)
 	RequirePositive(parts.visualScale, "part_visual_scale", pickupsPath);
 	RequirePositive(parts.collisionRadius, "part_collision_radius", pickupsPath);
 	RequireNonNegative(parts.rotationSpeedDegrees, "part_rotation_speed_degrees", pickupsPath);
+}
 
+void GameplayData::LoadLevels(const std::filesystem::path& directory)
+{
 	const std::filesystem::path levelsPath{ directory / "levels.json" };
 	const Json levelsJson{ LoadJson(levelsPath) };
 	const Json* levelArray = nullptr;

@@ -25,7 +25,6 @@ namespace
 	constexpr sf::Vector2f ButtonSize{ 500.f, 98.f };
 	constexpr sf::Vector2f ButtonPosition{ 710.f, 888.f };
 	constexpr sf::Color Gold{ 255, 188, 62 };
-	constexpr sf::Color Cyan{ 52, 225, 255 };
 	constexpr float RevealDuration{ 0.9f };
 	constexpr float FadeDuration{ 0.55f };
 }
@@ -141,7 +140,7 @@ void CampaignCompleteState::Render()
 			[this](sf::RenderTarget& target, const sf::RenderStates& states)
 			{ button.Draw(target, states); }, Gold);
 	button.Draw(window);
-	if (interactive) buttonGlow.DrawHighlight(window, button.GetBounds(), Cyan);
+	if (interactive) buttonGlow.DrawHighlight(window, button.GetBounds(), Gold);
 }
 
 void CampaignCompleteState::RenderOverlay()

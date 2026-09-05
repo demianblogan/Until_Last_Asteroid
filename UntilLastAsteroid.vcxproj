@@ -174,6 +174,7 @@
     <ClCompile Include="src\gameplay\GameplaySession.cpp" />
     <ClCompile Include="src\gameplay\GameplayData.cpp" />
     <ClCompile Include="src\gameplay\BossEncounter.cpp" />
+    <ClCompile Include="src\gameplay\BossVisual.cpp" />
     <ClCompile Include="src\gameplay\Health.cpp" />
     <ClCompile Include="src\gameplay\Shield.cpp" />
     <ClCompile Include="src\gameplay\TutorialDirector.cpp" />
@@ -273,6 +274,7 @@
     <ClInclude Include="src\gameplay\GameplaySession.h" />
     <ClInclude Include="src\gameplay\GameplayData.h" />
     <ClInclude Include="src\gameplay\BossEncounter.h" />
+    <ClInclude Include="src\gameplay\BossVisual.h" />
     <ClInclude Include="src\gameplay\Health.h" />
     <ClInclude Include="src\gameplay\Shield.h" />
     <ClInclude Include="src\gameplay\GameplayLaunch.h" />
