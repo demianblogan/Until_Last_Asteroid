@@ -55,12 +55,9 @@ namespace
 }
 
 RecordsState::RecordsState(StateStack& stack, StateContext context)
-	: State(stack, context)
-	, background(context.assets, context.logicalSize)
+	: MenuState(stack, context)
 	, titleGlow(context.assets)
 	, buttonGlow(context.assets)
-	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, UI::MenuTheme::InterfaceGlow)
-	, fade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("records.title"), 72)
 	, campaignPanel(CampaignSize, 22.f, 12u)
 	, hordePanel(HordeSize, 22.f, 12u)
@@ -141,12 +138,12 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 	returnButton.SetPosition({ 690.f, 935.f });
 	returnButton.SetLabel(context.localization.GetText("common.back_main"));
 	returnButton.SetSelected(false);
-	fade.StartFadeIn(FadeDuration);
+	Chrome().StartFadeIn(FadeDuration);
 }
 
 void RecordsState::HandleEvent(const sf::Event& event)
 {
-	if (isReturning || fade.IsActive()) return;
+	if (IsTransitioning() || Chrome().IsFading()) return;
 	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
 	if (navigation == GamepadManager::NavigationAction::Confirm ||
 		navigation == GamepadManager::NavigationAction::Back)
@@ -177,26 +174,21 @@ void RecordsState::HandleEvent(const sf::Event& event)
 	}
 }
 
-void RecordsState::Update(float deltaTime)
+void RecordsState::OnUpdate(float deltaTime)
 {
-	background.Update(deltaTime);
 	titleGlow.Update(deltaTime);
 	buttonGlow.Update(deltaTime);
-	cursor.Update(deltaTime);
-	fade.Update(deltaTime);
 	if (GetContext().gamepad.IsInUse() && !isReturnButtonSelected)
 	{
 		isReturnButtonSelected = true;
 		returnButton.SetSelected(true);
 		buttonGlow.Invalidate();
 	}
-	if (isReturning && !fade.IsActive()) RequestPop();
 }
 
-void RecordsState::Render()
+void RecordsState::OnRender()
 {
 	auto& window{ GetContext().window };
-	background.Draw(window);
 	titleGlow.DrawBloom(window, title.getGlobalBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
 		{ target.draw(title, states); }, UI::MenuTheme::InterfaceGlow);
@@ -218,16 +210,9 @@ void RecordsState::Render()
 		buttonGlow.DrawHighlight(window, returnButton.GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
-void RecordsState::RenderOverlay()
-{
-	if (!GetContext().gamepad.IsInUse()) cursor.Draw(GetContext().window);
-	fade.Draw(GetContext().window);
-}
-
 void RecordsState::BeginReturn()
 {
-	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI,
-		100.f, 1.f, SoundPlayback::StopPrevious);
-	isReturning = true;
-	fade.StartFadeOut(FadeDuration);
+	if (IsTransitioning()) return;
+	PlayPressSound();
+	BeginTransition(FadeDuration, [this] { RequestPop(); });
 }

@@ -30,7 +30,7 @@ namespace
 }
 
 CampaignCompleteState::CampaignCompleteState(StateStack& stack, StateContext context)
-	: State(stack, context), background(context.assets, context.logicalSize)
+	: MenuState(stack, context, Gold)
 	, titleFrame(context.assets.Textures().Get(Config::Texture::CampaignCompleteTitleFrame),
 		TitleBounds, 220u, { TitleBorder, TitleBorder })
 	, messageFrame(context.assets.Textures().Get(Config::Texture::CampaignCompletePanelFrame),
@@ -42,8 +42,6 @@ CampaignCompleteState::CampaignCompleteState(StateStack& stack, StateContext con
 		context.assets.Textures().Get(Config::Texture::MenuButtonSelected),
 		context.localization.GetText("campaign_complete.thanks"), ButtonSize)
 	, titleGlow(context.assets), buttonGlow(context.assets)
-	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Gold)
-	, screenFade(context.logicalSize)
 {
 	context.window.setMouseCursorVisible(false);
 	title.setOutlineThickness(3.f);
@@ -72,7 +70,7 @@ CampaignCompleteState::CampaignCompleteState(StateStack& stack, StateContext con
 	button.SetPosition(ButtonPosition);
 	button.SetSelected(true);
 	button.SetLabelOutline(sf::Color(45, 18, 0, 220), 1.5f);
-	screenFade.StartFadeIn(FadeDuration);
+	Chrome().StartFadeIn(FadeDuration);
 	ApplyReveal();
 }
 
@@ -83,14 +81,14 @@ CampaignCompleteState::~CampaignCompleteState()
 
 void CampaignCompleteState::HandleEvent(const sf::Event& event)
 {
-	if (!isInteractive || isLeaving || screenFade.IsActive()) return;
+	if (!isInteractive || IsTransitioning() || Chrome().IsFading()) return;
 	using enum GamepadManager::NavigationAction;
 	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
 	if (navigation == Confirm || navigation == Back) { Activate(); return; }
 	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
 	{
 		const auto position{ GetContext().window.mapPixelToCoords(moved->position) };
-		background.SetMousePosition(position);
+		Chrome().SetMousePosition(position);
 		button.SetSelected(button.Contains(position));
 		return;
 	}
@@ -105,29 +103,21 @@ void CampaignCompleteState::HandleEvent(const sf::Event& event)
 			GetContext().window.mapPixelToCoords(pressed->position))) Activate();
 }
 
-void CampaignCompleteState::Update(float deltaTime)
+void CampaignCompleteState::OnUpdate(float deltaTime)
 {
-	background.Update(deltaTime); titleGlow.Update(deltaTime); buttonGlow.Update(deltaTime);
-	cursor.Update(deltaTime); screenFade.Update(deltaTime);
+	titleGlow.Update(deltaTime);
+	buttonGlow.Update(deltaTime);
 	if (!isInteractive)
 	{
 		revealElapsed = std::min(RevealDuration, revealElapsed + deltaTime);
 		ApplyReveal();
 		isInteractive = revealElapsed >= RevealDuration;
 	}
-	if (!isLeaving) return;
-	activationDelay -= deltaTime;
-	if (activationDelay <= 0.f && !screenFade.IsActive())
-	{
-		RequestClear();
-		RequestPush(StateID::MainMenu);
-	}
 }
 
-void CampaignCompleteState::Render()
+void CampaignCompleteState::OnRender()
 {
 	auto& window{ GetContext().window };
-	background.Draw(window);
 	titleGlow.DrawBloom(window, titleFrame.GetBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
 		{ titleFrame.Draw(target, states); target.draw(title, states); }, Gold, false);
@@ -143,20 +133,15 @@ void CampaignCompleteState::Render()
 	if (isInteractive) buttonGlow.DrawHighlight(window, button.GetBounds(), Gold);
 }
 
-void CampaignCompleteState::RenderOverlay()
-{
-	if (isInteractive && !GetContext().gamepad.IsInUse()) cursor.Draw(GetContext().window);
-	screenFade.Draw(GetContext().window);
-}
-
 void CampaignCompleteState::Activate()
 {
-	if (isLeaving) return;
-	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI,
-		100.f, 1.f, SoundPlayback::StopPrevious);
-	isLeaving = true;
-	activationDelay = 0.12f;
-	screenFade.StartFadeOut(FadeDuration);
+	if (IsTransitioning()) return;
+	PlayPressSound();
+	BeginTransition(FadeDuration, [this]
+	{
+		RequestClear();
+		RequestPush(StateID::MainMenu);
+	});
 }
 
 void CampaignCompleteState::ApplyReveal()

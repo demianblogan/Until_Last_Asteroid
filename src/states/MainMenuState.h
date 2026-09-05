@@ -5,24 +5,20 @@
 
 #include <SFML/Graphics/Text.hpp>
 
-#include "states/State.h"
-#include "ui/GlowingCursor.h"
-#include "ui/MenuBackground.h"
+#include "states/MenuState.h"
 #include "ui/MenuButtonList.h"
 #include "ui/MenuIntroAnimation.h"
 #include "rendering/NeonGlow.h"
-#include "ui/ScreenFade.h"
 
-class MainMenuState final : public State
+class MainMenuState final : public MenuState
 {
 public:
 	MainMenuState(StateStack& stateStack, StateContext context);
 	~MainMenuState() override;
 
 	void HandleEvent(const sf::Event& event) override;
-	void Update(float deltaTime) override;
-	void Render() override;
-	void RenderOverlay() override;
+	void OnUpdate(float deltaTime) override;
+	void OnRender() override;
 
 private:
 	void ActivateSelected();
@@ -33,12 +29,9 @@ private:
 	void StartMenuMusic();
 	void RefreshLocalizedLabels();
 
-	UI::MenuBackground background;
 	Rendering::NeonGlow neonGlow;
 	Rendering::NeonGlow titleNeonGlow;
-	UI::GlowingCursor menuCursor;
 	UI::MenuIntroAnimation introAnimation;
-	UI::ScreenFade screenFade;
 	sf::Text title;
 	sf::Text version;
 	UI::MenuButtonList buttonList;

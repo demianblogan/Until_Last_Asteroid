@@ -74,17 +74,10 @@ namespace
 }
 
 MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
-	: State(stateStack, context)
-	, background(context.assets, context.logicalSize)
+	: MenuState(stateStack, context)
 	, neonGlow(context.assets)
 	, titleNeonGlow(context.assets)
-	, menuCursor(
-		context.assets,
-		Config::Texture::MenuPointer,
-		{ 6.f, 2.f },
-		UI::MenuTheme::InterfaceGlow)
 	, introAnimation(context.localization.GetText("main_menu.title"), GetMenuLabels(context.localization))
-	, screenFade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), "", 92)
 	, version(context.assets.Fonts().Get(Config::Font::MenuRegular), std::string(GameVersion::Text), 20)
 	, buttonList(context.audio, neonGlow)
@@ -147,7 +140,7 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
 		buttonList.Select(0u, false);
 		StartMenuMusic();
 	}
-	screenFade.StartFadeIn(MenuFadeInDuration);
+	Chrome().StartFadeIn(MenuFadeInDuration);
 }
 
 MainMenuState::~MainMenuState()
@@ -157,7 +150,7 @@ MainMenuState::~MainMenuState()
 
 void MainMenuState::HandleEvent(const sf::Event& event)
 {
-	if (pendingActivation.has_value() || screenFade.IsActive())
+	if (pendingActivation.has_value() || Chrome().IsFading())
 		return;
 
 	const GamepadManager::NavigationAction navigation{
@@ -187,7 +180,7 @@ void MainMenuState::HandleEvent(const sf::Event& event)
 	if (const auto* mouseMoved{ event.getIf<sf::Event::MouseMoved>() })
 	{
 		const sf::Vector2f mousePosition{ GetContext().window.mapPixelToCoords(mouseMoved->position) };
-		background.SetMousePosition(mousePosition);
+		Chrome().SetMousePosition(mousePosition);
 
 		if (introAnimation.IsInteractive())
 			buttonList.UpdateMouseSelection(mousePosition);
@@ -252,17 +245,14 @@ void MainMenuState::HandleEvent(const sf::Event& event)
 	}
 }
 
-void MainMenuState::Update(float deltaTime)
+void MainMenuState::OnUpdate(float deltaTime)
 {
 	if (localizationRevision != GetContext().localization.GetLanguageRevision())
 		RefreshLocalizedLabels();
-	background.Update(deltaTime);
 	neonGlow.Update(deltaTime);
 	titleNeonGlow.Update(deltaTime);
-	menuCursor.Update(deltaTime);
-	screenFade.Update(deltaTime);
 
-	if (screenFade.IsActive())
+	if (Chrome().IsFading())
 		return;
 
 	HandleAnimationEvents(introAnimation.Update(deltaTime));
@@ -304,10 +294,9 @@ void MainMenuState::RefreshLocalizedLabels()
 	neonGlow.Invalidate();
 }
 
-void MainMenuState::Render()
+void MainMenuState::OnRender()
 {
 	sf::RenderWindow& window{ GetContext().window };
-	background.Draw(window);
 
 	if (!title.getString().isEmpty())
 	{
@@ -348,21 +337,9 @@ void MainMenuState::Render()
 	window.draw(version);
 }
 
-void MainMenuState::RenderOverlay()
-{
-	if (!GetContext().gamepad.IsInUse())
-		menuCursor.Draw(GetContext().window);
-	screenFade.Draw(GetContext().window);
-}
-
 void MainMenuState::ActivateSelected()
 {
-	GetContext().audio.PlaySound(
-		Config::Sound::ItemPress,
-		SoundGroup::UI,
-		100.f,
-		1.f,
-		SoundPlayback::StopPrevious);
+	PlayPressSound();
 
 	pendingActivation = buttonList.GetSelectedIndex();
 	activationDelayRemaining = ActivationDelay;

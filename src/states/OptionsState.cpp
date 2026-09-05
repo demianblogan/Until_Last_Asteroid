@@ -42,19 +42,12 @@ namespace
 }
 
 OptionsState::OptionsState(StateStack& stateStack, StateContext context, Origin optionsOrigin)
-	: State(stateStack, context)
-	, background(context.assets, context.logicalSize)
+	: MenuState(stateStack, context)
 	, shade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("options.title"), 76)
 	, titleGlow(context.assets)
 	, neonGlow(context.assets)
 	, dialogGlow(context.assets)
-	, menuCursor(
-		context.assets,
-		Config::Texture::MenuPointer,
-		{ 6.f, 2.f },
-		UI::MenuTheme::InterfaceGlow)
-	, screenFade(context.logicalSize)
 	, toggleOnText(context.assets.Fonts().Get(context.localization.GetRegularFont()), context.localization.GetText("common.on"), 23)
 	, toggleOffText(context.assets.Fonts().Get(context.localization.GetRegularFont()), context.localization.GetText("common.off"), 23)
 	, previousGraphics(context.settings.GetSettings().graphics)
@@ -67,12 +60,12 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context, Origin 
 	title.setOutlineColor(sf::Color(2, 14, 25, 235));
 	title.setOutlineThickness(3.f);
 	ApplyPage(Page::Root);
-	screenFade.StartFadeIn(StateFadeDuration);
+	Chrome().StartFadeIn(StateFadeDuration);
 }
 
 void OptionsState::HandleEvent(const sf::Event& event)
 {
-	if (screenFade.IsActive())
+	if (Chrome().IsFading())
 		return;
 
 	const GamepadManager::NavigationAction navigation{
@@ -93,7 +86,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
 		if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
 		{
 			const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
-			background.SetMousePosition(point);
+			Chrome().SetMousePosition(point);
 			if (DialogConfirmBounds.contains(point))
 				SelectDialogOption(0u);
 			else if (DialogCancelBounds.contains(point))
@@ -139,7 +132,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
 
 		if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
 		{
-			background.SetMousePosition(GetContext().window.mapPixelToCoords(moved->position));
+			Chrome().SetMousePosition(GetContext().window.mapPixelToCoords(moved->position));
 			return;
 		}
 
@@ -192,7 +185,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
 		else if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
 		{
 			const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
-			background.SetMousePosition(point);
+			Chrome().SetMousePosition(point);
 			if (isDropdownScrollbarDragging)
 				UpdateDropdownScrollbar(point);
 			else
@@ -218,7 +211,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
 	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
 	{
 		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
-		background.SetMousePosition(point);
+		Chrome().SetMousePosition(point);
 		if (isSliderDragging)
 			UpdateSliderFromMouse(point);
 		else
@@ -285,30 +278,21 @@ void OptionsState::HandleEvent(const sf::Event& event)
 	}
 }
 
-void OptionsState::Update(float deltaTime)
+void OptionsState::OnUpdate(float deltaTime)
 {
-	background.Update(deltaTime);
 	titleGlow.Update(deltaTime);
 	neonGlow.Update(deltaTime);
 	dialogGlow.Update(deltaTime);
-	menuCursor.Update(deltaTime);
 
-	screenFade.Update(deltaTime);
-	if (!screenFade.IsActive())
+	// A finished exit fade is handled by MenuState (BeginTransition). What is
+	// left here is the page-to-page fade, which swaps content mid-fade and
+	// then fades back in without ever leaving the state.
+	if (!Chrome().IsFading() && pendingPage.has_value())
 	{
-		if (isExitPending)
-		{
-			isExitPending = false;
-			RequestPop();
-			return;
-		}
-		if (pendingPage.has_value())
-		{
-			const Page nextPage{ *pendingPage };
-			pendingPage.reset();
-			ApplyPage(nextPage);
-			screenFade.StartFadeIn(PageFadeInDuration);
-		}
+		const Page nextPage{ *pendingPage };
+		pendingPage.reset();
+		ApplyPage(nextPage);
+		Chrome().StartFadeIn(PageFadeInDuration);
 	}
 
 	if (!isDisplayConfirmationOpen)
@@ -319,10 +303,9 @@ void OptionsState::Update(float deltaTime)
 		RevertDisplayChange();
 }
 
-void OptionsState::Render()
+void OptionsState::OnRender()
 {
 	sf::RenderWindow& window{ GetContext().window };
-	background.Draw(window);
 	window.draw(shade);
 	DrawTitle(window);
 	if (page == Page::GamepadControls)
@@ -336,9 +319,13 @@ void OptionsState::Render()
 
 void OptionsState::RenderOverlay()
 {
-	if (!screenFade.IsActive() && !GetContext().gamepad.IsInUse())
-		menuCursor.Draw(GetContext().window);
-	screenFade.Draw(GetContext().window);
+	// The cursor is hidden during any fade (entrance, exit, or a page swap),
+	// which the shared MenuChrome::DrawOverlay wouldn't do -- hence the
+	// override rather than the base behaviour.
+	sf::RenderWindow& window{ GetContext().window };
+	if (!Chrome().IsFading() && !GetContext().gamepad.IsInUse())
+		Chrome().Cursor().Draw(window);
+	Chrome().Fade().Draw(window);
 }
 
 void OptionsState::ApplyPage(Page newPage)
@@ -354,18 +341,17 @@ void OptionsState::ApplyPage(Page newPage)
 
 void OptionsState::BeginPageTransition(Page newPage)
 {
-	if (newPage == page || pendingPage.has_value() || isExitPending)
+	if (newPage == page || pendingPage.has_value() || IsTransitioning())
 		return;
 	pendingPage = newPage;
-	screenFade.StartFadeOut(PageFadeOutDuration);
+	Chrome().StartFadeOut(PageFadeOutDuration);
 }
 
 void OptionsState::BeginExit()
 {
-	if (isExitPending || pendingPage.has_value())
+	if (IsTransitioning() || pendingPage.has_value())
 		return;
-	isExitPending = true;
-	screenFade.StartFadeOut(StateFadeDuration);
+	BeginTransition(StateFadeDuration, [this] { RequestPop(); });
 }
 
 OptionsState::~OptionsState()

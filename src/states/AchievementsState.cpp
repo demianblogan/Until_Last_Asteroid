@@ -19,6 +19,7 @@ namespace
 	constexpr sf::Vector2f FirstTile{ 105.f, 145.f };
 	constexpr sf::Vector2f TileSpacing{ 585.f, 240.f };
 	constexpr sf::Vector2f ButtonSize{ 540.f, 92.f };
+	constexpr float FadeDuration{ 0.35f };
 
 	void Center(sf::Text& text, sf::Vector2f position)
 	{
@@ -30,11 +31,9 @@ namespace
 }
 
 AchievementsState::AchievementsState(StateStack& stack, StateContext context)
-	: State(stack, context), background(context.assets, context.logicalSize)
+	: MenuState(stack, context)
 	, titleGlow(context.assets)
 	, buttonGlow(context.assets)
-	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, UI::MenuTheme::InterfaceGlow)
-	, fade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
 		context.localization.GetText("achievements.title"), 68u)
 	, returnButton(context.assets.Fonts().Get(context.localization.GetRegularFont()),
@@ -79,19 +78,19 @@ AchievementsState::AchievementsState(StateStack& stack, StateContext context)
 
 	returnButton.SetPosition({ 690.f, 895.f });
 	returnButton.SetSelected(false);
-	fade.StartFadeIn(0.35f);
+	Chrome().StartFadeIn(FadeDuration);
 }
 
 void AchievementsState::HandleEvent(const sf::Event& event)
 {
-	if (isReturning || fade.IsActive()) return;
+	if (IsTransitioning() || Chrome().IsFading()) return;
 	using enum GamepadManager::NavigationAction;
 	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
 	if (navigation == Confirm || navigation == Back) { BeginReturn(); return; }
 	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
 	{
 		const auto point{ GetContext().window.mapPixelToCoords(moved->position) };
-		background.SetMousePosition(point);
+		Chrome().SetMousePosition(point);
 		const bool wasSelected{ isReturnButtonSelected };
 		isReturnButtonSelected = returnButton.Contains(point);
 		returnButton.SetSelected(isReturnButtonSelected);
@@ -106,9 +105,10 @@ void AchievementsState::HandleEvent(const sf::Event& event)
 			GetContext().window.mapPixelToCoords(pressed->position))) BeginReturn();
 }
 
-void AchievementsState::Update(float deltaTime)
+void AchievementsState::OnUpdate(float deltaTime)
 {
-	background.Update(deltaTime); titleGlow.Update(deltaTime); buttonGlow.Update(deltaTime); cursor.Update(deltaTime); fade.Update(deltaTime);
+	titleGlow.Update(deltaTime);
+	buttonGlow.Update(deltaTime);
 	for (Rendering::NeonGlow& glow : tileGlows)
 		glow.Update(deltaTime);
 	if (GetContext().gamepad.IsInUse() && !isReturnButtonSelected)
@@ -117,13 +117,11 @@ void AchievementsState::Update(float deltaTime)
 		returnButton.SetSelected(true);
 		buttonGlow.Invalidate();
 	}
-	if (isReturning && !fade.IsActive()) RequestPop();
 }
 
-void AchievementsState::Render()
+void AchievementsState::OnRender()
 {
 	auto& window{ GetContext().window };
-	background.Draw(window);
 	titleGlow.DrawBloom(window, title.getGlobalBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
 		{ target.draw(title, states); }, UI::MenuTheme::InterfaceGlow);
@@ -151,23 +149,17 @@ void AchievementsState::Render()
 		buttonGlow.DrawHighlight(window, returnButton.GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
-void AchievementsState::RenderOverlay()
-{
-	if (!GetContext().gamepad.IsInUse()) cursor.Draw(GetContext().window);
-	fade.Draw(GetContext().window);
-}
-
 void AchievementsState::OnReactivated()
 {
 	GetContext().window.setMouseCursorVisible(false);
 	if (localizationRevision != GetContext().localization.GetLanguageRevision())
 		RefreshLocalizedContent();
-	isReturning = false;
+	ResetTransition();
 	isReturnButtonSelected = false;
 	returnButton.SetSelected(false);
 	buttonGlow.Invalidate();
 	RefreshUnlockState();
-	fade.StartFadeIn(0.35f);
+	Chrome().StartFadeIn(FadeDuration);
 }
 
 void AchievementsState::RefreshLocalizedContent()
@@ -220,9 +212,7 @@ void AchievementsState::RefreshUnlockState()
 
 void AchievementsState::BeginReturn()
 {
-	if (isReturning) return;
-	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI,
-		100.f, 1.f, SoundPlayback::StopPrevious);
-	isReturning = true;
-	fade.StartFadeOut(0.35f);
+	if (IsTransitioning()) return;
+	PlayPressSound();
+	BeginTransition(FadeDuration, [this] { RequestPop(); });
 }

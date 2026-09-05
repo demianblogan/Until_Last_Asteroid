@@ -7,7 +7,6 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Mouse.hpp>
 #include "assets/Assets.h"
-#include "audio/AudioManager.h"
 #include "localization/LocalizationManager.h"
 #include "input/gamepad/GamepadManager.h"
 #include "ui/MenuTheme.h"
@@ -40,14 +39,11 @@ namespace
 }
 
 CreditsState::CreditsState(StateStack& stack, StateContext context)
-	: State(stack, context)
-	, background(context.assets, context.logicalSize)
+	: MenuState(stack, context)
 	, panel(context.assets.Textures().Get(Config::Texture::CampaignCompletePanelFrame),
 		PanelBounds, 190u, { 90.f, 90.f })
 	, titleGlow(context.assets)
 	, buttonGlow(context.assets)
-	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, UI::MenuTheme::InterfaceGlow)
-	, fade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("credits.title"), 72u)
 	, returnButton(context.assets.Fonts().Get(context.localization.GetRegularFont()),
 		context.assets.Textures().Get(Config::Texture::MenuButtonIdle),
@@ -74,19 +70,19 @@ CreditsState::CreditsState(StateStack& stack, StateContext context)
 	returnButton.SetPosition({ 690.f, 900.f });
 	returnButton.SetSelected(false);
 	returnButton.SetLabelOutline({ 45, 18, 0, 220 }, 1.5f);
-	fade.StartFadeIn(FadeDuration);
+	Chrome().StartFadeIn(FadeDuration);
 }
 
 void CreditsState::HandleEvent(const sf::Event& event)
 {
-	if (isReturning || fade.IsActive()) return;
+	if (IsTransitioning() || Chrome().IsFading()) return;
 	using enum GamepadManager::NavigationAction;
 	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
 	if (navigation == Confirm || navigation == Back) { BeginReturn(); return; }
 	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
 	{
 		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
-		background.SetMousePosition(point);
+		Chrome().SetMousePosition(point);
 		const bool wasSelected{ isReturnButtonSelected };
 		isReturnButtonSelected = returnButton.Contains(point);
 		returnButton.SetSelected(isReturnButtonSelected);
@@ -105,22 +101,21 @@ void CreditsState::HandleEvent(const sf::Event& event)
 			GetContext().window.mapPixelToCoords(pressed->position))) BeginReturn();
 }
 
-void CreditsState::Update(float deltaTime)
+void CreditsState::OnUpdate(float deltaTime)
 {
-	background.Update(deltaTime); titleGlow.Update(deltaTime); buttonGlow.Update(deltaTime); cursor.Update(deltaTime); fade.Update(deltaTime);
+	titleGlow.Update(deltaTime);
+	buttonGlow.Update(deltaTime);
 	if (GetContext().gamepad.IsInUse() && !isReturnButtonSelected)
 	{
 		isReturnButtonSelected = true;
 		returnButton.SetSelected(true);
 		buttonGlow.Invalidate();
 	}
-	if (isReturning && !fade.IsActive()) RequestPop();
 }
 
-void CreditsState::Render()
+void CreditsState::OnRender()
 {
 	auto& window{ GetContext().window };
-	background.Draw(window);
 	panel.Draw(window);
 	titleGlow.DrawBloom(window, title.getGlobalBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
@@ -136,22 +131,16 @@ void CreditsState::Render()
 		buttonGlow.DrawHighlight(window, returnButton.GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
-void CreditsState::RenderOverlay()
-{
-	if (!GetContext().gamepad.IsInUse()) cursor.Draw(GetContext().window);
-	fade.Draw(GetContext().window);
-}
-
 void CreditsState::OnReactivated()
 {
 	GetContext().window.setMouseCursorVisible(false);
 	if (localizationRevision != GetContext().localization.GetLanguageRevision())
 		RefreshLocalizedContent();
-	isReturning = false;
+	ResetTransition();
 	isReturnButtonSelected = false;
 	returnButton.SetSelected(false);
 	buttonGlow.Invalidate();
-	fade.StartFadeIn(FadeDuration);
+	Chrome().StartFadeIn(FadeDuration);
 }
 
 void CreditsState::RefreshLocalizedContent()
@@ -183,9 +172,7 @@ void CreditsState::RefreshLocalizedContent()
 
 void CreditsState::BeginReturn()
 {
-	if (isReturning) return;
-	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI,
-		100.f, 1.f, SoundPlayback::StopPrevious);
-	isReturning = true;
-	fade.StartFadeOut(FadeDuration);
+	if (IsTransitioning()) return;
+	PlayPressSound();
+	BeginTransition(FadeDuration, [this] { RequestPop(); });
 }

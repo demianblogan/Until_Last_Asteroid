@@ -34,13 +34,10 @@ namespace
 }
 
 LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
-	: State(stateStack, context)
-	, background(context.assets, context.logicalSize)
+	: MenuState(stateStack, context)
 	, titleGlow(context.assets)
 	, buttonGlow(context.assets)
 	, partsGlow(context.assets)
-	, menuCursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, UI::MenuTheme::InterfaceGlow)
-	, screenFade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
 		context.localization.GetText("level_select.title"), 72u)
 	, buttonList(context.audio, buttonGlow)
@@ -140,12 +137,12 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 	buttonList.Add(std::move(returnButton));
 	buttonLevels.push_back(0);
 	Select(0u, false);
-	screenFade.StartFadeIn(0.25f);
+	Chrome().StartFadeIn(0.25f);
 }
 
 void LevelSelectState::HandleEvent(const sf::Event& event)
 {
-	if (isLaunchingLevel || screenFade.IsActive())
+	if (IsTransitioning() || Chrome().IsFading())
 		return;
 
 	using enum GamepadManager::NavigationAction;
@@ -161,7 +158,7 @@ void LevelSelectState::HandleEvent(const sf::Event& event)
 	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
 	{
 		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
-		background.SetMousePosition(point);
+		Chrome().SetMousePosition(point);
 		UpdateMouseSelection(point);
 		return;
 	}
@@ -199,25 +196,16 @@ void LevelSelectState::HandleEvent(const sf::Event& event)
 	}
 }
 
-void LevelSelectState::Update(float deltaTime)
+void LevelSelectState::OnUpdate(float deltaTime)
 {
-	background.Update(deltaTime);
 	titleGlow.Update(deltaTime);
 	buttonGlow.Update(deltaTime);
 	partsGlow.Update(deltaTime);
-	menuCursor.Update(deltaTime);
-	screenFade.Update(deltaTime);
-	if (isLaunchingLevel && !screenFade.IsActive())
-	{
-		RequestClear();
-		RequestPush(StateID::Gameplay);
-	}
 }
 
-void LevelSelectState::Render()
+void LevelSelectState::OnRender()
 {
 	sf::RenderWindow& window{ GetContext().window };
-	background.Draw(window);
 	titleGlow.DrawBloom(window, title.getGlobalBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
 		{ target.draw(title, states); }, UI::MenuTheme::InterfaceGlow);
@@ -252,13 +240,6 @@ void LevelSelectState::Render()
 	if (selectedIndex < partsFrames.size())
 		partsGlow.DrawHighlight(
 			window, partsFrames[selectedIndex].GetBounds(), UI::MenuTheme::SelectionGlow);
-}
-
-void LevelSelectState::RenderOverlay()
-{
-	if (!GetContext().gamepad.IsInUse())
-		menuCursor.Draw(GetContext().window);
-	screenFade.Draw(GetContext().window);
 }
 
 void LevelSelectState::SelectPrevious()
@@ -304,9 +285,7 @@ void LevelSelectState::SyncPartsSelection()
 
 void LevelSelectState::ActivateSelected()
 {
-	GetContext().audio.PlaySound(
-		Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f,
-		SoundPlayback::StopPrevious);
+	PlayPressSound();
 	const int level{ buttonLevels[buttonList.GetSelectedIndex()] };
 	if (level == 0)
 	{
@@ -320,6 +299,9 @@ void LevelSelectState::BeginLevel(int level)
 {
 	GetContext().gameplayLaunch.mode = GameplayLaunchMode::SelectedLevel;
 	GetContext().gameplayLaunch.selectedLevel = level;
-	isLaunchingLevel = true;
-	screenFade.StartFadeOut(FadeDuration);
+	BeginTransition(FadeDuration, [this]
+	{
+		RequestClear();
+		RequestPush(StateID::Gameplay);
+	});
 }

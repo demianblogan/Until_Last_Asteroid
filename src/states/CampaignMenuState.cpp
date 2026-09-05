@@ -34,17 +34,10 @@ namespace
 }
 
 CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext context)
-	: State(stateStack, context)
-	, background(context.assets, context.logicalSize)
+	: MenuState(stateStack, context)
 	, buttonGlow(context.assets)
 	, titleGlow(context.assets)
 	, dialogGlow(context.assets)
-	, menuCursor(
-		context.assets,
-		Config::Texture::MenuPointer,
-		{ 6.f, 2.f },
-		UI::MenuTheme::InterfaceGlow)
-	, screenFade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
 		context.localization.GetText("campaign_menu.title"), 82)
 	, statusText(context.assets.Fonts().Get(context.localization.GetRegularFont()), "", 24)
@@ -125,12 +118,12 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
 	dialogButtons[1].SetPosition({ 970.f, 585.f });
 	SelectDialogOption(1u, false);
 
-	screenFade.StartFadeIn(0.25f);
+	Chrome().StartFadeIn(0.25f);
 }
 
 void CampaignMenuState::HandleEvent(const sf::Event& event)
 {
-	if (isLaunchingGameplay || isLaunchingUpgrades || isLaunchingLevelSelect || screenFade.IsActive())
+	if (IsTransitioning() || Chrome().IsFading())
 		return;
 
 	using enum GamepadManager::NavigationAction;
@@ -210,7 +203,7 @@ void CampaignMenuState::HandleEvent(const sf::Event& event)
 	if (const auto* mouseMoved{ event.getIf<sf::Event::MouseMoved>() })
 	{
 		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(mouseMoved->position) };
-		background.SetMousePosition(point);
+		Chrome().SetMousePosition(point);
 		buttonList.UpdateMouseSelection(point);
 		return;
 	}
@@ -247,37 +240,16 @@ void CampaignMenuState::HandleEvent(const sf::Event& event)
 	}
 }
 
-void CampaignMenuState::Update(float deltaTime)
+void CampaignMenuState::OnUpdate(float deltaTime)
 {
-	background.Update(deltaTime);
 	buttonGlow.Update(deltaTime);
 	titleGlow.Update(deltaTime);
 	dialogGlow.Update(deltaTime);
-	menuCursor.Update(deltaTime);
-	screenFade.Update(deltaTime);
-
-	if (isLaunchingGameplay && !screenFade.IsActive())
-	{
-		RequestClear();
-		RequestPush(StateID::Gameplay);
-	}
-	else if (isLaunchingUpgrades && !screenFade.IsActive())
-	{
-		RequestClear();
-		RequestPush(StateID::ShipUpgrades);
-	}
-	else if (isLaunchingLevelSelect && !screenFade.IsActive())
-	{
-		isLaunchingLevelSelect = false;
-		RequestPush(StateID::LevelSelect);
-		screenFade.StartFadeIn(FadeDuration);
-	}
 }
 
-void CampaignMenuState::Render()
+void CampaignMenuState::OnRender()
 {
 	sf::RenderWindow& window{ GetContext().window };
-	background.Draw(window);
 
 	titleGlow.DrawBloom(
 		window,
@@ -331,13 +303,6 @@ void CampaignMenuState::Render()
 	dialogGlow.DrawHighlight(window, selectedDialogButton.GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
-void CampaignMenuState::RenderOverlay()
-{
-	if (!GetContext().gamepad.IsInUse())
-		menuCursor.Draw(GetContext().window);
-	screenFade.Draw(GetContext().window);
-}
-
 void CampaignMenuState::ActivateSelected()
 {
 	PlayPressSound();
@@ -347,13 +312,19 @@ void CampaignMenuState::ActivateSelected()
 		if (const CampaignProgress* progress{ GetContext().campaignSave.GetProgress() };
 			progress != nullptr && progress->phase == CampaignPhase::AwaitingUpgrades)
 		{
-			isLaunchingUpgrades = true;
-			screenFade.StartFadeOut(FadeDuration);
+			BeginTransition(FadeDuration, [this]
+			{
+				RequestClear();
+				RequestPush(StateID::ShipUpgrades);
+			});
 		}
 		else if (progress != nullptr && progress->phase == CampaignPhase::Finished)
 		{
-			isLaunchingLevelSelect = true;
-			screenFade.StartFadeOut(FadeDuration);
+			BeginTransition(FadeDuration, [this]
+			{
+				RequestPush(StateID::LevelSelect);
+				Chrome().StartFadeIn(FadeDuration);
+			});
 		}
 		else
 			BeginGameplay(GameplayLaunchMode::ContinueCampaign);
@@ -472,12 +443,9 @@ void CampaignMenuState::ChooseTutorial(bool playTutorial)
 void CampaignMenuState::BeginGameplay(GameplayLaunchMode mode)
 {
 	GetContext().gameplayLaunch.mode = mode;
-	isLaunchingGameplay = true;
-	screenFade.StartFadeOut(FadeDuration);
-}
-
-void CampaignMenuState::PlayPressSound()
-{
-	GetContext().audio.PlaySound(
-		Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f, SoundPlayback::StopPrevious);
+	BeginTransition(FadeDuration, [this]
+	{
+		RequestClear();
+		RequestPush(StateID::Gameplay);
+	});
 }

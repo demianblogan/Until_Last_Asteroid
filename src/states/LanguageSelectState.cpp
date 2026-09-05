@@ -10,6 +10,7 @@
 #include "localization/LocalizationManager.h"
 #include "states/StateID.h"
 #include "input/gamepad/GamepadManager.h"
+#include "ui/MenuTheme.h"
 #include "utils/ConfigEnums.h"
 
 namespace
@@ -17,15 +18,13 @@ namespace
 	constexpr sf::Vector2f ButtonSize{ 620.f, 86.f };
 	constexpr sf::Vector2f FirstButton{ 650.f, 340.f };
 	constexpr float Spacing{ 104.f };
+	constexpr float FadeDuration{ 0.35f };
 }
 
 LanguageSelectState::LanguageSelectState(StateStack& stack, StateContext context)
-	: State(stack, context)
-	, background(context.assets, context.logicalSize)
+	: MenuState(stack, context)
 	, glow(context.assets)
 	, buttonGlow(context.assets)
-	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, { 25, 220, 255 })
-	, fade(context.logicalSize)
 	, title(context.assets.Fonts().Get(Config::Font::LocalizedBold), "SELECT LANGUAGE", 68u)
 	, hint(context.assets.Fonts().Get(Config::Font::LocalizedRegular),
 		"You can change the language later in Options", 25u)
@@ -57,7 +56,7 @@ LanguageSelectState::LanguageSelectState(StateStack& stack, StateContext context
 		buttons.back().SetPosition(FirstButton + sf::Vector2f{ 0.f, Spacing * static_cast<float>(i) });
 	}
 	Select(0u, false);
-	fade.StartFadeIn(0.35f);
+	Chrome().StartFadeIn(FadeDuration);
 }
 
 void LanguageSelectState::HandleEvent(const sf::Event& event)
@@ -67,15 +66,15 @@ void LanguageSelectState::HandleEvent(const sf::Event& event)
 	// from immediately choosing a language.
 	using enum GamepadManager::NavigationAction;
 	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
-	if (!fade.IsActive()) switch (navigation)
+	if (!Chrome().IsFading()) switch (navigation)
 	{
-	case Up: Select((selected + buttons.size() - 1u) % buttons.size()); return;
-	case Down: Select((selected + 1u) % buttons.size()); return;
+	case Up: Select((selectedIndex + buttons.size() - 1u) % buttons.size()); return;
+	case Down: Select((selectedIndex + 1u) % buttons.size()); return;
 	case Confirm: ConfirmSelection(); return;
 	default: break;
 	}
 
-	if (!fade.IsActive())
+	if (!Chrome().IsFading())
 	{
 		if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
 		{
@@ -83,10 +82,10 @@ void LanguageSelectState::HandleEvent(const sf::Event& event)
 			{
 			case sf::Keyboard::Key::Up:
 			case sf::Keyboard::Key::W:
-				Select((selected + buttons.size() - 1u) % buttons.size()); return;
+				Select((selectedIndex + buttons.size() - 1u) % buttons.size()); return;
 			case sf::Keyboard::Key::Down:
 			case sf::Keyboard::Key::S:
-				Select((selected + 1u) % buttons.size()); return;
+				Select((selectedIndex + 1u) % buttons.size()); return;
 			case sf::Keyboard::Key::Enter:
 			case sf::Keyboard::Key::Space:
 				ConfirmSelection(); return;
@@ -98,13 +97,13 @@ void LanguageSelectState::HandleEvent(const sf::Event& event)
 	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
 	{
 		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
-		background.SetMousePosition(point);
+		Chrome().SetMousePosition(point);
 		for (std::size_t i{}; i < buttons.size(); ++i)
 			if (buttons[i].Contains(point)) { Select(i); break; }
 	}
 	if (const auto* pressed{ event.getIf<sf::Event::MouseButtonPressed>() })
 	{
-		if (fade.IsActive() || pressed->button != sf::Mouse::Button::Left) return;
+		if (Chrome().IsFading() || pressed->button != sf::Mouse::Button::Left) return;
 		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(pressed->position) };
 		for (std::size_t i{}; i < buttons.size(); ++i)
 		{
@@ -116,59 +115,65 @@ void LanguageSelectState::HandleEvent(const sf::Event& event)
 	}
 }
 
-void LanguageSelectState::Update(float deltaTime)
+void LanguageSelectState::OnUpdate(float deltaTime)
 {
-	background.Update(deltaTime);
 	glow.Update(deltaTime);
 	buttonGlow.Update(deltaTime);
-	cursor.Update(deltaTime);
-	fade.Update(deltaTime);
 }
 
-void LanguageSelectState::Render()
+void LanguageSelectState::OnRender()
 {
 	auto& window{ GetContext().window };
-	background.Draw(window);
 	glow.DrawBloom(window, title.getGlobalBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
 		{
 			target.draw(title, states);
-		}, { 25, 220, 255 });
+		}, UI::MenuTheme::InterfaceGlow);
 	window.draw(title);
 	window.draw(hint);
 	if (!buttons.empty())
 	{
-		const UI::MenuButton& selectedButton{ buttons[selected] };
+		const UI::MenuButton& selectedButton{ buttons[selectedIndex] };
 		buttonGlow.DrawBloom(window, selectedButton.GetBounds(),
 			[&selectedButton](sf::RenderTarget& target, const sf::RenderStates& states)
-			{ selectedButton.Draw(target, states); }, { 255, 178, 42 });
+			{ selectedButton.Draw(target, states); }, UI::MenuTheme::SelectionGlow);
 	}
 	for (const auto& button : buttons) button.Draw(window);
 	if (!buttons.empty())
-		buttonGlow.DrawHighlight(window, buttons[selected].GetBounds(), { 255, 178, 42 });
-	if (GetContext().gamepad.IsInUse()) cursor.DrawAt(window, cursorPosition);
-	else cursor.Draw(window);
-	fade.Draw(window);
+		buttonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
-void LanguageSelectState::Select(std::size_t index, bool sound)
+void LanguageSelectState::RenderOverlay()
+{
+	auto& window{ GetContext().window };
+	// Unlike the other menus, this one shows the cursor even under a gamepad,
+	// parked beside the selected language, so first-run players see where
+	// "click" would land.
+	if (GetContext().gamepad.IsInUse())
+		Chrome().Cursor().DrawAt(window, cursorPosition);
+	else
+		Chrome().Cursor().Draw(window);
+	Chrome().Fade().Draw(window);
+}
+
+void LanguageSelectState::Select(std::size_t index, bool playSound)
 {
 	if (index >= buttons.size()) return;
-	const bool changed{ selected != index };
-	selected = index;
-	for (std::size_t i{}; i < buttons.size(); ++i) buttons[i].SetSelected(i == selected);
-	const auto bounds{ buttons[selected].GetBounds() };
+	const bool changed{ selectedIndex != index };
+	selectedIndex = index;
+	for (std::size_t i{}; i < buttons.size(); ++i) buttons[i].SetSelected(i == selectedIndex);
+	const auto bounds{ buttons[selectedIndex].GetBounds() };
 	cursorPosition = { bounds.position.x - 50.f, bounds.position.y + bounds.size.y * 0.5f };
 	if (changed)
 		buttonGlow.Invalidate();
-	if (sound && changed)
+	if (playSound && changed)
 		GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI);
 }
 
 void LanguageSelectState::ConfirmSelection()
 {
-	if (!GetContext().localization.SetLanguage(Languages[selected])) return;
-	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI);
+	if (!GetContext().localization.SetLanguage(Languages[selectedIndex])) return;
+	PlayPressSound();
 	RequestClear();
 	RequestPush(StateID::MainMenu);
 }

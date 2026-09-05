@@ -10,14 +10,11 @@
 #include <SFML/Graphics/Text.hpp>
 
 #include "settings/GameSettings.h"
-#include "states/State.h"
-#include "ui/GlowingCursor.h"
-#include "ui/MenuBackground.h"
+#include "states/MenuState.h"
 #include "rendering/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
-#include "ui/ScreenFade.h"
 
-class OptionsState final : public State
+class OptionsState final : public MenuState
 {
 public:
 	enum class Origin
@@ -33,8 +30,8 @@ public:
 	~OptionsState() override;
 
 	void HandleEvent(const sf::Event& event) override;
-	void Update(float deltaTime) override;
-	void Render() override;
+	void OnUpdate(float deltaTime) override;
+	void OnRender() override;
 	void RenderOverlay() override;
 
 private:
@@ -178,7 +175,6 @@ private:
 
 	static constexpr float DisplayConfirmationDuration{ 10.f };
 
-	UI::MenuBackground background;
 	sf::RectangleShape shade;
 	sf::Text title;
 	Rendering::NeonGlow titleGlow;
@@ -186,8 +182,6 @@ private:
 	Rendering::NeonGlow dialogGlow;
 	sf::RenderTexture gamepadLayoutCache;
 	bool isGamepadLayoutCacheDirty{ true };
-	UI::GlowingCursor menuCursor;
-	UI::ScreenFade screenFade;
 	Page page{ Page::Root };
 	std::optional<Page> pendingPage;
 	std::vector<Row> rows;
@@ -212,6 +206,5 @@ private:
 	float displayConfirmationRemaining{ 0.f };
 	GraphicsSettings previousGraphics;
 	bool hasSaveFailed{ false };
-	bool isExitPending{ false };
 	Origin origin;
 };

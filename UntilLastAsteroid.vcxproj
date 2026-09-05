@@ -198,6 +198,7 @@
     <ClCompile Include="src\states\MainMenuState.cpp" />
     <ClCompile Include="src\states\OptionsState.cpp" />
     <ClCompile Include="src\states\PauseState.cpp" />
+    <ClCompile Include="src\states\MenuState.cpp" />
     <ClCompile Include="src\states\State.cpp" />
     <ClCompile Include="src\states\StateStack.cpp" />
     <ClCompile Include="src\ui\HUD.cpp" />
@@ -208,6 +209,7 @@
     <ClCompile Include="src\ui\LocalizationRevision.cpp" />
     <ClCompile Include="src\ui\MenuButton.cpp" />
     <ClCompile Include="src\ui\MenuButtonList.cpp" />
+    <ClCompile Include="src\ui\MenuChrome.cpp" />
     <ClCompile Include="src\ui\OptionsWidgets.cpp" />
     <ClCompile Include="src\ui\MenuIntroAnimation.cpp" />
 	<ClCompile Include="src\ui\NineSliceFrame.cpp" />
@@ -301,6 +303,7 @@
     <ClInclude Include="src\states\MainMenuState.h" />
     <ClInclude Include="src\states\OptionsState.h" />
     <ClInclude Include="src\states\PauseState.h" />
+    <ClInclude Include="src\states\MenuState.h" />
     <ClInclude Include="src\states\State.h" />
     <ClInclude Include="src\states\StateID.h" />
     <ClInclude Include="src\states\StateStack.h" />
@@ -342,6 +345,7 @@
     <ClInclude Include="src\ui\LocalizationRevision.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuButtonList.h" />
+    <ClInclude Include="src\ui\MenuChrome.h" />
     <ClInclude Include="src\ui\MenuTheme.h" />
     <ClInclude Include="src\ui\OptionsWidgets.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
