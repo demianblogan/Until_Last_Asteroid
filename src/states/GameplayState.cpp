@@ -292,99 +292,147 @@ void GameplayState::ResumeGameplaySounds()
 
 void GameplayState::Update(float deltaTime)
 {
+	UpdatePresentation(deltaTime);
+
+	if (ProcessPendingRuntimeCommand())
+		return;
+	if (AdvancePendingTransition())
+		return;
+
+	UpdateBackdrop(deltaTime);
+
+	if (screenFade.IsActive())
+		return;
+	if (UpdateIntroSequences(deltaTime))
+		return;
+
+	UpdateActiveFrame(deltaTime);
+
+	if (!session.IsPlaying())
+		return;
+
+	UpdateWaveAndModeProgression(deltaTime);
+}
+
+// Screens and audio that keep running no matter what phase the level is in.
+void GameplayState::UpdatePresentation(float deltaTime)
+{
 	screenFade.Update(deltaTime);
 	gameOverScreen.Update(deltaTime);
 	resultScreen.Update(deltaTime);
 	UpdateLevelCompleteAudio(deltaTime);
 	UpdateTimeSlowdownPresentation(deltaTime);
+}
 
+// A one-shot command posted from the pause menu (restart the level, skip the
+// tutorial). Returns true when one was consumed -- the rest of the frame is
+// then skipped.
+bool GameplayState::ProcessPendingRuntimeCommand()
+{
 	const GameplayRuntimeCommand runtimeCommand{
 		GetContext().gameplayLaunch.pendingCommand };
-	if (runtimeCommand != GameplayRuntimeCommand::None &&
-		gameplayTransition == GameplayTransition::None)
-	{
-		GetContext().gameplayLaunch.pendingCommand = GameplayRuntimeCommand::None;
-		world.Sound().StopActiveSounds();
-		areGameplaySoundsPaused = false;
-		if (runtimeCommand == GameplayRuntimeCommand::SkipTutorial && isTutorialActive)
-			FinishTutorial();
-		else if (runtimeCommand == GameplayRuntimeCommand::RestartLevel)
-		{
-			gameplayTransition = GameplayTransition::RestartLevel;
-			screenFade.StartFadeOut(GameplayFadeOutDuration);
-		}
-		return;
-	}
+	if (runtimeCommand == GameplayRuntimeCommand::None ||
+		gameplayTransition != GameplayTransition::None)
+		return false;
 
-	if (gameplayTransition != GameplayTransition::None)
+	GetContext().gameplayLaunch.pendingCommand = GameplayRuntimeCommand::None;
+	world.Sound().StopActiveSounds();
+	areGameplaySoundsPaused = false;
+	if (runtimeCommand == GameplayRuntimeCommand::SkipTutorial && isTutorialActive)
+		FinishTutorial();
+	else if (runtimeCommand == GameplayRuntimeCommand::RestartLevel)
 	{
-		if (!screenFade.IsActive())
-		{
-			const GameplayTransition completedTransition{ gameplayTransition };
-			gameplayTransition = GameplayTransition::None;
-			if (completedTransition == GameplayTransition::RestartLevel)
-			{
-				RestartCurrentLevel();
-				screenFade.StartFadeIn(GameplayFadeInDuration);
-			}
-			else if (completedTransition == GameplayTransition::NextLevel)
-			{
-				NextLevel();
-				screenFade.StartFadeIn(GameplayFadeInDuration);
-			}
-			else if (completedTransition == GameplayTransition::RestartGame)
-			{
-				static_cast<void>(GetContext().campaignSave.StartNewCampaign());
-				Reset();
-				SpawnLevel();
-				screenFade.StartFadeIn(GameplayFadeInDuration);
-			}
-			else if (completedTransition == GameplayTransition::TutorialComplete)
-			{
-				world.Clear();
-				effects.Clear();
-				tutorial.reset();
-				isTutorialActive = false;
-				session.StartAtLevel(1);
-				SpawnLevel();
-				screenFade.StartFadeIn(GameplayFadeInDuration);
-			}
-			else if (completedTransition == GameplayTransition::LevelSelect)
-			{
-				GetContext().audio.StopGameplayMusic();
-				RequestClear();
-				RequestPush(StateID::CampaignMenu);
-				RequestPush(StateID::LevelSelect);
-			}
-			else if (completedTransition == GameplayTransition::ShipUpgrades)
-			{
-				GetContext().audio.StopGameplayMusic();
-				RequestClear();
-				RequestPush(StateID::ShipUpgrades);
-			}
-			else if (completedTransition == GameplayTransition::MainMenu)
-			{
-				GetContext().audio.StopGameplayMusic();
-				RequestClear();
-				RequestPush(StateID::MainMenu);
-			}
-			else if (completedTransition == GameplayTransition::CampaignComplete)
-			{
-				needToPreserveGameplayMusicOnDestruction = true;
-				RequestClear();
-				RequestPush(StateID::CampaignComplete);
-			}
-		}
-		return;
+		gameplayTransition = GameplayTransition::RestartLevel;
+		screenFade.StartFadeOut(GameplayFadeOutDuration);
 	}
+	return true;
+}
 
+// While a level<->level (or level<->menu) transition is pending, nothing else
+// updates. When its fade-out finishes, the queued transition fires here.
+// Returns true whenever a transition is in progress.
+bool GameplayState::AdvancePendingTransition()
+{
+	if (gameplayTransition == GameplayTransition::None)
+		return false;
+
+	if (!screenFade.IsActive())
+	{
+		const GameplayTransition completedTransition{ gameplayTransition };
+		gameplayTransition = GameplayTransition::None;
+		if (completedTransition == GameplayTransition::RestartLevel)
+		{
+			RestartCurrentLevel();
+			screenFade.StartFadeIn(GameplayFadeInDuration);
+		}
+		else if (completedTransition == GameplayTransition::NextLevel)
+		{
+			NextLevel();
+			screenFade.StartFadeIn(GameplayFadeInDuration);
+		}
+		else if (completedTransition == GameplayTransition::RestartGame)
+		{
+			static_cast<void>(GetContext().campaignSave.StartNewCampaign());
+			Reset();
+			SpawnLevel();
+			screenFade.StartFadeIn(GameplayFadeInDuration);
+		}
+		else if (completedTransition == GameplayTransition::TutorialComplete)
+		{
+			world.Clear();
+			effects.Clear();
+			tutorial.reset();
+			isTutorialActive = false;
+			session.StartAtLevel(1);
+			SpawnLevel();
+			screenFade.StartFadeIn(GameplayFadeInDuration);
+		}
+		else if (completedTransition == GameplayTransition::LevelSelect)
+		{
+			GetContext().audio.StopGameplayMusic();
+			RequestClear();
+			RequestPush(StateID::CampaignMenu);
+			RequestPush(StateID::LevelSelect);
+		}
+		else if (completedTransition == GameplayTransition::ShipUpgrades)
+		{
+			GetContext().audio.StopGameplayMusic();
+			RequestClear();
+			RequestPush(StateID::ShipUpgrades);
+		}
+		else if (completedTransition == GameplayTransition::MainMenu)
+		{
+			GetContext().audio.StopGameplayMusic();
+			RequestClear();
+			RequestPush(StateID::MainMenu);
+		}
+		else if (completedTransition == GameplayTransition::CampaignComplete)
+		{
+			needToPreserveGameplayMusicOnDestruction = true;
+			RequestClear();
+			RequestPush(StateID::CampaignComplete);
+		}
+	}
+	return true;
+}
+
+// Parallax background + crosshair -- they keep drifting under the result /
+// game-over screens but freeze once a fade takes over.
+void GameplayState::UpdateBackdrop(float deltaTime)
+{
 	if (!gameOverScreen.IsActive() && !resultScreen.IsActive())
 	{
 		background.Update(deltaTime * GetWorldTimeScale());
 		crosshair.Update(deltaTime);
 	}
-	if (screenFade.IsActive())
-		return;
+}
+
+// The pre-combat phases: the level-name card, the wave banner + its
+// materialisation shimmer, the player's spawn-in animation, and the idle tick
+// while the session isn't in Playing (result screen up, etc.). Returns true
+// while any of them owns the frame.
+bool GameplayState::UpdateIntroSequences(float deltaTime)
+{
 	if (levelIntro.IsActive())
 	{
 		if (levelIntro.Update(deltaTime))
@@ -403,7 +451,7 @@ void GameplayState::Update(float deltaTime)
 					waveDirector.GetCurrentWaveNumber(),
 					!waveDirector.HasMoreWaves());
 		}
-		return;
+		return true;
 	}
 	if (waveIntro.IsActive())
 	{
@@ -413,21 +461,28 @@ void GameplayState::Update(float deltaTime)
 			GetContext().settings.GetSettings().gameplay.needToShowScorePopups);
 		if (waveIntro.Update(deltaTime))
 			FinishWaveIntro();
-		return;
+		return true;
 	}
 	if (isPlayerSpawnAnimating)
 	{
 		UpdatePlayerSpawnAnimation(deltaTime);
-		return;
+		return true;
 	}
 	if (!session.IsPlaying())
 	{
 		effects.Update(deltaTime, world,
 			GetContext().settings.GetSettings().gameplay.isScreenShakeEnabled,
 			GetContext().settings.GetSettings().gameplay.needToShowScorePopups);
-		return;
+		return true;
 	}
+	return false;
+}
 
+// One frame of live gameplay: run-mode timers, the session, the world, the
+// boss encounter, effects, the HUD, and the lightbar -- ending with the
+// game-over check.
+void GameplayState::UpdateActiveFrame(float deltaTime)
+{
 	if (!isWaveClearDelayActive)
 		levelGameplayElapsed += deltaTime;
 	if (isRunMode)
@@ -495,8 +550,15 @@ void GameplayState::Update(float deltaTime)
 
 	if (session.IsGameOver() && !gameOverScreen.IsActive())
 		BeginGameOver();
-	if (!session.IsPlaying())
-		return;
+}
+
+// After the world has ticked: hand the frame to the tutorial director, or (on
+// run / boss levels) bail, or run the wave-clear teleport, or advance the wave
+// director and check for level / wave completion.
+void GameplayState::UpdateWaveAndModeProgression(float deltaTime)
+{
+	const float worldTimeScale{ GetWorldTimeScale() };
+
 	if (isTutorialActive)
 	{
 		UpdateTutorial(deltaTime);

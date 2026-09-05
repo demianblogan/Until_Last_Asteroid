@@ -55,6 +55,17 @@ private:
 	};
 
 	void SetupInput();
+
+	// The steps of Update(), in call order. The bool-returning ones report
+	// "this step owned the frame -- stop here".
+	void UpdatePresentation(float deltaTime);
+	[[nodiscard]] bool ProcessPendingRuntimeCommand();
+	[[nodiscard]] bool AdvancePendingTransition();
+	void UpdateBackdrop(float deltaTime);
+	[[nodiscard]] bool UpdateIntroSequences(float deltaTime);
+	void UpdateActiveFrame(float deltaTime);
+	void UpdateWaveAndModeProgression(float deltaTime);
+
 	void DrawScene(sf::RenderTarget& target);
 	void OpenPauseMenu();
 	void ResumeGameplaySounds();
