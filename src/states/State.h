@@ -20,60 +20,60 @@ namespace Haptics { class GamepadHaptics; }
 
 namespace sf
 {
-    class Event;
-    class RenderWindow;
+	class Event;
+	class RenderWindow;
 }
 
 struct StateContext
 {
-    sf::RenderWindow& window;
-    Assets& assets;
-    SettingsManager& settings;
-    CampaignSaveManager& campaignSave;
+	sf::RenderWindow& window;
+	Assets& assets;
+	SettingsManager& settings;
+	CampaignSaveManager& campaignSave;
 	RecordsManager& records;
 	AchievementManager& achievements;
-    LocalizationManager& localization;
-    AudioManager& audio;
-    DisplayManager& display;
-    sf::Vector2f logicalSize;
-    bool& mainMenuIntroPlayed;
-    GamepadManager& gamepad;
-    Haptics::GamepadHaptics& gamepadHaptics;
-    GameplayLaunchRequest& gameplayLaunch;
+	LocalizationManager& localization;
+	AudioManager& audio;
+	DisplayManager& display;
+	sf::Vector2f logicalSize;
+	bool& mainMenuIntroPlayed;
+	GamepadManager& gamepad;
+	Haptics::GamepadHaptics& gamepadHaptics;
+	GameplayLaunchRequest& gameplayLaunch;
 };
 
 class State
 {
 public:
-    State(StateStack& stateStack, StateContext context);
-    virtual ~State() = default;
+	State(StateStack& stateStack, StateContext context);
+	virtual ~State() = default;
 
-    State(const State&) = delete;
-    State& operator=(const State&) = delete;
-    State(State&&) = delete;
-    State& operator=(State&&) = delete;
+	State(const State&) = delete;
+	State& operator=(const State&) = delete;
+	State(State&&) = delete;
+	State& operator=(State&&) = delete;
 
-    virtual void HandleEvent(const sf::Event& event) = 0;
-    virtual void HandleRealtime();
-    virtual void Update(float deltaTime) = 0;
-    virtual void Render() = 0;
-    virtual void RenderOverlay();
-    [[nodiscard]] virtual bool IsTransparent() const noexcept;
+	virtual void HandleEvent(const sf::Event& event) = 0;
+	virtual void HandleRealtime();
+	virtual void Update(float deltaTime) = 0;
+	virtual void Render() = 0;
+	virtual void RenderOverlay();
+	[[nodiscard]] virtual bool IsTransparent() const noexcept;
 
-    // Called when a cached state (see StateStack::EnableStateCaching) is
-    // pushed again instead of being freshly constructed. Override to reset
-    // per-visit transient state (fade-in, selection, etc.) and refresh any
-    // data that may have changed while the state was cached away.
-    virtual void OnReactivated();
+	// Called when a cached state (see StateStack::EnableStateCaching) is
+	// pushed again instead of being freshly constructed. Override to reset
+	// per-visit transient state (fade-in, selection, etc.) and refresh any
+	// data that may have changed while the state was cached away.
+	virtual void OnReactivated();
 
 protected:
-    [[nodiscard]] const StateContext& GetContext() const noexcept;
+	[[nodiscard]] const StateContext& GetContext() const noexcept;
 
-    void RequestPush(StateID stateID);
-    void RequestPop();
-    void RequestClear();
+	void RequestPush(StateID stateID);
+	void RequestPop();
+	void RequestClear();
 
 private:
-    StateStack& stateStack;
-    StateContext context;
+	StateStack& stateStack;
+	StateContext context;
 };

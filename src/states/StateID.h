@@ -2,18 +2,18 @@
 
 enum class StateID
 {
-    CompanySplash,
-    LanguageSelect,
-    MainMenu,
+	CompanySplash,
+	LanguageSelect,
+	MainMenu,
 	Achievements,
 	Credits,
-    CampaignMenu,
+	CampaignMenu,
 	LevelSelect,
 	ShipUpgrades,
 	Records,
-    Options,
-    PauseOptions,
-    Gameplay,
+	Options,
+	PauseOptions,
+	Gameplay,
 	CampaignComplete,
-    Pause
+	Pause
 };

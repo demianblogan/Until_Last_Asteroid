@@ -3,8 +3,8 @@
 #include "StateStack.h"
 
 State::State(StateStack& stateStack, StateContext context)
-    : stateStack(stateStack)
-    , context(context)
+	: stateStack(stateStack)
+	, context(context)
 {
 }
 
@@ -18,7 +18,7 @@ void State::RenderOverlay()
 
 bool State::IsTransparent() const noexcept
 {
-    return false;
+	return false;
 }
 
 void State::OnReactivated()
@@ -27,20 +27,20 @@ void State::OnReactivated()
 
 const StateContext& State::GetContext() const noexcept
 {
-    return context;
+	return context;
 }
 
 void State::RequestPush(StateID stateID)
 {
-    stateStack.PushState(stateID);
+	stateStack.PushState(stateID);
 }
 
 void State::RequestPop()
 {
-    stateStack.PopState();
+	stateStack.PopState();
 }
 
 void State::RequestClear()
 {
-    stateStack.ClearStates();
+	stateStack.ClearStates();
 }
