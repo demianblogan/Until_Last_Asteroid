@@ -70,7 +70,7 @@ private:
     std::vector<UI::MenuButton> dialogButtons;
     std::size_t dialogSelectedIndex{ 1u };
     DialogMode dialogMode{ DialogMode::None };
-    bool launchingGameplay{ false };
-	bool launchingUpgrades{ false };
-	bool launchingLevelSelect{ false };
+    bool isLaunchingGameplay{ false };
+	bool isLaunchingUpgrades{ false };
+	bool isLaunchingLevelSelect{ false };
 };

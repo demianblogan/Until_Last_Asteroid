@@ -105,7 +105,7 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	Reset();
 	context.gameplayLaunch.isTutorialRunning = false;
 	const GameplayLaunchMode launchMode{ context.gameplayLaunch.mode };
-	mainCampaignRun = launchMode == GameplayLaunchMode::ContinueCampaign ||
+	isMainCampaignRun = launchMode == GameplayLaunchMode::ContinueCampaign ||
 		launchMode == GameplayLaunchMode::NewCampaign ||
 		launchMode == GameplayLaunchMode::Tutorial;
 	context.gameplayLaunch.mode = GameplayLaunchMode::ContinueCampaign;
@@ -129,17 +129,17 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 		progress->completedLevels.empty() && progress->currentLevel <= 1 };
 	if (launchMode == GameplayLaunchMode::Horde)
 	{
-		hordeMode = true;
+		isHordeMode = true;
 		StartHorde();
 	}
 	else if (launchMode == GameplayLaunchMode::Run)
 	{
-		runMode = true;
+		isRunMode = true;
 		StartRun();
 	}
 	else if (launchMode == GameplayLaunchMode::SelectedLevel)
 	{
-		selectedLevelRun = true;
+		isSelectedLevelRun = true;
 		const int highestUnlocked{ progress != nullptr
 			? std::max(1, progress->highestUnlockedLevel)
 			: 1 };
@@ -147,7 +147,7 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 			context.gameplayLaunch.selectedLevel,
 			1,
 			std::min(highestUnlocked, gameplayData.GetLevelCount())) };
-		selectedLevelAdvancesCampaign = progress != nullptr &&
+		isSelectedLevelAdvancingCampaign = progress != nullptr &&
 			selectedLevel == progress->currentLevel &&
 			std::ranges::find(progress->completedLevels, selectedLevel) ==
 				progress->completedLevels.end();
@@ -163,11 +163,11 @@ GameplayState::GameplayState(StateStack& stateStack, StateContext context)
 	}
 	if (hud)
 	{
-		hud->SetPartsVisible(!hordeMode && !runMode && !bossEncounter);
+		hud->SetPartsVisible(!isHordeMode && !isRunMode && !bossEncounter);
 		hud->Update(0.f);
 	}
 	screenFade.StartFadeIn(GameplayFadeInDuration);
-	if (tutorialActive)
+	if (isTutorialActive)
 		context.audio.PlayGameplayMusic(GetGameplayMusic(session.GetLevel()));
 	else
 		EvaluateEntryAchievements();
@@ -177,7 +177,7 @@ GameplayState::~GameplayState()
 {
 	GetContext().gameplayLaunch.isTutorialRunning = false;
 	GetContext().audio.SetGameplayAudioPitch(1.f);
-	if (!preserveGameplayMusicOnDestruction)
+	if (!needToPreserveGameplayMusicOnDestruction)
 		GetContext().audio.StopGameplayMusic();
 }
 
@@ -244,7 +244,7 @@ void GameplayState::HandleEvent(const sf::Event& event)
 	}
 
 	if (levelIntro.IsActive() || waveIntro.IsActive() ||
-		playerSpawnAnimating || waveClearDelayActive)
+		isPlayerSpawnAnimating || isWaveClearDelayActive)
 		return;
 
 	if (session.IsPlaying())
@@ -261,8 +261,8 @@ void GameplayState::HandleRealtime()
 	if (session.IsPlaying())
 		ResumeGameplaySounds();
 	if (screenFade.IsActive() || levelIntro.IsActive() ||
-		waveIntro.IsActive() || playerSpawnAnimating ||
-		waveClearDelayActive ||
+		waveIntro.IsActive() || isPlayerSpawnAnimating ||
+		isWaveClearDelayActive ||
 		gameOverScreen.IsActive() || resultScreen.IsActive())
 		return;
 	if (session.IsPlaying())
@@ -274,29 +274,29 @@ void GameplayState::HandleRealtime()
 
 void GameplayState::OpenPauseMenu()
 {
-	if (!gameplaySoundsPaused)
+	if (!areGameplaySoundsPaused)
 	{
 		world.Sound().PauseActiveSounds();
-		gameplaySoundsPaused = true;
+		areGameplaySoundsPaused = true;
 	}
 	RequestPush(StateID::Pause);
 }
 
 void GameplayState::ResumeGameplaySounds()
 {
-	if (!gameplaySoundsPaused)
+	if (!areGameplaySoundsPaused)
 		return;
 	world.Sound().ResumePausedSounds();
-	gameplaySoundsPaused = false;
+	areGameplaySoundsPaused = false;
 }
 
-void GameplayState::Update(float dt)
+void GameplayState::Update(float deltaTime)
 {
-	screenFade.Update(dt);
-	gameOverScreen.Update(dt);
-	resultScreen.Update(dt);
-	UpdateLevelCompleteAudio(dt);
-	UpdateTimeSlowdownPresentation(dt);
+	screenFade.Update(deltaTime);
+	gameOverScreen.Update(deltaTime);
+	resultScreen.Update(deltaTime);
+	UpdateLevelCompleteAudio(deltaTime);
+	UpdateTimeSlowdownPresentation(deltaTime);
 
 	const GameplayRuntimeCommand runtimeCommand{
 		GetContext().gameplayLaunch.pendingCommand };
@@ -305,8 +305,8 @@ void GameplayState::Update(float dt)
 	{
 		GetContext().gameplayLaunch.pendingCommand = GameplayRuntimeCommand::None;
 		world.Sound().StopActiveSounds();
-		gameplaySoundsPaused = false;
-		if (runtimeCommand == GameplayRuntimeCommand::SkipTutorial && tutorialActive)
+		areGameplaySoundsPaused = false;
+		if (runtimeCommand == GameplayRuntimeCommand::SkipTutorial && isTutorialActive)
 			FinishTutorial();
 		else if (runtimeCommand == GameplayRuntimeCommand::RestartLevel)
 		{
@@ -344,7 +344,7 @@ void GameplayState::Update(float dt)
 				world.Clear();
 				effects.Clear();
 				tutorial.reset();
-				tutorialActive = false;
+				isTutorialActive = false;
 				session.StartAtLevel(1);
 				SpawnLevel();
 				screenFade.StartFadeIn(GameplayFadeInDuration);
@@ -370,7 +370,7 @@ void GameplayState::Update(float dt)
 			}
 			else if (completedTransition == GameplayTransition::CampaignComplete)
 			{
-				preserveGameplayMusicOnDestruction = true;
+				needToPreserveGameplayMusicOnDestruction = true;
 				RequestClear();
 				RequestPush(StateID::CampaignComplete);
 			}
@@ -380,18 +380,18 @@ void GameplayState::Update(float dt)
 
 	if (!gameOverScreen.IsActive() && !resultScreen.IsActive())
 	{
-		background.Update(dt * GetWorldTimeScale());
-		crosshair.Update(dt);
+		background.Update(deltaTime * GetWorldTimeScale());
+		crosshair.Update(deltaTime);
 	}
 	if (screenFade.IsActive())
 		return;
 	if (levelIntro.IsActive())
 	{
-		if (levelIntro.Update(dt))
+		if (levelIntro.Update(deltaTime))
 		{
-			if (runMode)
+			if (isRunMode)
 				FinishWaveIntro();
-			else if (hordeMode)
+			else if (isHordeMode)
 				waveIntro.Start(hordeCurrentWave);
 			else if (bossEncounter)
 			{
@@ -407,39 +407,39 @@ void GameplayState::Update(float dt)
 	}
 	if (waveIntro.IsActive())
 	{
-		UpdateWaveMaterialization(dt);
-		effects.Update(dt, world,
+		UpdateWaveMaterialization(deltaTime);
+		effects.Update(deltaTime, world,
 			GetContext().settings.GetSettings().gameplay.isScreenShakeEnabled,
 			GetContext().settings.GetSettings().gameplay.needToShowScorePopups);
-		if (waveIntro.Update(dt))
+		if (waveIntro.Update(deltaTime))
 			FinishWaveIntro();
 		return;
 	}
-	if (playerSpawnAnimating)
+	if (isPlayerSpawnAnimating)
 	{
-		UpdatePlayerSpawnAnimation(dt);
+		UpdatePlayerSpawnAnimation(deltaTime);
 		return;
 	}
 	if (!session.IsPlaying())
 	{
-		effects.Update(dt, world,
+		effects.Update(deltaTime, world,
 			GetContext().settings.GetSettings().gameplay.isScreenShakeEnabled,
 			GetContext().settings.GetSettings().gameplay.needToShowScorePopups);
 		return;
 	}
 
-	if (!waveClearDelayActive)
-		levelGameplayElapsed += dt;
-	if (runMode)
-		UpdateRun(dt);
-	if (!waveClearDelayActive)
-		session.Update(dt);
-	UpdateWaveMaterialization(dt);
+	if (!isWaveClearDelayActive)
+		levelGameplayElapsed += deltaTime;
+	if (isRunMode)
+		UpdateRun(deltaTime);
+	if (!isWaveClearDelayActive)
+		session.Update(deltaTime);
+	UpdateWaveMaterialization(deltaTime);
 	const float worldTimeScale{ GetWorldTimeScale() };
-	world.Update(dt, worldTimeScale);
+	world.Update(deltaTime, worldTimeScale);
 	if (bossEncounter)
 	{
-		bossEncounter->Update(dt * worldTimeScale, world,
+		bossEncounter->Update(deltaTime * worldTimeScale, world,
 			[this](GameplayData::EnemyKind kind,
 				std::optional<sf::Vector2f> position,
 				std::optional<GameplayData::PickupKind> guaranteedPickup)
@@ -447,9 +447,9 @@ void GameplayState::Update(float dt)
 				SpawnBossReinforcement(kind, position, guaranteedPickup);
 			});
 		if (bossEncounter->IsDefeatSequenceActive() &&
-			!bossVictorySequenceStarted)
+			!hasBossVictorySequenceStarted)
 		{
-			bossVictorySequenceStarted = true;
+			hasBossVictorySequenceStarted = true;
 			world.Sound().StopActiveSounds();
 			GetContext().audio.StopGameplayMusic();
 			session.AddScore(10000);
@@ -477,14 +477,14 @@ void GameplayState::Update(float dt)
 			screenFade.StartFadeOut(1.8f);
 		}
 	}
-	effects.Update(dt * worldTimeScale, world,
+	effects.Update(deltaTime * worldTimeScale, world,
 		GetContext().settings.GetSettings().gameplay.isScreenShakeEnabled,
 		GetContext().settings.GetSettings().gameplay.needToShowScorePopups);
 	if (hud)
 	{
-		if (runMode)
+		if (isRunMode)
 			hud->SetSurvivalTime(runElapsed);
-		hud->Update(dt);
+		hud->Update(deltaTime);
 	}
 
 	// DualSense lightbar tracks the player's health, same source ratio as
@@ -497,26 +497,26 @@ void GameplayState::Update(float dt)
 		BeginGameOver();
 	if (!session.IsPlaying())
 		return;
-	if (tutorialActive)
+	if (isTutorialActive)
 	{
-		UpdateTutorial(dt);
+		UpdateTutorial(deltaTime);
 		return;
 	}
-	if (runMode)
+	if (isRunMode)
 		return;
 	if (bossEncounter)
 	{
 		return;
 	}
-	if (waveClearDelayActive)
+	if (isWaveClearDelayActive)
 	{
-		UpdatePlayerWaveTeleport(dt);
-		waveClearDelayRemaining = std::max(0.f, waveClearDelayRemaining - dt);
+		UpdatePlayerWaveTeleport(deltaTime);
+		waveClearDelayRemaining = std::max(0.f, waveClearDelayRemaining - deltaTime);
 		if (waveClearDelayRemaining <= 0.f)
 		{
-			waveClearDelayActive = false;
+			isWaveClearDelayActive = false;
 			world.ClearProjectiles();
-			if (hordeMode)
+			if (isHordeMode)
 				StartNextHordeWave(true);
 			else
 				StartNextWave(true);
@@ -524,7 +524,7 @@ void GameplayState::Update(float dt)
 		return;
 	}
 
-	waveDirector.Update(dt * worldTimeScale, [this](
+	waveDirector.Update(deltaTime * worldTimeScale, [this](
 		const GameplayData::SpawnGroup& spawn, std::size_t spawnIndex)
 	{
 		SpawnConfiguredEnemy(spawn, spawnIndex);
@@ -532,9 +532,9 @@ void GameplayState::Update(float dt)
 
 	if (waveDirector.IsDeploymentComplete() && world.IsCleared())
 	{
-		if (hordeMode || waveDirector.HasMoreWaves())
+		if (isHordeMode || waveDirector.HasMoreWaves())
 		{
-			if (hordeMode)
+			if (isHordeMode)
 			{
 				++hordeWavesSurvived;
 				if (hordeWavesSurvived >= GetContext().achievements.GetDefinition(
@@ -546,7 +546,7 @@ void GameplayState::Update(float dt)
 				GrantHordeWaveUpgrade();
 				hordeCurrentWave = hordeWavesSurvived + 1;
 			}
-			waveClearDelayActive = true;
+			isWaveClearDelayActive = true;
 			waveClearDelayRemaining = WaveClearDelayDuration;
 			if (Player* player{ world.GetPlayer() })
 				player->SetControlEnabled(false);
@@ -580,10 +580,10 @@ void GameplayState::Render()
 
 	if (session.IsPlaying())
 	{
-		if (bossEncounter && !bossVictorySequenceStarted)
+		if (bossEncounter && !hasBossVictorySequenceStarted)
 			bossEncounter->DrawHUD(window);
-		if (hud && !bossVictorySequenceStarted) hud->Draw(window);
-		if (tutorialActive && tutorial)
+		if (hud && !hasBossVictorySequenceStarted) hud->Draw(window);
+		if (isTutorialActive && tutorial)
 			tutorial->Draw(window);
 	}
 	else if (session.IsGameOver())
@@ -613,9 +613,9 @@ void GameplayState::RenderOverlay()
 		gameOverScreen.DrawCursor(GetContext().window);
 	else if (resultScreen.IsActive())
 		resultScreen.DrawCursor(GetContext().window);
-	else if (!bossVictorySequenceStarted &&
+	else if (!hasBossVictorySequenceStarted &&
 		!levelIntro.IsActive() && !waveIntro.IsActive() &&
-		!playerSpawnAnimating && !runMode &&
+		!isPlayerSpawnAnimating && !isRunMode &&
 		!aimingWithGamepad)
 		crosshair.Draw(GetContext().window);
 	screenFade.Draw(GetContext().window);
@@ -627,7 +627,7 @@ void GameplayState::SpawnPlayerIfNeeded()
 	{
 		world.SpawnPlayer(GetContext().assets, input, GetContext().window);
 		if (Player* player{ world.GetPlayer() })
-			player->SetFiringEnabled(!runMode);
+			player->SetFiringEnabled(!isRunMode);
 	}
 }
 
@@ -680,7 +680,7 @@ void GameplayState::SpawnConfiguredEnemy(
 		std::unreachable();
 	}
 	Enemy& enemy{ static_cast<Enemy&>(*entity) };
-	const bool campaignSpawn{ !tutorialActive && !hordeMode && !runMode };
+	const bool campaignSpawn{ !isTutorialActive && !isHordeMode && !isRunMode };
 	const bool campaignEnemy{
 		campaignSpawn && !bossReinforcement &&
 		spawn.kind != Kind::BigMeteor && spawn.kind != Kind::SmallMeteor };
@@ -901,7 +901,7 @@ void GameplayState::StartTutorial()
 	levelIntro.Reset();
 	waveIntro.Reset();
 	gameplayTransition = GameplayTransition::None;
-	tutorialActive = true;
+	isTutorialActive = true;
 	GetContext().gameplayLaunch.isTutorialRunning = true;
 
 	const auto& level{ gameplayData.GetLevel(1) };
@@ -1062,13 +1062,13 @@ void GameplayState::Reset()
 	waveClearDelayRemaining = 0.f;
 	timeSlowdownVisualStrength = 0.f;
 	GetContext().audio.SetGameplayAudioPitch(1.f);
-	playerSpawnAnimating = false;
-	playerTeleportAnimating = false;
-	playerTeleportMoved = false;
-	waveClearDelayActive = false;
+	isPlayerSpawnAnimating = false;
+	isPlayerTeleportAnimating = false;
+	hasPlayerTeleportMoved = false;
+	isWaveClearDelayActive = false;
 	materializingEnemies.clear();
 	tutorial.reset();
-	tutorialActive = false;
+	isTutorialActive = false;
 	GetContext().gameplayLaunch.isTutorialRunning = false;
 	if (hud) hud->Update(0.f);
 }
@@ -1105,7 +1105,7 @@ void GameplayState::SaveCompletedLevel()
 	bestScore = std::max(bestScore, session.GetLevelScore());
 	static_cast<void>(GetContext().records.SubmitCampaignLevelScore(
 		completedLevel, session.GetLevelScore()));
-	if (selectedLevelRun && !selectedLevelAdvancesCampaign)
+	if (isSelectedLevelRun && !isSelectedLevelAdvancingCampaign)
 	{
 		static_cast<void>(GetContext().campaignSave.Save());
 		return;
@@ -1161,7 +1161,7 @@ void GameplayState::UnlockCompletionAchievements(int completedLevel)
 	if (!session.HasTakenDamageThisLevel())
 		static_cast<void>(GetContext().achievements.Unlock(AchievementID::BossUntouched));
 	const CampaignProgress* progress{ GetContext().campaignSave.GetProgress() };
-	if (mainCampaignRun && progress && progress->isNoDeathAchievementEligible)
+	if (isMainCampaignRun && progress && progress->isNoDeathAchievementEligible)
 		static_cast<void>(GetContext().achievements.Unlock(AchievementID::FlawlessCampaign));
 }
 
@@ -1226,7 +1226,7 @@ void GameplayState::CompleteCurrentLevel()
 	session.SetLevelComplete();
 	UnlockCompletionAchievements(session.GetLevel());
 
-	if (selectedLevelRun && !selectedLevelAdvancesCampaign)
+	if (isSelectedLevelRun && !isSelectedLevelAdvancingCampaign)
 		resultScreen.Start(UI::ResultScreen::Mode::LevelReplay,
 			session.GetLevel(), levelStatistics);
 	else if (session.GetLevel() >= gameplayData.GetLevelCount())
@@ -1239,7 +1239,7 @@ void GameplayState::CompleteCurrentLevel()
 
 void GameplayState::BeginGameOver()
 {
-	if (mainCampaignRun && !tutorialActive)
+	if (isMainCampaignRun && !isTutorialActive)
 	{
 		if (CampaignProgress* progress{ GetContext().campaignSave.EditProgress() })
 		{
@@ -1250,13 +1250,13 @@ void GameplayState::BeginGameOver()
 	world.Sound().StopActiveSounds();
 	world.Sound().AddSound(Config::Sound::ShipExplosion);
 	GetContext().audio.PauseGameplayMusic();
-	if (hordeMode)
+	if (isHordeMode)
 	{
 		static_cast<void>(GetContext().records.SubmitHordeResult(
 			hordeWavesSurvived, session.GetScore()));
 		gameOverScreen.ShowInHordeMode(session.GetScore(), hordeWavesSurvived);
 	}
-	else if (runMode)
+	else if (isRunMode)
 	{
 		const int survivedSeconds{ static_cast<int>(std::floor(runElapsed)) };
 		static_cast<void>(GetContext().records.SubmitRunSeconds(survivedSeconds));
@@ -1305,13 +1305,13 @@ void GameplayState::BeginResultTransition(UI::ResultScreen::Action action)
 
 void GameplayState::RestartCurrentLevel()
 {
-	if (tutorialActive)
+	if (isTutorialActive)
 	{
 		StartTutorial();
 		GetContext().audio.ResumeGameplayMusic();
 		return;
 	}
-	if (hordeMode)
+	if (isHordeMode)
 	{
 		StartHorde();
 		if (hud)
@@ -1319,7 +1319,7 @@ void GameplayState::RestartCurrentLevel()
 		GetContext().audio.ResumeGameplayMusic();
 		return;
 	}
-	if (runMode)
+	if (isRunMode)
 	{
 		StartRun();
 		GetContext().audio.ResumeGameplayMusic();
@@ -1362,11 +1362,11 @@ void GameplayState::SpawnLevel()
 	}
 	PrepareCampaignRewards(level);
 	levelGameplayElapsed = 0.f;
-	waveClearDelayActive = false;
+	isWaveClearDelayActive = false;
 	waveClearDelayRemaining = 0.f;
 	background.SetTheme(level.background, level.backgroundBrightness);
 	bossEncounter.reset();
-	bossVictorySequenceStarted = false;
+	hasBossVictorySequenceStarted = false;
 	if (level.encounter == GameplayData::EncounterKind::Boss)
 	{
 		GetContext().audio.StopGameplayMusic();
@@ -1560,15 +1560,15 @@ void GameplayState::StartHorde()
 	waveIntro.Reset();
 	gameplayTransition = GameplayTransition::None;
 	levelGameplayElapsed = 0.f;
-	waveClearDelayActive = false;
+	isWaveClearDelayActive = false;
 	waveClearDelayRemaining = 0.f;
-	playerSpawnAnimating = false;
-	playerTeleportAnimating = false;
-	playerTeleportMoved = false;
+	isPlayerSpawnAnimating = false;
+	isPlayerTeleportAnimating = false;
+	hasPlayerTeleportMoved = false;
 	materializingEnemies.clear();
 	hordeCurrentWave = 1;
 	hordeWavesSurvived = 0;
-	hordeHelperAvailable = true;
+	isHordeHelperAvailable = true;
 	hordeBonusBag.clear();
 
 	const HordeBackground& selectedBackground{ HordeBackgrounds[
@@ -1599,19 +1599,19 @@ void GameplayState::StartRun()
 	waveIntro.Reset();
 	gameplayTransition = GameplayTransition::None;
 	levelGameplayElapsed = 0.f;
-	waveClearDelayActive = false;
+	isWaveClearDelayActive = false;
 	waveClearDelayRemaining = 0.f;
-	playerSpawnAnimating = false;
-	playerTeleportAnimating = false;
-	playerTeleportMoved = false;
+	isPlayerSpawnAnimating = false;
+	isPlayerTeleportAnimating = false;
+	hasPlayerTeleportMoved = false;
 	materializingEnemies.clear();
 	runElapsed = 0.f;
 	runAsteroidTimer = RunAsteroidInterval;
 	runEnemyTimer = RunEnemyInterval;
 	runAsteroidsSpawned = 0;
 	runShootersSpawned = 0;
-	runLaserTurretSpawned = false;
-	runReflectorSpawned = false;
+	wasRunLaserTurretSpawned = false;
+	wasRunReflectorSpawned = false;
 
 	const auto& presentation{ gameplayData.GetLevel(3) };
 	background.SetTheme(presentation.background, presentation.backgroundBrightness);
@@ -1651,15 +1651,15 @@ void GameplayState::UpdateRun(float deltaTime)
 		++runShootersSpawned;
 		runEnemyTimer += RunEnemyInterval;
 	}
-	if (!runLaserTurretSpawned && runElapsed >= 40.f)
+	if (!wasRunLaserTurretSpawned && runElapsed >= 40.f)
 	{
 		SpawnRunEnemy(GameplayData::EnemyKind::LaserTurret);
-		runLaserTurretSpawned = true;
+		wasRunLaserTurretSpawned = true;
 	}
-	if (!runReflectorSpawned && runElapsed >= 60.f)
+	if (!wasRunReflectorSpawned && runElapsed >= 60.f)
 	{
 		SpawnRunEnemy(GameplayData::EnemyKind::ReflectorGunship);
-		runReflectorSpawned = true;
+		wasRunReflectorSpawned = true;
 	}
 	world.CommitPendingEntities();
 }
@@ -1801,9 +1801,9 @@ GameplayData::WaveConfig GameplayState::BuildHordeWave()
 GameplayData::PickupKind GameplayState::TakeNextHordeBonus()
 {
 	using Kind = GameplayData::PickupKind;
-	if (hordeCurrentWave == 3 && hordeHelperAvailable)
+	if (hordeCurrentWave == 3 && isHordeHelperAvailable)
 	{
-		hordeHelperAvailable = false;
+		isHordeHelperAvailable = false;
 		return Kind::HelperBot;
 	}
 
@@ -1854,14 +1854,14 @@ void GameplayState::GrantHordeWaveUpgrade()
 const GameplayData::LevelConfig& GameplayState::GetPresentationLevel() const
 {
 	return gameplayData.GetLevel(
-		hordeMode ? 9 : (runMode ? 3 : session.GetLevel()));
+		isHordeMode ? 9 : (isRunMode ? 3 : session.GetLevel()));
 }
 
 void GameplayState::StartNextWave(
 	bool materializeInitialSpawns,
 	bool startWaveIntro)
 {
-	waveClearDelayActive = false;
+	isWaveClearDelayActive = false;
 	waveClearDelayRemaining = 0.f;
 	materializingEnemies.clear();
 	waveMaterializationElapsed = 0.f;
@@ -1874,7 +1874,7 @@ void GameplayState::StartNextWave(
 	if (startWaveIntro)
 		waveIntro.Start(
 			waveDirector.GetCurrentWaveNumber(),
-			!hordeMode && !waveDirector.HasMoreWaves());
+			!isHordeMode && !waveDirector.HasMoreWaves());
 }
 
 void GameplayState::FinishWaveIntro()
@@ -1895,7 +1895,7 @@ void GameplayState::FinishWaveIntro()
 		}
 	}
 	playerSpawnElapsed = 0.f;
-	playerSpawnAnimating = true;
+	isPlayerSpawnAnimating = true;
 	world.SetPlayerSpawnPresentation(0.f);
 }
 
@@ -1906,7 +1906,7 @@ void GameplayState::UpdatePlayerSpawnAnimation(float deltaTime)
 	world.SetPlayerSpawnPresentation(progress);
 	if (playerSpawnElapsed >= PlayerSpawnDuration)
 	{
-		playerSpawnAnimating = false;
+		isPlayerSpawnAnimating = false;
 		if (bossEncounter && !bossEncounter->IsActive())
 		{
 			bossEncounter->Start();
@@ -1924,8 +1924,8 @@ void GameplayState::BeginPlayerWaveTeleport()
 	if (!world.HasPlayer())
 		return;
 	playerTeleportElapsed = 0.f;
-	playerTeleportAnimating = true;
-	playerTeleportMoved = false;
+	isPlayerTeleportAnimating = true;
+	hasPlayerTeleportMoved = false;
 	world.Effects().Add({
 		Rendering::EffectEventType::PlayerTeleport,
 		world.GetPlayerPosition(), {}, 0.85f });
@@ -1933,7 +1933,7 @@ void GameplayState::BeginPlayerWaveTeleport()
 
 void GameplayState::UpdatePlayerWaveTeleport(float deltaTime)
 {
-	if (!playerTeleportAnimating)
+	if (!isPlayerTeleportAnimating)
 		return;
 
 	playerTeleportElapsed = std::min(
@@ -1945,13 +1945,13 @@ void GameplayState::UpdatePlayerWaveTeleport(float deltaTime)
 	}
 	else
 	{
-		if (!playerTeleportMoved)
+		if (!hasPlayerTeleportMoved)
 		{
 			world.TeleportPlayerToCenter();
 			world.Effects().Add({
 				Rendering::EffectEventType::PlayerTeleport,
 				world.GetPlayerPosition(), {}, 1.15f });
-			playerTeleportMoved = true;
+			hasPlayerTeleportMoved = true;
 		}
 		const float progress{ std::clamp(
 			(playerTeleportElapsed - PlayerTeleportMoveTime) /
@@ -1963,7 +1963,7 @@ void GameplayState::UpdatePlayerWaveTeleport(float deltaTime)
 	{
 		world.TeleportPlayerToCenter();
 		world.SetPlayerSpawnPresentation(1.f);
-		playerTeleportAnimating = false;
+		isPlayerTeleportAnimating = false;
 	}
 }
 

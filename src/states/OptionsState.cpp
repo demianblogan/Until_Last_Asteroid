@@ -17,6 +17,7 @@
 #include "localization/LocalizationManager.h"
 #include "settings/SettingsManager.h"
 #include "input/gamepad/GamepadManager.h"
+#include "ui/MenuTheme.h"
 #include "ui/OptionsWidgets.h"
 #include "ui/TextLayout.h"
 
@@ -27,8 +28,6 @@ namespace
     constexpr sf::Color Orange{ 255, 190, 72 };
     constexpr sf::Color Disabled{ 76, 88, 101 };
     constexpr sf::Color Red{ 245, 92, 92 };
-    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
-    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
     constexpr float StateFadeDuration{ 0.24f };
     constexpr float PageFadeOutDuration{ 0.1f };
     constexpr float PageFadeInDuration{ 0.14f };
@@ -54,7 +53,7 @@ OptionsState::OptionsState(StateStack& stateStack, StateContext context, Origin 
         context.assets,
         Config::Texture::MenuPointer,
         { 6.f, 2.f },
-        InterfaceGlowColor)
+        UI::MenuTheme::InterfaceGlow)
     , screenFade(context.logicalSize)
     , toggleOnText(context.assets.Fonts().Get(context.localization.GetRegularFont()), context.localization.GetText("common.on"), 23)
     , toggleOffText(context.assets.Fonts().Get(context.localization.GetRegularFont()), context.localization.GetText("common.off"), 23)
@@ -79,7 +78,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
     const GamepadManager::NavigationAction navigation{
         GetContext().gamepad.GetNavigationAction(event) };
 
-    if (displayConfirmationOpen)
+    if (isDisplayConfirmationOpen)
     {
         using enum GamepadManager::NavigationAction;
         switch (navigation)
@@ -167,7 +166,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
         return;
     }
 
-    if (dropdownOpen)
+    if (isDropdownOpen)
     {
         using enum GamepadManager::NavigationAction;
         switch (navigation)
@@ -194,7 +193,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
         {
             const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
             background.SetMousePosition(point);
-            if (dropdownScrollbarDragging)
+            if (isDropdownScrollbarDragging)
                 UpdateDropdownScrollbar(point);
             else
                 HandleDropdownMouseMove(point);
@@ -211,7 +210,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
         }
         else if (event.is<sf::Event::MouseButtonReleased>())
         {
-            dropdownScrollbarDragging = false;
+            isDropdownScrollbarDragging = false;
         }
         return;
     }
@@ -220,7 +219,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
     {
         const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
         background.SetMousePosition(point);
-        if (sliderDragging)
+        if (isSliderDragging)
             UpdateSliderFromMouse(point);
         else
             HandleMousePosition(moved->position);
@@ -229,7 +228,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
 
     if (event.is<sf::Event::MouseButtonReleased>())
     {
-        sliderDragging = false;
+        isSliderDragging = false;
         return;
     }
 
@@ -297,9 +296,9 @@ void OptionsState::Update(float deltaTime)
     screenFade.Update(deltaTime);
     if (!screenFade.IsActive())
     {
-        if (exitPending)
+        if (isExitPending)
         {
-            exitPending = false;
+            isExitPending = false;
             RequestPop();
             return;
         }
@@ -312,7 +311,7 @@ void OptionsState::Update(float deltaTime)
         }
     }
 
-    if (!displayConfirmationOpen)
+    if (!isDisplayConfirmationOpen)
         return;
 
     displayConfirmationRemaining -= deltaTime;
@@ -329,9 +328,9 @@ void OptionsState::Render()
     if (page == Page::GamepadControls)
         DrawGamepadLayouts(window);
 	DrawRows(window);
-    if (dropdownOpen)
+    if (isDropdownOpen)
 		DrawDropdown(window);
-    if (pendingBinding.has_value() || displayConfirmationOpen)
+    if (pendingBinding.has_value() || isDisplayConfirmationOpen)
         DrawDialog(window);
 }
 
@@ -345,17 +344,17 @@ void OptionsState::RenderOverlay()
 void OptionsState::ApplyPage(Page newPage)
 {
     page = newPage;
-	gamepadLayoutCacheDirty = true;
+	isGamepadLayoutCacheDirty = true;
     RefreshTitle();
     selectedIndex = 0u;
-    dropdownOpen = false;
+    isDropdownOpen = false;
     pendingBinding.reset();
     RebuildRows();
 }
 
 void OptionsState::BeginPageTransition(Page newPage)
 {
-    if (newPage == page || pendingPage.has_value() || exitPending)
+    if (newPage == page || pendingPage.has_value() || isExitPending)
         return;
     pendingPage = newPage;
     screenFade.StartFadeOut(PageFadeOutDuration);
@@ -363,9 +362,9 @@ void OptionsState::BeginPageTransition(Page newPage)
 
 void OptionsState::BeginExit()
 {
-    if (exitPending || pendingPage.has_value())
+    if (isExitPending || pendingPage.has_value())
         return;
-    exitPending = true;
+    isExitPending = true;
     screenFade.StartFadeOut(StateFadeDuration);
 }
 
@@ -410,10 +409,10 @@ void OptionsState::RefreshTitle()
 void OptionsState::RebuildRows()
 {
     rows.clear();
-    const auto add{ [this](sf::String label, RowKind kind, Action action, bool enabled = true)
+    const auto add{ [this](sf::String label, RowKind kind, Action action, bool isEnabled = true)
         {
             const float y{ RowPosition.y + RowSpacing * static_cast<float>(rows.size()) };
-            rows.push_back({ std::move(label), kind, action, enabled,
+            rows.push_back({ std::move(label), kind, action, isEnabled,
                 sf::FloatRect({ RowPosition.x, y }, RowSize) });
         } };
 
@@ -487,7 +486,7 @@ void OptionsState::RebuildRows()
         break;
     }
 
-    if (!rows.empty() && !rows[selectedIndex].enabled)
+    if (!rows.empty() && !rows[selectedIndex].isEnabled)
         SelectNext();
 
     RebuildRowTextCache();
@@ -528,11 +527,11 @@ void OptionsState::RebuildRowTextCache()
         if (row.kind == RowKind::Dropdown)
         {
             const sf::FloatRect bounds{ UI::OptionsWidgets::GetValueBoxBounds(row.bounds.position.y) };
-            rowValues.back().setCharacterSize(row.enabled ? 25u : 21u);
+            rowValues.back().setCharacterSize(row.isEnabled ? 25u : 21u);
 			UI::TextLayout::FitWidth(rowValues.back(), bounds.size.x - 40.f, 16u);
             rowValues.back().setPosition(
-                bounds.position + sf::Vector2f{ 20.f, row.enabled ? 13.f : 5.f });
-            if (!row.enabled)
+                bounds.position + sf::Vector2f{ 20.f, row.isEnabled ? 13.f : 5.f });
+            if (!row.isEnabled)
             {
                 rowHints.back().setString(GetContext().localization.GetText("options.desktop_controlled"));
 				UI::TextLayout::FitWidth(rowHints.back(), bounds.size.x - 40.f, 11u);
@@ -583,7 +582,7 @@ void OptionsState::RefreshRowTextValues()
 
 void OptionsState::Select(std::size_t index, bool playSound)
 {
-    if (index >= rows.size() || !rows[index].enabled)
+    if (index >= rows.size() || !rows[index].isEnabled)
         return;
     const bool changed{ selectedIndex != index };
     selectedIndex = index;
@@ -602,7 +601,7 @@ void OptionsState::SelectPrevious()
     do
     {
         index = index == 0u ? rows.size() - 1u : index - 1u;
-    } while (!rows[index].enabled && index != selectedIndex);
+    } while (!rows[index].isEnabled && index != selectedIndex);
     Select(index);
 }
 
@@ -614,7 +613,7 @@ void OptionsState::SelectNext()
     do
     {
         index = (index + 1u) % rows.size();
-    } while (!rows[index].enabled && index != selectedIndex);
+    } while (!rows[index].isEnabled && index != selectedIndex);
     Select(index);
 }
 
@@ -713,7 +712,7 @@ void OptionsState::HandleMousePosition(sf::Vector2i pixelPosition)
     const sf::Vector2f point{ GetContext().window.mapPixelToCoords(pixelPosition) };
     for (std::size_t index{ 0u }; index < rows.size(); ++index)
     {
-        if (rows[index].enabled && rows[index].bounds.contains(point))
+        if (rows[index].isEnabled && rows[index].bounds.contains(point))
         {
             Select(index);
             return;
@@ -739,7 +738,7 @@ void OptionsState::HandleMousePress(sf::Vector2i pixelPosition)
 
     if (rows[selectedIndex].kind == RowKind::Slider)
     {
-        sliderDragging = true;
+        isSliderDragging = true;
         UpdateSliderFromMouse(point);
     }
     else
@@ -773,8 +772,8 @@ void OptionsState::OpenDropdown(Action action)
         ? FindCurrentResolution()
         : static_cast<std::size_t>(GetContext().settings.GetSettings().graphics.windowMode);
     dropdownFirstVisible = 0u;
-    dropdownOpen = true;
-    dropdownScrollbarDragging = false;
+    isDropdownOpen = true;
+    isDropdownScrollbarDragging = false;
 	dropdownLabels.clear();
 	dropdownLabels.reserve(GetDropdownItemCount());
 	const sf::Font& font{ GetContext().assets.Fonts().Get(
@@ -786,8 +785,8 @@ void OptionsState::OpenDropdown(Action action)
 
 void OptionsState::CloseDropdown()
 {
-    dropdownOpen = false;
-    dropdownScrollbarDragging = false;
+    isDropdownOpen = false;
+    isDropdownScrollbarDragging = false;
 }
 
 void OptionsState::MoveDropdownSelection(int direction)
@@ -864,7 +863,7 @@ void OptionsState::HandleDropdownMousePress(sf::Vector2f position)
         count - dropdownFirstVisible) };
     if (count > UI::OptionsWidgets::MaximumVisibleDropdownItems && GetDropdownScrollbarBounds().contains(position))
     {
-        dropdownScrollbarDragging = true;
+        isDropdownScrollbarDragging = true;
         UpdateDropdownScrollbar(position);
         return;
     }
@@ -1046,7 +1045,7 @@ void OptionsState::Execute(Action action)
 		else if (action == Action::SetRussian) language = Language::Russian;
 		else if (action == Action::SetUkrainian) language = Language::Ukrainian;
 		else if (action == Action::SetArabic) language = Language::Arabic;
-		saveFailed = !GetContext().localization.SetLanguage(language);
+		hasSaveFailed = !GetContext().localization.SetLanguage(language);
 		RefreshTitle();
 		RebuildRows();
 		break;
@@ -1058,7 +1057,7 @@ void OptionsState::Execute(Action action)
 
 void OptionsState::SaveSettings()
 {
-    saveFailed = !GetContext().settings.SaveSettings();
+    hasSaveFailed = !GetContext().settings.SaveSettings();
 }
 
 void OptionsState::SaveAndApplyAudio()
@@ -1082,7 +1081,7 @@ void OptionsState::BeginDisplayChange(const GraphicsSettings& previous)
     displayConfirmationRemaining = DisplayConfirmationDuration;
     dialogSelectedIndex = 0u;
     dialogGlow.Invalidate();
-    displayConfirmationOpen = true;
+    isDisplayConfirmationOpen = true;
 }
 
 void OptionsState::SelectDialogOption(std::size_t index, bool playSound)
@@ -1107,7 +1106,7 @@ void OptionsState::ActivateDialogOption(std::size_t index)
 
 void OptionsState::ConfirmDisplayChange()
 {
-    displayConfirmationOpen = false;
+    isDisplayConfirmationOpen = false;
 }
 
 void OptionsState::RevertDisplayChange()
@@ -1116,7 +1115,7 @@ void OptionsState::RevertDisplayChange()
     SaveSettings();
     GetContext().display.ApplyDisplaySettings(previousGraphics);
     GetContext().window.setMouseCursorVisible(false);
-    displayConfirmationOpen = false;
+    isDisplayConfirmationOpen = false;
     RebuildRows();
 }
 
@@ -1237,7 +1236,7 @@ sf::String OptionsState::GetRowValue(const Row& row) const
     switch (row.action)
     {
     case Action::Resolution:
-        if (!row.enabled)
+        if (!row.isEnabled)
             return GetContext().localization.GetText("options.desktop_resolution");
         return std::to_string(settings.graphics.resolution.x) + " x " +
             std::to_string(settings.graphics.resolution.y);
@@ -1363,7 +1362,7 @@ sf::FloatRect OptionsState::GetDropdownScrollbarBounds() const
 
 bool OptionsState::IsSelectedRowEnabled() const
 {
-    return selectedIndex < rows.size() && rows[selectedIndex].enabled;
+    return selectedIndex < rows.size() && rows[selectedIndex].isEnabled;
 }
 
 void OptionsState::DrawTitle(sf::RenderTarget& target)
@@ -1376,7 +1375,7 @@ void OptionsState::DrawTitle(sf::RenderTarget& target)
 
 void OptionsState::DrawGamepadLayouts(sf::RenderTarget& target)
 {
-	if (gamepadLayoutCacheDirty)
+	if (isGamepadLayoutCacheDirty)
 	{
 		const sf::Vector2u size{
 			static_cast<unsigned int>(GetContext().logicalSize.x),
@@ -1386,7 +1385,7 @@ void OptionsState::DrawGamepadLayouts(sf::RenderTarget& target)
 		gamepadLayoutCache.clear(sf::Color::Transparent);
 		DrawGamepadLayoutsContent(gamepadLayoutCache);
 		gamepadLayoutCache.display();
-		gamepadLayoutCacheDirty = false;
+		isGamepadLayoutCacheDirty = false;
 	}
 	target.draw(sf::Sprite(gamepadLayoutCache.getTexture()));
 }
@@ -1494,7 +1493,7 @@ void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
 
 void OptionsState::DrawRows(sf::RenderTarget& target)
 {
-    if (!displayConfirmationOpen && !pendingBinding.has_value() && IsSelectedRowEnabled())
+    if (!isDisplayConfirmationOpen && !pendingBinding.has_value() && IsSelectedRowEnabled())
     {
         const Row& selectedRow{ rows[selectedIndex] };
         neonGlow.DrawBloom(
@@ -1504,16 +1503,16 @@ void OptionsState::DrawRows(sf::RenderTarget& target)
             {
                 DrawRow(glowTarget, selectedRow, selectedIndex, states);
             },
-            SelectionGlowColor);
+            UI::MenuTheme::SelectionGlow);
     }
 
     for (std::size_t index{ 0u }; index < rows.size(); ++index)
         DrawRow(target, rows[index], index, sf::RenderStates::Default);
 
-    if (!displayConfirmationOpen && !pendingBinding.has_value() && IsSelectedRowEnabled())
-        neonGlow.DrawHighlight(target, rows[selectedIndex].bounds, SelectionGlowColor);
+    if (!isDisplayConfirmationOpen && !pendingBinding.has_value() && IsSelectedRowEnabled())
+        neonGlow.DrawHighlight(target, rows[selectedIndex].bounds, UI::MenuTheme::SelectionGlow);
 
-    if (saveFailed)
+    if (hasSaveFailed)
     {
         UI::OptionsWidgets::DrawText(target,
             GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()),
@@ -1528,7 +1527,7 @@ void OptionsState::DrawRow(
     std::size_t index,
     const sf::RenderStates& states)
 {
-    const bool selected{ index == selectedIndex && row.enabled };
+    const bool selected{ index == selectedIndex && row.isEnabled };
     UI::RoundedRectangleShape panel(row.bounds.size, 15.f, 10u);
     panel.setPosition(row.bounds.position);
     panel.setFillColor(selected ? sf::Color(8, 34, 48, 226) : sf::Color(5, 17, 29, 210));
@@ -1536,7 +1535,7 @@ void OptionsState::DrawRow(
     panel.setOutlineThickness(selected ? 2.f : 1.f);
     target.draw(panel, states);
 
-    const sf::Color textColor{ !row.enabled ? Disabled : (selected ? Orange : BrightCyan) };
+    const sf::Color textColor{ !row.isEnabled ? Disabled : (selected ? Orange : BrightCyan) };
     rowLabels[index].setFillColor(textColor);
     target.draw(rowLabels[index], states);
 
@@ -1573,18 +1572,18 @@ void OptionsState::DrawRow(
     else if (row.kind == RowKind::Dropdown)
     {
         const sf::FloatRect bounds{ UI::OptionsWidgets::GetValueBoxBounds(row.bounds.position.y) };
-        UI::OptionsWidgets::DrawDropdownBox(target, bounds, row.enabled, states);
+        UI::OptionsWidgets::DrawDropdownBox(target, bounds, row.isEnabled, states);
 
-        rowValues[index].setFillColor(row.enabled ? Cyan : Disabled);
+        rowValues[index].setFillColor(row.isEnabled ? Cyan : Disabled);
         target.draw(rowValues[index], states);
-        if (!row.enabled)
+        if (!row.isEnabled)
             target.draw(rowHints[index], states);
     }
     else
     {
         if (!rowValues[index].getString().isEmpty())
         {
-            rowValues[index].setFillColor(row.enabled ? Cyan : Disabled);
+            rowValues[index].setFillColor(row.isEnabled ? Cyan : Disabled);
             target.draw(rowValues[index], states);
         }
     }
@@ -1648,7 +1647,7 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
     dialog.setOutlineThickness(2.f);
     target.draw(dialog);
 
-    if (displayConfirmationOpen)
+    if (isDisplayConfirmationOpen)
     {
         UI::OptionsWidgets::DrawCenteredText(target, font, GetContext().localization.GetText("options.keep_display"), 960.f, 465.f, 36, BrightCyan);
         UI::OptionsWidgets::DrawCenteredText(target, font, GetContext().localization.FormatText("options.reverting", "seconds",
@@ -1675,7 +1674,7 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
                     true,
                     states);
             },
-            SelectionGlowColor);
+            UI::MenuTheme::SelectionGlow);
         for (std::size_t index{ 0u }; index < buttons.size(); ++index)
         {
             const auto& [bounds, label]{ buttons[index] };
@@ -1687,7 +1686,7 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
                 index == dialogSelectedIndex,
                 sf::RenderStates::Default);
         }
-        dialogGlow.DrawHighlight(target, selectedBounds, SelectionGlowColor);
+        dialogGlow.DrawHighlight(target, selectedBounds, UI::MenuTheme::SelectionGlow);
     }
     else
     {
@@ -1706,7 +1705,7 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
                     true,
                     states);
             },
-            SelectionGlowColor);
+            UI::MenuTheme::SelectionGlow);
         UI::OptionsWidgets::DrawDialogButton(
             target,
             font,
@@ -1714,6 +1713,6 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
             cancelLabel,
             true,
             sf::RenderStates::Default);
-        dialogGlow.DrawHighlight(target, BindingCancelBounds, SelectionGlowColor);
+        dialogGlow.DrawHighlight(target, BindingCancelBounds, UI::MenuTheme::SelectionGlow);
     }
 }

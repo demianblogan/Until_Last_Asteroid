@@ -17,6 +17,7 @@
 #include "localization/LocalizationManager.h"
 #include "states/StateID.h"
 #include "input/gamepad/GamepadManager.h"
+#include "ui/MenuTheme.h"
 #include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 
@@ -29,8 +30,6 @@ namespace
 	constexpr sf::Vector2f FirstButtonPosition{ 525.f, 125.f };
 	constexpr float PartsFrameGap{ 20.f };
 	constexpr float ButtonSpacing{ 75.f };
-	constexpr sf::Color Cyan{ 25, 220, 255 };
-	constexpr sf::Color Amber{ 255, 178, 42 };
 	constexpr float FadeDuration{ 0.38f };
 }
 
@@ -40,7 +39,7 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 	, titleGlow(context.assets)
 	, buttonGlow(context.assets)
 	, partsGlow(context.assets)
-	, menuCursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Cyan)
+	, menuCursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, UI::MenuTheme::InterfaceGlow)
 	, screenFade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
 		context.localization.GetText("level_select.title"), 72u)
@@ -146,7 +145,7 @@ LevelSelectState::LevelSelectState(StateStack& stateStack, StateContext context)
 
 void LevelSelectState::HandleEvent(const sf::Event& event)
 {
-	if (launchingLevel || screenFade.IsActive())
+	if (isLaunchingLevel || screenFade.IsActive())
 		return;
 
 	using enum GamepadManager::NavigationAction;
@@ -208,7 +207,7 @@ void LevelSelectState::Update(float deltaTime)
 	partsGlow.Update(deltaTime);
 	menuCursor.Update(deltaTime);
 	screenFade.Update(deltaTime);
-	if (launchingLevel && !screenFade.IsActive())
+	if (isLaunchingLevel && !screenFade.IsActive())
 	{
 		RequestClear();
 		RequestPush(StateID::Gameplay);
@@ -221,15 +220,15 @@ void LevelSelectState::Render()
 	background.Draw(window);
 	titleGlow.DrawBloom(window, title.getGlobalBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
-		{ target.draw(title, states); }, Cyan);
+		{ target.draw(title, states); }, UI::MenuTheme::InterfaceGlow);
 	window.draw(title);
-	titleGlow.DrawHighlight(window, title.getGlobalBounds(), Cyan);
+	titleGlow.DrawHighlight(window, title.getGlobalBounds(), UI::MenuTheme::InterfaceGlow);
 
 	const std::size_t selectedIndex{ buttonList.GetSelectedIndex() };
 	const UI::MenuButton& selectedButton{ buttonList.GetButtons()[selectedIndex] };
 	buttonGlow.DrawBloom(window, selectedButton.GetBounds(),
 		[&selectedButton](sf::RenderTarget& target, const sf::RenderStates& states)
-		{ selectedButton.Draw(target, states); }, Amber);
+		{ selectedButton.Draw(target, states); }, UI::MenuTheme::SelectionGlow);
 	if (selectedIndex < partsFrames.size())
 	{
 		const std::size_t index{ selectedIndex };
@@ -239,7 +238,7 @@ void LevelSelectState::Render()
 				partsFrames[index].Draw(target, states);
 				target.draw(partsIcons[index], states);
 				target.draw(partsCounts[index], states);
-			}, Amber);
+			}, UI::MenuTheme::SelectionGlow);
 	}
 	for (const UI::MenuButton& button : buttonList.GetButtons())
 		button.Draw(window);
@@ -249,10 +248,10 @@ void LevelSelectState::Render()
 		window.draw(partsIcons[index]);
 		window.draw(partsCounts[index]);
 	}
-	buttonGlow.DrawHighlight(window, selectedButton.GetBounds(), Amber);
+	buttonGlow.DrawHighlight(window, selectedButton.GetBounds(), UI::MenuTheme::SelectionGlow);
 	if (selectedIndex < partsFrames.size())
 		partsGlow.DrawHighlight(
-			window, partsFrames[selectedIndex].GetBounds(), Amber);
+			window, partsFrames[selectedIndex].GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
 void LevelSelectState::RenderOverlay()
@@ -321,6 +320,6 @@ void LevelSelectState::BeginLevel(int level)
 {
 	GetContext().gameplayLaunch.mode = GameplayLaunchMode::SelectedLevel;
 	GetContext().gameplayLaunch.selectedLevel = level;
-	launchingLevel = true;
+	isLaunchingLevel = true;
 	screenFade.StartFadeOut(FadeDuration);
 }

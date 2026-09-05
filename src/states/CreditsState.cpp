@@ -10,6 +10,7 @@
 #include "audio/AudioManager.h"
 #include "localization/LocalizationManager.h"
 #include "input/gamepad/GamepadManager.h"
+#include "ui/MenuTheme.h"
 #include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 
@@ -17,8 +18,6 @@ namespace
 {
 	constexpr sf::FloatRect PanelBounds{ { 160.f, 130.f }, { 1600.f, 750.f } };
 	constexpr sf::Vector2f ButtonSize{ 540.f, 92.f };
-	constexpr sf::Color Cyan{ 25, 220, 255 };
-	constexpr sf::Color Gold{ 255, 178, 42 };
 	constexpr float FadeDuration{ 0.35f };
 	constexpr unsigned int BodyAtlasSize{ 34u };
 
@@ -31,12 +30,12 @@ namespace
 	};
 
 	const std::array<CreditLine, 11> CreditLines{
-		CreditLine{ "credits.line_1", 34u, Gold, 250.f }, CreditLine{ "credits.line_2", 28u, sf::Color(215, 238, 244), 310.f },
+		CreditLine{ "credits.line_1", 34u, UI::MenuTheme::SelectionGlow, 250.f }, CreditLine{ "credits.line_2", 28u, sf::Color(215, 238, 244), 310.f },
 		CreditLine{ "credits.line_3", 27u, sf::Color(215, 238, 244), 360.f }, CreditLine{ "credits.line_4", 27u, sf::Color(215, 238, 244), 406.f },
 		CreditLine{ "credits.line_5", 27u, sf::Color(215, 238, 244), 450.f }, CreditLine{ "credits.line_6", 29u, sf::Color(235, 246, 249), 506.f },
-		CreditLine{ "credits.contact", 25u, sf::Color(150, 215, 230), 582.f }, CreditLine{ "credits.email", 28u, Cyan, 622.f },
+		CreditLine{ "credits.contact", 25u, sf::Color(150, 215, 230), 582.f }, CreditLine{ "credits.email", 28u, UI::MenuTheme::InterfaceGlow, 622.f },
 		CreditLine{ "credits.youtube", 25u, sf::Color(150, 215, 230), 680.f }, CreditLine{ "credits.source", 24u, sf::Color(150, 215, 230), 738.f },
-		CreditLine{ "credits.repository", 25u, Cyan, 776.f }
+		CreditLine{ "credits.repository", 25u, UI::MenuTheme::InterfaceGlow, 776.f }
 	};
 }
 
@@ -47,7 +46,7 @@ CreditsState::CreditsState(StateStack& stack, StateContext context)
 		PanelBounds, 190u, { 90.f, 90.f })
 	, titleGlow(context.assets)
 	, buttonGlow(context.assets)
-	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Cyan)
+	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, UI::MenuTheme::InterfaceGlow)
 	, fade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("credits.title"), 72u)
 	, returnButton(context.assets.Fonts().Get(context.localization.GetRegularFont()),
@@ -80,7 +79,7 @@ CreditsState::CreditsState(StateStack& stack, StateContext context)
 
 void CreditsState::HandleEvent(const sf::Event& event)
 {
-	if (returning || fade.IsActive()) return;
+	if (isReturning || fade.IsActive()) return;
 	using enum GamepadManager::NavigationAction;
 	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
 	if (navigation == Confirm || navigation == Back) { BeginReturn(); return; }
@@ -88,10 +87,10 @@ void CreditsState::HandleEvent(const sf::Event& event)
 	{
 		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
 		background.SetMousePosition(point);
-		const bool wasSelected{ returnButtonSelected };
-		returnButtonSelected = returnButton.Contains(point);
-		returnButton.SetSelected(returnButtonSelected);
-		if (returnButtonSelected != wasSelected)
+		const bool wasSelected{ isReturnButtonSelected };
+		isReturnButtonSelected = returnButton.Contains(point);
+		returnButton.SetSelected(isReturnButtonSelected);
+		if (isReturnButtonSelected != wasSelected)
 			buttonGlow.Invalidate();
 		return;
 	}
@@ -106,16 +105,16 @@ void CreditsState::HandleEvent(const sf::Event& event)
 			GetContext().window.mapPixelToCoords(pressed->position))) BeginReturn();
 }
 
-void CreditsState::Update(float dt)
+void CreditsState::Update(float deltaTime)
 {
-	background.Update(dt); titleGlow.Update(dt); buttonGlow.Update(dt); cursor.Update(dt); fade.Update(dt);
-	if (GetContext().gamepad.IsInUse() && !returnButtonSelected)
+	background.Update(deltaTime); titleGlow.Update(deltaTime); buttonGlow.Update(deltaTime); cursor.Update(deltaTime); fade.Update(deltaTime);
+	if (GetContext().gamepad.IsInUse() && !isReturnButtonSelected)
 	{
-		returnButtonSelected = true;
+		isReturnButtonSelected = true;
 		returnButton.SetSelected(true);
 		buttonGlow.Invalidate();
 	}
-	if (returning && !fade.IsActive()) RequestPop();
+	if (isReturning && !fade.IsActive()) RequestPop();
 }
 
 void CreditsState::Render()
@@ -125,16 +124,16 @@ void CreditsState::Render()
 	panel.Draw(window);
 	titleGlow.DrawBloom(window, title.getGlobalBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
-		{ target.draw(title, states); }, Cyan);
+		{ target.draw(title, states); }, UI::MenuTheme::InterfaceGlow);
 	window.draw(title);
 	for (const sf::Text& line : bodyLines) window.draw(line);
-	if (returnButtonSelected)
+	if (isReturnButtonSelected)
 		buttonGlow.DrawBloom(window, returnButton.GetBounds(),
 			[this](sf::RenderTarget& target, const sf::RenderStates& states)
-			{ returnButton.Draw(target, states); }, Gold);
+			{ returnButton.Draw(target, states); }, UI::MenuTheme::SelectionGlow);
 	returnButton.Draw(window);
-	if (returnButtonSelected)
-		buttonGlow.DrawHighlight(window, returnButton.GetBounds(), Gold);
+	if (isReturnButtonSelected)
+		buttonGlow.DrawHighlight(window, returnButton.GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
 void CreditsState::RenderOverlay()
@@ -148,8 +147,8 @@ void CreditsState::OnReactivated()
 	GetContext().window.setMouseCursorVisible(false);
 	if (localizationRevision != GetContext().localization.GetLanguageRevision())
 		RefreshLocalizedContent();
-	returning = false;
-	returnButtonSelected = false;
+	isReturning = false;
+	isReturnButtonSelected = false;
 	returnButton.SetSelected(false);
 	buttonGlow.Invalidate();
 	fade.StartFadeIn(FadeDuration);
@@ -184,9 +183,9 @@ void CreditsState::RefreshLocalizedContent()
 
 void CreditsState::BeginReturn()
 {
-	if (returning) return;
+	if (isReturning) return;
 	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI,
 		100.f, 1.f, SoundPlayback::StopPrevious);
-	returning = true;
+	isReturning = true;
 	fade.StartFadeOut(FadeDuration);
 }

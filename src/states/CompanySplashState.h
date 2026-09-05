@@ -22,9 +22,9 @@ private:
     void UpdateOpacity();
     void UpdateLayout();
 
-    static constexpr float FADE_IN_DURATION{ 0.5f };
-    static constexpr float HOLD_DURATION{ 2.f };
-    static constexpr float FADE_OUT_DURATION{ 0.5f };
+    static constexpr float FadeInDuration{ 0.5f };
+    static constexpr float HoldDuration{ 2.f };
+    static constexpr float FadeOutDuration{ 0.5f };
 
     sf::Sprite logo;
     float elapsedTime{ 0.f };

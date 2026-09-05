@@ -45,6 +45,6 @@ private:
 	sf::Text runLabel;
 	sf::Text runValue;
 	UI::MenuButton returnButton;
-	bool returning{ false };
-	bool returnButtonSelected{ false };
+	bool isReturning{ false };
+	bool isReturnButtonSelected{ false };
 };

@@ -18,6 +18,7 @@
 #include "localization/LocalizationManager.h"
 #include "states/StateID.h"
 #include "input/gamepad/GamepadManager.h"
+#include "ui/MenuTheme.h"
 #include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 
@@ -29,8 +30,6 @@ namespace
     constexpr sf::Vector2f DialogButtonSize{ 300.f, 72.f };
     constexpr sf::Vector2f DialogPanelPosition{ 435.f, 320.f };
     constexpr sf::Vector2f DialogPanelSize{ 1050.f, 410.f };
-    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
-    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
     constexpr float FadeDuration{ 0.38f };
 }
 
@@ -44,7 +43,7 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
         context.assets,
         Config::Texture::MenuPointer,
         { 6.f, 2.f },
-        InterfaceGlowColor)
+        UI::MenuTheme::InterfaceGlow)
     , screenFade(context.logicalSize)
     , title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
 		context.localization.GetText("campaign_menu.title"), 82)
@@ -109,7 +108,7 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
     dialogShade.setFillColor(sf::Color(0, 3, 10, 205));
     dialogPanel.setPosition(DialogPanelPosition);
     dialogPanel.setFillColor(sf::Color(3, 17, 32, 248));
-    dialogPanel.setOutlineColor(InterfaceGlowColor);
+    dialogPanel.setOutlineColor(UI::MenuTheme::InterfaceGlow);
     dialogPanel.setOutlineThickness(2.f);
 
     dialogTitle.setFillColor(sf::Color(215, 247, 252));
@@ -131,7 +130,7 @@ CampaignMenuState::CampaignMenuState(StateStack& stateStack, StateContext contex
 
 void CampaignMenuState::HandleEvent(const sf::Event& event)
 {
-    if (launchingGameplay || launchingUpgrades || launchingLevelSelect || screenFade.IsActive())
+    if (isLaunchingGameplay || isLaunchingUpgrades || isLaunchingLevelSelect || screenFade.IsActive())
         return;
 
     using enum GamepadManager::NavigationAction;
@@ -257,19 +256,19 @@ void CampaignMenuState::Update(float deltaTime)
     menuCursor.Update(deltaTime);
     screenFade.Update(deltaTime);
 
-    if (launchingGameplay && !screenFade.IsActive())
+    if (isLaunchingGameplay && !screenFade.IsActive())
     {
         RequestClear();
         RequestPush(StateID::Gameplay);
     }
-	else if (launchingUpgrades && !screenFade.IsActive())
+	else if (isLaunchingUpgrades && !screenFade.IsActive())
 	{
 		RequestClear();
 		RequestPush(StateID::ShipUpgrades);
 	}
-	else if (launchingLevelSelect && !screenFade.IsActive())
+	else if (isLaunchingLevelSelect && !screenFade.IsActive())
 	{
-		launchingLevelSelect = false;
+		isLaunchingLevelSelect = false;
 		RequestPush(StateID::LevelSelect);
 		screenFade.StartFadeIn(FadeDuration);
 	}
@@ -287,9 +286,9 @@ void CampaignMenuState::Render()
         {
             target.draw(title, states);
         },
-        InterfaceGlowColor);
+        UI::MenuTheme::InterfaceGlow);
     window.draw(title);
-    titleGlow.DrawHighlight(window, title.getGlobalBounds(), InterfaceGlowColor);
+    titleGlow.DrawHighlight(window, title.getGlobalBounds(), UI::MenuTheme::InterfaceGlow);
 
     if (!buttonList.GetButtons().empty())
     {
@@ -301,13 +300,13 @@ void CampaignMenuState::Render()
             {
                 selectedButton.Draw(target, states);
             },
-            SelectionGlowColor);
+            UI::MenuTheme::SelectionGlow);
     }
 
     for (const UI::MenuButton& button : buttonList.GetButtons())
         button.Draw(window);
     if (!buttonList.GetButtons().empty())
-        buttonGlow.DrawHighlight(window, buttonList.GetButtons()[buttonList.GetSelectedIndex()].GetBounds(), SelectionGlowColor);
+        buttonGlow.DrawHighlight(window, buttonList.GetButtons()[buttonList.GetSelectedIndex()].GetBounds(), UI::MenuTheme::SelectionGlow);
     window.draw(statusText);
 
     if (dialogMode == DialogMode::None)
@@ -326,10 +325,10 @@ void CampaignMenuState::Render()
         {
             selectedDialogButton.Draw(target, states);
         },
-        SelectionGlowColor);
+        UI::MenuTheme::SelectionGlow);
     for (const UI::MenuButton& button : dialogButtons)
         button.Draw(window);
-    dialogGlow.DrawHighlight(window, selectedDialogButton.GetBounds(), SelectionGlowColor);
+    dialogGlow.DrawHighlight(window, selectedDialogButton.GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
 void CampaignMenuState::RenderOverlay()
@@ -348,12 +347,12 @@ void CampaignMenuState::ActivateSelected()
 		if (const CampaignProgress* progress{ GetContext().campaignSave.GetProgress() };
 			progress != nullptr && progress->phase == CampaignPhase::AwaitingUpgrades)
 		{
-			launchingUpgrades = true;
+			isLaunchingUpgrades = true;
 			screenFade.StartFadeOut(FadeDuration);
 		}
 		else if (progress != nullptr && progress->phase == CampaignPhase::Finished)
 		{
-			launchingLevelSelect = true;
+			isLaunchingLevelSelect = true;
 			screenFade.StartFadeOut(FadeDuration);
 		}
 		else
@@ -473,7 +472,7 @@ void CampaignMenuState::ChooseTutorial(bool playTutorial)
 void CampaignMenuState::BeginGameplay(GameplayLaunchMode mode)
 {
     GetContext().gameplayLaunch.mode = mode;
-    launchingGameplay = true;
+    isLaunchingGameplay = true;
     screenFade.StartFadeOut(FadeDuration);
 }
 

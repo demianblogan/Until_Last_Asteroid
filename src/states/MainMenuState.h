@@ -47,5 +47,5 @@ private:
     float activationDelayRemaining{ 0.f };
     float titleLeftPosition{ 0.f };
 	std::size_t localizationRevision{ 0u };
-	bool localizedLabelsOverride{ false };
+	bool hasRefreshedLocalizedLabels{ false };
 };

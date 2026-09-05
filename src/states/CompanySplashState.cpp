@@ -49,7 +49,7 @@ void CompanySplashState::Update(float deltaTime)
     elapsedTime += deltaTime;
     UpdateOpacity();
 
-    if (elapsedTime >= FADE_IN_DURATION + HOLD_DURATION + FADE_OUT_DURATION)
+    if (elapsedTime >= FadeInDuration + HoldDuration + FadeOutDuration)
         Finish();
 }
 
@@ -105,14 +105,14 @@ void CompanySplashState::UpdateOpacity()
 {
     float opacity{ 1.f };
 
-    if (elapsedTime < FADE_IN_DURATION)
+    if (elapsedTime < FadeInDuration)
     {
-        opacity = elapsedTime / FADE_IN_DURATION;
+        opacity = elapsedTime / FadeInDuration;
     }
-    else if (elapsedTime > FADE_IN_DURATION + HOLD_DURATION)
+    else if (elapsedTime > FadeInDuration + HoldDuration)
     {
-        const float fadeOutElapsed{ elapsedTime - FADE_IN_DURATION - HOLD_DURATION };
-        opacity = 1.f - fadeOutElapsed / FADE_OUT_DURATION;
+        const float fadeOutElapsed{ elapsedTime - FadeInDuration - HoldDuration };
+        opacity = 1.f - fadeOutElapsed / FadeOutDuration;
     }
 
     opacity = std::clamp(opacity, 0.f, 1.f);

@@ -19,18 +19,47 @@
 #include "states/StateID.h"
 #include "gameplay/VibrationProfiles.h"
 #include "input/gamepad/GamepadManager.h"
+#include "ui/MenuTheme.h"
 #include "utils/ConfigEnums.h"
 
 namespace
 {
+	// The main menu as data: label + what activating that row does. Keeping the
+	// two together means reordering the menu can't silently desync the actions
+	// from the labels (which a positional switch on the row index would).
+	enum class MenuAction
+	{
+		StartCampaign,
+		Achievements,
+		Records,
+		Options,
+		Credits,
+		Quit
+	};
+
+	struct MenuEntry
+	{
+		const char* labelKey;
+		MenuAction action;
+	};
+
+	constexpr std::array<MenuEntry, 6> MenuEntries{
+		MenuEntry{ "main_menu.start_game", MenuAction::StartCampaign },
+		MenuEntry{ "main_menu.achievements", MenuAction::Achievements },
+		MenuEntry{ "main_menu.records", MenuAction::Records },
+		MenuEntry{ "main_menu.options", MenuAction::Options },
+		MenuEntry{ "main_menu.credits", MenuAction::Credits },
+		MenuEntry{ "main_menu.quit", MenuAction::Quit }
+	};
+
 	std::vector<sf::String> GetMenuLabels(const LocalizationManager& localization)
 	{
-		return { localization.GetText("main_menu.start_game"),
-			localization.GetText("main_menu.achievements"),
-			localization.GetText("main_menu.records"),
-			localization.GetText("main_menu.options"),
-			localization.GetText("main_menu.credits"),
-			localization.GetText("main_menu.quit") };
+		std::vector<sf::String> labels;
+		labels.reserve(MenuEntries.size());
+		for (const MenuEntry& entry : MenuEntries)
+			labels.push_back(localization.GetText(entry.labelKey));
+
+		return labels;
 	}
 
 	constexpr sf::Vector2f ButtonSize{ 540.f, 82.f };
@@ -40,8 +69,6 @@ namespace
     constexpr float TitleEndY{ 125.f };
     constexpr float ActivationDelay{ 0.12f };
     constexpr float MenuFadeInDuration{ 0.45f };
-    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
-    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
     constexpr std::size_t TypingSoundPoolSize{ 4 };
     constexpr std::array<float, TypingSoundPoolSize> TypingPitches{ 0.97f, 1.02f, 0.99f, 1.04f };
 }
@@ -55,7 +82,7 @@ MainMenuState::MainMenuState(StateStack& stateStack, StateContext context)
         context.assets,
         Config::Texture::MenuPointer,
         { 6.f, 2.f },
-        InterfaceGlowColor)
+        UI::MenuTheme::InterfaceGlow)
 	, introAnimation(context.localization.GetText("main_menu.title"), GetMenuLabels(context.localization))
     , screenFade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), "", 92)
@@ -256,7 +283,7 @@ void MainMenuState::Update(float deltaTime)
 void MainMenuState::RefreshLocalizedLabels()
 {
 	localizationRevision = GetContext().localization.GetLanguageRevision();
-	localizedLabelsOverride = true;
+	hasRefreshedLocalizedLabels = true;
 	const Language language{ GetContext().localization.GetCurrentLanguage() };
 	const auto fontID{ language == Language::English ? Config::Font::MenuRegular
 		: (language == Language::Arabic ? Config::Font::ArabicRegular
@@ -292,12 +319,12 @@ void MainMenuState::Render()
             {
                 target.draw(title, states);
             },
-            InterfaceGlowColor);
+            UI::MenuTheme::InterfaceGlow);
     }
 
     window.draw(title);
     if (!title.getString().isEmpty())
-        titleNeonGlow.DrawHighlight(window, title.getGlobalBounds(), InterfaceGlowColor);
+        titleNeonGlow.DrawHighlight(window, title.getGlobalBounds(), UI::MenuTheme::InterfaceGlow);
 
     if (introAnimation.IsInteractive() && !buttonList.GetButtons().empty())
     {
@@ -309,14 +336,14 @@ void MainMenuState::Render()
             {
                 selectedButton.Draw(target, states);
             },
-            SelectionGlowColor);
+            UI::MenuTheme::SelectionGlow);
     }
 
     for (const UI::MenuButton& button : buttonList.GetButtons())
         button.Draw(window);
 
     if (introAnimation.IsInteractive() && !buttonList.GetButtons().empty())
-        neonGlow.DrawHighlight(window, buttonList.GetButtons()[buttonList.GetSelectedIndex()].GetBounds(), SelectionGlowColor);
+        neonGlow.DrawHighlight(window, buttonList.GetButtons()[buttonList.GetSelectedIndex()].GetBounds(), UI::MenuTheme::SelectionGlow);
 
     window.draw(version);
 }
@@ -343,29 +370,32 @@ void MainMenuState::ActivateSelected()
 
 void MainMenuState::CompleteActivation(std::size_t index)
 {
-    switch (index)
+    if (index >= MenuEntries.size())
+        return;
+
+    switch (MenuEntries[index].action)
     {
-    case 0:
+    case MenuAction::StartCampaign:
         RequestPush(StateID::CampaignMenu);
         break;
 
-    case 1:
-		RequestPush(StateID::Achievements);
-		break;
-
-	case 2:
-		RequestPush(StateID::Records);
-		break;
-
-	case 3:
-		RequestPush(StateID::Options);
+    case MenuAction::Achievements:
+        RequestPush(StateID::Achievements);
         break;
 
-	case 4:
-		RequestPush(StateID::Credits);
+    case MenuAction::Records:
+        RequestPush(StateID::Records);
         break;
 
-	case 5:
+    case MenuAction::Options:
+        RequestPush(StateID::Options);
+        break;
+
+    case MenuAction::Credits:
+        RequestPush(StateID::Credits);
+        break;
+
+    case MenuAction::Quit:
         GetContext().window.close();
         break;
     }
@@ -373,7 +403,7 @@ void MainMenuState::CompleteActivation(std::size_t index)
 
 void MainMenuState::ApplyAnimationState()
 {
-	const sf::String visibleTitle{ localizedLabelsOverride
+	const sf::String visibleTitle{ hasRefreshedLocalizedLabels
 		? GetContext().localization.GetText("main_menu.title") : introAnimation.GetVisibleTitle() };
     if (title.getString() != visibleTitle)
     {
@@ -390,7 +420,7 @@ void MainMenuState::ApplyAnimationState()
     const float frameOpacity{ introAnimation.GetFrameOpacity() };
     for (std::size_t index{ 0 }; index < buttonList.GetButtons().size(); ++index)
     {
-		if (!localizedLabelsOverride)
+		if (!hasRefreshedLocalizedLabels)
 			buttonList.GetButtons()[index].SetLabel(introAnimation.GetVisibleMenuItem(index));
         buttonList.GetButtons()[index].SetFrameOpacity(frameOpacity);
     }

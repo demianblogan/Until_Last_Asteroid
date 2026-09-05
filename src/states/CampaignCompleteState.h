@@ -36,6 +36,6 @@ private:
 	UI::ScreenFade screenFade;
 	float revealElapsed{ 0.f };
 	float activationDelay{ 0.f };
-	bool interactive{ false };
-	bool leaving{ false };
+	bool isInteractive{ false };
+	bool isLeaving{ false };
 };

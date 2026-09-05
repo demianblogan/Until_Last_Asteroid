@@ -20,6 +20,7 @@
 #include "localization/LocalizationManager.h"
 #include "states/StateID.h"
 #include "input/gamepad/GamepadManager.h"
+#include "ui/MenuTheme.h"
 #include "rendering/RenderTargetUtils.h"
 #include "utils/ConfigEnums.h"
 
@@ -29,8 +30,6 @@ namespace
     constexpr float ActivationDelay{ 0.12f };
     constexpr float MainMenuFadeOutDuration{ 0.38f };
     constexpr float BlurRadius{ 4.f };
-    constexpr sf::Color SelectionGlowColor{ 255, 178, 42 };
-    constexpr sf::Color InterfaceGlowColor{ 25, 220, 255 };
 
     sf::Vector2u EnsureNonZero(sf::Vector2u size)
     {
@@ -54,7 +53,7 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
         context.assets,
         Config::Texture::MenuPointer,
         { 6.f, 2.f },
-        InterfaceGlowColor)
+        UI::MenuTheme::InterfaceGlow)
     , screenFade(context.logicalSize)
     , buttonList(context.audio, neonGlow)
 {
@@ -121,13 +120,13 @@ PauseState::PauseState(StateStack& stateStack, StateContext context)
 
     localizationRevision = context.localization.GetLanguageRevision();
 
-    musicWasPlaying = context.audio.IsGameplayMusicPlaying();
+    wasMusicPlaying = context.audio.IsGameplayMusicPlaying();
     context.audio.PauseGameplayMusic();
 }
 
 PauseState::~PauseState()
 {
-    if (musicWasPlaying && !returningToMainMenu)
+    if (wasMusicPlaying && !isReturningToMainMenu)
         GetContext().audio.ResumeGameplayMusic();
 
     if (GetContext().window.isOpen())
@@ -136,7 +135,7 @@ PauseState::~PauseState()
 
 void PauseState::HandleEvent(const sf::Event& event)
 {
-    if (activationPending || returningToMainMenu)
+    if (isActivationPending || isReturningToMainMenu)
         return;
 
     if (GetContext().gamepad.IsPausePressed(event))
@@ -221,7 +220,7 @@ void PauseState::Update(float deltaTime)
     menuCursor.Update(deltaTime);
     screenFade.Update(deltaTime);
 
-    if (returningToMainMenu)
+    if (isReturningToMainMenu)
     {
         if (!screenFade.IsActive())
         {
@@ -232,20 +231,20 @@ void PauseState::Update(float deltaTime)
         return;
     }
 
-    if (!activationPending)
+    if (!isActivationPending)
         return;
 
     activationDelayRemaining -= deltaTime;
     if (activationDelayRemaining > 0.f)
         return;
 
-    activationPending = false;
+    isActivationPending = false;
     CompleteActivation(pendingActivation);
 }
 
 void PauseState::Render()
 {
-    if (!frameCaptured || capturedWindowSize != GetContext().window.getSize())
+    if (!isFrameCaptured || capturedWindowSize != GetContext().window.getSize())
         CaptureBlurredFrame();
 
     sf::RenderWindow& window{ GetContext().window };
@@ -270,14 +269,14 @@ void PauseState::Render()
             {
                 selectedButton.Draw(target, states);
             },
-            SelectionGlowColor);
+            UI::MenuTheme::SelectionGlow);
     }
 
     for (const UI::MenuButton& button : buttonList.GetButtons())
         button.Draw(window);
 
     if (!buttonList.GetButtons().empty())
-        neonGlow.DrawHighlight(window, buttonList.GetButtons()[buttonList.GetSelectedIndex()].GetBounds(), SelectionGlowColor);
+        neonGlow.DrawHighlight(window, buttonList.GetButtons()[buttonList.GetSelectedIndex()].GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
 void PauseState::RenderOverlay()
@@ -325,7 +324,7 @@ void PauseState::CaptureBlurredFrame()
         { 0.f, BlurRadius / GetContext().logicalSize.y });
 
     capturedWindowSize = windowSize;
-    frameCaptured = true;
+    isFrameCaptured = true;
 }
 
 void PauseState::RefreshLocalizedContent()
@@ -377,7 +376,7 @@ void PauseState::BeginActivation(std::size_t index)
 
     pendingActivation = index;
     activationDelayRemaining = ActivationDelay;
-    activationPending = true;
+    isActivationPending = true;
 }
 
 void PauseState::CompleteActivation(std::size_t index)
@@ -403,7 +402,7 @@ void PauseState::CompleteActivation(std::size_t index)
         break;
 
     case PauseAction::MainMenu:
-        returningToMainMenu = true;
+        isReturningToMainMenu = true;
         screenFade.StartFadeOut(MainMenuFadeOutDuration);
         break;
     }

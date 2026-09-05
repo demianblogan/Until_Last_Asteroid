@@ -44,5 +44,5 @@ private:
 	std::vector<sf::Sprite> partsIcons;
 	std::vector<sf::Text> partsCounts;
 	std::vector<int> buttonLevels;
-	bool launchingLevel{ false };
+	bool isLaunchingLevel{ false };
 };

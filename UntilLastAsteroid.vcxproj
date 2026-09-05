@@ -302,7 +302,7 @@
     <ClInclude Include="src\states\OptionsState.h" />
     <ClInclude Include="src\states\PauseState.h" />
     <ClInclude Include="src\states\State.h" />
-    <ClInclude Include="src\states\StateId.h" />
+    <ClInclude Include="src\states\StateID.h" />
     <ClInclude Include="src\states\StateStack.h" />
     <ClInclude Include="src\assets\Assets.h" />
     <ClInclude Include="src\utils\AppDataPath.h" />
@@ -342,6 +342,7 @@
     <ClInclude Include="src\ui\LocalizationRevision.h" />
     <ClInclude Include="src\ui\MenuButton.h" />
     <ClInclude Include="src\ui\MenuButtonList.h" />
+    <ClInclude Include="src\ui\MenuTheme.h" />
     <ClInclude Include="src\ui\OptionsWidgets.h" />
     <ClInclude Include="src\ui\MenuIntroAnimation.h" />
     <ClInclude Include="src\rendering\NeonGlow.h" />

@@ -15,13 +15,12 @@
 #include "records/RecordsManager.h"
 #include "localization/LocalizationManager.h"
 #include "input/gamepad/GamepadManager.h"
+#include "ui/MenuTheme.h"
 #include "ui/TextLayout.h"
 #include "utils/ConfigEnums.h"
 
 namespace
 {
-	constexpr sf::Color Cyan{ 25, 220, 255 };
-	constexpr sf::Color SelectionGold{ 255, 178, 42 };
 	constexpr sf::Color HeadingColor{ 215, 247, 252 };
 	constexpr sf::Vector2f CampaignPosition{ 160.f, 210.f };
 	constexpr sf::Vector2f CampaignSize{ 760.f, 690.f };
@@ -60,7 +59,7 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 	, background(context.assets, context.logicalSize)
 	, titleGlow(context.assets)
 	, buttonGlow(context.assets)
-	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Cyan)
+	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, UI::MenuTheme::InterfaceGlow)
 	, fade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()), context.localization.GetText("records.title"), 72)
 	, campaignPanel(CampaignSize, 22.f, 12u)
@@ -86,7 +85,7 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 	for (auto* panel : { &campaignPanel, &hordePanel, &runPanel })
 	{
 		panel->setFillColor(sf::Color(2, 13, 27, 225));
-		panel->setOutlineColor(Cyan);
+		panel->setOutlineColor(UI::MenuTheme::InterfaceGlow);
 		panel->setOutlineThickness(2.f);
 	}
 	campaignPanel.setPosition(CampaignPosition);
@@ -115,7 +114,7 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 		levelScores.emplace_back(menuFont,
 			std::to_string(context.records.GetCampaignLevelScore(level)), 29);
 		levelLabels.back().setFillColor(sf::Color(205, 230, 238));
-		levelScores.back().setFillColor(Cyan);
+		levelScores.back().setFillColor(UI::MenuTheme::InterfaceGlow);
 		AlignLeft(levelLabels.back(), { CampaignPosition.x + 70.f, y });
 		AlignRight(levelScores.back(), { CampaignPosition.x + CampaignSize.x - 70.f, y });
 	}
@@ -129,13 +128,13 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 		hordeLabels.emplace_back(bodyFont, hordeNames[index], 29);
 		hordeValues.emplace_back(menuFont, std::to_string(hordeNumbers[index]), 34);
 		hordeLabels.back().setFillColor(sf::Color(205, 230, 238));
-		hordeValues.back().setFillColor(Cyan);
+		hordeValues.back().setFillColor(UI::MenuTheme::InterfaceGlow);
 		const float y{ HordePosition.y + 85.f + static_cast<float>(index) * 90.f };
 		AlignLeft(hordeLabels.back(), { HordePosition.x + 70.f, y });
 		AlignRight(hordeValues.back(), { HordePosition.x + HordeSize.x - 70.f, y });
 	}
 	runLabel.setFillColor(sf::Color(205, 230, 238));
-	runValue.setFillColor(Cyan);
+	runValue.setFillColor(UI::MenuTheme::InterfaceGlow);
 	runValue.setString(FormatDuration(records.runSeconds));
 	UI::TextLayout::CenterText(runLabel, { 1380.f, RunPosition.y + 95.f });
 	UI::TextLayout::CenterText(runValue, { 1380.f, RunPosition.y + 195.f });
@@ -147,7 +146,7 @@ RecordsState::RecordsState(StateStack& stack, StateContext context)
 
 void RecordsState::HandleEvent(const sf::Event& event)
 {
-	if (returning || fade.IsActive()) return;
+	if (isReturning || fade.IsActive()) return;
 	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
 	if (navigation == GamepadManager::NavigationAction::Confirm ||
 		navigation == GamepadManager::NavigationAction::Back)
@@ -157,10 +156,10 @@ void RecordsState::HandleEvent(const sf::Event& event)
 	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
 	{
 		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
-		const bool wasSelected{ returnButtonSelected };
-		returnButtonSelected = returnButton.Contains(point);
-		returnButton.SetSelected(returnButtonSelected);
-		if (returnButtonSelected != wasSelected)
+		const bool wasSelected{ isReturnButtonSelected };
+		isReturnButtonSelected = returnButton.Contains(point);
+		returnButton.SetSelected(isReturnButtonSelected);
+		if (isReturnButtonSelected != wasSelected)
 			buttonGlow.Invalidate();
 		return;
 	}
@@ -185,13 +184,13 @@ void RecordsState::Update(float deltaTime)
 	buttonGlow.Update(deltaTime);
 	cursor.Update(deltaTime);
 	fade.Update(deltaTime);
-	if (GetContext().gamepad.IsInUse() && !returnButtonSelected)
+	if (GetContext().gamepad.IsInUse() && !isReturnButtonSelected)
 	{
-		returnButtonSelected = true;
+		isReturnButtonSelected = true;
 		returnButton.SetSelected(true);
 		buttonGlow.Invalidate();
 	}
-	if (returning && !fade.IsActive()) RequestPop();
+	if (isReturning && !fade.IsActive()) RequestPop();
 }
 
 void RecordsState::Render()
@@ -200,7 +199,7 @@ void RecordsState::Render()
 	background.Draw(window);
 	titleGlow.DrawBloom(window, title.getGlobalBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
-		{ target.draw(title, states); }, Cyan);
+		{ target.draw(title, states); }, UI::MenuTheme::InterfaceGlow);
 	window.draw(title);
 	for (const UI::RoundedRectangleShape* panel : { &campaignPanel, &hordePanel, &runPanel })
 		window.draw(*panel);
@@ -210,13 +209,13 @@ void RecordsState::Render()
 	for (std::size_t index{ 0 }; index < hordeLabels.size(); ++index)
 	{ window.draw(hordeLabels[index]); window.draw(hordeValues[index]); }
 	window.draw(runLabel); window.draw(runValue);
-	if (returnButtonSelected)
+	if (isReturnButtonSelected)
 		buttonGlow.DrawBloom(window, returnButton.GetBounds(),
 			[this](sf::RenderTarget& target, const sf::RenderStates& states)
-			{ returnButton.Draw(target, states); }, SelectionGold);
+			{ returnButton.Draw(target, states); }, UI::MenuTheme::SelectionGlow);
 	returnButton.Draw(window);
-	if (returnButtonSelected)
-		buttonGlow.DrawHighlight(window, returnButton.GetBounds(), SelectionGold);
+	if (isReturnButtonSelected)
+		buttonGlow.DrawHighlight(window, returnButton.GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
 void RecordsState::RenderOverlay()
@@ -229,6 +228,6 @@ void RecordsState::BeginReturn()
 {
 	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI,
 		100.f, 1.f, SoundPlayback::StopPrevious);
-	returning = true;
+	isReturning = true;
 	fade.StartFadeOut(FadeDuration);
 }

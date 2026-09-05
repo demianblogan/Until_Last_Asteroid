@@ -10,6 +10,7 @@
 #include "audio/AudioManager.h"
 #include "localization/LocalizationManager.h"
 #include "input/gamepad/GamepadManager.h"
+#include "ui/MenuTheme.h"
 #include "ui/TextLayout.h"
 
 namespace
@@ -18,8 +19,6 @@ namespace
 	constexpr sf::Vector2f FirstTile{ 105.f, 145.f };
 	constexpr sf::Vector2f TileSpacing{ 585.f, 240.f };
 	constexpr sf::Vector2f ButtonSize{ 540.f, 92.f };
-	constexpr sf::Color Cyan{ 25, 220, 255 };
-	constexpr sf::Color Gold{ 255, 178, 42 };
 
 	void Center(sf::Text& text, sf::Vector2f position)
 	{
@@ -34,7 +33,7 @@ AchievementsState::AchievementsState(StateStack& stack, StateContext context)
 	: State(stack, context), background(context.assets, context.logicalSize)
 	, titleGlow(context.assets)
 	, buttonGlow(context.assets)
-	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, Cyan)
+	, cursor(context.assets, Config::Texture::MenuPointer, { 6.f, 2.f }, UI::MenuTheme::InterfaceGlow)
 	, fade(context.logicalSize)
 	, title(context.assets.Fonts().Get(context.localization.GetBoldFont()),
 		context.localization.GetText("achievements.title"), 68u)
@@ -85,7 +84,7 @@ AchievementsState::AchievementsState(StateStack& stack, StateContext context)
 
 void AchievementsState::HandleEvent(const sf::Event& event)
 {
-	if (returning || fade.IsActive()) return;
+	if (isReturning || fade.IsActive()) return;
 	using enum GamepadManager::NavigationAction;
 	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
 	if (navigation == Confirm || navigation == Back) { BeginReturn(); return; }
@@ -93,10 +92,10 @@ void AchievementsState::HandleEvent(const sf::Event& event)
 	{
 		const auto point{ GetContext().window.mapPixelToCoords(moved->position) };
 		background.SetMousePosition(point);
-		const bool wasSelected{ returnButtonSelected };
-		returnButtonSelected = returnButton.Contains(point);
-		returnButton.SetSelected(returnButtonSelected);
-		if (returnButtonSelected != wasSelected)
+		const bool wasSelected{ isReturnButtonSelected };
+		isReturnButtonSelected = returnButton.Contains(point);
+		returnButton.SetSelected(isReturnButtonSelected);
+		if (isReturnButtonSelected != wasSelected)
 			buttonGlow.Invalidate();
 	}
 	if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
@@ -107,18 +106,18 @@ void AchievementsState::HandleEvent(const sf::Event& event)
 			GetContext().window.mapPixelToCoords(pressed->position))) BeginReturn();
 }
 
-void AchievementsState::Update(float dt)
+void AchievementsState::Update(float deltaTime)
 {
-	background.Update(dt); titleGlow.Update(dt); buttonGlow.Update(dt); cursor.Update(dt); fade.Update(dt);
+	background.Update(deltaTime); titleGlow.Update(deltaTime); buttonGlow.Update(deltaTime); cursor.Update(deltaTime); fade.Update(deltaTime);
 	for (Rendering::NeonGlow& glow : tileGlows)
-		glow.Update(dt);
-	if (GetContext().gamepad.IsInUse() && !returnButtonSelected)
+		glow.Update(deltaTime);
+	if (GetContext().gamepad.IsInUse() && !isReturnButtonSelected)
 	{
-		returnButtonSelected = true;
+		isReturnButtonSelected = true;
 		returnButton.SetSelected(true);
 		buttonGlow.Invalidate();
 	}
-	if (returning && !fade.IsActive()) RequestPop();
+	if (isReturning && !fade.IsActive()) RequestPop();
 }
 
 void AchievementsState::Render()
@@ -127,7 +126,7 @@ void AchievementsState::Render()
 	background.Draw(window);
 	titleGlow.DrawBloom(window, title.getGlobalBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
-		{ target.draw(title, states); }, Cyan);
+		{ target.draw(title, states); }, UI::MenuTheme::InterfaceGlow);
 	window.draw(title);
 	const auto& definitions{ GetContext().achievements.GetDefinitions() };
 	for (std::size_t i{ 0u }; i < tiles.size(); ++i)
@@ -137,19 +136,19 @@ void AchievementsState::Render()
 		if (isUnlocked)
 			tileGlows[i].DrawBloom(window, tiles[i].getGlobalBounds(),
 				[this, i](sf::RenderTarget& target, const sf::RenderStates& states)
-				{ target.draw(tiles[i], states); }, Gold);
+				{ target.draw(tiles[i], states); }, UI::MenuTheme::SelectionGlow);
 		window.draw(tiles[i]); window.draw(icons[i]);
 		window.draw(achievementTitles[i]); window.draw(descriptions[i]);
 		if (isUnlocked)
-			tileGlows[i].DrawHighlight(window, tiles[i].getGlobalBounds(), Gold);
+			tileGlows[i].DrawHighlight(window, tiles[i].getGlobalBounds(), UI::MenuTheme::SelectionGlow);
 	}
-	if (returnButtonSelected)
+	if (isReturnButtonSelected)
 		buttonGlow.DrawBloom(window, returnButton.GetBounds(),
 			[this](sf::RenderTarget& target, const sf::RenderStates& states)
-			{ returnButton.Draw(target, states); }, Gold);
+			{ returnButton.Draw(target, states); }, UI::MenuTheme::SelectionGlow);
 	returnButton.Draw(window);
-	if (returnButtonSelected)
-		buttonGlow.DrawHighlight(window, returnButton.GetBounds(), Gold);
+	if (isReturnButtonSelected)
+		buttonGlow.DrawHighlight(window, returnButton.GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
 void AchievementsState::RenderOverlay()
@@ -163,8 +162,8 @@ void AchievementsState::OnReactivated()
 	GetContext().window.setMouseCursorVisible(false);
 	if (localizationRevision != GetContext().localization.GetLanguageRevision())
 		RefreshLocalizedContent();
-	returning = false;
-	returnButtonSelected = false;
+	isReturning = false;
+	isReturnButtonSelected = false;
 	returnButton.SetSelected(false);
 	buttonGlow.Invalidate();
 	RefreshUnlockState();
@@ -211,9 +210,9 @@ void AchievementsState::RefreshUnlockState()
 	{
 		const bool unlocked{ GetContext().achievements.IsUnlocked(definitions[index].id) };
 		tiles[index].setFillColor(unlocked ? sf::Color(3, 15, 26, 238) : sf::Color(32, 36, 40, 238));
-		tiles[index].setOutlineColor(unlocked ? Gold : sf::Color(85, 90, 95));
+		tiles[index].setOutlineColor(unlocked ? UI::MenuTheme::SelectionGlow : sf::Color(85, 90, 95));
 		icons[index].setColor(unlocked ? sf::Color::White : sf::Color(72, 72, 72));
-		achievementTitles[index].setFillColor(unlocked ? Gold : sf::Color(125, 125, 125));
+		achievementTitles[index].setFillColor(unlocked ? UI::MenuTheme::SelectionGlow : sf::Color(125, 125, 125));
 		descriptions[index].setFillColor(unlocked ? sf::Color(195, 225, 232) : sf::Color(105, 105, 105));
 		tileGlows[index].Invalidate();
 	}
@@ -221,9 +220,9 @@ void AchievementsState::RefreshUnlockState()
 
 void AchievementsState::BeginReturn()
 {
-	if (returning) return;
+	if (isReturning) return;
 	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI,
 		100.f, 1.f, SoundPlayback::StopPrevious);
-	returning = true;
+	isReturning = true;
 	fade.StartFadeOut(0.35f);
 }

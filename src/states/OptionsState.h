@@ -105,7 +105,7 @@ private:
         sf::String label;
         RowKind kind;
         Action action;
-        bool enabled{ true };
+        bool isEnabled{ true };
         sf::FloatRect bounds;
     };
 
@@ -185,7 +185,7 @@ private:
     Rendering::NeonGlow neonGlow;
     Rendering::NeonGlow dialogGlow;
 	sf::RenderTexture gamepadLayoutCache;
-	bool gamepadLayoutCacheDirty{ true };
+	bool isGamepadLayoutCacheDirty{ true };
     UI::GlowingCursor menuCursor;
     UI::ScreenFade screenFade;
     Page page{ Page::Root };
@@ -198,20 +198,20 @@ private:
     sf::Text toggleOffText;
     std::size_t selectedIndex{ 0u };
 
-    bool dropdownOpen{ false };
+    bool isDropdownOpen{ false };
     Action dropdownAction{ Action::Resolution };
     std::size_t dropdownIndex{ 0u };
     std::size_t dropdownFirstVisible{ 0u };
 	std::vector<sf::Text> dropdownLabels;
-    bool dropdownScrollbarDragging{ false };
-    bool sliderDragging{ false };
+    bool isDropdownScrollbarDragging{ false };
+    bool isSliderDragging{ false };
     std::optional<Action> pendingBinding;
 
-    bool displayConfirmationOpen{ false };
+    bool isDisplayConfirmationOpen{ false };
     std::size_t dialogSelectedIndex{ 0u };
     float displayConfirmationRemaining{ 0.f };
     GraphicsSettings previousGraphics;
-    bool saveFailed{ false };
-    bool exitPending{ false };
+    bool hasSaveFailed{ false };
+    bool isExitPending{ false };
     Origin origin;
 };

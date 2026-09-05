@@ -83,7 +83,7 @@ CampaignCompleteState::~CampaignCompleteState()
 
 void CampaignCompleteState::HandleEvent(const sf::Event& event)
 {
-	if (!interactive || leaving || screenFade.IsActive()) return;
+	if (!isInteractive || isLeaving || screenFade.IsActive()) return;
 	using enum GamepadManager::NavigationAction;
 	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
 	if (navigation == Confirm || navigation == Back) { Activate(); return; }
@@ -105,18 +105,18 @@ void CampaignCompleteState::HandleEvent(const sf::Event& event)
 			GetContext().window.mapPixelToCoords(pressed->position))) Activate();
 }
 
-void CampaignCompleteState::Update(float dt)
+void CampaignCompleteState::Update(float deltaTime)
 {
-	background.Update(dt); titleGlow.Update(dt); buttonGlow.Update(dt);
-	cursor.Update(dt); screenFade.Update(dt);
-	if (!interactive)
+	background.Update(deltaTime); titleGlow.Update(deltaTime); buttonGlow.Update(deltaTime);
+	cursor.Update(deltaTime); screenFade.Update(deltaTime);
+	if (!isInteractive)
 	{
-		revealElapsed = std::min(RevealDuration, revealElapsed + dt);
+		revealElapsed = std::min(RevealDuration, revealElapsed + deltaTime);
 		ApplyReveal();
-		interactive = revealElapsed >= RevealDuration;
+		isInteractive = revealElapsed >= RevealDuration;
 	}
-	if (!leaving) return;
-	activationDelay -= dt;
+	if (!isLeaving) return;
+	activationDelay -= deltaTime;
 	if (activationDelay <= 0.f && !screenFade.IsActive())
 	{
 		RequestClear();
@@ -135,26 +135,26 @@ void CampaignCompleteState::Render()
 	window.draw(title);
 	for (const sf::Text& line : messageLines) window.draw(line);
 	for (const sf::Text& line : postscriptLines) window.draw(line);
-	if (interactive)
+	if (isInteractive)
 		buttonGlow.DrawBloom(window, button.GetBounds(),
 			[this](sf::RenderTarget& target, const sf::RenderStates& states)
 			{ button.Draw(target, states); }, Gold);
 	button.Draw(window);
-	if (interactive) buttonGlow.DrawHighlight(window, button.GetBounds(), Gold);
+	if (isInteractive) buttonGlow.DrawHighlight(window, button.GetBounds(), Gold);
 }
 
 void CampaignCompleteState::RenderOverlay()
 {
-	if (interactive && !GetContext().gamepad.IsInUse()) cursor.Draw(GetContext().window);
+	if (isInteractive && !GetContext().gamepad.IsInUse()) cursor.Draw(GetContext().window);
 	screenFade.Draw(GetContext().window);
 }
 
 void CampaignCompleteState::Activate()
 {
-	if (leaving) return;
+	if (isLeaving) return;
 	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI,
 		100.f, 1.f, SoundPlayback::StopPrevious);
-	leaving = true;
+	isLeaving = true;
 	activationDelay = 0.12f;
 	screenFade.StartFadeOut(FadeDuration);
 }

@@ -38,6 +38,6 @@ private:
 	std::vector<sf::Text> descriptions;
 	UI::MenuButton returnButton;
 	std::size_t localizationRevision{ 0u };
-	bool returnButtonSelected{ false };
-	bool returning{ false };
+	bool isReturnButtonSelected{ false };
+	bool isReturning{ false };
 };

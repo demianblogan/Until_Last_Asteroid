@@ -59,8 +59,8 @@ private:
     std::size_t pendingActivation{ 0 };
     std::size_t localizationRevision{ 0u };
     float activationDelayRemaining{ 0.f };
-    bool frameCaptured{ false };
-    bool activationPending{ false };
-    bool musicWasPlaying{ false };
-    bool returningToMainMenu{ false };
+    bool isFrameCaptured{ false };
+    bool isActivationPending{ false };
+    bool wasMusicPlaying{ false };
+    bool isReturningToMainMenu{ false };
 };
