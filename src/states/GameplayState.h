@@ -54,6 +54,18 @@ private:
 		CampaignComplete
 	};
 
+	// Which of the three loops this instance is running. Campaign is the
+	// default (numbered levels, wave director, upgrades, saves); Horde and
+	// Run are the endless variants chosen from the campaign menu. Set once in
+	// the constructor and never changed. Sub-states of Campaign -- the
+	// tutorial, level-select replays -- keep their own flags below.
+	enum class GameMode
+	{
+		Campaign,
+		Horde,
+		Run
+	};
+
 	void SetupInput();
 
 	// The steps of Update(), in call order. The bool-returning ones report
@@ -163,8 +175,7 @@ private:
 	bool isWaveClearDelayActive{ false };
 	bool isSelectedLevelRun{ false };
 	bool isSelectedLevelAdvancingCampaign{ false };
-	bool isHordeMode{ false };
-	bool isRunMode{ false };
+	GameMode mode{ GameMode::Campaign };
 	bool isHordeHelperAvailable{ true };
 	int hordeCurrentWave{ 1 };
 	int hordeWavesSurvived{ 0 };
