@@ -136,7 +136,7 @@ Full layouts including DualSense extras: **[docs/CONTROLS.md](docs/CONTROLS.md)*
 | <img src="assets/sprites/enemies/laser_turret.png" width="56"> | Laser Turret | Patrols a screen edge with a player-only sweeping beam | 500 |
 | <img src="assets/sprites/enemies/shooter_station.png" width="66"> | Shooter Station | Shields its launch bay while constructing Shooters | 900 |
 | <img src="assets/sprites/enemies/reflector_gunship.png" width="56"> | Reflector Gunship | Fast twin cannons with a periodic bullet-reflecting shield | 750 |
-| <img src="assets/sprites/enemies/boss_core.png" width="66"> | **The Last Horizon** | Boss — three phases: outer ring, diamond frame, shielded core | — |
+| <img src="assets/sprites/enemies/boss_core.png" width="66"> | **Cybermind** | Boss (Level 10) — three phases: outer ring, diamond frame, shielded core | — |
 
 Per-enemy stats and tactics: **[docs/GAMEPLAY.md#bestiary](docs/GAMEPLAY.md#bestiary)**
 

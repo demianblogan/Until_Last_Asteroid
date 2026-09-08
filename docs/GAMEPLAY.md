@@ -151,8 +151,9 @@ red shield that reflects your bullets straight back — hold fire while it's up.
 
 ## The boss
 
-**The Last Horizon** (Level 10, `assets/data/gameplay/boss.json`). Three phases,
-fought over one continuous encounter:
+**Cybermind** — the boss of Level 10, *The Last Horizon*
+(`assets/data/gameplay/boss.json`). Three phases, fought over one continuous
+encounter:
 
 | Phase | Target | What happens |
 |---|---|---|
