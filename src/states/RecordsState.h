@@ -5,46 +5,41 @@
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
 
-#include "states/State.h"
-#include "ui/GlowingCursor.h"
-#include "ui/MenuBackground.h"
+#include "states/MenuState.h"
 #include "ui/MenuButton.h"
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
-#include "ui/ScreenFade.h"
 
-class RecordsState final : public State
+class RecordsState final : public MenuState
 {
 public:
 	RecordsState(StateStack& stateStack, StateContext context);
 
 	void HandleEvent(const sf::Event& event) override;
-	void Update(float deltaTime) override;
-	void Render() override;
-	void RenderOverlay() override;
+	void OnUpdate(float deltaTime) override;
+	void OnRender() override;
 
 private:
 	void BeginReturn();
 
-	MenuBackground background;
-	NeonGlow titleGlow;
-	NeonGlow panelGlow;
-	NeonGlow buttonGlow;
-	GlowingCursor cursor;
-	ScreenFade fade;
+	Rendering::NeonGlow titleGlow;
+	Rendering::NeonGlow buttonGlow;
 	sf::Text title;
-	RoundedRectangleShape campaignPanel;
-	RoundedRectangleShape hordePanel;
-	RoundedRectangleShape runPanel;
+
+	UI::RoundedRectangleShape campaignPanel;
+	UI::RoundedRectangleShape hordePanel;
+	UI::RoundedRectangleShape runPanel;
 	sf::Text campaignTitle;
 	sf::Text hordeTitle;
 	sf::Text runTitle;
+
 	std::vector<sf::Text> levelLabels;
 	std::vector<sf::Text> levelScores;
 	std::vector<sf::Text> hordeLabels;
 	std::vector<sf::Text> hordeValues;
 	sf::Text runLabel;
 	sf::Text runValue;
-	MenuButton returnButton;
-	bool returning{ false };
+
+	UI::MenuButton returnButton;
+	bool isReturnButtonSelected = false;
 };

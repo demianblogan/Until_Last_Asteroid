@@ -1,45 +1,56 @@
 #pragma once
 
-#include <string_view>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/Text.hpp>
 
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 #include "ui/RoundedRectangleShape.h"
 
-class AssetStore;
+class Assets;
+class LocalizationManager;
 
-namespace sf { class RenderTarget; }
-
-class LevelIntro
+namespace sf
 {
-public:
-	LevelIntro(AssetStore& assets, sf::Vector2f logicalSize);
+	class RenderTarget;
+}
 
-	void Start(int levelNumber, std::string_view levelTitle);
-	void StartMode(std::string_view modeName, std::string_view objective);
-	[[nodiscard]] bool Update(float deltaTime);
-	void Draw(sf::RenderTarget& target);
-	void Reset() noexcept;
+namespace UI
+{
+	class LevelIntro
+	{
+	public:
+		LevelIntro(Assets& assets, LocalizationManager& localization, sf::Vector2f logicalSize);
 
-	[[nodiscard]] bool IsActive() const noexcept;
+		void Start(int levelNumber);
+		void StartMode(const sf::String& modeName, const sf::String& objective);
 
-private:
-	void StartWithText(std::string_view heading, std::string_view subtitle);
-	void ApplyAnimation();
-	static void CenterText(sf::Text& text, sf::Vector2f position);
+		[[nodiscard]] bool Update(float deltaTime);
+		void Draw(sf::RenderTarget& target);
 
-	NeonGlow levelGlow;
-	NeonGlow titleGlow;
-	sf::RectangleShape shade;
-	RoundedRectangleShape panel;
-	sf::RectangleShape upperLine;
-	sf::RectangleShape lowerLine;
-	const sf::Font& levelTitleFont;
-	const sf::Font& modeObjectiveFont;
-	sf::Text levelLabel;
-	sf::Text title;
-	sf::Vector2f logicalSize;
-	float elapsed{ 0.f };
-	bool active{ false };
-};
+		void Reset() noexcept;
+
+		[[nodiscard]] bool IsActive() const noexcept;
+
+	private:
+		void StartWithText(const sf::String& heading, const sf::String& subtitle);
+		void ApplyAnimation();
+
+		Rendering::NeonGlow levelGlowEffect;
+		Assets& assets;
+		LocalizationManager& localization;
+
+		Rendering::NeonGlow titleGlowEffect;
+		sf::RectangleShape shade;
+		RoundedRectangleShape panel;
+		sf::RectangleShape upperLine;
+		sf::RectangleShape lowerLine;
+
+		sf::Text levelLabel;
+		sf::Text title;
+		sf::Vector2f logicalSize;
+
+		float animationElapsedSeconds = 0.f;
+		bool isBeingShown = false;
+		bool isTitleGlowVisible = true;
+	};
+}

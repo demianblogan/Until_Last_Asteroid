@@ -1,14 +1,17 @@
 #pragma once
 
+#include <span>
+#include <vector>
+
 #include <SFML/Graphics/Drawable.hpp>
 #include <SFML/Graphics/Color.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/RenderStates.hpp>
 #include <SFML/System/Angle.hpp>
 #include <SFML/System/Vector2.hpp>
-#include <span>
-#include <vector>
-#include "systems/Collision.h"
+
+#include "core/Collision.h"
+#include "gameplay/GameplayData.h"
 
 namespace sf
 {
@@ -18,7 +21,7 @@ namespace sf
 }
 
 class World;
-class AssetStore;
+class Assets;
 
 class Entity : public sf::Drawable
 {
@@ -37,9 +40,10 @@ public:
 		Part
 	};
 
-	Entity(AssetStore& assets, World& world, sf::Texture& texture,
-		float visualScale, float collisionRadius,
+	Entity(Assets& assets, World& world, sf::Texture& texture, float visualScale, float collisionRadius,
 		std::span<const Collision::LocalCircle> collisionCircles = {});
+
+	virtual ~Entity() = default;
 
 	Entity(const Entity&) = delete;
 	Entity& operator=(const Entity&) = delete;
@@ -47,19 +51,16 @@ public:
 	Entity(Entity&&) = default;
 	Entity& operator=(Entity&&) = default;
 
-	virtual ~Entity() = default;
-
 	void SetPosition(const sf::Vector2f& position) noexcept;
 	[[nodiscard]] sf::Vector2f GetPosition() const noexcept;
 
 	void SetVelocity(const sf::Vector2f& velocity) noexcept;
 	[[nodiscard]] const sf::Vector2f& GetVelocity() const noexcept;
+
 	void ApplyImpulse(const sf::Vector2f& impulse) noexcept;
 	void Translate(const sf::Vector2f& offset) noexcept;
-	void SetPresentation(
-		float scaleMultiplier,
-		float opacity,
-		sf::Color tint = sf::Color::White) noexcept;
+
+	void SetPresentation(float scaleMultiplier, float opacity, sf::Color tint = sf::Color::White) noexcept;
 
 	[[nodiscard]] bool IsAlive() const noexcept;
 	void Destroy() noexcept;
@@ -68,27 +69,49 @@ public:
 	[[nodiscard]] float GetCollisionRadius() const noexcept;
 	virtual Type GetType() const noexcept = 0;
 
+	// Overridden by entities (ShooterStation, LaserTurret) that stay outside
+	// normal wrap-around behavior while materializing. Defaulting to false
+	// here avoids a dynamic_cast check against every entity, every frame, in
+	// World::Update just to test this for the rare entities that care.
+	[[nodiscard]] virtual bool IsArriving() const noexcept;
+
 protected:
 	[[nodiscard]] World& GetWorld() noexcept;
 	[[nodiscard]] const World& GetWorld() const noexcept;
-	[[nodiscard]] AssetStore& GetAssets() noexcept;
-	[[nodiscard]] const AssetStore& GetAssets() const noexcept;
+
+	[[nodiscard]] Assets& GetAssets() noexcept;
+	[[nodiscard]] const Assets& GetAssets() const noexcept;
 
 	void SetRotation(sf::Angle angle) noexcept;
 	[[nodiscard]] sf::Angle GetRotation() const noexcept;
-	void TurnTowards(
-		const sf::Vector2f& target,
-		float maximumDegreesPerSecond,
-		float deltaTime) noexcept;
+
+	void TurnTowards(const sf::Vector2f& target, float maximumDegreesPerSecond, float deltaTime) noexcept;
+
+	// Moves this entity toward `target` at up to `speed` units/second and
+	// returns true once it has arrived -- arriving snaps the position exactly
+	// onto `target` and zeroes velocity, rather than letting the entity
+	// overshoot by a fraction of a frame's travel distance. Returns false
+	// (having moved a step closer) while travel is still in progress. Shared
+	// by every enemy that flies to a fixed point before switching to its own
+	// movement pattern (see Enemy::UpdateApproach for that specific case).
+	[[nodiscard]] bool MoveToward(const sf::Vector2f& target, float speed, float deltaTime) noexcept;
+
 	[[nodiscard]] sf::Vector2f GetForwardDirection() const noexcept;
 
+	// Converts a 0..1-normalized point (as authored in GameplayData, e.g. a
+	// weapon or engine emitter position) into this entity's current world
+	// position -- 0,0 is the sprite's top-left corner, 1,1 its bottom-right,
+	// already accounting for this entity's current position/rotation/scale.
+	[[nodiscard]] sf::Vector2f TransformNormalizedPoint(const GameplayData::NormalizedPoint& point) const noexcept;
+
 	virtual void Update(float deltaTime) = 0;
-	virtual bool IsCollideWith(const Entity& other) const = 0;
+
+	[[nodiscard]] virtual bool IsCollidingWith(const Entity& other) const = 0;
 	[[nodiscard]] bool CheckCollision(const Entity& other) const noexcept;
 
 	void Move(float deltaTime) noexcept;
 	void Accelerate(const sf::Vector2f& delta) noexcept;
-	void SetVisible(bool visible) noexcept;
+	void SetVisible(bool isVisible) noexcept;
 	void FlashOnHit(float duration) noexcept;
 
 	virtual void OnDestroy();
@@ -98,23 +121,24 @@ private:
 	sf::Vector2f velocity{ 0.f, 0.f };
 	sf::Vector2f impulseVelocity{ 0.f, 0.f };
 
-	AssetStore& assets;
+	Assets& assets;
 	World& world;
 	sf::Shader& hitFlashShader;
 
-	bool isAlive{ true };
-	bool isVisible{ true };
-	float hitFlashRemaining{ 0.f };
-	float hitFlashDuration{ 0.f };
-	float collisionRadius{ 0.f };
-	float visualScale{ 1.f };
+	bool isAlive = true;
+	bool isVisible = true;
+
+	float hitFlashRemaining = 0.f;
+	float hitFlashDuration = 0.f;
+
+	float collisionRadius = 0.f;
 	std::vector<Collision::LocalCircle> collisionCircles;
 
-private:
-	[[nodiscard]] sf::Vector2f GetCollisionCircleCenter(
-		const Collision::LocalCircle& circle) const noexcept;
-	[[nodiscard]] std::optional<Collision::CircleManifold> GetCollisionManifold(
-		const Entity& other) const noexcept;
+	float visualScale = 1.f;
+
+	[[nodiscard]] sf::Vector2f GetCollisionCircleCenter(const Collision::LocalCircle& circle) const noexcept;
+	[[nodiscard]] std::optional<Collision::CircleContactInfo> GetCollisionContactInfo(const Entity& other) const noexcept;
+
 	void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 	void UpdateEffects(float deltaTime) noexcept;
 

@@ -1,0 +1,100 @@
+{
+  "loading": { "title": "Loading", "data": "Loading Data", "textures": "Loading Textures", "sounds": "Loading Sounds", "music": "Loading Music", "shaders": "Loading Shaders", "interface": "Preparing Interface", "finalizing": "Finalizing", "preparing_game": "Preparing Game", "preparing_text": "Preparing Text", "ready": "Ready" },
+  "language": {
+    "select_title": "SELECT LANGUAGE",
+    "select_hint": "You can change the language later in Options"
+  },
+  "main_menu": {
+    "title": "Until Last Asteroid",
+    "start_game": "Start Game",
+    "achievements": "Achievements",
+    "records": "Records",
+    "options": "Options",
+    "credits": "Credits",
+    "quit": "Quit"
+  },
+  "options": {
+    "title": "OPTIONS", "graphics": "Graphics", "audio": "Audio",
+    "gameplay": "Gameplay", "controls": "Controls", "language": "Language",
+    "keyboard": "Keyboard", "gamepad": "Gamepad",
+    "restore_defaults": "Restore Defaults", "back_main": "Back to Main Menu",
+    "back_pause": "Back to Pause Menu", "back": "Back",
+    "display_resolution": "Display Resolution", "window_mode": "Window Mode", "show_fps": "Show FPS",
+    "vsync": "Vertical Synchronization", "frame_limit": "Frame Rate Limit", "post_effects": "Post Effects",
+    "reset_graphics": "Restore Graphics Defaults", "screen_shake": "Screen Shake", "score_popups": "Show Score Popups",
+    "gamepad_vibration": "Gamepad Vibration", "gamepad_adaptive_triggers": "Adaptive Triggers",
+    "gamepad_lightbar": "Controller Lightbar",
+    "reset_gameplay": "Restore Gameplay Defaults", "music": "Music", "sounds": "Sounds",
+    "reset_audio": "Restore Audio Defaults", "move_up": "Move Up", "move_down": "Move Down",
+    "move_left": "Move Left", "move_right": "Move Right", "fire": "Fire",
+    "reset_controls": "Restore Controls Defaults", "back_controls": "Return to Controls Options",
+    "desktop_controlled": "Controlled by desktop in Borderless mode", "desktop_resolution": "Desktop resolution",
+    "fullscreen": "Fullscreen", "windowed": "Windowed", "borderless": "Borderless", "unlimited": "Unlimited",
+    "mouse_left": "Left Mouse", "mouse_right": "Right Mouse", "mouse_middle": "Middle Mouse",
+    "mouse_4": "Mouse 4", "mouse_5": "Mouse 5", "mouse": "Mouse", "move": "Move", "aim": "Aim",
+    "menu_navigation": "Menu Navigation", "xbox_controller": "XBOX CONTROLLER",
+    "playstation_controller": "PLAYSTATION CONTROLLER", "save_error": "Settings could not be saved. Check folder permissions.",
+    "keep_display": "Keep these display settings?", "reverting": "Reverting in {seconds} seconds",
+    "press_binding": "Press a key or mouse button"
+  },
+  "common": { "back_main": "Back to Main Menu", "confirm": "Confirm", "cancel": "Cancel", "play": "Play", "skip": "Skip", "on": "ON", "off": "OFF", "unknown": "Unknown" },
+  "campaign_menu": {
+    "title": "CAMPAIGN", "continue": "Continue Campaign", "new": "Start New Campaign",
+    "select_level": "Select Level", "horde": "Horde Mode", "run": "Run Mode",
+    "new_title": "START NEW CAMPAIGN?", "overwrite_message": "Your existing campaign progress will be permanently replaced.",
+    "tutorial_title": "PLAY THE TUTORIAL?", "tutorial_message": "Learn the basics, Parts, and ship upgrades before Level 1.",
+    "save_error": "Unable to create campaign save. Check access to Local AppData."
+  },
+  "level_select": { "title": "LEVELS", "locked": "LOCKED", "back_game_menu": "Return to Game Menu" },
+  "levels": {
+    "title_1": "BLUE FRONTIER", "title_2": "EMERALD CROSSING", "title_3": "SHATTERED BELT",
+    "title_4": "ROSE SIEGE", "title_5": "ASTEROID WAKE", "title_6": "FROZEN GRAVEYARD",
+    "title_7": "CRIMSON ENTRY", "title_8": "ION STORM", "title_9": "VOID THRESHOLD",
+    "title_10": "THE LAST HORIZON"
+  },
+  "pause": { "title": "PAUSED", "resume": "Resume", "restart_level": "Restart Level", "restart_tutorial": "Restart Tutorial", "skip_tutorial": "Skip Tutorial" },
+  "records": { "title": "RECORDS", "level": "LEVEL", "waves_survived": "WAVES SURVIVED", "best_score": "BEST SCORE", "best_time": "BEST SURVIVAL TIME" },
+  "upgrades": {
+    "title": "SHIP UPGRADES", "parts": "PARTS:", "armor": "ARMOR", "engines": "FLIGHT ENGINES", "fire_rate": "FIRE RATE", "bonus_duration": "BONUS DURATION",
+    "armor_effect": "+25% maximum armor", "engines_effect": "+10% speed and thrust", "fire_rate_effect": "+15% shots per second", "bonus_duration_effect": "+1 second to timed bonuses",
+    "rank": "RANK", "upgrade": "UPGRADE", "max": "MAX", "continue": "Continue", "back_levels": "Return to Level Select", "cost": "COST: {cost}"
+  },
+  "achievements": {
+    "title": "ACHIEVEMENTS", "unlocked": "ACHIEVEMENT UNLOCKED",
+    "items": {
+      "first_step": { "title": "Off We Go!", "description": "Complete Level 1." },
+      "halfway_there": { "title": "Crossing the Equator", "description": "Complete Level 5." },
+      "campaign_complete": { "title": "That's All!", "description": "Complete Level 10." },
+      "run_survivor": { "title": "Please, Make It Stop!", "description": "Survive for 1 minute\nin Run Mode." },
+      "horde_survivor": { "title": "Nothing Can Stop Me", "description": "Survive 5 waves\nin Horde Mode." },
+      "fully_upgraded": { "title": "Looking Sharp", "description": "Upgrade every ship system\nto its maximum rank." },
+      "tutorial_skipped": { "title": "Overconfident", "description": "Skip the tutorial." },
+      "flawless_campaign": { "title": "Not My First Time", "description": "Complete a new campaign without\ndying from start to finish." },
+      "boss_untouched": { "title": "I'm the Boss Here!", "description": "Complete Level 10 without\ntaking any damage." }
+    }
+  },
+  "credits": {
+    "title": "CREDITS", "line_1": "This game was developed by me, Demian Blogan.", "line_2": "It was my first portfolio project in the world of IT.",
+    "line_3": "Version 1.0 began as a simple game that felt more like a homework assignment.", "line_4": "Over time, through many updates, I improved it into Version 2.0,",
+    "line_5": "adding more mechanics, modes, polish, and content.", "line_6": "What you see now is the fully finished game.", "contact": "If you would like to contact me:",
+    "email": "demianblognan@gmail.com", "youtube": "My YouTube Channel: https://www.youtube.com/@BloganProgrammer", "source": "Source code:", "repository": "github.com/demianblogan/Until_Last_Asteroid"
+  },
+  "campaign_complete": {
+    "title": "YOU FINISHED THE CAMPAIGN!", "thanks": "Thank You", "line_1": "Congratulations! I hope you enjoyed this game and had a great time with it.",
+    "line_2": "Keep playing games, discovering wonderful worlds, and completing great adventures.", "line_3": "You have finished this journey, but your journey through games continues.",
+    "line_4": "Good Luck!", "postscript_1": "P.S. Don't forget to try Horde Mode and Run Mode if you want to test your skills,", "postscript_2": "or earn any achievements you haven't unlocked yet."
+  },
+  "hud": { "score": "Score: {value}", "parts": "PARTS: {value}", "armor": "ARMOR {value}%", "shield": "SHIELD {value}%", "homing": "HOMING {value}%", "laser": "LASER {value}%", "triple": "TRIPLE SHOT {value}%", "time_slow": "TIME SLOW {value}%", "time": "TIME {value}", "boss_armor": "Boss Armor: {value}%" },
+  "intro": { "level": "LEVEL {value}", "wave": "WAVE {value}", "final_wave": "FINAL WAVE", "horde": "HORDE MODE", "horde_objective": "SURVIVE AS MANY WAVES AS POSSIBLE", "run": "RUN MODE", "run_objective": "KEEP MOVING. ONE HIT ENDS THE RUN" },
+  "game_over": { "title": "GAME OVER", "final_score": "Final Score: {value}", "horde_summary": "Score: {value}", "waves": "Waves Survived: {value}", "time": "Time: {value}", "record": "Record: {value}", "restart_level": "Restart Level", "restart_horde": "Restart Horde", "restart_run": "Restart Run" },
+  "results": { "statistics": "STATISTICS", "victory": "VICTORY", "play_again": "Play Again", "back_levels": "Return to Levels", "continue": "Continue", "level_complete": "LEVEL {value} COMPLETE", "destroyed": "Destroyed enemies", "armor": "Armor {value}%  (75% required)", "accuracy": "Accuracy {value}%", "required": "{value}% required", "parts": "Parts collected  {value}", "level_score": "LEVEL SCORE" },
+  "tutorial": {
+    "movement": "Press {bindings} to move your ship.\nYou can also use the Left Stick on your gamepad.", "fire": "Hold {binding} or the Right Trigger on your gamepad to fire.",
+    "asteroid": "An asteroid has appeared ahead of you. Destroy it.", "fragments": "Large asteroids split into smaller fragments when destroyed.\nDestroy both fragments.",
+    "score": "Destroying asteroids and enemies awards points.\nYour total score is displayed in the upper-left corner.", "armor": "Your armor is displayed in the lower-left corner.\nIf it reaches 0%, your ship will be destroyed.",
+    "enemies": "Asteroids are not the only threat.\nEnemy ships will hunt you and try to destroy your ship.", "shooter": "An enemy gunship has appeared. Destroy it and evade its attacks.",
+    "collision": "Be careful when touching asteroids or enemy ships.\nCollisions damage both your ship and the enemy.", "shield_pickup": "Defeated enemies can drop useful bonuses.\nCollect the shield bonus that has appeared.",
+    "shield_info": "You collected a shield. Its meter is shown above your armor.\nIt absorbs damage, but its energy continuously drains.", "part_pickup": "Enemies sometimes drop special Parts that disappear quickly.\nOne has appeared in front of you. Collect it.",
+    "part_info": "Parts are used to upgrade your ship between levels.\nParts collected during this level are shown in the lower-right corner.", "complete": "Tutorial complete. Good luck on your adventure!"
+  }
+}

@@ -51,5 +51,221 @@
   "large_explosion_shake": {
     "duration": 0.32,
     "amplitude": 8.0
+  },
+  "particles": {
+    "engine_player_thruster": {
+      "lifetime": [0.2, 0.32], "start_size": [14.0, 19.0], "end_size": [2.0, 4.0],
+      "start_color": [155, 255, 255, 250], "end_color": [25, 95, 255, 0],
+      "drag": 2.5, "speed": [150.0, 235.0], "lateral_jitter": [-24.0, 24.0]
+    },
+
+    "projectile_glow_triple": {
+      "lifetime": [1.0, 1.0], "start_size": [34.0, 34.0], "end_size": [34.0, 34.0],
+      "start_color": [65, 255, 115, 240], "end_color": [65, 255, 115, 240]
+    },
+    "projectile_glow_homing": {
+      "lifetime": [1.0, 1.0], "start_size": [34.0, 34.0], "end_size": [34.0, 34.0],
+      "start_color": [255, 188, 45, 240], "end_color": [255, 188, 45, 240]
+    },
+    "projectile_glow_player": {
+      "lifetime": [1.0, 1.0], "start_size": [34.0, 34.0], "end_size": [34.0, 34.0],
+      "start_color": [85, 235, 255, 235], "end_color": [85, 235, 255, 235]
+    },
+    "projectile_glow_enemy": {
+      "lifetime": [1.0, 1.0], "start_size": [31.0, 31.0], "end_size": [31.0, 31.0],
+      "start_color": [255, 55, 110, 235], "end_color": [255, 55, 110, 235]
+    },
+
+    "missile_smoke_trail": {
+      "lifetime": [0.38, 0.62], "start_size": [13.0, 19.0], "end_size": [25.0, 34.0],
+      "start_color": [125, 130, 145, 155], "end_color": [35, 38, 48, 0],
+      "drag": 1.2, "angular_velocity": [-0.8, 0.8],
+      "speed": [35.0, 65.0], "lateral_jitter": [-22.0, 22.0], "spawn_offset": [-2.5, 2.5]
+    },
+    "missile_smoke_flare": {
+      "lifetime": [0.08, 0.13], "start_size": [13.0, 17.0], "end_size": [4.0, 7.0],
+      "start_color": [255, 245, 135, 255], "end_color": [255, 90, 15, 0],
+      "drag": 2.0, "speed": [30.0, 55.0]
+    },
+
+    "enemy_engine_trail": {
+      "lifetime": [0.18, 0.28], "start_size": [11.0, 16.0], "end_size": [2.0, 4.0],
+      "start_color": [255, 105, 75, 245], "end_color": [130, 12, 28, 0],
+      "drag": 2.2, "speed": [125.0, 190.0], "lateral_jitter": [-20.0, 20.0], "spawn_offset": [-1.5, 1.5]
+    },
+
+    "station_welding_glow": {
+      "lifetime": [0.06, 0.1], "start_size": [18.0, 30.0], "end_size": [2.0, 2.0],
+      "start_color": [225, 250, 255, 255], "end_color": [45, 145, 255, 0], "drag": 3.0
+    },
+    "station_welding_spark": {
+      "count": 5,
+      "lifetime": [0.12, 0.28], "start_size": [3.0, 7.0], "end_size": [0.7, 0.7],
+      "start_color": [225, 250, 255, 255], "end_color": [255, 90, 20, 0],
+      "drag": 0.7, "aspect_ratio": [2.5, 5.0], "speed": [95.0, 240.0]
+    },
+
+    "station_chain_explosion_core": {
+      "lifetime": [0.24, 0.24], "start_size": [90.0, 90.0], "end_size": [9.0, 9.0],
+      "start_color": [255, 235, 170, 255], "end_color": [255, 45, 10, 0]
+    },
+    "station_chain_explosion_glow": {
+      "lifetime": [0.42, 0.42], "start_size": [50.0, 50.0], "end_size": [125.0, 125.0],
+      "start_color": [255, 85, 20, 190], "end_color": [90, 10, 5, 0]
+    },
+    "station_chain_explosion_debris": {
+      "count": 10,
+      "lifetime": [0.18, 0.42], "start_size": [3.0, 8.0], "end_size": [0.8, 0.8],
+      "start_color": [255, 225, 135, 255], "end_color": [255, 35, 8, 0],
+      "drag": 0.8, "aspect_ratio": [2.0, 4.5], "speed": [90.0, 280.0]
+    },
+    "station_chain_explosion_smoke": {
+      "count": 2,
+      "lifetime": [0.5, 0.9], "start_size": [30.0, 46.0], "end_size": [68.0, 98.0],
+      "start_color": [95, 65, 55, 170], "end_color": [22, 20, 24, 0],
+      "speed": [20.0, 60.0], "spawn_offset": [0.0, 10.0]
+    },
+
+    "player_teleport_shockwave": {
+      "lifetime": [0.5, 0.5], "start_size": [28.0, 28.0], "end_size": [175.0, 175.0],
+      "start_color": [165, 255, 255, 245], "end_color": [20, 105, 255, 0]
+    },
+    "player_teleport_flash": {
+      "lifetime": [0.3, 0.3], "start_size": [82.0, 82.0], "end_size": [10.0, 10.0],
+      "start_color": [225, 255, 255, 255], "end_color": [25, 145, 255, 0]
+    },
+    "player_teleport_spark": {
+      "count": 28,
+      "lifetime": [0.25, 0.55], "start_size": [4.0, 9.0], "end_size": [0.8, 0.8],
+      "start_color": [205, 255, 255, 255], "end_color": [25, 90, 255, 0],
+      "drag": 0.8, "aspect_ratio": [2.0, 4.0], "speed": [70.0, 230.0], "spawn_offset": [12.0, 55.0]
+    },
+
+    "muzzle_core_player": {
+      "lifetime": [0.14, 0.18], "start_size": [58.0, 58.0], "end_size": [5.0, 5.0],
+      "start_color": [185, 255, 255, 255], "end_color": [30, 135, 255, 0],
+      "drag": 5.0, "speed": [15.0, 35.0]
+    },
+    "muzzle_core_enemy": {
+      "lifetime": [0.14, 0.18], "start_size": [50.0, 50.0], "end_size": [5.0, 5.0],
+      "start_color": [255, 175, 195, 255], "end_color": [255, 25, 75, 0],
+      "drag": 5.0, "speed": [15.0, 35.0]
+    },
+    "muzzle_halo_player": {
+      "lifetime": [0.1, 0.14], "start_size": [27.0, 27.0], "end_size": [2.0, 2.0],
+      "start_color": [255, 255, 255, 255], "end_color": [30, 135, 255, 0], "speed": [35.0, 65.0]
+    },
+    "muzzle_halo_enemy": {
+      "lifetime": [0.1, 0.14], "start_size": [24.0, 24.0], "end_size": [2.0, 2.0],
+      "start_color": [255, 255, 255, 255], "end_color": [255, 25, 75, 0], "speed": [35.0, 65.0]
+    },
+    "muzzle_spark_player": {
+      "count": 8,
+      "lifetime": [0.08, 0.16], "start_size": [5.0, 9.0], "end_size": [1.0, 2.5],
+      "start_color": [185, 255, 255, 255], "end_color": [30, 135, 255, 0],
+      "drag": 3.0, "speed": [80.0, 175.0], "lateral_jitter": [-95.0, 95.0]
+    },
+    "muzzle_spark_enemy": {
+      "count": 8,
+      "lifetime": [0.08, 0.16], "start_size": [5.0, 9.0], "end_size": [1.0, 2.5],
+      "start_color": [255, 175, 195, 255], "end_color": [255, 25, 75, 0],
+      "drag": 3.0, "speed": [80.0, 175.0], "lateral_jitter": [-95.0, 95.0]
+    },
+
+    "stone_hit_flash": {
+      "lifetime": [0.16, 0.16], "start_size": [34.0, 34.0], "end_size": [5.0, 5.0],
+      "start_color": [255, 210, 125, 220], "end_color": [150, 80, 25, 0]
+    },
+    "stone_hit_debris": {
+      "start_color": [185, 150, 105, 245], "end_color": [75, 55, 40, 0],
+      "drag": 2.2, "angular_velocity": [-8.0, 8.0]
+    },
+    "stone_hit_dust": {
+      "lifetime": [0.3, 0.55], "start_size": [18.0, 28.0], "end_size": [32.0, 48.0],
+      "start_color": [135, 115, 90, 150], "end_color": [45, 40, 38, 0],
+      "drag": 1.4, "speed": [20.0, 65.0], "spawn_offset": [0.0, 8.0]
+    },
+
+    "metal_hit_flash": {
+      "lifetime": [0.13, 0.13], "start_size": [42.0, 42.0], "end_size": [3.0, 3.0],
+      "start_color": [220, 250, 255, 255], "end_color": [30, 145, 255, 0]
+    },
+    "metal_hit_spark": {
+      "start_color": [210, 250, 255, 255], "end_color": [20, 110, 255, 0],
+      "drag": 0.8, "aspect_ratio": [2.5, 4.5]
+    },
+
+    "asteroid_explosion_flash": {
+      "lifetime": [0.34, 0.34], "start_size": [145.0, 145.0], "end_size": [8.0, 8.0],
+      "start_color": [255, 235, 175, 255], "end_color": [255, 80, 15, 0]
+    },
+    "asteroid_explosion_glow": {
+      "lifetime": [0.5, 0.5], "start_size": [85.0, 85.0], "end_size": [185.0, 185.0],
+      "start_color": [255, 120, 30, 190], "end_color": [120, 25, 5, 0]
+    },
+    "asteroid_explosion_debris": {
+      "start_color": [195, 155, 105, 255], "end_color": [55, 42, 35, 0],
+      "drag": 1.6, "angular_velocity": [-7.0, 7.0]
+    },
+    "asteroid_explosion_smoke": {
+      "lifetime": [0.65, 1.25], "start_size": [28.0, 50.0], "end_size": [65.0, 105.0],
+      "start_color": [100, 82, 70, 185], "end_color": [28, 27, 30, 0],
+      "drag": 0.9, "angular_velocity": [-1.3, 1.3], "speed": [25.0, 95.0], "spawn_offset": [0.0, 22.0]
+    },
+    "asteroid_explosion_shockwave": {
+      "lifetime": [0.42, 0.42], "start_size": [42.0, 42.0], "end_size": [245.0, 245.0],
+      "start_color": [255, 190, 95, 205], "end_color": [255, 80, 20, 0]
+    },
+
+    "ship_explosion_flash": {
+      "lifetime": [0.28, 0.28], "start_size": [165.0, 165.0], "end_size": [9.0, 9.0],
+      "start_color": [235, 255, 255, 255], "end_color": [25, 130, 255, 0]
+    },
+    "ship_explosion_glow": {
+      "lifetime": [0.52, 0.52], "start_size": [75.0, 75.0], "end_size": [205.0, 205.0],
+      "start_color": [80, 210, 255, 210], "end_color": [255, 40, 20, 0]
+    },
+    "ship_explosion_spark": {
+      "start_size": [2.0, 5.0], "end_size": [0.7, 0.7],
+      "start_color": [220, 250, 255, 255], "end_color": [255, 65, 20, 0],
+      "drag": 0.8, "aspect_ratio": [2.5, 5.0]
+    },
+    "ship_explosion_debris": {
+      "start_color": [135, 175, 190, 255], "end_color": [45, 52, 60, 0],
+      "drag": 1.2, "angular_velocity": [-11.0, 11.0]
+    },
+    "ship_explosion_smoke": {
+      "lifetime": [0.7, 1.35], "start_size": [26.0, 48.0], "end_size": [70.0, 115.0],
+      "start_color": [80, 88, 98, 190], "end_color": [20, 23, 30, 0],
+      "drag": 0.8, "angular_velocity": [-1.5, 1.5], "speed": [25.0, 105.0], "spawn_offset": [0.0, 20.0]
+    },
+    "ship_explosion_shockwave": {
+      "lifetime": [0.46, 0.46], "start_size": [48.0, 48.0], "end_size": [265.0, 265.0],
+      "start_color": [120, 225, 255, 220], "end_color": [255, 65, 30, 0]
+    },
+
+    "station_explosion_flash": {
+      "lifetime": [0.42, 0.42], "start_size": [230.0, 230.0], "end_size": [14.0, 14.0],
+      "start_color": [255, 245, 215, 255], "end_color": [255, 45, 15, 0]
+    },
+    "station_explosion_glow": {
+      "lifetime": [0.72, 0.72], "start_size": [120.0, 120.0], "end_size": [320.0, 320.0],
+      "start_color": [255, 85, 25, 225], "end_color": [75, 5, 12, 0]
+    },
+    "station_explosion_debris": {
+      "start_size": [4.0, 14.0], "end_size": [0.9, 0.9],
+      "start_color": [255, 225, 170, 255], "end_color": [255, 30, 12, 0],
+      "drag": 0.8, "angular_velocity": [-6.0, 6.0], "aspect_ratio": [2.0, 5.0]
+    },
+    "station_explosion_smoke": {
+      "count": 14,
+      "lifetime": [0.9, 1.7], "start_size": [38.0, 68.0], "end_size": [95.0, 155.0],
+      "start_color": [105, 72, 62, 205], "end_color": [18, 18, 24, 0],
+      "drag": 0.8, "angular_velocity": [-1.5, 1.5], "speed": [35.0, 145.0], "spawn_offset": [0.0, 55.0]
+    },
+    "station_explosion_shockwave": {
+      "lifetime": [0.7, 0.7], "start_size": [75.0, 75.0], "end_size": [520.0, 520.0],
+      "start_color": [255, 155, 80, 240], "end_color": [255, 25, 15, 0]
+    }
   }
 }

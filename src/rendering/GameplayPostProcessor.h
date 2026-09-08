@@ -5,43 +5,45 @@
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/System/Vector2.hpp>
 
-#include "game/GameplayData.h"
+#include "gameplay/GameplayData.h"
 #include "rendering/GameplayEffects.h"
 
-class AssetStore;
+class Assets;
 
 namespace sf
 {
-    class RenderTarget;
-    class RenderWindow;
-    class Shader;
-    class Texture;
+	class RenderTarget;
+	class RenderWindow;
+	class Shader;
+	class Texture;
 }
 
-class GameplayPostProcessor
+namespace Rendering
 {
-public:
-    using SceneRenderer = std::function<void(sf::RenderTarget&)>;
+	class GameplayPostProcessor
+	{
+	public:
+		using SceneRenderer = std::function<void(sf::RenderTarget&)>;
 
-    GameplayPostProcessor(AssetStore& assets, sf::Vector2f logicalSize);
+		GameplayPostProcessor(Assets& assets, sf::Vector2f logicalSize);
 
-    void Render(
-        sf::RenderWindow& window,
-        const GameplayData::LevelConfig::PostProcessConfig& config,
-        const GameplayEffects::PostProcessState& effects,
-		float timeSlowdownStrength,
-        const SceneRenderer& renderScene);
+		void Render(sf::RenderWindow& window, const GameplayData::LevelConfig::PostProcessConfig& config,
+			const GameplayEffects::PostProcessState& effects, float timeSlowdownStrength, const SceneRenderer& renderScene);
 
-private:
-    [[nodiscard]] bool EnsureSize(sf::RenderWindow& window);
-    void ApplyBloom(const sf::Texture& source);
+	private:
+		[[nodiscard]] bool EnsureSize(sf::RenderWindow& window);
+		void ApplyBloom(const sf::Texture& source);
 
-    sf::Vector2f logicalSize;
-    sf::RenderTexture scene;
-    sf::RenderTexture bright;
-    sf::RenderTexture horizontalBlur;
-    sf::RenderTexture bloom;
-    sf::Shader& brightPassShader;
-    sf::Shader& blurShader;
-    sf::Shader& compositeShader;
-};
+		sf::Vector2f logicalSize;
+		sf::RenderTexture scene;
+		sf::RenderTexture bright;
+		sf::RenderTexture horizontalBlur;
+		sf::RenderTexture bloom;
+
+		sf::Shader& brightPassShader;
+		sf::Shader& blurShader;
+		sf::Shader& compositeShader;
+
+		bool isBloomTextureCleared = false;
+	};
+}

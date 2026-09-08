@@ -1,0 +1,32 @@
+#pragma once
+
+#include <cstddef>
+#include <functional>
+#include <vector>
+
+#include "gameplay/GameplayData.h"
+
+class WaveDirector
+{
+public:
+    using SpawnEnemy = std::function<void(const GameplayData::SpawnGroup&, std::size_t)>;
+
+    void LoadLevel(const GameplayData::LevelConfig& level);
+    bool StartNextWave(const SpawnEnemy& spawnEnemy);
+    void Update(float deltaTime, const SpawnEnemy& spawnEnemy);
+
+    [[nodiscard]] bool HasMoreWaves() const noexcept;
+    [[nodiscard]] bool IsDeploymentComplete() const noexcept;
+    [[nodiscard]] int GetCurrentWaveNumber() const noexcept;
+
+private:
+    static void SpawnGroupMembers(const GameplayData::SpawnGroup& group, const SpawnEnemy& spawnEnemy);
+
+    const std::vector<GameplayData::WaveConfig>* waves = nullptr;
+
+    std::size_t nextWaveIndex = 0u;
+    std::size_t currentWaveIndex = 0u;
+    std::size_t nextScheduledSpawn = 0u;
+    float timeUntilNextSpawn = 0.f;
+    bool isWaveActive = false;
+};

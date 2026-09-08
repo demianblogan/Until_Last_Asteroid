@@ -18,6 +18,7 @@
           ],
           "scheduled_spawns": [
             { "delay": 2.0, "type": "shooter", "count": 1 },
+            { "delay": 1.0, "type": "shooter", "count": 1 },
             { "delay": 1.0, "type": "shooter", "count": 1 }
           ]
         },
@@ -273,7 +274,7 @@
           "scheduled_spawns": [
             { "delay": 2.0, "type": "kamikaze", "count": 3 }, { "delay": 0.0, "type": "shooter", "count": 3 },
             { "delay": 3.0, "type": "spinner", "count": 2 }, { "delay": 0.0, "type": "missile_carrier", "count": 2 },
-            { "delay": 3.0, "type": "laser_turret", "count": 1 }, { "delay": 0.0, "type": "reflector_gunship", "count": 2 },
+            { "delay": 3.0, "type": "laser_turret", "count": 1 }, { "delay": 0.0, "type": "reflector_gunship", "count": 1 },
             { "delay": 3.0, "type": "shooter_station", "count": 1 }
           ]
         },
@@ -283,9 +284,9 @@
             { "type": "big_meteor", "count": 1, "part_ids": ["L08-W03-P02"] }, { "type": "big_meteor", "count": 3 }
           ],
           "scheduled_spawns": [
-            { "delay": 2.0, "type": "reflector_gunship", "count": 2 }, { "delay": 0.0, "type": "missile_carrier", "count": 2 },
+            { "delay": 2.0, "type": "reflector_gunship", "count": 2 }, { "delay": 0.0, "type": "missile_carrier", "count": 1 },
             { "delay": 3.0, "type": "shooter_station", "count": 2 }, { "delay": 0.0, "type": "laser_turret", "count": 2 },
-            { "delay": 3.0, "type": "spinner", "count": 3 }, { "delay": 0.0, "type": "shooter", "count": 4 },
+            { "delay": 3.0, "type": "spinner", "count": 2 }, { "delay": 0.0, "type": "shooter", "count": 4 },
             { "delay": 3.0, "type": "kamikaze", "count": 4 }
           ]
         }
@@ -322,13 +323,29 @@
             { "type": "big_meteor", "count": 1, "part_ids": ["L09-W03-P02"] }, { "type": "big_meteor", "count": 4 }
           ],
           "scheduled_spawns": [
-            { "delay": 2.0, "type": "reflector_gunship", "count": 4 }, { "delay": 0.0, "type": "missile_carrier", "count": 3 },
-            { "delay": 3.0, "type": "shooter_station", "count": 3 }, { "delay": 0.0, "type": "laser_turret", "count": 3 },
+            { "delay": 2.0, "type": "reflector_gunship", "count": 3 }, { "delay": 0.0, "type": "missile_carrier", "count": 2 },
+            { "delay": 3.0, "type": "shooter_station", "count": 2 }, { "delay": 0.0, "type": "laser_turret", "count": 3 },
             { "delay": 3.0, "type": "spinner", "count": 4 }, { "delay": 0.0, "type": "shooter", "count": 5 },
             { "delay": 3.0, "type": "kamikaze", "count": 5 }
           ]
         }
       ]
+    },
+    {
+      "number": 10,
+      "title": "THE LAST HORIZON",
+      "encounter": "boss",
+      "background": "last_horizon_region",
+      "background_brightness": 0.72,
+      "target_accuracy_percent": 90.0,
+      "post_process": {
+        "tint": [1.08, 0.92, 0.82],
+        "saturation": 1.08,
+        "contrast": 1.16,
+        "bloom_intensity": 0.88,
+        "vignette_strength": 0.48
+      },
+      "waves": []
     }
   ]
 }

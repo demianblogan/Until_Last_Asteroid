@@ -2,29 +2,39 @@
 
 #include <SFML/Graphics/Text.hpp>
 
-#include "ui/NeonGlow.h"
+#include "rendering/NeonGlow.h"
 
-class AssetStore;
+class Assets;
+class LocalizationManager;
 
-namespace sf { class RenderTarget; }
-
-class WaveIntro
+namespace sf
 {
-public:
-    explicit WaveIntro(AssetStore& assets);
+	class RenderTarget;
+}
 
-    void Start(int waveNumber, bool finalWave = false);
-    bool Update(float deltaTime);
-    void Draw(sf::RenderTarget& target);
+namespace UI
+{
+	class WaveIntro
+	{
+	public:
+		WaveIntro(Assets& assets, LocalizationManager& localization);
 
-    [[nodiscard]] bool IsActive() const noexcept;
+		void Start(int waveNumber, bool isFinalWave = false);
+		void Reset() noexcept;
 
-private:
-    void ApplyAnimation();
-    static void CenterText(sf::Text& text, sf::Vector2f position);
+		bool Update(float deltaTime);
+		void Draw(sf::RenderTarget& target);
 
-    NeonGlow titleGlow;
-    sf::Text title;
-    float elapsed{ 0.f };
-    bool active{ false };
-};
+		[[nodiscard]] bool IsActive() const noexcept;
+
+	private:
+		void ApplyAnimation();
+
+		Rendering::NeonGlow titleGlow;
+		Assets& assets;
+		LocalizationManager& localization;
+		sf::Text title;
+		float elapsedSeconds = 0.f;
+		bool isActive = false;
+	};
+}

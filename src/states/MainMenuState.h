@@ -2,53 +2,45 @@
 
 #include <cstddef>
 #include <optional>
-#include <vector>
 
 #include <SFML/Graphics/Text.hpp>
 
-#include "states/State.h"
-#include "ui/GlowingCursor.h"
-#include "ui/MenuBackground.h"
-#include "ui/MenuButton.h"
+#include "states/MenuState.h"
+#include "ui/MenuButtonList.h"
 #include "ui/MenuIntroAnimation.h"
-#include "ui/NeonGlow.h"
-#include "ui/ScreenFade.h"
+#include "rendering/NeonGlow.h"
 
-class MainMenuState final : public State
+class MainMenuState final : public MenuState
 {
 public:
-    MainMenuState(StateStack& stateStack, StateContext context);
-    ~MainMenuState() override;
+	MainMenuState(StateStack& stateStack, StateContext context);
+	~MainMenuState() override;
 
-    void HandleEvent(const sf::Event& event) override;
-    void Update(float deltaTime) override;
-    void Render() override;
-    void RenderOverlay() override;
+	void HandleEvent(const sf::Event& event) override;
+	void OnUpdate(float deltaTime) override;
+	void OnRender() override;
 
 private:
-    void SelectPrevious();
-    void SelectNext();
-    void Select(std::size_t index, bool playSound = true);
-    void UpdateMouseSelection(sf::Vector2i pixelPosition);
-    void ActivateSelected();
-    void CompleteActivation(std::size_t index);
-    void ApplyAnimationState();
-    void HandleAnimationEvents(const MenuIntroAnimation::Events& events);
-    void PlayTypingSounds(std::size_t count);
-    void StartMenuMusic();
+	void ActivateSelected();
+	void CompleteActivation(std::size_t index);
+	void ApplyAnimationState();
+	void HandleAnimationEvents(const UI::MenuIntroAnimation::Events& events);
+	void PlayTypingSounds(std::size_t count);
+	void StartMenuMusic();
+	void RefreshLocalizedLabels();
 
-    MenuBackground background;
-    NeonGlow neonGlow;
-    NeonGlow titleNeonGlow;
-    GlowingCursor menuCursor;
-    MenuIntroAnimation introAnimation;
-    ScreenFade screenFade;
-    sf::Text title;
-    sf::Text version;
-    std::vector<MenuButton> buttons;
-    std::optional<std::size_t> pendingActivation;
-    std::size_t selectedIndex{ 0 };
-    std::size_t typingSoundIndex{ 0 };
-    float activationDelayRemaining{ 0.f };
-    float titleLeftPosition{ 0.f };
+	Rendering::NeonGlow neonGlow;
+	Rendering::NeonGlow titleNeonGlow;
+	UI::MenuIntroAnimation introAnimation;
+
+	sf::Text title;
+	sf::Text version;
+	UI::MenuButtonList buttonList;
+
+	std::optional<std::size_t> pendingActivation;
+	std::size_t typingSoundIndex = 0;
+	float activationDelayRemaining = 0.f;
+	float titleLeftPosition = 0.f;
+	std::size_t localizationRevision = 0u;
+	bool hasRefreshedLocalizedLabels = false;
 };

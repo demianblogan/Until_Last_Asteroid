@@ -1,24 +1,47 @@
 #include "Shot.h"
 
-#include <algorithm>
 #include <cmath>
-#include <numbers>
-#include "assets/AssetStore.h"
-#include "utils/ConfigEnums.h"
-#include "core/World.h"
-#include "game/GameplaySession.h"
-#include "entities/Enemy.h"
+#include <utility>
 
-Shot::Shot(AssetStore& assets, World& world, sf::Texture& texture,
-	const GameplayData::ProjectileConfig& config, VisualKind visualKind,
-	std::uint64_t attackId)
+#include "assets/Assets.h"
+#include "utils/ConfigEnums.h"
+#include "utils/VectorMath.h"
+#include "core/world/World.h"
+#include "gameplay/GameplaySession.h"
+#include "entities/enemies/Enemy.h"
+
+Shot::Shot(Assets& assets, World& world, sf::Texture& texture, const GameplayData::ProjectileConfig& config,
+	VisualKind visualKind, std::uint64_t attackID)
 	: Entity(assets, world, texture, config.visualScale, config.collisionRadius)
 	, speed(config.speed)
 	, damage(config.damage)
 	, knockback(config.knockback)
 	, visualKind(visualKind)
-	, playerAttackId(attackId)
+	, playerAttackID(attackID)
+{}
+
+namespace
 {
+	// Which glow effect a shot's trail spawns, per VisualKind. Player and
+	// Helper shots share the same plain glow; homing and triple-shot bullets
+	// get their own distinct look; everything else (Enemy) gets the enemy glow.
+	[[nodiscard]] Rendering::EffectEventType GetTrailGlowType(Shot::VisualKind visualKind) noexcept
+	{
+		switch (visualKind)
+		{
+		case Shot::VisualKind::Player:
+		case Shot::VisualKind::Helper:
+			return Rendering::EffectEventType::PlayerProjectileGlow;
+		case Shot::VisualKind::PlayerHoming:
+			return Rendering::EffectEventType::PlayerHomingProjectileGlow;
+		case Shot::VisualKind::PlayerTriple:
+			return Rendering::EffectEventType::PlayerTripleProjectileGlow;
+		case Shot::VisualKind::Enemy:
+			return Rendering::EffectEventType::EnemyProjectileGlow;
+		default:
+			std::unreachable();
+		}
+	}
 }
 
 void Shot::Update(float deltaTime)
@@ -26,134 +49,165 @@ void Shot::Update(float deltaTime)
 	Move(deltaTime);
 
 	const sf::Vector2f position{ GetPosition() };
-	const sf::Vector2f velocity{ GetVelocity() };
-	const float velocityLength{ std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y) };
-	const sf::Vector2f direction{ velocityLength > 0.0001f
-		? velocity / velocityLength
-		: sf::Vector2f{ 0.f, -1.f } };
-	GetWorld().AddEffectEvent({
-		visualKind == VisualKind::Player
-			? World::EffectEventType::PlayerProjectileGlow
-			: visualKind == VisualKind::Helper
-				? World::EffectEventType::PlayerProjectileGlow
-			: visualKind == VisualKind::PlayerHoming
-				? World::EffectEventType::PlayerHomingProjectileGlow
-				: visualKind == VisualKind::PlayerTriple
-					? World::EffectEventType::PlayerTripleProjectileGlow
-				: World::EffectEventType::EnemyProjectileGlow,
-		position,
-		direction });
-	const World& world{ GetWorld() };
-	if (position.x < 0.f || position.x > world.GetWidth() ||
-		position.y < 0.f || position.y > world.GetHeight())
+
+	// SetHeading keeps the sprite's facing in lock-step with the velocity, so
+	// the shot's forward direction already is its direction of travel -- no
+	// need to re-derive it from the velocity vector.
+	GetWorld().Effects().Add({ GetTrailGlowType(visualKind), position, GetForwardDirection() });
+
+	const World& currentWorld = GetWorld();
+
+	if (position.x < 0.f || position.x > currentWorld.GetWidth() ||
+		position.y < 0.f || position.y > currentWorld.GetHeight())
 	{
 		Destroy();
 	}
 }
 
-int Shot::GetDamage() const noexcept { return damage; }
-float Shot::GetKnockback() const noexcept { return knockback; }
-std::uint64_t Shot::GetPlayerAttackId() const noexcept { return playerAttackId; }
+int Shot::GetDamage() const noexcept
+{
+	return damage;
+}
+
+float Shot::GetKnockback() const noexcept
+{
+	return knockback;
+}
+
+std::uint64_t Shot::GetPlayerAttackID() const noexcept
+{
+	return playerAttackID;
+}
 
 void Shot::ReflectToward(const sf::Vector2f& targetPosition)
 {
-	const sf::Vector2f toTarget{ targetPosition - GetPosition() };
-	const float angle{ std::atan2(toTarget.y, toTarget.x) };
-	SetDirection({ std::cos(angle), std::sin(angle) });
-	SetRotation(sf::radians(angle + std::numbers::pi_v<float> * 0.5f));
+	SetHeading(targetPosition - GetPosition());
 	SetPresentation(1.f, 1.f, sf::Color(255, 70, 90));
+
 	visualKind = VisualKind::Enemy;
-	reflected = true;
+	isReflected = true;
 }
 
-bool Shot::IsReflected() const noexcept { return reflected; }
-
-void Shot::SetDirection(const sf::Vector2f& direction) noexcept
+bool Shot::IsReflected() const noexcept
 {
-	SetVelocity(direction * speed);
+	return isReflected;
 }
 
-PlayerShot::PlayerShot(AssetStore& assets, World& world,
-	const sf::Vector2f& position, float rotationDegrees, std::uint64_t attackId,
-	bool playSound, bool tripleShotVisual)
+void Shot::SetHeading(const sf::Vector2f& direction) noexcept
+{
+	const sf::Vector2f unitDirection{ VectorMath::Normalize(direction, { 0.f, -1.f }) };
+	SetVelocity(unitDirection * speed);
+
+	// Sprite art points up at rotation 0, so facing = heading angle + 90.
+	SetRotation(unitDirection.angle() + sf::degrees(90.f));
+}
+
+void Shot::SteerToward(const sf::Vector2f& targetPosition, float turnRateDegrees, float deltaTime) noexcept
+{
+	SetHeading(VectorMath::RotateToward(
+		GetVelocity(),
+		targetPosition - GetPosition(),
+		sf::degrees(turnRateDegrees * deltaTime),
+		GetForwardDirection()));
+}
+
+PlayerShot::PlayerShot(Assets& assets, World& world, const sf::Vector2f& position, const sf::Vector2f& aimDirection,
+	std::uint64_t attackID, bool needToPlaySound, bool isTripleShotVisual)
 	: Shot(assets, world, assets.Textures().Get(Config::Texture::PlayerShot),
 		assets.GetGameplayData().GetProjectile(GameplayData::ProjectileKind::Player),
-		tripleShotVisual
-			? VisualKind::PlayerTriple
-			: world.GetSession().IsHomingBulletsActive()
-			? VisualKind::PlayerHoming
-			: VisualKind::Player,
-		attackId)
-	, homingEnabled(world.GetSession().IsHomingBulletsActive())
+		isTripleShotVisual ? VisualKind::PlayerTriple : world.GetSession().IsHomingBulletsActive()
+		? VisualKind::PlayerHoming : VisualKind::Player,
+		attackID)
+	, isHomingEnabled(world.GetSession().IsHomingBulletsActive())
 {
 	SetPosition(position);
-	const float angle{ rotationDegrees * std::numbers::pi_v<float> / 180.f
-		- std::numbers::pi_v<float> / 2.f };
-	SetRotation(sf::degrees(rotationDegrees));
-	const sf::Vector2f direction{ std::cos(angle), std::sin(angle) };
-	SetDirection(direction);
-	if (homingEnabled)
+	SetHeading(aimDirection);
+
+	const sf::Vector2f direction{ VectorMath::Normalize(aimDirection, { 0.f, -1.f }) };
+
+	if (isHomingEnabled)
 	{
 		SetPresentation(1.f, 1.f, sf::Color(255, 205, 85));
 		AcquireHomingTarget();
 	}
-	if (tripleShotVisual)
+
+	if (isTripleShotVisual)
 		SetPresentation(1.f, 1.f, sf::Color(65, 255, 115));
-	GetWorld().AddEffectEvent({ World::EffectEventType::PlayerMuzzleFlash,
-		position, direction });
-	if (playSound)
+
+	GetWorld().Effects().Add({ Rendering::EffectEventType::PlayerMuzzleFlash, position, direction });
+
+	if (needToPlaySound)
 	{
-		const float shotPitch{ tripleShotVisual
-			? 0.82f
-			: homingEnabled ? 1.18f : 1.f };
-		GetWorld().AddSound(Config::Sound::PlayerShot, shotPitch);
+		const float shotPitch = isTripleShotVisual ? 0.82f : isHomingEnabled ? 1.18f : 1.f;
+		GetWorld().Sound().AddSound(Config::Sound::PlayerShot, shotPitch);
 	}
 }
 
 void PlayerShot::Update(float deltaTime)
 {
-	if (homingEnabled && !IsReflected())
+	if (isHomingEnabled && !IsReflected())
 		UpdateHoming(deltaTime);
+
 	Shot::Update(deltaTime);
 }
 
 void PlayerShot::AcquireHomingTarget()
 {
-	const auto& config{ GetAssets().GetGameplayData().GetPickups() };
-	const float halfConeRadians{
-		config.homingConeDegrees * 0.5f * std::numbers::pi_v<float> / 180.f };
-	homingTarget = GetWorld().FindHomingTarget(
-		GetPosition(), GetVelocity(), std::cos(halfConeRadians));
+	const auto& config = GetAssets().GetGameplayData().GetPickups();
+	// FindHomingTarget wants the cosine of the half-cone angle as its "how far
+	// off my heading may a target sit" threshold (a dot-product test on the
+	// far end).
+	const float coneCosine = std::cos(sf::degrees(config.homingConeDegrees * 0.5f).asRadians());
+
+	homingTarget = GetWorld().FindHomingTarget(GetPosition(), GetVelocity(), coneCosine);
+	bossHomingTarget = GetWorld().BossHomingTargets().FindClosest(GetPosition(), GetVelocity(), coneCosine);
+
+	if (homingTarget != nullptr && bossHomingTarget)
+	{
+		const auto bossPosition = GetWorld().BossHomingTargets().Get(*bossHomingTarget);
+
+		if (!bossPosition)
+		{
+			bossHomingTarget.reset();
+		}
+		else
+		{
+			// Keep whichever candidate is closer; drop the other.
+			const float toEntitySquared = (homingTarget->GetPosition() - GetPosition()).lengthSquared();
+			const float toBossSquared = (*bossPosition - GetPosition()).lengthSquared();
+
+			if (toBossSquared < toEntitySquared)
+				homingTarget = nullptr;
+			else
+				bossHomingTarget.reset();
+		}
+	}
 }
 
 void PlayerShot::UpdateHoming(float deltaTime)
 {
-	if (!GetWorld().IsEntityActive(homingTarget))
-		AcquireHomingTarget();
-	if (homingTarget == nullptr)
-		return;
-
-	const sf::Vector2f velocity{ GetVelocity() };
-	const sf::Vector2f toTarget{ homingTarget->GetPosition() - GetPosition() };
-	if ((velocity.x * velocity.x + velocity.y * velocity.y) <= 0.0001f ||
-		(toTarget.x * toTarget.x + toTarget.y * toTarget.y) <= 0.0001f)
+	// The boss-part target is an index whose world position can vanish
+	// between frames (part destroyed), so it's always looked up fresh.
+	const auto bossTargetPosition = [this]() -> std::optional<sf::Vector2f>
 	{
-		return;
+		return bossHomingTarget
+			? GetWorld().BossHomingTargets().Get(*bossHomingTarget)
+			: std::nullopt;
+	};
+
+	if (!GetWorld().IsEntityActive(homingTarget) && !bossTargetPosition())
+	{
+		homingTarget = nullptr;
+		bossHomingTarget.reset();
+		AcquireHomingTarget();
 	}
 
-	const float currentAngle{ std::atan2(velocity.y, velocity.x) };
-	const float targetAngle{ std::atan2(toTarget.y, toTarget.x) };
-	const float angleDifference{ std::atan2(
-		std::sin(targetAngle - currentAngle),
-		std::cos(targetAngle - currentAngle)) };
-	const float turnSpeedRadians{
-		GetAssets().GetGameplayData().GetPickups().homingTurnSpeedDegrees *
-		std::numbers::pi_v<float> / 180.f };
-	const float maximumTurn{ turnSpeedRadians * deltaTime };
-	const float finalAngle{ currentAngle + std::clamp(
-		angleDifference, -maximumTurn, maximumTurn) };
-	SetDirection({ std::cos(finalAngle), std::sin(finalAngle) });
-	SetRotation(sf::radians(finalAngle + std::numbers::pi_v<float> * 0.5f));
+	const std::optional<sf::Vector2f> bossPosition{ bossTargetPosition() };
+	if (homingTarget == nullptr && !bossPosition)
+		return;
+
+	const sf::Vector2f targetPosition{ bossPosition ? *bossPosition : homingTarget->GetPosition() };
+	SteerToward(targetPosition, GetAssets().GetGameplayData().GetPickups().homingTurnSpeedDegrees, deltaTime);
 }
 
 Entity::Type PlayerShot::GetType() const noexcept
@@ -161,69 +215,60 @@ Entity::Type PlayerShot::GetType() const noexcept
 	return IsReflected() ? Type::Projectile_Enemy : Type::Projectile_Player;
 }
 
-bool PlayerShot::IsCollideWith(const Entity& other) const
+bool PlayerShot::IsCollidingWith(const Entity& other) const
 {
 	if (IsReflected())
-		return (other.GetType() == Type::Player ||
-			other.GetType() == Type::Asteroid) && CheckCollision(other);
-	if (other.GetType() == Type::Enemy || other.GetType() == Type::Asteroid)
+		return (other.GetType() == Type::Player || other.GetType() == Type::Asteroid) && CheckCollision(other);
+	else if (other.GetType() == Type::Enemy || other.GetType() == Type::Asteroid)
 		return static_cast<const Enemy&>(other).CollidesWithPlayerProjectile(*this);
-	return other.GetType() == Type::EnemyMissile && CheckCollision(other);
+	else
+		return other.GetType() == Type::EnemyMissile && CheckCollision(other);
 }
 
-SaucerShot::SaucerShot(AssetStore& assets, World& world,
-	const sf::Vector2f& position, const sf::Vector2f& targetPosition,
-	GameplayData::ProjectileKind projectileKind, bool playSound)
+SaucerShot::SaucerShot(Assets& assets, World& world, const sf::Vector2f& position,
+	const sf::Vector2f& targetPosition, GameplayData::ProjectileKind projectileKind, bool needToPlaySound)
 	: Shot(assets, world, assets.Textures().Get(Config::Texture::EnemySaucerShot),
-		assets.GetGameplayData().GetProjectile(projectileKind),
-		VisualKind::Enemy)
+		assets.GetGameplayData().GetProjectile(projectileKind), VisualKind::Enemy)
 {
 	SetPosition(position);
-	const sf::Vector2f toTarget{ targetPosition - position };
-	const float finalAngle{ std::atan2(toTarget.y, toTarget.x) };
-	const sf::Vector2f direction{ std::cos(finalAngle), std::sin(finalAngle) };
-	SetDirection(direction);
-	GetWorld().AddEffectEvent({ World::EffectEventType::EnemyMuzzleFlash,
-		position, direction });
-	SetRotation(sf::degrees(finalAngle * 180.f / std::numbers::pi_v<float> + 90.f));
-	if (playSound)
-		GetWorld().AddSound(Config::Sound::EnemyShot);
+	SetHeading(targetPosition - position);
+
+	GetWorld().Effects().Add({ Rendering::EffectEventType::EnemyMuzzleFlash, position, GetForwardDirection() });
+
+	if (needToPlaySound)
+		GetWorld().Sound().AddSound(Config::Sound::EnemyShot);
 }
 
-Entity::Type SaucerShot::GetType() const noexcept { return Type::Projectile_Enemy; }
-
-bool SaucerShot::IsCollideWith(const Entity& other) const
+Entity::Type SaucerShot::GetType() const noexcept
 {
-	return (other.GetType() == Type::Player || other.GetType() == Type::Asteroid)
-		&& CheckCollision(other);
+	return Type::Projectile_Enemy;
 }
 
-HelperShot::HelperShot(AssetStore& assets, World& world,
-	const sf::Vector2f& position, const Entity* target)
+bool SaucerShot::IsCollidingWith(const Entity& other) const
+{
+	return (other.GetType() == Type::Player || other.GetType() == Type::Asteroid) && CheckCollision(other);
+}
+
+HelperShot::HelperShot(Assets& assets, World& world, const sf::Vector2f& position, const Entity* target)
 	: Shot(assets, world, assets.Textures().Get(Config::Texture::PlayerShot),
-		assets.GetGameplayData().GetProjectile(GameplayData::ProjectileKind::Helper),
-		VisualKind::Helper)
+		assets.GetGameplayData().GetProjectile(GameplayData::ProjectileKind::Helper), VisualKind::Helper)
 	, homingTarget(target)
 {
 	SetPosition(position);
 	SetPresentation(0.92f, 1.f, sf::Color(75, 245, 255));
-	const sf::Vector2f toTarget{ target != nullptr
-		? target->GetPosition() - position
-		: sf::Vector2f{ 1.f, 0.f } };
-	const float angle{ std::atan2(toTarget.y, toTarget.x) };
-	SetDirection({ std::cos(angle), std::sin(angle) });
-	SetRotation(sf::radians(angle + std::numbers::pi_v<float> * 0.5f));
-	GetWorld().AddEffectEvent({
-		World::EffectEventType::PlayerMuzzleFlash,
-		position,
-		{ std::cos(angle), std::sin(angle) } });
-	GetWorld().AddSound(Config::Sound::PlayerShot, 1.35f);
+
+	SetHeading(target != nullptr ? target->GetPosition() - position : sf::Vector2f{ 1.f, 0.f });
+
+	GetWorld().Effects().Add({ Rendering::EffectEventType::PlayerMuzzleFlash, position, GetForwardDirection() });
+
+	GetWorld().Sound().AddSound(Config::Sound::PlayerShot, 1.35f);
 }
 
 void HelperShot::Update(float deltaTime)
 {
 	if (!IsReflected())
 		UpdateHoming(deltaTime);
+
 	Shot::Update(deltaTime);
 }
 
@@ -232,48 +277,29 @@ Entity::Type HelperShot::GetType() const noexcept
 	return IsReflected() ? Type::Projectile_Enemy : Type::Projectile_Ally;
 }
 
-bool HelperShot::IsCollideWith(const Entity& other) const
+bool HelperShot::IsCollidingWith(const Entity& other) const
 {
 	if (IsReflected())
-		return (other.GetType() == Type::Player ||
-			other.GetType() == Type::Asteroid) && CheckCollision(other);
-	if (other.GetType() == Type::Enemy || other.GetType() == Type::Asteroid)
+		return (other.GetType() == Type::Player || other.GetType() == Type::Asteroid) && CheckCollision(other);
+	else if (other.GetType() == Type::Enemy || other.GetType() == Type::Asteroid)
 		return static_cast<const Enemy&>(other).CollidesWithPlayerProjectile(*this);
-	return other.GetType() == Type::EnemyMissile && CheckCollision(other);
+	else
+		return other.GetType() == Type::EnemyMissile && CheckCollision(other);
 }
 
 void HelperShot::AcquireTarget()
 {
-	homingTarget = GetWorld().FindHomingTarget(
-		GetPosition(), GetVelocity(), -1.f);
+	homingTarget = GetWorld().FindHomingTarget(GetPosition(), GetVelocity(), -1.f);
 }
 
 void HelperShot::UpdateHoming(float deltaTime)
 {
 	if (!GetWorld().IsEntityActive(homingTarget))
 		AcquireTarget();
+
 	if (homingTarget == nullptr)
 		return;
 
-	const sf::Vector2f velocity{ GetVelocity() };
-	const sf::Vector2f toTarget{ homingTarget->GetPosition() - GetPosition() };
-	if ((velocity.x * velocity.x + velocity.y * velocity.y) <= 0.0001f ||
-		(toTarget.x * toTarget.x + toTarget.y * toTarget.y) <= 0.0001f)
-	{
-		return;
-	}
-
-	const float currentAngle{ std::atan2(velocity.y, velocity.x) };
-	const float targetAngle{ std::atan2(toTarget.y, toTarget.x) };
-	const float angleDifference{ std::atan2(
-		std::sin(targetAngle - currentAngle),
-		std::cos(targetAngle - currentAngle)) };
-	const float turnSpeedRadians{
-		GetAssets().GetGameplayData().GetPickups().helperBotTurnSpeedDegrees *
-		std::numbers::pi_v<float> / 180.f };
-	const float maximumTurn{ turnSpeedRadians * deltaTime };
-	const float finalAngle{ currentAngle + std::clamp(
-		angleDifference, -maximumTurn, maximumTurn) };
-	SetDirection({ std::cos(finalAngle), std::sin(finalAngle) });
-	SetRotation(sf::radians(finalAngle + std::numbers::pi_v<float> * 0.5f));
+	SteerToward(homingTarget->GetPosition(),
+		GetAssets().GetGameplayData().GetPickups().helperBotTurnSpeedDegrees, deltaTime);
 }

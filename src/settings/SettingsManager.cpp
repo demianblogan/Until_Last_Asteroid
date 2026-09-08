@@ -2,7 +2,7 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdlib>
+#include <cassert>
 #include <fstream>
 #include <string>
 #include <system_error>
@@ -10,369 +10,426 @@
 #include <nlohmann/json.hpp>
 #include <SFML/Window/VideoMode.hpp>
 
+#include "utils/AppDataPath.h"
+#include "utils/SafeFileWrite.h"
+
 namespace
 {
-    using Json = nlohmann::json;
+	using Json = nlohmann::json;
+	using SafeFileWrite::HasFailed;
 
-    constexpr std::array<unsigned int, 7> SupportedFrameRateLimits{
-        0u, 30u, 60u, 120u, 144u, 240u, 360u
-    };
+	// Same reasoning as JSONIndentWidth in CampaignSaveManager.cpp: this is
+	// the pretty-print indent width for the saved JSON, not an arbitrary
+	// number.
+	constexpr int JSONIndentWidth = 4;
 
-    template <typename Value>
-    Value ReadValue(const Json& object, const char* key, Value fallback)
-    {
-        const auto value{ object.find(key) };
-        if (value == object.end())
-            return fallback;
+	constexpr std::array<unsigned int, 7> SupportedFrameRateLimits =
+	{
+		0u, 30u, 60u, 120u, 144u, 240u, 360u
+	};
 
-        try
-        {
-            return value->get<Value>();
-        }
-        catch (const Json::exception&)
-        {
-            return fallback;
-        }
-    }
+	// Sanity bounds for a resolution loaded from settings.json: reject
+	// anything a hand-edited or corrupted file might contain that couldn't
+	// possibly be a real display resolution, so a garbage value can't be
+	// forwarded straight into window/video mode creation.
+	constexpr unsigned int MinSupportedWidth = 640u;
+	constexpr unsigned int MinSupportedHeight = 480u;
+	constexpr unsigned int MaxSupportedWidth = 16384u;
+	constexpr unsigned int MaxSupportedHeight = 16384u;
 
-    std::string ToString(WindowMode mode)
-    {
-        switch (mode)
-        {
-        case WindowMode::Fullscreen:
-            return "fullscreen";
-        case WindowMode::Windowed:
-            return "windowed";
-        case WindowMode::Borderless:
-            return "borderless";
-        }
+	template <typename Value>
+	Value ReadValue(const Json& object, const char* key, Value defaultValue)
+	{
+		const auto value = object.find(key);
+		if (value == object.end())
+			return defaultValue;
 
-        return "fullscreen";
-    }
+		try
+		{
+			return value->get<Value>();
+		}
+		catch (const Json::exception&)
+		{
+			return defaultValue;
+		}
+	}
 
-    WindowMode ParseWindowMode(const std::string& value, WindowMode fallback)
-    {
-        if (value == "fullscreen")
-            return WindowMode::Fullscreen;
-        if (value == "windowed")
-            return WindowMode::Windowed;
-        if (value == "borderless")
-            return WindowMode::Borderless;
+	std::string ToString(WindowMode mode)
+	{
+		switch (mode)
+		{
+		case WindowMode::Fullscreen:
+			return "fullscreen";
+		case WindowMode::Windowed:
+			return "windowed";
+		case WindowMode::Borderless:
+			return "borderless";
 
-        return fallback;
-    }
+		default:
+			// Every real WindowMode value is handled explicitly above --
+			// this is only reachable via a bad enum value (e.g. a future
+			// enumerator added without updating this switch). Asserts loudly
+			// in Debug instead of silently writing "fullscreen" to the save
+			// file for a mode that was never actually Fullscreen.
+			assert(false && "Unhandled WindowMode in ToString");
+			return "fullscreen";
+		}
+	}
 
-    std::string ToString(InputDevice device)
-    {
-        return device == InputDevice::Mouse ? "mouse" : "keyboard";
-    }
+	std::string ToString(Language language)
+	{
+		switch (language)
+		{
+		case Language::English:
+			return "en";
+		case Language::Spanish:
+			return "es";
+		case Language::Russian:
+			return "ru";
+		case Language::Ukrainian:
+			return "uk";
+		case Language::Arabic:
+			return "ar";
 
-    InputDevice ParseInputDevice(const std::string& value, InputDevice fallback)
-    {
-        if (value == "keyboard")
-            return InputDevice::Keyboard;
-        if (value == "mouse")
-            return InputDevice::Mouse;
+		default:
+			// Every real Language value is handled explicitly above -- this
+			// is only reachable via a bad enum value (e.g. a future
+			// enumerator added without updating this switch). Asserts loudly
+			// in Debug instead of silently writing "en" to the save file for
+			// a language that was never actually English.
+			assert(false && "Unhandled Language in ToString");
+			return "en";
+		}
+	}
 
-        return fallback;
-    }
+	WindowMode ParseWindowMode(const std::string& value, WindowMode fallback)
+	{
+		if (value == "fullscreen")
+			return WindowMode::Fullscreen;
+		else if (value == "windowed")
+			return WindowMode::Windowed;
+		else if (value == "borderless")
+			return WindowMode::Borderless;
+		else
+			return fallback;
+	}
 
-    Json SerializeBinding(const ControlBinding& binding)
-    {
-        return {
-            { "device", ToString(binding.device) },
-            { "code", binding.code }
-        };
-    }
+	Language ParseLanguage(const std::string& value, Language fallback)
+	{
+		if (value == "en")
+			return Language::English;
+		else if (value == "es")
+			return Language::Spanish;
+		else if (value == "ru")
+			return Language::Russian;
+		else if (value == "uk")
+			return Language::Ukrainian;
+		else if (value == "ar")
+			return Language::Arabic;
+		else
+			return fallback;
+	}
 
-    ControlBinding DeserializeBinding(const Json& object, const ControlBinding& fallback)
-    {
-        if (!object.is_object())
-            return fallback;
+	std::string ToString(RebindableInputDevice device)
+	{
+		return device == RebindableInputDevice::Mouse ? "mouse" : "keyboard";
+	}
 
-        ControlBinding result{ fallback };
-        result.device = ParseInputDevice(
-            ReadValue(object, "device", ToString(fallback.device)),
-            fallback.device);
-        result.code = ReadValue(object, "code", fallback.code);
+	RebindableInputDevice ParseInputDevice(const std::string& value, RebindableInputDevice fallback)
+	{
+		if (value == "keyboard")
+			return RebindableInputDevice::Keyboard;
+		else if (value == "mouse")
+			return RebindableInputDevice::Mouse;
+		else
+			return fallback;
+	}
 
-        const bool validKeyboard{
-            result.device == InputDevice::Keyboard &&
-            result.code >= 0 &&
-            result.code < static_cast<int>(sf::Keyboard::KeyCount)
-        };
-        const bool validMouse{
-            result.device == InputDevice::Mouse &&
-            result.code >= 0 &&
-            result.code < static_cast<int>(sf::Mouse::ButtonCount)
-        };
+	Json SerializeBinding(const ControlBinding& binding)
+	{
+		return
+		{
+			{ "device", ToString(binding.device) },
+			{ "code", binding.code }
+		};
+	}
 
-        return validKeyboard || validMouse ? result : fallback;
-    }
+	ControlBinding DeserializeBinding(const Json& object, const ControlBinding& fallback)
+	{
+		if (!object.is_object())
+			return fallback;
 
-    Json Serialize(const GameSettings& settings)
-    {
-        return {
-            { "version", GameSettings::FORMAT_VERSION },
-            {
-                "graphics",
-                {
-                    { "width", settings.graphics.resolution.x },
-                    { "height", settings.graphics.resolution.y },
-                    { "windowMode", ToString(settings.graphics.windowMode) },
-                    { "showFps", settings.graphics.showFps },
-                    { "verticalSynchronization", settings.graphics.verticalSync },
-                    { "frameRateLimit", settings.graphics.frameRateLimit },
-                    { "postEffects", settings.graphics.postEffects }
-                }
-            },
-            {
-                "audio",
-                {
-                    { "musicMaster", settings.audio.musicVolume },
-                    { "soundsMaster", settings.audio.soundVolume }
-                }
-            },
-            {
-                "gameplay",
-                {
-                    { "screenShake", settings.gameplay.screenShake },
-                    { "showScorePopups", settings.gameplay.showScorePopups }
-                }
-            },
-            {
-                "controls",
-                {
-                    { "moveUp", SerializeBinding(settings.controls.moveUp) },
-                    { "moveDown", SerializeBinding(settings.controls.moveDown) },
-                    { "moveLeft", SerializeBinding(settings.controls.moveLeft) },
-                    { "moveRight", SerializeBinding(settings.controls.moveRight) },
-                    { "fire", SerializeBinding(settings.controls.fire) }
-                }
-            }
-        };
-    }
+		ControlBinding result(fallback);
+		result.device = ParseInputDevice(ReadValue(object, "device", ToString(fallback.device)), fallback.device);
+		result.code = ReadValue(object, "code", fallback.code);
 
-    GameSettings Deserialize(const Json& data, const GameSettings& defaults)
-    {
-        GameSettings result{ defaults };
+		const bool isValidKeyboard =
+			result.device == RebindableInputDevice::Keyboard &&
+			result.code >= 0 &&
+			result.code < static_cast<int>(sf::Keyboard::KeyCount);
 
-        if (const auto graphics{ data.find("graphics") };
-            graphics != data.end() && graphics->is_object())
-        {
-            const unsigned int width{ ReadValue(*graphics, "width", result.graphics.resolution.x) };
-            const unsigned int height{ ReadValue(*graphics, "height", result.graphics.resolution.y) };
-            if (width >= 640u && height >= 480u && width <= 16384u && height <= 16384u)
-                result.graphics.resolution = { width, height };
+		const bool isValidMouse =
+			result.device == RebindableInputDevice::Mouse &&
+			result.code >= 0 &&
+			result.code < static_cast<int>(sf::Mouse::ButtonCount);
 
-            result.graphics.windowMode = ParseWindowMode(
-                ReadValue(*graphics, "windowMode", ToString(result.graphics.windowMode)),
-                result.graphics.windowMode);
-            result.graphics.showFps = ReadValue(*graphics, "showFps", result.graphics.showFps);
-            result.graphics.verticalSync = ReadValue(
-                *graphics,
-                "verticalSynchronization",
-                result.graphics.verticalSync);
-            result.graphics.postEffects = ReadValue(
-                *graphics,
-                "postEffects",
-                result.graphics.postEffects);
+		return isValidKeyboard || isValidMouse ? result : fallback;
+	}
 
-            const unsigned int frameRateLimit{
-                ReadValue(*graphics, "frameRateLimit", result.graphics.frameRateLimit)
-            };
-            if (std::ranges::find(SupportedFrameRateLimits, frameRateLimit) != SupportedFrameRateLimits.end())
-                result.graphics.frameRateLimit = frameRateLimit;
-        }
+	Json Serialize(const GameSettings& settings)
+	{
+		return
+		{
+			{ "version", GameSettings::FormatVersion },
+			{
+				"localization",
+				{
+					{ "language", ToString(settings.localization.language) },
+					{ "isLanguageChosen", settings.localization.isLanguageChosen }
+				}
+			},
+			{
+				"graphics",
+				{
+					{ "width", settings.graphics.resolution.x },
+					{ "height", settings.graphics.resolution.y },
+					{ "windowMode", ToString(settings.graphics.windowMode) },
+					{ "needToShowFPS", settings.graphics.needToShowFPS },
+					{ "isVSyncEnabled", settings.graphics.isVSyncEnabled },
+					{ "frameRateLimit", settings.graphics.frameRateLimit },
+					{ "arePostEffectsEnabled", settings.graphics.arePostEffectsEnabled }
+				}
+			},
+			{
+				"audio",
+				{
+					{ "musicMaster", settings.audio.musicVolume },
+					{ "soundsMaster", settings.audio.soundVolume }
+				}
+			},
+			{
+				"gameplay",
+				{
+					{ "isScreenShakeEnabled", settings.gameplay.isScreenShakeEnabled },
+					{ "needToShowScorePopups", settings.gameplay.needToShowScorePopups }
+				}
+			},
+			{
+				"controls",
+				{
+					{ "moveUp", SerializeBinding(settings.controls.moveUp) },
+					{ "moveDown", SerializeBinding(settings.controls.moveDown) },
+					{ "moveLeft", SerializeBinding(settings.controls.moveLeft) },
+					{ "moveRight", SerializeBinding(settings.controls.moveRight) },
+					{ "fire", SerializeBinding(settings.controls.fire) }
+				}
+			},
+			{
+				"gamepad",
+				{
+					{ "isVibrationEnabled", settings.gamepad.isVibrationEnabled },
+					{ "isAdaptiveTriggersEnabled", settings.gamepad.isAdaptiveTriggersEnabled },
+					{ "isControllerLightbarEnabled", settings.gamepad.isControllerLightbarEnabled }
+				}
+			}
+		};
+	}
 
-        if (const auto gameplay{ data.find("gameplay") };
-            gameplay != data.end() && gameplay->is_object())
-        {
-            result.gameplay.screenShake = ReadValue(
-                *gameplay,
-                "screenShake",
-                result.gameplay.screenShake);
-            result.gameplay.showScorePopups = ReadValue(
-                *gameplay,
-                "showScorePopups",
-                result.gameplay.showScorePopups);
-        }
+	GameSettings Deserialize(const Json& data, const GameSettings& defaults)
+	{
+		GameSettings result(defaults);
 
-        if (const auto audio{ data.find("audio") };
-            audio != data.end() && audio->is_object())
-        {
-            const float legacyMusic{ ReadValue(*audio, "music", result.audio.musicVolume) };
-            const float legacySounds{ ReadValue(*audio, "sounds", result.audio.soundVolume) };
-            result.audio.musicVolume = std::clamp(
-                ReadValue(*audio, "musicMaster", legacyMusic),
-                0.f,
-                100.f);
-            result.audio.soundVolume = std::clamp(
-                ReadValue(*audio, "soundsMaster", legacySounds),
-                0.f,
-                100.f);
-        }
+		if (const auto localization(data.find("localization"));
+			localization != data.end() && localization->is_object())
+		{
+			result.localization.language = ParseLanguage(
+				ReadValue(*localization, "language", ToString(result.localization.language)),
+				result.localization.language);
 
-        if (const auto controls{ data.find("controls") };
-            controls != data.end() && controls->is_object())
-        {
-            const auto readBinding{ [&controls](const char* key, const ControlBinding& fallback)
-                {
-                    const auto binding{ controls->find(key) };
-                    return binding == controls->end()
-                        ? fallback
-                        : DeserializeBinding(*binding, fallback);
-                } };
+			result.localization.isLanguageChosen = ReadValue(
+				*localization, "isLanguageChosen", result.localization.isLanguageChosen);
+		}
 
-            result.controls.moveUp = readBinding("moveUp", result.controls.moveUp);
-            result.controls.moveDown = readBinding("moveDown", result.controls.moveDown);
-            result.controls.moveLeft = readBinding("moveLeft", result.controls.moveLeft);
-            result.controls.moveRight = readBinding("moveRight", result.controls.moveRight);
-            result.controls.fire = readBinding("fire", result.controls.fire);
-        }
+		if (const auto graphics(data.find("graphics"));
+			graphics != data.end() && graphics->is_object())
+		{
+			const unsigned int width = ReadValue(*graphics, "width", result.graphics.resolution.x);
+			const unsigned int height = ReadValue(*graphics, "height", result.graphics.resolution.y);
+			if (width >= MinSupportedWidth && height >= MinSupportedHeight &&
+				width <= MaxSupportedWidth && height <= MaxSupportedHeight)
+				result.graphics.resolution = { width, height };
 
-        return result;
-    }
+			result.graphics.windowMode = ParseWindowMode(
+				ReadValue(*graphics, "windowMode", ToString(result.graphics.windowMode)),
+				result.graphics.windowMode);
+			result.graphics.needToShowFPS = ReadValue(*graphics, "needToShowFPS", result.graphics.needToShowFPS);
+			result.graphics.isVSyncEnabled = ReadValue(
+				*graphics,
+				"isVSyncEnabled",
+				result.graphics.isVSyncEnabled);
+			result.graphics.arePostEffectsEnabled = ReadValue(
+				*graphics,
+				"arePostEffectsEnabled",
+				result.graphics.arePostEffectsEnabled);
 
-    bool ReplaceFile(const std::filesystem::path& temporaryPath, const std::filesystem::path& targetPath)
-    {
-        std::error_code error;
-        if (!std::filesystem::exists(targetPath, error))
-        {
-            std::filesystem::rename(temporaryPath, targetPath, error);
-            return !error;
-        }
+			const unsigned int frameRateLimit =
+				ReadValue(*graphics, "frameRateLimit", result.graphics.frameRateLimit);
 
-        std::filesystem::path backupPath{ targetPath };
-        backupPath += ".bak";
-        std::filesystem::remove(backupPath, error);
-        error.clear();
+			if (std::ranges::find(SupportedFrameRateLimits, frameRateLimit) != SupportedFrameRateLimits.end())
+				result.graphics.frameRateLimit = frameRateLimit;
+		}
 
-        std::filesystem::rename(targetPath, backupPath, error);
-        if (error)
-            return false;
+		if (const auto gameplay(data.find("gameplay"));
+			gameplay != data.end() && gameplay->is_object())
+		{
+			result.gameplay.isScreenShakeEnabled = ReadValue(
+				*gameplay,
+				"isScreenShakeEnabled",
+				result.gameplay.isScreenShakeEnabled);
+			result.gameplay.needToShowScorePopups = ReadValue(
+				*gameplay,
+				"needToShowScorePopups",
+				result.gameplay.needToShowScorePopups);
+		}
 
-        std::filesystem::rename(temporaryPath, targetPath, error);
-        if (error)
-        {
-            std::error_code restoreError;
-            std::filesystem::rename(backupPath, targetPath, restoreError);
-            return false;
-        }
+		if (const auto audio(data.find("audio"));
+			audio != data.end() && audio->is_object())
+		{
+			const float legacyMusic = ReadValue(*audio, "music", result.audio.musicVolume);
+			const float legacySounds = ReadValue(*audio, "sounds", result.audio.soundVolume);
 
-        std::filesystem::remove(backupPath, error);
-        return true;
-    }
+			result.audio.musicVolume = std::clamp(ReadValue(*audio, "musicMaster", legacyMusic), 0.f, 100.f);
+			result.audio.soundVolume = std::clamp(ReadValue(*audio, "soundsMaster", legacySounds), 0.f, 100.f);
+		}
+
+		if (const auto controls(data.find("controls"));
+			controls != data.end() && controls->is_object())
+		{
+			const auto readBinding = [&controls](const char* key, const ControlBinding& fallback)
+				{
+					const auto binding = controls->find(key);
+					return binding == controls->end() ? fallback : DeserializeBinding(*binding, fallback);
+				};
+
+			result.controls.moveUp = readBinding("moveUp", result.controls.moveUp);
+			result.controls.moveDown = readBinding("moveDown", result.controls.moveDown);
+			result.controls.moveLeft = readBinding("moveLeft", result.controls.moveLeft);
+			result.controls.moveRight = readBinding("moveRight", result.controls.moveRight);
+			result.controls.fire = readBinding("fire", result.controls.fire);
+		}
+
+		if (const auto gamepad(data.find("gamepad"));
+			gamepad != data.end() && gamepad->is_object())
+		{
+			result.gamepad.isVibrationEnabled = ReadValue(
+				*gamepad,
+				"isVibrationEnabled",
+				result.gamepad.isVibrationEnabled);
+			result.gamepad.isAdaptiveTriggersEnabled = ReadValue(
+				*gamepad,
+				"isAdaptiveTriggersEnabled",
+				result.gamepad.isAdaptiveTriggersEnabled);
+			result.gamepad.isControllerLightbarEnabled = ReadValue(
+				*gamepad,
+				"isControllerLightbarEnabled",
+				result.gamepad.isControllerLightbarEnabled);
+		}
+
+		return result;
+	}
 }
 
 SettingsManager::SettingsManager()
-    : defaults(CreateDefaults())
-    , settings(defaults)
-    , filePath(ResolveSettingsPath())
+	: defaults(CreateDefaults())
+	, settings(defaults)
+	, settingsFilePath(ResolveSettingsPath())
 {
-    Load();
+	LoadSettings();
 }
 
-const GameSettings& SettingsManager::Get() const noexcept
+const GameSettings& SettingsManager::GetSettings() const noexcept
 {
-    return settings;
+	return settings;
 }
 
 const GameSettings& SettingsManager::GetDefaults() const noexcept
 {
-    return defaults;
+	return defaults;
 }
 
-GameSettings& SettingsManager::Edit() noexcept
+GameSettings& SettingsManager::EditSettings() noexcept
 {
-    return settings;
+	return settings;
 }
 
-const std::filesystem::path& SettingsManager::GetFilePath() const noexcept
+bool SettingsManager::LoadSettings()
 {
-    return filePath;
+	std::ifstream file(settingsFilePath);
+	if (!file.is_open())
+	{
+		settings = defaults;
+		return SaveSettings();
+	}
+
+	try
+	{
+		const Json data(Json::parse(file));
+		if (!data.is_object())
+		{
+			settings = defaults;
+			return SaveSettings();
+		}
+
+		settings = Deserialize(data, defaults);
+		return true;
+	}
+	catch (const Json::exception&)
+	{
+		settings = defaults;
+		return SaveSettings();
+	}
 }
 
-bool SettingsManager::Load()
+bool SettingsManager::SaveSettings() const
 {
-    std::ifstream file(filePath);
-    if (!file)
-    {
-        settings = defaults;
-        return Save();
-    }
+	std::error_code error;
+	std::filesystem::create_directories(settingsFilePath.parent_path(), error);
+	if (HasFailed(error))
+		return false;
 
-    try
-    {
-        const Json data{ Json::parse(file) };
-        if (!data.is_object())
-        {
-            settings = defaults;
-            return Save();
-        }
+	std::filesystem::path temporaryPath{ settingsFilePath };
+	temporaryPath += ".tmp";
 
-        settings = Deserialize(data, defaults);
-        return true;
-    }
-    catch (const Json::exception&)
-    {
-        settings = defaults;
-        return Save();
-    }
+	{
+		std::ofstream file(temporaryPath, std::ios::trunc);
+		if (!file.is_open())
+			return false;
+
+		file << Serialize(settings).dump(JSONIndentWidth) << '\n';
+		if (!file)
+			return false;
+	}
+
+	return SafeFileWrite::ReplaceFileAtomically(temporaryPath, settingsFilePath);
 }
 
-bool SettingsManager::Save() const
+bool SettingsManager::ResetSettingsToDefaults()
 {
-    std::error_code error;
-    std::filesystem::create_directories(filePath.parent_path(), error);
-    if (error)
-        return false;
-
-    std::filesystem::path temporaryPath{ filePath };
-    temporaryPath += ".tmp";
-
-    {
-        std::ofstream file(temporaryPath, std::ios::trunc);
-        if (!file)
-            return false;
-
-        file << Serialize(settings).dump(4) << '\n';
-        if (!file)
-            return false;
-    }
-
-    return ReplaceFile(temporaryPath, filePath);
-}
-
-bool SettingsManager::ResetToDefaults()
-{
-    settings = defaults;
-    return Save();
+	settings = defaults;
+	return SaveSettings();
 }
 
 GameSettings SettingsManager::CreateDefaults()
 {
-    GameSettings result;
-    const sf::Vector2u desktopSize{ sf::VideoMode::getDesktopMode().size };
-    if (desktopSize.x > 0u && desktopSize.y > 0u)
-        result.graphics.resolution = desktopSize;
+	GameSettings result;
+	const sf::Vector2u desktopSize = { sf::VideoMode::getDesktopMode().size };
+	if (desktopSize.x > 0u && desktopSize.y > 0u)
+		result.graphics.resolution = desktopSize;
 
-    return result;
+	return result;
 }
 
 std::filesystem::path SettingsManager::ResolveSettingsPath()
 {
-    char* localAppData{ nullptr };
-    std::size_t length{ 0 };
-    if (_dupenv_s(&localAppData, &length, "LOCALAPPDATA") == 0 && localAppData != nullptr)
-    {
-        const std::filesystem::path directory{
-            std::filesystem::path(localAppData) / "Alone Bull Company" / "Until Last Asteroid"
-        };
-        std::free(localAppData);
-        return directory / "settings.json";
-    }
-
-    std::free(localAppData);
-    return std::filesystem::current_path() / "user_data" / "settings.json";
+	return AppDataPath::Resolve("settings.json");
 }

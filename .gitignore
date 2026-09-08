@@ -419,3 +419,14 @@ FodyWeavers.xsd
 
 # Project build output
 build/
+
+# Release build output (final packaged binaries + runtime DLLs)
+Binaries/
+
+# Visual Studio per-project scratch folders (project-name prefix + solution GUID)
+UntilLas.*/
+Asteroid/
+
+# Locally-fetched SFML dependency binaries (not project source)
+libs/SFML/include/
+libs/SFML/lib/
