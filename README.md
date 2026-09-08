@@ -140,9 +140,7 @@ campaign progress.
 
 ```
 src/        → game source code
-assets/     → textures, sounds, fonts
-design/     → visual direction and production specifications
-tests/      → focused performance benchmarks
+assets/     → textures, sounds, fonts, shaders, data
 libs/       → external libraries (SFML)
 build/      → compiled binaries (ignored)
 ```

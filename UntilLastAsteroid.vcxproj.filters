@@ -211,8 +211,8 @@
     <None Include="assets\sprites\pickups\shield_pickup.png" />
     <None Include="assets\sprites\pickups\homing_bullets_pickup.png" />
 	<None Include="assets\sprites\pickups\time_slowdown_pickup.png" />
-    <None Include="assets\sprites\pickups\helper_bot_pickup_v1_9.png" />
-	<None Include="assets\sprites\enemies\reflector_gunship_v1_9.png" />
+    <None Include="assets\sprites\pickups\helper_bot_pickup.png" />
+	<None Include="assets\sprites\enemies\reflector_gunship.png" />
     <None Include="assets\backgrounds\gameplay\blue_nebula_region.jpg" />
 	<None Include="assets\backgrounds\gameplay\violet_clouds_region.jpg" />
 	<None Include="assets\backgrounds\gameplay\asteroid_belt_region.jpg" />
@@ -222,8 +222,7 @@
 	<None Include="assets\backgrounds\gameplay\rose_nursery_region.jpg" />
 	<None Include="assets\backgrounds\gameplay\frozen_expanse_region.jpg" />
 	<None Include="assets\backgrounds\gameplay\ion_storm_region.jpg" />
-	<None Include="tests\PerformanceBenchmark.cpp" />
-    <None Include="assets\sprites\player\ship_v1_4.png" />
+    <None Include="assets\sprites\player\ship.png" />
     <None Include="assets\sprites\ui\hud\health_bar_frame.png" />
     <None Include="assets\sprites\ui\hud\health_bar_fill.png" />
     <None Include="assets\sprites\ui\hud\score_panel_frame.png" />
