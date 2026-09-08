@@ -41,6 +41,5 @@ public:
 	// Replaces the hand-rolled atan2()/atan2(sin,cos)/clamp/cos-sin dance
 	// that was copy-pasted into every homing entity.
 	[[nodiscard]] static sf::Vector2f RotateToward(
-		sf::Vector2f heading, sf::Vector2f desired, sf::Angle maximumStep,
-		sf::Vector2f fallback = { 1.f, 0.f });
+		sf::Vector2f heading, sf::Vector2f desired, sf::Angle maximumStep, sf::Vector2f fallback = { 1.f, 0.f });
 };

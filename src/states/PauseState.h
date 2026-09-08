@@ -43,11 +43,14 @@ private:
 	void CompleteActivation(std::size_t index);
 	void RefreshLocalizedContent();
 
+	// The paused game frame, captured once and gaussian-blurred into
+	// blurredFrame, which is what the menu actually draws behind itself.
 	sf::Texture windowSnapshot;
 	sf::RenderTexture horizontalBlur;
 	sf::RenderTexture blurredFrame;
 	sf::Shader& blurShader;
 	sf::RectangleShape darkOverlay;
+
 	sf::Text titleGlow;
 	sf::Text title;
 	Rendering::NeonGlow neonGlow;
@@ -55,12 +58,13 @@ private:
 	UI::ScreenFade screenFade;
 	UI::MenuButtonList buttonList;
 	std::vector<PauseAction> buttonActions;
+
 	sf::Vector2u capturedWindowSize{};
-	std::size_t pendingActivation{ 0 };
-	std::size_t localizationRevision{ 0u };
-	float activationDelayRemaining{ 0.f };
-	bool isFrameCaptured{ false };
-	bool isActivationPending{ false };
-	bool wasMusicPlaying{ false };
-	bool isReturningToMainMenu{ false };
+	std::size_t pendingActivation = 0;
+	std::size_t localizationRevision = 0u;
+	float activationDelayRemaining = 0.f;
+	bool isFrameCaptured = false;
+	bool isActivationPending = false;
+	bool wasMusicPlaying = false;
+	bool isReturningToMainMenu = false;
 };

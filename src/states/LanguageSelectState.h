@@ -25,15 +25,22 @@ private:
 	void Select(std::size_t index, bool playSound = true);
 	void ConfirmSelection();
 
-	static constexpr std::array Languages{
-		Language::English, Language::Spanish, Language::Russian,
-		Language::Ukrainian, Language::Arabic };
+	static constexpr std::array Languages =
+	{
+		Language::English,
+		Language::Spanish,
+		Language::Russian,
+		Language::Ukrainian,
+		Language::Arabic
+	};
 
 	Rendering::NeonGlow glow;
 	Rendering::NeonGlow buttonGlow;
+
 	sf::Text title;
 	sf::Text hint;
 	std::vector<UI::MenuButton> buttons;
-	std::size_t selectedIndex{ 0u };
+
+	std::size_t selectedIndex = 0u;
 	sf::Vector2f cursorPosition;
 };

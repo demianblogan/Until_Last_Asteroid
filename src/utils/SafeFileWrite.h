@@ -21,8 +21,7 @@ namespace SafeFileWrite
 	// final swap fails, so a mid-operation failure never leaves targetPath
 	// missing.
 	[[nodiscard]] bool ReplaceFileAtomically(
-		const std::filesystem::path& temporaryPath,
-		const std::filesystem::path& targetPath);
+		const std::filesystem::path& temporaryPath, const std::filesystem::path& targetPath);
 
 	// Renames a file that failed to load/parse to <path>.corrupt (or
 	// .corrupt.1, .corrupt.2, ... if that name is already taken), instead of

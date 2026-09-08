@@ -32,13 +32,15 @@ private:
 	Rendering::NeonGlow neonGlow;
 	Rendering::NeonGlow titleNeonGlow;
 	UI::MenuIntroAnimation introAnimation;
+
 	sf::Text title;
 	sf::Text version;
 	UI::MenuButtonList buttonList;
+
 	std::optional<std::size_t> pendingActivation;
-	std::size_t typingSoundIndex{ 0 };
-	float activationDelayRemaining{ 0.f };
-	float titleLeftPosition{ 0.f };
-	std::size_t localizationRevision{ 0u };
-	bool hasRefreshedLocalizedLabels{ false };
+	std::size_t typingSoundIndex = 0;
+	float activationDelayRemaining = 0.f;
+	float titleLeftPosition = 0.f;
+	std::size_t localizationRevision = 0u;
+	bool hasRefreshedLocalizedLabels = false;
 };

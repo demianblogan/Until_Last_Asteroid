@@ -4,7 +4,10 @@
 
 #include "states/State.h"
 
-namespace sf { class Event; }
+namespace sf
+{
+	class Event;
+}
 
 class CompanySplashState final : public State
 {
@@ -22,11 +25,11 @@ private:
 	void UpdateOpacity();
 	void UpdateLayout();
 
-	static constexpr float FadeInDuration{ 0.5f };
-	static constexpr float HoldDuration{ 2.f };
-	static constexpr float FadeOutDuration{ 0.5f };
+	static constexpr float FadeInDuration = 0.5f;
+	static constexpr float HoldDuration = 2.f;
+	static constexpr float FadeOutDuration = 0.5f;
 
 	sf::Sprite logo;
-	float elapsedTime{ 0.f };
-	bool isFinishing{ false };
+	float elapsedTime = 0.f;
+	bool isFinishing = false;
 };

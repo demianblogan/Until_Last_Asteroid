@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 StateStack::StateStack(StateContext context)
 	: context(context)
@@ -42,11 +43,11 @@ void StateStack::Render()
 	if (states.empty())
 		return;
 
-	std::size_t firstVisibleState{ states.size() - 1u };
+	std::size_t firstVisibleState = states.size() - 1u;
 	while (firstVisibleState > 0u && states[firstVisibleState].state->IsTransparent())
-		--firstVisibleState;
+		firstVisibleState--;
 
-	for (std::size_t index{ firstVisibleState }; index < states.size(); ++index)
+	for (std::size_t index = firstVisibleState; index < states.size(); index++)
 		states[index].state->Render();
 }
 
@@ -73,7 +74,7 @@ void StateStack::ClearStates()
 
 void StateStack::ApplyPendingChanges()
 {
-	auto changes{ std::move(pendingChanges) };
+	std::vector<PendingChange> changes = std::move(pendingChanges);
 	pendingChanges.clear();
 
 	for (const PendingChange& change : changes)
@@ -82,10 +83,10 @@ void StateStack::ApplyPendingChanges()
 		{
 		case Action::Push:
 		{
-			const StateID stateID{ change.stateID.value() };
-			if (const auto cached{ cachedStates.find(stateID) }; cached != cachedStates.end())
+			const StateID stateID = change.stateID.value();
+			if (const auto cached = cachedStates.find(stateID); cached != cachedStates.end())
 			{
-				std::unique_ptr<State> reactivated{ std::move(cached->second) };
+				std::unique_ptr<State> reactivated = std::move(cached->second);
 				cachedStates.erase(cached);
 				reactivated->OnReactivated();
 				states.push_back({ stateID, std::move(reactivated) });
@@ -130,7 +131,7 @@ std::optional<StateID> StateStack::GetTopStateID() const noexcept
 
 std::unique_ptr<State> StateStack::CreateState(StateID stateID)
 {
-	const auto factory{ factories.find(stateID) };
+	const auto factory = factories.find(stateID);
 	if (factory == factories.end())
 		throw std::logic_error("Attempted to create an unregistered application state");
 

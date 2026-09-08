@@ -102,7 +102,7 @@ private:
 		sf::String label;
 		RowKind kind;
 		Action action;
-		bool isEnabled{ true };
+		bool isEnabled = true;
 		sf::FloatRect bounds;
 	};
 
@@ -173,38 +173,46 @@ private:
 	void DrawDropdown(sf::RenderTarget& target);
 	void DrawDialog(sf::RenderTarget& target);
 
-	static constexpr float DisplayConfirmationDuration{ 10.f };
+	static constexpr float DisplayConfirmationDuration = 10.f;
 
 	sf::RectangleShape shade;
 	sf::Text title;
 	Rendering::NeonGlow titleGlow;
 	Rendering::NeonGlow neonGlow;
 	Rendering::NeonGlow dialogGlow;
+
+	// The gamepad-layout diagram is expensive to draw, so it's rendered once
+	// into this texture and re-blitted until something invalidates it.
 	sf::RenderTexture gamepadLayoutCache;
-	bool isGamepadLayoutCacheDirty{ true };
-	Page page{ Page::Root };
+	bool isGamepadLayoutCacheDirty = true;
+
+	Page page = Page::Root;
 	std::optional<Page> pendingPage;
+
+	// The rows of the current page, plus their pre-laid-out text (label /
+	// value / hint, index-aligned) and the two shared "On"/"Off" glyphs.
 	std::vector<Row> rows;
 	std::vector<sf::Text> rowLabels;
 	std::vector<sf::Text> rowValues;
 	std::vector<sf::Text> rowHints;
 	sf::Text toggleOnText;
 	sf::Text toggleOffText;
-	std::size_t selectedIndex{ 0u };
+	std::size_t selectedIndex = 0u;
 
-	bool isDropdownOpen{ false };
-	Action dropdownAction{ Action::Resolution };
-	std::size_t dropdownIndex{ 0u };
-	std::size_t dropdownFirstVisible{ 0u };
+	// Open dropdown (resolution / frame-limit / ...).
+	bool isDropdownOpen = false;
+	Action dropdownAction = Action::Resolution;
+	std::size_t dropdownIndex = 0u;
+	std::size_t dropdownFirstVisible = 0u;
 	std::vector<sf::Text> dropdownLabels;
-	bool isDropdownScrollbarDragging{ false };
-	bool isSliderDragging{ false };
+	bool isDropdownScrollbarDragging = false;
+	bool isSliderDragging = false;
 	std::optional<Action> pendingBinding;
 
-	bool isDisplayConfirmationOpen{ false };
-	std::size_t dialogSelectedIndex{ 0u };
-	float displayConfirmationRemaining{ 0.f };
+	bool isDisplayConfirmationOpen = false;
+	std::size_t dialogSelectedIndex = 0u;
+	float displayConfirmationRemaining = 0.f;
 	GraphicsSettings previousGraphics;
-	bool hasSaveFailed{ false };
+	bool hasSaveFailed = false;
 	Origin origin;
 };

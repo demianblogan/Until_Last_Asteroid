@@ -10,8 +10,7 @@ namespace SafeFileWrite
 	}
 
 	bool ReplaceFileAtomically(
-		const std::filesystem::path& temporaryPath,
-		const std::filesystem::path& targetPath)
+		const std::filesystem::path& temporaryPath, const std::filesystem::path& targetPath)
 	{
 		std::error_code error;
 		if (!std::filesystem::exists(targetPath, error))

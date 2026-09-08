@@ -17,8 +17,8 @@ namespace
 {
 	constexpr sf::Vector2f ButtonSize{ 620.f, 86.f };
 	constexpr sf::Vector2f FirstButton{ 650.f, 340.f };
-	constexpr float Spacing{ 104.f };
-	constexpr float FadeDuration{ 0.35f };
+	constexpr float Spacing = 104.f;
+	constexpr float FadeDuration = 0.35f;
 }
 
 LanguageSelectState::LanguageSelectState(StateStack& stack, StateContext context)
@@ -30,31 +30,35 @@ LanguageSelectState::LanguageSelectState(StateStack& stack, StateContext context
 		"You can change the language later in Options", 25u)
 {
 	context.window.setMouseCursorVisible(false);
+
 	title.setFillColor({ 215, 247, 252 });
 	title.setOutlineColor({ 3, 18, 31, 235 });
 	title.setOutlineThickness(3.f);
 	hint.setFillColor({ 155, 205, 215 });
 
-	const auto centerText{ [this](sf::Text& text, float y)
-		{
-			const auto bounds{ text.getLocalBounds() };
-			text.setOrigin(bounds.position + bounds.size * 0.5f);
-			text.setPosition({ GetContext().logicalSize.x * 0.5f, y });
-		} };
+	const auto centerText = [this](sf::Text& text, float y)
+	{
+		const sf::FloatRect bounds = text.getLocalBounds();
+		text.setOrigin(bounds.position + bounds.size * 0.5f);
+		text.setPosition({ GetContext().logicalSize.x * 0.5f, y });
+	};
 	centerText(title, 190.f);
 	centerText(hint, 270.f);
 
-	const auto& idle{ context.assets.Textures().Get(Config::Texture::MenuButtonIdle) };
-	const auto& active{ context.assets.Textures().Get(Config::Texture::MenuButtonSelected) };
+	const sf::Texture& idle = context.assets.Textures().Get(Config::Texture::MenuButtonIdle);
+	const sf::Texture& active = context.assets.Textures().Get(Config::Texture::MenuButtonSelected);
+
 	buttons.reserve(Languages.size());
-	for (std::size_t i{}; i < Languages.size(); ++i)
+	for (std::size_t i = 0u; i < Languages.size(); i++)
 	{
-		const bool arabic{ Languages[i] == Language::Arabic };
-		const auto fontID{ arabic ? Config::Font::ArabicRegular : Config::Font::LocalizedRegular };
+		const bool arabic = Languages[i] == Language::Arabic;
+		const Config::Font fontID = arabic ? Config::Font::ArabicRegular : Config::Font::LocalizedRegular;
+
 		buttons.emplace_back(context.assets.Fonts().Get(fontID), idle, active, "", ButtonSize);
 		buttons.back().SetLabel(LocalizationManager::GetLanguageNativeName(Languages[i]));
 		buttons.back().SetPosition(FirstButton + sf::Vector2f{ 0.f, Spacing * static_cast<float>(i) });
 	}
+
 	Select(0u, false);
 	Chrome().StartFadeIn(FadeDuration);
 }
@@ -65,49 +69,69 @@ void LanguageSelectState::HandleEvent(const sf::Event& event)
 	// confirmation is delayed, preventing the event that skipped the splash
 	// from immediately choosing a language.
 	using enum GamepadManager::NavigationAction;
-	const auto navigation{ GetContext().gamepad.GetNavigationAction(event) };
-	if (!Chrome().IsFading()) switch (navigation)
-	{
-	case Up: Select((selectedIndex + buttons.size() - 1u) % buttons.size()); return;
-	case Down: Select((selectedIndex + 1u) % buttons.size()); return;
-	case Confirm: ConfirmSelection(); return;
-	default: break;
-	}
+	const GamepadManager::NavigationAction navigation = GetContext().gamepad.GetNavigationAction(event);
 
 	if (!Chrome().IsFading())
 	{
-		if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
+		switch (navigation)
+		{
+		case Up:
+			Select((selectedIndex + buttons.size() - 1u) % buttons.size());
+			return;
+		case Down:
+			Select((selectedIndex + 1u) % buttons.size());
+			return;
+		case Confirm:
+			ConfirmSelection();
+			return;
+		}
+
+		if (const sf::Event::KeyPressed* key = event.getIf<sf::Event::KeyPressed>())
 		{
 			switch (key->code)
 			{
 			case sf::Keyboard::Key::Up:
 			case sf::Keyboard::Key::W:
-				Select((selectedIndex + buttons.size() - 1u) % buttons.size()); return;
+				Select((selectedIndex + buttons.size() - 1u) % buttons.size());
+				return;
 			case sf::Keyboard::Key::Down:
 			case sf::Keyboard::Key::S:
-				Select((selectedIndex + 1u) % buttons.size()); return;
+				Select((selectedIndex + 1u) % buttons.size());
+				return;
 			case sf::Keyboard::Key::Enter:
 			case sf::Keyboard::Key::Space:
-				ConfirmSelection(); return;
-			default: break;
+				ConfirmSelection();
+				return;
 			}
 		}
 	}
 
-	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
+	if (const sf::Event::MouseMoved* moved = event.getIf<sf::Event::MouseMoved>())
 	{
-		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
+		const sf::Vector2f point = GetContext().window.mapPixelToCoords(moved->position);
 		Chrome().SetMousePosition(point);
-		for (std::size_t i{}; i < buttons.size(); ++i)
-			if (buttons[i].Contains(point)) { Select(i); break; }
-	}
-	if (const auto* pressed{ event.getIf<sf::Event::MouseButtonPressed>() })
-	{
-		if (Chrome().IsFading() || pressed->button != sf::Mouse::Button::Left) return;
-		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(pressed->position) };
-		for (std::size_t i{}; i < buttons.size(); ++i)
+
+		for (std::size_t i = 0u; i < buttons.size(); i++)
 		{
-			if (!buttons[i].Contains(point)) continue;
+			if (buttons[i].Contains(point))
+			{
+				Select(i);
+				break;
+			}
+		}
+	}
+
+	if (const sf::Event::MouseButtonPressed* pressed = event.getIf<sf::Event::MouseButtonPressed>())
+	{
+		if (Chrome().IsFading() || pressed->button != sf::Mouse::Button::Left)
+			return;
+
+		const sf::Vector2f point = GetContext().window.mapPixelToCoords(pressed->position);
+		for (std::size_t i = 0u; i < buttons.size(); i++)
+		{
+			if (!buttons[i].Contains(point))
+				continue;
+
 			Select(i, false);
 			ConfirmSelection();
 			return;
@@ -123,29 +147,44 @@ void LanguageSelectState::OnUpdate(float deltaTime)
 
 void LanguageSelectState::OnRender()
 {
-	auto& window{ GetContext().window };
-	glow.DrawBloom(window, title.getGlobalBounds(),
+	sf::RenderWindow& window = GetContext().window;
+
+	glow.DrawBloom(
+		window,
+		title.getGlobalBounds(),
 		[this](sf::RenderTarget& target, const sf::RenderStates& states)
 		{
 			target.draw(title, states);
-		}, UI::MenuTheme::InterfaceGlow);
+		},
+		UI::MenuTheme::InterfaceGlow);
+
 	window.draw(title);
 	window.draw(hint);
+
 	if (!buttons.empty())
 	{
-		const UI::MenuButton& selectedButton{ buttons[selectedIndex] };
-		buttonGlow.DrawBloom(window, selectedButton.GetBounds(),
+		const UI::MenuButton& selectedButton = buttons[selectedIndex];
+		buttonGlow.DrawBloom(
+			window,
+			selectedButton.GetBounds(),
 			[&selectedButton](sf::RenderTarget& target, const sf::RenderStates& states)
-			{ selectedButton.Draw(target, states); }, UI::MenuTheme::SelectionGlow);
+			{
+				selectedButton.Draw(target, states);
+			},
+			UI::MenuTheme::SelectionGlow);
 	}
-	for (const auto& button : buttons) button.Draw(window);
+
+	for (const UI::MenuButton& button : buttons)
+		button.Draw(window);
+
 	if (!buttons.empty())
 		buttonGlow.DrawHighlight(window, buttons[selectedIndex].GetBounds(), UI::MenuTheme::SelectionGlow);
 }
 
 void LanguageSelectState::RenderOverlay()
 {
-	auto& window{ GetContext().window };
+	sf::RenderWindow& window = GetContext().window;
+
 	// Unlike the other menus, this one shows the cursor even under a gamepad,
 	// parked beside the selected language, so first-run players see where
 	// "click" would land.
@@ -153,26 +192,36 @@ void LanguageSelectState::RenderOverlay()
 		Chrome().Cursor().DrawAt(window, cursorPosition);
 	else
 		Chrome().Cursor().Draw(window);
+
 	Chrome().Fade().Draw(window);
 }
 
 void LanguageSelectState::Select(std::size_t index, bool playSound)
 {
-	if (index >= buttons.size()) return;
-	const bool changed{ selectedIndex != index };
+	if (index >= buttons.size())
+		return;
+
+	const bool isChanged = selectedIndex != index;
 	selectedIndex = index;
-	for (std::size_t i{}; i < buttons.size(); ++i) buttons[i].SetSelected(i == selectedIndex);
-	const auto bounds{ buttons[selectedIndex].GetBounds() };
+
+	for (std::size_t i = 0u; i < buttons.size(); i++)
+		buttons[i].SetSelected(i == selectedIndex);
+
+	const sf::FloatRect bounds = buttons[selectedIndex].GetBounds();
 	cursorPosition = { bounds.position.x - 50.f, bounds.position.y + bounds.size.y * 0.5f };
-	if (changed)
+
+	if (isChanged)
 		buttonGlow.Invalidate();
-	if (playSound && changed)
+
+	if (playSound && isChanged)
 		GetContext().audio.PlaySound(Config::Sound::ItemSelect, SoundGroup::UI);
 }
 
 void LanguageSelectState::ConfirmSelection()
 {
-	if (!GetContext().localization.SetLanguage(Languages[selectedIndex])) return;
+	if (!GetContext().localization.SetLanguage(Languages[selectedIndex]))
+		return;
+
 	PlayPressSound();
 	RequestClear();
 	RequestPush(StateID::MainMenu);

@@ -20,7 +20,7 @@ void MenuState::Update(float deltaTime)
 
 	if (pendingTransition.has_value() && !chrome.IsFading())
 	{
-		const std::function<void()> action{ std::move(*pendingTransition) };
+		const std::function<void()> action = std::move(*pendingTransition);
 		pendingTransition.reset();
 		action();
 		return;

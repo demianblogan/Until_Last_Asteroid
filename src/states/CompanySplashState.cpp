@@ -19,11 +19,12 @@ CompanySplashState::CompanySplashState(StateStack& stateStack, StateContext cont
 {
 	context.window.setMouseCursorVisible(false);
 
-	const sf::Vector2u textureSize{ logo.getTexture().getSize() };
+	const sf::Vector2u textureSize = logo.getTexture().getSize();
 	logo.setOrigin({
 		static_cast<float>(textureSize.x) * 0.5f,
 		static_cast<float>(textureSize.y) * 0.5f
-	});
+		});
+
 	UpdateLayout();
 	logo.setColor(sf::Color(255, 255, 255, 0));
 
@@ -55,30 +56,36 @@ void CompanySplashState::Update(float deltaTime)
 
 void CompanySplashState::Render()
 {
-	sf::RenderWindow& window{ GetContext().window };
-	const sf::View previousView{ window.getView() };
+	sf::RenderWindow& window = GetContext().window;
+	const sf::View previousView = window.getView();
+
 	window.setView(window.getDefaultView());
 	UpdateLayout();
+
 	window.draw(logo);
 	window.setView(previousView);
 }
 
 void CompanySplashState::UpdateLayout()
 {
-	const sf::Vector2u windowSize{ GetContext().window.getSize() };
-	const sf::Vector2u textureSize{ logo.getTexture().getSize() };
+	const sf::Vector2u windowSize = GetContext().window.getSize();
+	const sf::Vector2u textureSize = logo.getTexture().getSize();
+
 	if (windowSize.x == 0u || windowSize.y == 0u ||
 		textureSize.x == 0u || textureSize.y == 0u)
+	{
 		return;
+	}
 
 	logo.setScale({
 		static_cast<float>(windowSize.x) / static_cast<float>(textureSize.x),
 		static_cast<float>(windowSize.y) / static_cast<float>(textureSize.y)
-	});
+		});
+
 	logo.setPosition({
 		static_cast<float>(windowSize.x) * 0.5f,
 		static_cast<float>(windowSize.y) * 0.5f
-	});
+		});
 }
 
 bool CompanySplashState::IsSkipEvent(const sf::Event& event)
@@ -95,15 +102,15 @@ void CompanySplashState::Finish()
 
 	isFinishing = true;
 	GetContext().audio.StopMusic(Config::Music::CompanySplash);
+
 	RequestClear();
-	RequestPush(GetContext().settings.GetSettings().localization.isLanguageChosen
-		? StateID::MainMenu
-		: StateID::LanguageSelect);
+	RequestPush(
+		GetContext().settings.GetSettings().localization.isLanguageChosen ? StateID::MainMenu : StateID::LanguageSelect);
 }
 
 void CompanySplashState::UpdateOpacity()
 {
-	float opacity{ 1.f };
+	float opacity = 1.f;
 
 	if (elapsedTime < FadeInDuration)
 	{
@@ -111,7 +118,7 @@ void CompanySplashState::UpdateOpacity()
 	}
 	else if (elapsedTime > FadeInDuration + HoldDuration)
 	{
-		const float fadeOutElapsed{ elapsedTime - FadeInDuration - HoldDuration };
+		const float fadeOutElapsed = elapsedTime - FadeInDuration - HoldDuration;
 		opacity = 1.f - fadeOutElapsed / FadeOutDuration;
 	}
 

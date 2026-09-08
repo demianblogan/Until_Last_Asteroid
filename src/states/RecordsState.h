@@ -25,18 +25,21 @@ private:
 	Rendering::NeonGlow titleGlow;
 	Rendering::NeonGlow buttonGlow;
 	sf::Text title;
+
 	UI::RoundedRectangleShape campaignPanel;
 	UI::RoundedRectangleShape hordePanel;
 	UI::RoundedRectangleShape runPanel;
 	sf::Text campaignTitle;
 	sf::Text hordeTitle;
 	sf::Text runTitle;
+
 	std::vector<sf::Text> levelLabels;
 	std::vector<sf::Text> levelScores;
 	std::vector<sf::Text> hordeLabels;
 	std::vector<sf::Text> hordeValues;
 	sf::Text runLabel;
 	sf::Text runValue;
+
 	UI::MenuButton returnButton;
-	bool isReturnButtonSelected{ false };
+	bool isReturnButtonSelected = false;
 };

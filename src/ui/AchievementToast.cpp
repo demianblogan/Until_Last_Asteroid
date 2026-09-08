@@ -38,11 +38,8 @@ namespace UI
 	}
 
 	AchievementToast::AchievementToast(
-		Assets& store,
-		AudioManager& audioManager,
-		AchievementManager& manager,
-		LocalizationManager& localizationManager,
-		sf::Vector2f size)
+		Assets& store, AudioManager& audioManager, AchievementManager& manager,
+		LocalizationManager& localizationManager, sf::Vector2f size)
 		: assets(store)
 		, audio(audioManager)
 		, achievements(manager)

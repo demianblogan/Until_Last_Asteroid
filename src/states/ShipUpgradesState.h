@@ -44,10 +44,16 @@ private:
 	UI::GlowingCursor cursor;
 	UI::ScreenFade fade;
 	sf::Text title;
+
+	// The "parts you have" panel at the top.
 	UI::MenuButton partsPanel;
 	sf::Text partsLabel;
 	sf::Text partsValue;
 	sf::Sprite partsIcon;
+
+	// One entry per upgrade card, all index-aligned (see UpgradeCards in the
+	// .cpp): the row frame, its icon, the name / effect / rank text, the cost
+	// widgets, the buy button, and the "MAX" stamp.
 	std::vector<UI::MenuButton> upgradeRows;
 	std::vector<sf::Sprite> upgradeIcons;
 	std::vector<sf::Text> cardTitles;
@@ -60,9 +66,12 @@ private:
 	std::vector<sf::Sprite> costIcons;
 	std::vector<UI::MenuButton> upgradeButtons;
 	std::vector<sf::Text> maximumLabels;
-	std::vector<UI::MenuButton> buttons;
 	std::array<bool, 4> maximumRanks{};
-	std::size_t selectedIndex{ 0u };
-	ExitTarget exitTarget{ ExitTarget::None };
-	bool needToReturnToLevelSelect{ false };
+
+	// The two bottom buttons (continue / back).
+	std::vector<UI::MenuButton> buttons;
+
+	std::size_t selectedIndex = 0u;
+	ExitTarget exitTarget = ExitTarget::None;
+	bool needToReturnToLevelSelect = false;
 };

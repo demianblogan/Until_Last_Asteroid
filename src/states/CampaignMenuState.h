@@ -42,24 +42,27 @@ private:
 	void OpenOverwriteConfirmation();
 	void OpenTutorialChoice();
 	void CloseDialog();
-	void SelectDialogOption(std::size_t index, bool playSound = true);
+	void SelectDialogOption(std::size_t index, bool needToPlaySound = true);
 	void ActivateDialogOption();
 	void StartNewCampaign();
-	void ChooseTutorial(bool playTutorial);
+	void ChooseTutorial(bool needToPlayTutorial);
 	void BeginGameplay(GameplayLaunchMode mode);
 
 	Rendering::NeonGlow buttonGlow;
 	Rendering::NeonGlow titleGlow;
 	Rendering::NeonGlow dialogGlow;
+
 	sf::Text title;
 	sf::Text statusText;
+	UI::MenuButtonList buttonList;
+	std::vector<MenuAction> buttonActions;
+
+	// The "overwrite save?" / "play the tutorial?" modal.
 	sf::RectangleShape dialogShade;
 	sf::RectangleShape dialogPanel;
 	sf::Text dialogTitle;
 	sf::Text dialogMessage;
-	UI::MenuButtonList buttonList;
-	std::vector<MenuAction> buttonActions;
 	std::vector<UI::MenuButton> dialogButtons;
-	std::size_t dialogSelectedIndex{ 1u };
-	DialogMode dialogMode{ DialogMode::None };
+	std::size_t dialogSelectedIndex = 1u;
+	DialogMode dialogMode = DialogMode::None;
 };

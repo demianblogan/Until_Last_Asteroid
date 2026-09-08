@@ -31,8 +31,13 @@ private:
 	Rendering::NeonGlow titleGlow;
 	Rendering::NeonGlow buttonGlow;
 	Rendering::NeonGlow partsGlow;
+
 	sf::Text title;
 	UI::MenuButtonList buttonList;
+
+	// One parts frame / icon / count per level button, index-aligned with the
+	// buttonList; buttonLevels maps a row index to its level number (0 = the
+	// return button).
 	std::vector<UI::MenuButton> partsFrames;
 	std::vector<sf::Sprite> partsIcons;
 	std::vector<sf::Text> partsCounts;

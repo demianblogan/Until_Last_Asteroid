@@ -24,9 +24,9 @@ namespace UI
 	class AchievementToast
 	{
 	public:
-		AchievementToast(Assets& assets, AudioManager& audio,
-			AchievementManager& achievements, LocalizationManager& localization,
-			sf::Vector2f logicalSize);
+		AchievementToast(
+			Assets& assets, AudioManager& audio, AchievementManager& achievements,
+			LocalizationManager& localization, sf::Vector2f logicalSize);
 
 		void Update(float deltaTime);
 		void Draw(sf::RenderTarget& target);

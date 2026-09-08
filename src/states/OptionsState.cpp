@@ -28,17 +28,16 @@ namespace
 	constexpr sf::Color Orange{ 255, 190, 72 };
 	constexpr sf::Color Disabled{ 76, 88, 101 };
 	constexpr sf::Color Red{ 245, 92, 92 };
-	constexpr float StateFadeDuration{ 0.24f };
-	constexpr float PageFadeOutDuration{ 0.1f };
-	constexpr float PageFadeInDuration{ 0.14f };
+	constexpr float StateFadeDuration = 0.24f;
+	constexpr float PageFadeOutDuration = 0.1f;
+	constexpr float PageFadeInDuration = 0.14f;
 	constexpr sf::Vector2f RowPosition{ 260.f, 220.f };
 	constexpr sf::Vector2f RowSize{ 1400.f, 82.f };
-	constexpr float RowSpacing{ 98.f };
+	constexpr float RowSpacing = 98.f;
 	constexpr std::array<unsigned int, 7> FrameLimits{ 0u, 30u, 60u, 120u, 144u, 240u, 360u };
 	const sf::FloatRect DialogConfirmBounds({ 690.f, 580.f }, { 250.f, 58.f });
 	const sf::FloatRect DialogCancelBounds({ 980.f, 580.f }, { 250.f, 58.f });
 	const sf::FloatRect BindingCancelBounds({ 835.f, 570.f }, { 250.f, 58.f });
-
 }
 
 OptionsState::OptionsState(StateStack& stateStack, StateContext context, Origin optionsOrigin)
@@ -80,12 +79,11 @@ void OptionsState::HandleEvent(const sf::Event& event)
 		case Right: SelectDialogOption(1u); return;
 		case Confirm: ActivateDialogOption(dialogSelectedIndex); return;
 		case Back: ActivateDialogOption(1u); return;
-		default: break;
 		}
 
-		if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
+		if (const sf::Event::MouseMoved* moved = event.getIf<sf::Event::MouseMoved>())
 		{
-			const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
+			const sf::Vector2f point = GetContext().window.mapPixelToCoords(moved->position);
 			Chrome().SetMousePosition(point);
 			if (DialogConfirmBounds.contains(point))
 				SelectDialogOption(0u);
@@ -94,11 +92,11 @@ void OptionsState::HandleEvent(const sf::Event& event)
 			return;
 		}
 
-		if (const auto* mouse{ event.getIf<sf::Event::MouseButtonPressed>() })
+		if (const sf::Event::MouseButtonPressed* mouse = event.getIf<sf::Event::MouseButtonPressed>())
 		{
 			if (mouse->button == sf::Mouse::Button::Left)
 			{
-				const sf::Vector2f point{ GetContext().window.mapPixelToCoords(mouse->position) };
+				const sf::Vector2f point = GetContext().window.mapPixelToCoords(mouse->position);
 				if (DialogConfirmBounds.contains(point))
 					ActivateDialogOption(0u);
 				else if (DialogCancelBounds.contains(point))
@@ -107,7 +105,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
 			return;
 		}
 
-		if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
+		if (const sf::Event::KeyPressed* key = event.getIf<sf::Event::KeyPressed>())
 		{
 			if (key->code == sf::Keyboard::Key::Left || key->code == sf::Keyboard::Key::A)
 				SelectDialogOption(0u);
@@ -130,22 +128,22 @@ void OptionsState::HandleEvent(const sf::Event& event)
 			return;
 		}
 
-		if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
+		if (const sf::Event::MouseMoved* moved = event.getIf<sf::Event::MouseMoved>())
 		{
 			Chrome().SetMousePosition(GetContext().window.mapPixelToCoords(moved->position));
 			return;
 		}
 
-		if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
+		if (const sf::Event::KeyPressed* key = event.getIf<sf::Event::KeyPressed>())
 		{
 			if (key->code == sf::Keyboard::Key::Escape)
 				pendingBinding.reset();
 			else if (key->code != sf::Keyboard::Key::Unknown)
 				ApplyBinding({ RebindableInputDevice::Keyboard, static_cast<int>(key->code) });
 		}
-		else if (const auto* mouse{ event.getIf<sf::Event::MouseButtonPressed>() })
+		else if (const sf::Event::MouseButtonPressed* mouse = event.getIf<sf::Event::MouseButtonPressed>())
 		{
-			const sf::Vector2f point{ GetContext().window.mapPixelToCoords(mouse->position) };
+			const sf::Vector2f point = GetContext().window.mapPixelToCoords(mouse->position);
 			if (mouse->button == sf::Mouse::Button::Left && BindingCancelBounds.contains(point))
 			{
 				GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI);
@@ -168,10 +166,9 @@ void OptionsState::HandleEvent(const sf::Event& event)
 		case Down: MoveDropdownSelection(1); return;
 		case Confirm: ApplyDropdownSelection(); return;
 		case Back: CloseDropdown(); return;
-		default: break;
 		}
 
-		if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
+		if (const sf::Event::KeyPressed* key = event.getIf<sf::Event::KeyPressed>())
 		{
 			if (key->code == sf::Keyboard::Key::Up)
 				MoveDropdownSelection(-1);
@@ -182,20 +179,20 @@ void OptionsState::HandleEvent(const sf::Event& event)
 			else if (key->code == sf::Keyboard::Key::Escape)
 				CloseDropdown();
 		}
-		else if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
+		else if (const sf::Event::MouseMoved* moved = event.getIf<sf::Event::MouseMoved>())
 		{
-			const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
+			const sf::Vector2f point = GetContext().window.mapPixelToCoords(moved->position);
 			Chrome().SetMousePosition(point);
 			if (isDropdownScrollbarDragging)
 				UpdateDropdownScrollbar(point);
 			else
 				HandleDropdownMouseMove(point);
 		}
-		else if (const auto* wheel{ event.getIf<sf::Event::MouseWheelScrolled>() })
+		else if (const sf::Event::MouseWheelScrolled* wheel = event.getIf<sf::Event::MouseWheelScrolled>())
 		{
 			HandleMouseWheel(wheel->delta);
 		}
-		else if (const auto* mouse{ event.getIf<sf::Event::MouseButtonPressed>() })
+		else if (const sf::Event::MouseButtonPressed* mouse = event.getIf<sf::Event::MouseButtonPressed>())
 		{
 			if (mouse->button == sf::Mouse::Button::Left)
 				HandleDropdownMousePress(
@@ -208,9 +205,9 @@ void OptionsState::HandleEvent(const sf::Event& event)
 		return;
 	}
 
-	if (const auto* moved{ event.getIf<sf::Event::MouseMoved>() })
+	if (const sf::Event::MouseMoved* moved = event.getIf<sf::Event::MouseMoved>())
 	{
-		const sf::Vector2f point{ GetContext().window.mapPixelToCoords(moved->position) };
+		const sf::Vector2f point = GetContext().window.mapPixelToCoords(moved->position);
 		Chrome().SetMousePosition(point);
 		if (isSliderDragging)
 			UpdateSliderFromMouse(point);
@@ -225,7 +222,7 @@ void OptionsState::HandleEvent(const sf::Event& event)
 		return;
 	}
 
-	if (const auto* mouse{ event.getIf<sf::Event::MouseButtonPressed>() })
+	if (const sf::Event::MouseButtonPressed* mouse = event.getIf<sf::Event::MouseButtonPressed>())
 	{
 		if (mouse->button == sf::Mouse::Button::Left)
 			HandleMousePress(mouse->position);
@@ -241,10 +238,9 @@ void OptionsState::HandleEvent(const sf::Event& event)
 	case Right: AdjustSelected(1); return;
 	case Confirm: ActivateSelected(); return;
 	case Back: Execute(Action::Back); return;
-	default: break;
 	}
 
-	if (const auto* key{ event.getIf<sf::Event::KeyPressed>() })
+	if (const sf::Event::KeyPressed* key = event.getIf<sf::Event::KeyPressed>())
 	{
 		switch (key->code)
 		{
@@ -272,8 +268,6 @@ void OptionsState::HandleEvent(const sf::Event& event)
 		case sf::Keyboard::Key::Backspace:
 			Execute(Action::Back);
 			break;
-		default:
-			break;
 		}
 	}
 }
@@ -289,7 +283,7 @@ void OptionsState::OnUpdate(float deltaTime)
 	// then fades back in without ever leaving the state.
 	if (!Chrome().IsFading() && pendingPage.has_value())
 	{
-		const Page nextPage{ *pendingPage };
+		const Page nextPage = *pendingPage;
 		pendingPage.reset();
 		ApplyPage(nextPage);
 		Chrome().StartFadeIn(PageFadeInDuration);
@@ -305,7 +299,7 @@ void OptionsState::OnUpdate(float deltaTime)
 
 void OptionsState::OnRender()
 {
-	sf::RenderWindow& window{ GetContext().window };
+	sf::RenderWindow& window = GetContext().window;
 	window.draw(shade);
 	DrawTitle(window);
 	if (page == Page::GamepadControls)
@@ -322,7 +316,7 @@ void OptionsState::RenderOverlay()
 	// The cursor is hidden during any fade (entrance, exit, or a page swap),
 	// which the shared MenuChrome::DrawOverlay wouldn't do -- hence the
 	// override rather than the base behaviour.
-	sf::RenderWindow& window{ GetContext().window };
+	sf::RenderWindow& window = GetContext().window;
 	if (!Chrome().IsFading() && !GetContext().gamepad.IsInUse())
 		Chrome().Cursor().Draw(window);
 	Chrome().Fade().Draw(window);
@@ -362,7 +356,7 @@ OptionsState::~OptionsState()
 
 void OptionsState::RefreshTitle()
 {
-	const auto& localize{ GetContext().localization };
+	const auto& localize = GetContext().localization;
 	sf::String value;
 	switch (page)
 	{
@@ -375,19 +369,20 @@ void OptionsState::RefreshTitle()
 	case Page::KeyboardControls: value = localize.GetText("options.keyboard"); break;
 	case Page::GamepadControls: value = localize.GetText("options.gamepad"); break;
 	}
-	const Language language{ localize.GetCurrentLanguage() };
-	const auto titleFont{ language == Language::English ? Config::Font::MenuSemibold
-		: (language == Language::Arabic ? Config::Font::ArabicBold : Config::Font::LocalizedBold) };
+	const Language language = localize.GetCurrentLanguage();
+	const Config::Font titleFont = language == Language::English
+		? Config::Font::MenuSemibold
+		: (language == Language::Arabic ? Config::Font::ArabicBold : Config::Font::LocalizedBold);
 	title.setFont(GetContext().assets.Fonts().Get(titleFont));
 
-	const auto center{ [this, &value](sf::Text& text)
+	const auto center = [this, &value](sf::Text& text)
 		{
 			text.setString(value);
-			const sf::FloatRect bounds{ text.getLocalBounds() };
+			const sf::FloatRect bounds = text.getLocalBounds();
 			text.setOrigin({ bounds.position.x + bounds.size.x * 0.5f,
 				bounds.position.y + bounds.size.y * 0.5f });
 			text.setPosition({ GetContext().logicalSize.x * 0.5f, 105.f });
-		} };
+		};
 	center(title);
 	titleGlow.Invalidate();
 }
@@ -395,12 +390,12 @@ void OptionsState::RefreshTitle()
 void OptionsState::RebuildRows()
 {
 	rows.clear();
-	const auto add{ [this](sf::String label, RowKind kind, Action action, bool isEnabled = true)
+	const auto add = [this](sf::String label, RowKind kind, Action action, bool isEnabled = true)
 		{
-			const float y{ RowPosition.y + RowSpacing * static_cast<float>(rows.size()) };
+			const float y = RowPosition.y + RowSpacing * static_cast<float>(rows.size());
 			rows.push_back({ std::move(label), kind, action, isEnabled,
 				sf::FloatRect({ RowPosition.x, y }, RowSize) });
-		} };
+		};
 
 	switch (page)
 	{
@@ -481,11 +476,11 @@ void OptionsState::RebuildRows()
 
 void OptionsState::RebuildRowTextCache()
 {
-	const Language language{ GetContext().localization.GetCurrentLanguage() };
-	const auto defaultFontID{ language == Language::English ? Config::Font::MenuRegular
-		: (language == Language::Arabic ? Config::Font::ArabicRegular
-			: Config::Font::LocalizedRegular) };
-	const sf::Font& font{ GetContext().assets.Fonts().Get(defaultFontID) };
+	const Language language = GetContext().localization.GetCurrentLanguage();
+	const Config::Font defaultFontID = language == Language::English
+		? Config::Font::MenuRegular
+		: (language == Language::Arabic ? Config::Font::ArabicRegular : Config::Font::LocalizedRegular);
+	const sf::Font& font = GetContext().assets.Fonts().Get(defaultFontID);
 	toggleOnText.setFont(font);
 	toggleOffText.setFont(font);
 	toggleOnText.setString(GetContext().localization.GetText("common.on"));
@@ -499,8 +494,8 @@ void OptionsState::RebuildRowTextCache()
 
 	for (const Row& row : rows)
 	{
-		const bool arabicLanguageRow{ page == Page::Language && row.action == Action::SetArabic };
-		const bool nativeLanguageRow{ page == Page::Language && row.action != Action::Back };
+		const bool arabicLanguageRow = page == Page::Language && row.action == Action::SetArabic;
+		const bool nativeLanguageRow = page == Page::Language && row.action != Action::Back;
 		const sf::Font& rowFont{ GetContext().assets.Fonts().Get(arabicLanguageRow
 			? Config::Font::ArabicRegular
 			: (nativeLanguageRow ? Config::Font::LocalizedRegular : defaultFontID)) };
@@ -512,7 +507,7 @@ void OptionsState::RebuildRowTextCache()
 		rowHints.emplace_back(font, "", 14);
 		if (row.kind == RowKind::Dropdown)
 		{
-			const sf::FloatRect bounds{ UI::OptionsWidgets::GetValueBoxBounds(row.bounds.position.y) };
+			const sf::FloatRect bounds = UI::OptionsWidgets::GetValueBoxBounds(row.bounds.position.y);
 			rowValues.back().setCharacterSize(row.isEnabled ? 25u : 21u);
 			UI::TextLayout::FitWidth(rowValues.back(), bounds.size.x - 40.f, 16u);
 			rowValues.back().setPosition(
@@ -537,7 +532,7 @@ void OptionsState::RebuildRowTextCache()
 
 		if (page == Page::GamepadControls && row.action == Action::Back)
 		{
-			const sf::FloatRect labelBounds{ rowLabels.back().getLocalBounds() };
+			const sf::FloatRect labelBounds = rowLabels.back().getLocalBounds();
 			rowLabels.back().setOrigin({
 				labelBounds.position.x + labelBounds.size.x * 0.5f,
 				labelBounds.position.y + labelBounds.size.y * 0.5f });
@@ -556,7 +551,7 @@ void OptionsState::RefreshRowTextValues()
 		return;
 	}
 
-	for (std::size_t index{ 0u }; index < rows.size(); ++index)
+	for (std::size_t index = 0u; index < rows.size(); index++)
 	{
 		rowValues[index].setString(GetRowValue(rows[index]));
 		if (rows[index].kind == RowKind::Dropdown)
@@ -570,7 +565,7 @@ void OptionsState::Select(std::size_t index, bool playSound)
 {
 	if (index >= rows.size() || !rows[index].isEnabled)
 		return;
-	const bool changed{ selectedIndex != index };
+	const bool changed = selectedIndex != index;
 	selectedIndex = index;
 	if (changed)
 		neonGlow.Invalidate();
@@ -583,7 +578,7 @@ void OptionsState::SelectPrevious()
 {
 	if (rows.empty())
 		return;
-	std::size_t index{ selectedIndex };
+	std::size_t index = selectedIndex;
 	do
 	{
 		index = index == 0u ? rows.size() - 1u : index - 1u;
@@ -595,7 +590,7 @@ void OptionsState::SelectNext()
 {
 	if (rows.empty())
 		return;
-	std::size_t index{ selectedIndex };
+	std::size_t index = selectedIndex;
 	do
 	{
 		index = (index + 1u) % rows.size();
@@ -610,7 +605,7 @@ void OptionsState::ActivateSelected()
 	GetContext().audio.PlaySound(Config::Sound::ItemPress, SoundGroup::UI, 100.f, 1.f,
 		SoundPlayback::StopPrevious);
 
-	const Row& row{ rows[selectedIndex] };
+	const Row& row = rows[selectedIndex];
 	if (row.kind == RowKind::Toggle || row.kind == RowKind::Choice)
 		AdjustSelected(1);
 	else if (row.kind == RowKind::Dropdown)
@@ -626,8 +621,8 @@ void OptionsState::AdjustSelected(int direction)
 	if (!IsSelectedRowEnabled())
 		return;
 
-	const Action action{ rows[selectedIndex].action };
-	GameSettings& settings{ GetContext().settings.EditSettings() };
+	const Action action = rows[selectedIndex].action;
+	GameSettings& settings = GetContext().settings.EditSettings();
 	if (action == Action::MusicVolume || action == Action::SoundVolume)
 	{
 		float& value{ action == Action::MusicVolume
@@ -679,7 +674,7 @@ void OptionsState::AdjustSelected(int direction)
 	}
 	else if (action == Action::FrameRateLimit)
 	{
-		auto iterator{ std::ranges::find(FrameLimits, settings.graphics.frameRateLimit) };
+		auto iterator = std::ranges::find(FrameLimits, settings.graphics.frameRateLimit);
 		std::size_t index{ iterator == FrameLimits.end()
 			? 0u
 			: static_cast<std::size_t>(std::distance(FrameLimits.begin(), iterator)) };
@@ -695,8 +690,8 @@ void OptionsState::AdjustSelected(int direction)
 
 void OptionsState::HandleMousePosition(sf::Vector2i pixelPosition)
 {
-	const sf::Vector2f point{ GetContext().window.mapPixelToCoords(pixelPosition) };
-	for (std::size_t index{ 0u }; index < rows.size(); ++index)
+	const sf::Vector2f point = GetContext().window.mapPixelToCoords(pixelPosition);
+	for (std::size_t index = 0u; index < rows.size(); index++)
 	{
 		if (rows[index].isEnabled && rows[index].bounds.contains(point))
 		{
@@ -712,7 +707,7 @@ void OptionsState::HandleMousePress(sf::Vector2i pixelPosition)
 	if (!IsSelectedRowEnabled())
 		return;
 
-	const sf::Vector2f point{ GetContext().window.mapPixelToCoords(pixelPosition) };
+	const sf::Vector2f point = GetContext().window.mapPixelToCoords(pixelPosition);
 	if (!rows[selectedIndex].bounds.contains(point))
 		return;
 
@@ -737,12 +732,12 @@ void OptionsState::UpdateSliderFromMouse(sf::Vector2f position)
 {
 	if (!IsSelectedRowEnabled())
 		return;
-	const Action action{ rows[selectedIndex].action };
+	const Action action = rows[selectedIndex].action;
 	if (action != Action::MusicVolume && action != Action::SoundVolume)
 		return;
 
-	const float value{ UI::OptionsWidgets::SliderValueFromMouseX(position.x) };
-	GameSettings& settings{ GetContext().settings.EditSettings() };
+	const float value = UI::OptionsWidgets::SliderValueFromMouseX(position.x);
+	GameSettings& settings = GetContext().settings.EditSettings();
 	if (action == Action::MusicVolume)
 		settings.audio.musicVolume = std::round(value);
 	else
@@ -764,7 +759,7 @@ void OptionsState::OpenDropdown(Action action)
 	dropdownLabels.reserve(GetDropdownItemCount());
 	const sf::Font& font{ GetContext().assets.Fonts().Get(
 		GetContext().localization.GetRegularFont()) };
-	for (std::size_t index{}; index < GetDropdownItemCount(); ++index)
+	for (std::size_t index = 0u; index < GetDropdownItemCount(); index++)
 		dropdownLabels.emplace_back(font, GetDropdownItemLabel(index), 24u);
 	EnsureDropdownSelectionVisible();
 }
@@ -777,11 +772,11 @@ void OptionsState::CloseDropdown()
 
 void OptionsState::MoveDropdownSelection(int direction)
 {
-	const std::size_t count{ GetDropdownItemCount() };
+	const std::size_t count = GetDropdownItemCount();
 	if (count == 0u)
 		return;
 
-	const std::size_t previous{ dropdownIndex };
+	const std::size_t previous = dropdownIndex;
 	if (direction < 0 && dropdownIndex > 0u)
 		--dropdownIndex;
 	else if (direction > 0 && dropdownIndex + 1u < count)
@@ -801,7 +796,7 @@ void OptionsState::MoveDropdownSelection(int direction)
 
 void OptionsState::EnsureDropdownSelectionVisible()
 {
-	const std::size_t count{ GetDropdownItemCount() };
+	const std::size_t count = GetDropdownItemCount();
 	if (count <= UI::OptionsWidgets::MaximumVisibleDropdownItems)
 	{
 		dropdownFirstVisible = 0u;
@@ -822,12 +817,12 @@ void OptionsState::HandleDropdownMouseMove(sf::Vector2f position)
 {
 	const std::size_t visibleCount{ std::min(UI::OptionsWidgets::MaximumVisibleDropdownItems,
 		GetDropdownItemCount() - dropdownFirstVisible) };
-	for (std::size_t visibleIndex{ 0u }; visibleIndex < visibleCount; ++visibleIndex)
+	for (std::size_t visibleIndex = 0u; visibleIndex < visibleCount; visibleIndex++)
 	{
 		if (!GetDropdownItemBounds(visibleIndex).contains(position))
 			continue;
 
-		const std::size_t hovered{ dropdownFirstVisible + visibleIndex };
+		const std::size_t hovered = dropdownFirstVisible + visibleIndex;
 		if (hovered != dropdownIndex)
 		{
 			dropdownIndex = hovered;
@@ -844,7 +839,7 @@ void OptionsState::HandleDropdownMouseMove(sf::Vector2f position)
 
 void OptionsState::HandleDropdownMousePress(sf::Vector2f position)
 {
-	const std::size_t count{ GetDropdownItemCount() };
+	const std::size_t count = GetDropdownItemCount();
 	const std::size_t visibleCount{ std::min(UI::OptionsWidgets::MaximumVisibleDropdownItems,
 		count - dropdownFirstVisible) };
 	if (count > UI::OptionsWidgets::MaximumVisibleDropdownItems && GetDropdownScrollbarBounds().contains(position))
@@ -854,7 +849,7 @@ void OptionsState::HandleDropdownMousePress(sf::Vector2f position)
 		return;
 	}
 
-	for (std::size_t visibleIndex{ 0u }; visibleIndex < visibleCount; ++visibleIndex)
+	for (std::size_t visibleIndex = 0u; visibleIndex < visibleCount; visibleIndex++)
 	{
 		if (GetDropdownItemBounds(visibleIndex).contains(position))
 		{
@@ -869,12 +864,12 @@ void OptionsState::HandleDropdownMousePress(sf::Vector2f position)
 
 void OptionsState::HandleMouseWheel(float delta)
 {
-	const std::size_t count{ GetDropdownItemCount() };
+	const std::size_t count = GetDropdownItemCount();
 	if (count <= UI::OptionsWidgets::MaximumVisibleDropdownItems || delta == 0.f)
 		return;
 
-	const std::size_t previousSelection{ dropdownIndex };
-	const std::size_t maximumFirst{ count - UI::OptionsWidgets::MaximumVisibleDropdownItems };
+	const std::size_t previousSelection = dropdownIndex;
+	const std::size_t maximumFirst = count - UI::OptionsWidgets::MaximumVisibleDropdownItems;
 	if (delta > 0.f && dropdownFirstVisible > 0u)
 		--dropdownFirstVisible;
 	else if (delta < 0.f && dropdownFirstVisible < maximumFirst)
@@ -897,15 +892,15 @@ void OptionsState::HandleMouseWheel(float delta)
 
 void OptionsState::UpdateDropdownScrollbar(sf::Vector2f position)
 {
-	const std::size_t count{ GetDropdownItemCount() };
+	const std::size_t count = GetDropdownItemCount();
 	if (count <= UI::OptionsWidgets::MaximumVisibleDropdownItems)
 		return;
 
-	const std::size_t previousSelection{ dropdownIndex };
-	const sf::FloatRect track{ GetDropdownScrollbarBounds() };
+	const std::size_t previousSelection = dropdownIndex;
+	const sf::FloatRect track = GetDropdownScrollbarBounds();
 	const float thumbHeight{ track.size.y * static_cast<float>(UI::OptionsWidgets::MaximumVisibleDropdownItems) /
 		static_cast<float>(count) };
-	const float travel{ track.size.y - thumbHeight };
+	const float travel = track.size.y - thumbHeight;
 	const float normalized{ travel <= 0.f
 		? 0.f
 		: std::clamp((position.y - track.position.y - thumbHeight * 0.5f) / travel, 0.f, 1.f) };
@@ -978,8 +973,8 @@ void OptionsState::Execute(Action action)
 		break;
 	case Action::ResetAll:
 	{
-		const GraphicsSettings previous{ GetContext().settings.GetSettings().graphics };
-		const LocalizationSettings localization{ GetContext().settings.GetSettings().localization };
+		const GraphicsSettings previous = GetContext().settings.GetSettings().graphics;
+		const LocalizationSettings localization = GetContext().settings.GetSettings().localization;
 		GetContext().settings.EditSettings() = GetContext().settings.GetDefaults();
 		GetContext().settings.EditSettings().localization = localization;
 		SaveAndApplyAudio();
@@ -992,7 +987,7 @@ void OptionsState::Execute(Action action)
 	}
 	case Action::ResetGraphics:
 	{
-		const GraphicsSettings previous{ GetContext().settings.GetSettings().graphics };
+		const GraphicsSettings previous = GetContext().settings.GetSettings().graphics;
 		GetContext().settings.EditSettings().graphics = GetContext().settings.GetDefaults().graphics;
 		if (RequiresWindowRecreation(previous, GetContext().settings.GetSettings().graphics))
 			BeginDisplayChange(previous);
@@ -1026,7 +1021,7 @@ void OptionsState::Execute(Action action)
 	case Action::SetUkrainian:
 	case Action::SetArabic:
 	{
-		Language language{ Language::English };
+		Language language = Language::English;
 		if (action == Action::SetSpanish) language = Language::Spanish;
 		else if (action == Action::SetRussian) language = Language::Russian;
 		else if (action == Action::SetUkrainian) language = Language::Ukrainian;
@@ -1036,8 +1031,6 @@ void OptionsState::Execute(Action action)
 		RebuildRows();
 		break;
 	}
-	default:
-		break;
 	}
 }
 
@@ -1073,7 +1066,7 @@ void OptionsState::BeginDisplayChange(const GraphicsSettings& previous)
 void OptionsState::SelectDialogOption(std::size_t index, bool playSound)
 {
 	index = std::min(index, std::size_t{ 1u });
-	const bool changed{ dialogSelectedIndex != index };
+	const bool changed = dialogSelectedIndex != index;
 	dialogSelectedIndex = index;
 	if (changed)
 		dialogGlow.Invalidate();
@@ -1107,10 +1100,10 @@ void OptionsState::RevertDisplayChange()
 
 void OptionsState::ApplyResolution(std::size_t resolutionIndex)
 {
-	const auto& resolutions{ GetContext().display.GetSupportedResolutions() };
+	const auto& resolutions = GetContext().display.GetSupportedResolutions();
 	if (resolutionIndex >= resolutions.size())
 		return;
-	const GraphicsSettings previous{ GetContext().settings.GetSettings().graphics };
+	const GraphicsSettings previous = GetContext().settings.GetSettings().graphics;
 	if (previous.resolution == resolutions[resolutionIndex])
 	{
 		CloseDropdown();
@@ -1119,11 +1112,12 @@ void OptionsState::ApplyResolution(std::size_t resolutionIndex)
 	GetContext().settings.EditSettings().graphics.resolution = resolutions[resolutionIndex];
 	CloseDropdown();
 	BeginDisplayChange(previous);
+	RefreshRowTextValues();
 }
 
 void OptionsState::ApplyWindowMode(WindowMode mode)
 {
-	const GraphicsSettings previous{ GetContext().settings.GetSettings().graphics };
+	const GraphicsSettings previous = GetContext().settings.GetSettings().graphics;
 	if (previous.windowMode == mode)
 	{
 		CloseDropdown();
@@ -1158,8 +1152,8 @@ void OptionsState::ApplyBinding(ControlBinding binding)
 		return;
 	if (ControlBinding* target{ GetBinding(*pendingBinding) })
 	{
-		const ControlBinding previous{ *target };
-		ControlSettings& controls{ GetContext().settings.EditSettings().controls };
+		const ControlBinding previous = *target;
+		ControlSettings& controls = GetContext().settings.EditSettings().controls;
 		const std::array<ControlBinding*, 5> allBindings{
 			&controls.moveUp,
 			&controls.moveDown,
@@ -1167,10 +1161,10 @@ void OptionsState::ApplyBinding(ControlBinding binding)
 			&controls.moveRight,
 			&controls.fire
 		};
-		const auto matches{ [&binding](const ControlBinding& candidate)
+		const auto matches = [&binding](const ControlBinding& candidate)
 			{
 				return candidate.device == binding.device && candidate.code == binding.code;
-			} };
+			};
 
 		for (ControlBinding* existing : allBindings)
 		{
@@ -1190,7 +1184,7 @@ void OptionsState::ApplyBinding(ControlBinding binding)
 
 ControlBinding* OptionsState::GetBinding(Action action)
 {
-	ControlSettings& controls{ GetContext().settings.EditSettings().controls };
+	ControlSettings& controls = GetContext().settings.EditSettings().controls;
 	switch (action)
 	{
 	case Action::MoveUp: return &controls.moveUp;
@@ -1204,7 +1198,7 @@ ControlBinding* OptionsState::GetBinding(Action action)
 
 const ControlBinding* OptionsState::GetBinding(Action action) const
 {
-	const ControlSettings& controls{ GetContext().settings.GetSettings().controls };
+	const ControlSettings& controls = GetContext().settings.GetSettings().controls;
 	switch (action)
 	{
 	case Action::MoveUp: return &controls.moveUp;
@@ -1218,7 +1212,7 @@ const ControlBinding* OptionsState::GetBinding(Action action) const
 
 sf::String OptionsState::GetRowValue(const Row& row) const
 {
-	const GameSettings& settings{ GetContext().settings.GetSettings() };
+	const GameSettings& settings = GetContext().settings.GetSettings();
 	switch (row.action)
 	{
 	case Action::Resolution:
@@ -1280,15 +1274,15 @@ sf::String OptionsState::GetBindingName(const ControlBinding& binding) const
 		return GetContext().localization.GetText("options.mouse");
 	}
 
-	const auto key{ static_cast<sf::Keyboard::Key>(binding.code) };
+	const auto key = static_cast<sf::Keyboard::Key>(binding.code);
 	return sf::Keyboard::getDescription(sf::Keyboard::delocalize(key));
 }
 
 std::size_t OptionsState::FindCurrentResolution() const
 {
-	const auto& resolutions{ GetContext().display.GetSupportedResolutions() };
-	const auto iterator{ std::ranges::find(resolutions,
-		GetContext().settings.GetSettings().graphics.resolution) };
+	const auto& resolutions = GetContext().display.GetSupportedResolutions();
+	const auto iterator = std::ranges::find(resolutions,
+		GetContext().settings.GetSettings().graphics.resolution);
 	return iterator == resolutions.end()
 		? 0u
 		: static_cast<std::size_t>(std::distance(resolutions.begin(), iterator));
@@ -1307,7 +1301,7 @@ sf::String OptionsState::GetDropdownItemLabel(std::size_t index) const
 {
 	if (dropdownAction == Action::Resolution)
 	{
-		const auto& resolutions{ GetContext().display.GetSupportedResolutions() };
+		const auto& resolutions = GetContext().display.GetSupportedResolutions();
 		if (index < resolutions.size())
 			return std::to_string(resolutions[index].x) + " x " +
 				std::to_string(resolutions[index].y);
@@ -1322,27 +1316,27 @@ sf::String OptionsState::GetDropdownItemLabel(std::size_t index) const
 
 sf::FloatRect OptionsState::GetDropdownItemBounds(std::size_t visibleIndex) const
 {
-	const auto activeRow{ std::ranges::find_if(rows, [this](const Row& row)
+	const auto activeRow = std::ranges::find_if(rows, [this](const Row& row)
 		{
 			return row.action == dropdownAction;
-		}) };
+		});
 	if (activeRow == rows.end())
 		return {};
 
-	const sf::FloatRect valueBox{ UI::OptionsWidgets::GetValueBoxBounds(activeRow->bounds.position.y) };
+	const sf::FloatRect valueBox = UI::OptionsWidgets::GetValueBoxBounds(activeRow->bounds.position.y);
 	return UI::OptionsWidgets::GetDropdownItemBounds(valueBox, GetDropdownItemCount(), visibleIndex);
 }
 
 sf::FloatRect OptionsState::GetDropdownScrollbarBounds() const
 {
-	const auto activeRow{ std::ranges::find_if(rows, [this](const Row& row)
+	const auto activeRow = std::ranges::find_if(rows, [this](const Row& row)
 		{
 			return row.action == dropdownAction;
-		}) };
+		});
 	if (activeRow == rows.end())
 		return {};
 
-	const sf::FloatRect valueBox{ UI::OptionsWidgets::GetValueBoxBounds(activeRow->bounds.position.y) };
+	const sf::FloatRect valueBox = UI::OptionsWidgets::GetValueBoxBounds(activeRow->bounds.position.y);
 	return UI::OptionsWidgets::GetDropdownScrollbarBounds(valueBox, GetDropdownItemCount());
 }
 
@@ -1378,7 +1372,7 @@ void OptionsState::DrawGamepadLayouts(sf::RenderTarget& target)
 
 void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
 {
-	const auto drawPanel{ [this, &target](
+	const auto drawPanel = [this, &target](
 		const sf::String& heading,
 		float top,
 		const std::array<Config::Texture, 7>& icons,
@@ -1393,7 +1387,7 @@ void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
 
 		sf::Text headingText(
 			GetContext().assets.Fonts().Get(GetContext().localization.GetBoldFont()), heading, 34u);
-		const sf::FloatRect headingLocalBounds{ headingText.getLocalBounds() };
+		const sf::FloatRect headingLocalBounds = headingText.getLocalBounds();
 		headingText.setOrigin({
 			headingLocalBounds.position.x + headingLocalBounds.size.x * 0.5f,
 			headingLocalBounds.position.y + headingLocalBounds.size.y * 0.5f });
@@ -1412,10 +1406,10 @@ void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
 		divider.setFillColor(Orange);
 		target.draw(divider);
 
-		for (std::size_t index{ 0u }; index < icons.size(); ++index)
+		for (std::size_t index = 0u; index < icons.size(); index++)
 		{
-			const bool rightColumn{ index >= 4u };
-			const std::size_t row{ rightColumn ? index - 4u : index };
+			const bool rightColumn = index >= 4u;
+			const std::size_t row = rightColumn ? index - 4u : index;
 			const sf::Vector2f cardPosition{
 				rightColumn ? 980.f : 300.f,
 				top + 86.f + static_cast<float>(row) * 51.f };
@@ -1428,9 +1422,9 @@ void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
 			card.setOutlineThickness(1.f);
 			target.draw(card);
 
-			const sf::Texture& texture{ GetContext().assets.Textures().Get(icons[index]) };
+			const sf::Texture& texture = GetContext().assets.Textures().Get(icons[index]);
 			sf::Sprite icon(texture);
-			const sf::Vector2u size{ texture.getSize() };
+			const sf::Vector2u size = texture.getSize();
 			const float scale{ std::min(
 				70.f / static_cast<float>(size.x),
 				42.f / static_cast<float>(size.y)) };
@@ -1446,7 +1440,7 @@ void OptionsState::DrawGamepadLayoutsContent(sf::RenderTarget& target)
 				actions[index],
 				{ cardPosition.x + 100.f, cardPosition.y + 7.f }, 25u, BrightCyan);
 		}
-	} };
+	};
 
 	const std::array<Config::Texture, 7> xboxIcons{
 		Config::Texture::XboxLeftStick,
@@ -1481,7 +1475,7 @@ void OptionsState::DrawRows(sf::RenderTarget& target)
 {
 	if (!isDisplayConfirmationOpen && !pendingBinding.has_value() && IsSelectedRowEnabled())
 	{
-		const Row& selectedRow{ rows[selectedIndex] };
+		const Row& selectedRow = rows[selectedIndex];
 		neonGlow.DrawBloom(
 			target,
 			selectedRow.bounds,
@@ -1492,7 +1486,7 @@ void OptionsState::DrawRows(sf::RenderTarget& target)
 			UI::MenuTheme::SelectionGlow);
 	}
 
-	for (std::size_t index{ 0u }; index < rows.size(); ++index)
+	for (std::size_t index = 0u; index < rows.size(); index++)
 		DrawRow(target, rows[index], index, sf::RenderStates::Default);
 
 	if (!isDisplayConfirmationOpen && !pendingBinding.has_value() && IsSelectedRowEnabled())
@@ -1513,7 +1507,7 @@ void OptionsState::DrawRow(
 	std::size_t index,
 	const sf::RenderStates& states)
 {
-	const bool selected{ index == selectedIndex && row.isEnabled };
+	const bool selected = index == selectedIndex && row.isEnabled;
 	UI::RoundedRectangleShape panel(row.bounds.size, 15.f, 10u);
 	panel.setPosition(row.bounds.position);
 	panel.setFillColor(selected ? sf::Color(8, 34, 48, 226) : sf::Color(5, 17, 29, 210));
@@ -1521,7 +1515,7 @@ void OptionsState::DrawRow(
 	panel.setOutlineThickness(selected ? 2.f : 1.f);
 	target.draw(panel, states);
 
-	const sf::Color textColor{ !row.isEnabled ? Disabled : (selected ? Orange : BrightCyan) };
+	const sf::Color textColor = !row.isEnabled ? Disabled : (selected ? Orange : BrightCyan);
 	rowLabels[index].setFillColor(textColor);
 	target.draw(rowLabels[index], states);
 
@@ -1536,7 +1530,7 @@ void OptionsState::DrawRow(
 	}
 	else if (row.kind == RowKind::Toggle)
 	{
-		bool value{ false };
+		bool value = false;
 		if (row.action == Action::ShowFps)
 			value = GetContext().settings.GetSettings().graphics.needToShowFPS;
 		else if (row.action == Action::VerticalSync)
@@ -1557,7 +1551,7 @@ void OptionsState::DrawRow(
 	}
 	else if (row.kind == RowKind::Dropdown)
 	{
-		const sf::FloatRect bounds{ UI::OptionsWidgets::GetValueBoxBounds(row.bounds.position.y) };
+		const sf::FloatRect bounds = UI::OptionsWidgets::GetValueBoxBounds(row.bounds.position.y);
 		UI::OptionsWidgets::DrawDropdownBox(target, bounds, row.isEnabled, states);
 
 		rowValues[index].setFillColor(row.isEnabled ? Cyan : Disabled);
@@ -1577,19 +1571,19 @@ void OptionsState::DrawRow(
 
 void OptionsState::DrawDropdown(sf::RenderTarget& target)
 {
-	const std::size_t itemCount{ GetDropdownItemCount() };
+	const std::size_t itemCount = GetDropdownItemCount();
 	if (itemCount == 0u)
 		return;
 
 	const std::size_t visibleCount{ std::min(
 		UI::OptionsWidgets::MaximumVisibleDropdownItems,
 		itemCount - dropdownFirstVisible) };
-	const std::size_t selectedVisibleIndex{ dropdownIndex - dropdownFirstVisible };
-	const sf::FloatRect selectedBounds{ GetDropdownItemBounds(selectedVisibleIndex) };
-	for (std::size_t visibleIndex{ 0u }; visibleIndex < visibleCount; ++visibleIndex)
+	const std::size_t selectedVisibleIndex = dropdownIndex - dropdownFirstVisible;
+	const sf::FloatRect selectedBounds = GetDropdownItemBounds(selectedVisibleIndex);
+	for (std::size_t visibleIndex = 0u; visibleIndex < visibleCount; visibleIndex++)
 	{
-		const std::size_t itemIndex{ dropdownFirstVisible + visibleIndex };
-		const sf::FloatRect bounds{ GetDropdownItemBounds(visibleIndex) };
+		const std::size_t itemIndex = dropdownFirstVisible + visibleIndex;
+		const sf::FloatRect bounds = GetDropdownItemBounds(visibleIndex);
 		UI::OptionsWidgets::DrawDropdownItem(
 			target,
 			bounds,
@@ -1600,7 +1594,7 @@ void OptionsState::DrawDropdown(sf::RenderTarget& target)
 
 	if (itemCount > UI::OptionsWidgets::MaximumVisibleDropdownItems)
 	{
-		const sf::FloatRect trackBounds{ GetDropdownScrollbarBounds() };
+		const sf::FloatRect trackBounds = GetDropdownScrollbarBounds();
 		UI::RoundedRectangleShape track(trackBounds.size, 5.f, 6u);
 		track.setPosition(trackBounds.position);
 		track.setFillColor(sf::Color(22, 42, 55, 235));
@@ -1616,12 +1610,11 @@ void OptionsState::DrawDropdown(sf::RenderTarget& target)
 		thumb.setFillColor(Cyan);
 		target.draw(thumb);
 	}
-
 }
 
 void OptionsState::DrawDialog(sf::RenderTarget& target)
 {
-	const sf::Font& font{ GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont()) };
+	const sf::Font& font = GetContext().assets.Fonts().Get(GetContext().localization.GetRegularFont());
 
 	sf::RectangleShape veil(GetContext().logicalSize);
 	veil.setFillColor(sf::Color(0, 2, 6, 190));
@@ -1661,7 +1654,7 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
 					states);
 			},
 			UI::MenuTheme::SelectionGlow);
-		for (std::size_t index{ 0u }; index < buttons.size(); ++index)
+		for (std::size_t index = 0u; index < buttons.size(); index++)
 		{
 			const auto& [bounds, label]{ buttons[index] };
 			UI::OptionsWidgets::DrawDialogButton(
@@ -1677,7 +1670,7 @@ void OptionsState::DrawDialog(sf::RenderTarget& target)
 	else
 	{
 		UI::OptionsWidgets::DrawCenteredText(target, font, GetContext().localization.GetText("options.press_binding"), 960.f, 475.f, 34, BrightCyan);
-		const sf::String cancelLabel{ GetContext().localization.GetText("common.cancel") };
+		const sf::String cancelLabel = GetContext().localization.GetText("common.cancel");
 		dialogGlow.DrawBloom(
 			target,
 			BindingCancelBounds,
