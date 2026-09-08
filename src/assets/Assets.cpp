@@ -136,31 +136,31 @@ void Assets::InitializeTextures()
 	// Ship Upgrades art is only ever seen after the player opens that specific
 	// menu, so it is loaded on first use instead of blocking the startup screen.
 	textures.RegisterLazy(Config::Texture::ShipUpgradesBackground,
-		"assets/backgrounds/ui/ship_upgrades_background_v1_8.png", true);
+		"assets/backgrounds/ui/ship_upgrades_background.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradesHeaderDivider,
-		"assets/sprites/ui/ship_upgrades/header_divider_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/header_divider.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradesPartsIcon,
-		"assets/sprites/ui/ship_upgrades/parts_counter_icon_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/parts_counter_icon.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradesRowFrame,
-		"assets/sprites/ui/ship_upgrades/upgrade_row_frame_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/upgrade_row_frame.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradesRowFrameSelected,
-		"assets/sprites/ui/ship_upgrades/upgrade_row_frame_selected_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/upgrade_row_frame_selected.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradeArmorIcon,
-		"assets/sprites/ui/ship_upgrades/upgrade_armor_icon_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/upgrade_armor_icon.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradeEnginesIcon,
-		"assets/sprites/ui/ship_upgrades/upgrade_engines_icon_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/upgrade_engines_icon.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradeFireRateIcon,
-		"assets/sprites/ui/ship_upgrades/upgrade_fire_rate_icon_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/upgrade_fire_rate_icon.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradeBonusDurationIcon,
-		"assets/sprites/ui/ship_upgrades/upgrade_bonus_duration_icon_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/upgrade_bonus_duration_icon.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradeArmorIconSelected,
-		"assets/sprites/ui/ship_upgrades/upgrade_armor_icon_selected_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/upgrade_armor_icon_selected.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradeEnginesIconSelected,
-		"assets/sprites/ui/ship_upgrades/upgrade_engines_icon_selected_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/upgrade_engines_icon_selected.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradeFireRateIconSelected,
-		"assets/sprites/ui/ship_upgrades/upgrade_fire_rate_icon_selected_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/upgrade_fire_rate_icon_selected.png", true);
 	textures.RegisterLazy(Config::Texture::ShipUpgradeBonusDurationIconSelected,
-		"assets/sprites/ui/ship_upgrades/upgrade_bonus_duration_icon_selected_v1_8.png", true);
+		"assets/sprites/ui/ship_upgrades/upgrade_bonus_duration_icon_selected.png", true);
 
 	textures.RegisterLazy(Config::Texture::GameplayBackgroundBlueRegion,
 		"assets/backgrounds/gameplay/blue_nebula_region.jpg", true);
@@ -181,7 +181,7 @@ void Assets::InitializeTextures()
 	textures.RegisterLazy(Config::Texture::GameplayBackgroundIonRegion,
 		"assets/backgrounds/gameplay/ion_storm_region.jpg", true);
 	textures.RegisterLazy(Config::Texture::GameplayBackgroundLastHorizon,
-		"assets/backgrounds/gameplay/last_horizon_region_v2_0.png", true);
+		"assets/backgrounds/gameplay/last_horizon_region.png", true);
 
 	textures.LoadFromFile(Config::Texture::MenuButtonIdle, "assets/sprites/ui/menu_button_idle.png");
 	textures.LoadFromFile(Config::Texture::MenuButtonSelected, "assets/sprites/ui/menu_button_selected.png");
@@ -190,29 +190,29 @@ void Assets::InitializeTextures()
 	// Campaign-complete art only appears once the player finishes the campaign
 	// (the panel frame is also reused by CreditsState).
 	textures.RegisterLazy(Config::Texture::CampaignCompleteTitleFrame,
-		"assets/sprites/ui/campaign_complete_title_panel_v2_1.png", true);
+		"assets/sprites/ui/campaign_complete_title_panel.png", true);
 	textures.RegisterLazy(Config::Texture::CampaignCompletePanelFrame,
-		"assets/sprites/ui/campaign_complete_message_panel_v2_1.png", true);
+		"assets/sprites/ui/campaign_complete_message_panel.png", true);
 
 	// Achievement icons only appear on the Achievements screen. Neither is needed during startup.
 	textures.RegisterLazy(Config::Texture::AchievementFirstStep,
-		"assets/sprites/ui/achievements/first_step_v2_0.png", true);
+		"assets/sprites/ui/achievements/first_step.png", true);
 	textures.RegisterLazy(Config::Texture::AchievementHalfwayThere,
-		"assets/sprites/ui/achievements/halfway_there_v2_0.png", true);
+		"assets/sprites/ui/achievements/halfway_there.png", true);
 	textures.RegisterLazy(Config::Texture::AchievementCampaignComplete,
-		"assets/sprites/ui/achievements/campaign_complete_v2_0.png", true);
+		"assets/sprites/ui/achievements/campaign_complete.png", true);
 	textures.RegisterLazy(Config::Texture::AchievementRunSurvivor,
-		"assets/sprites/ui/achievements/run_survivor_v2_0.png", true);
+		"assets/sprites/ui/achievements/run_survivor.png", true);
 	textures.RegisterLazy(Config::Texture::AchievementHordeSurvivor,
-		"assets/sprites/ui/achievements/horde_survivor_v2_0.png", true);
+		"assets/sprites/ui/achievements/horde_survivor.png", true);
 	textures.RegisterLazy(Config::Texture::AchievementFullyUpgraded,
-		"assets/sprites/ui/achievements/fully_upgraded_v2_0.png", true);
+		"assets/sprites/ui/achievements/fully_upgraded.png", true);
 	textures.RegisterLazy(Config::Texture::AchievementTutorialSkipped,
-		"assets/sprites/ui/achievements/tutorial_skipped_v2_0.png", true);
+		"assets/sprites/ui/achievements/tutorial_skipped.png", true);
 	textures.RegisterLazy(Config::Texture::AchievementFlawlessCampaign,
-		"assets/sprites/ui/achievements/flawless_campaign_v2_0.png", true);
+		"assets/sprites/ui/achievements/flawless_campaign.png", true);
 	textures.RegisterLazy(Config::Texture::AchievementBossUntouched,
-		"assets/sprites/ui/achievements/boss_untouched_v2_0.png", true);
+		"assets/sprites/ui/achievements/boss_untouched.png", true);
 
 	textures.LoadFromFile(Config::Texture::GameplayCrosshair, "assets/cursors/gameplay_crosshair.png");
 
@@ -220,10 +220,10 @@ void Assets::InitializeTextures()
 	textures.LoadFromFile(Config::Texture::ShieldPickup, "assets/sprites/pickups/shield_pickup.png");
 	textures.LoadFromFile(Config::Texture::HomingBulletsPickup, "assets/sprites/pickups/homing_bullets_pickup.png");
 	textures.LoadFromFile(Config::Texture::TimeSlowdownPickup, "assets/sprites/pickups/time_slowdown_pickup.png");
-	textures.LoadFromFile(Config::Texture::LaserPickup, "assets/sprites/pickups/laser_pickup_v1_8.png");
-	textures.LoadFromFile(Config::Texture::TripleShotPickup, "assets/sprites/pickups/triple_shot_pickup_v1_8.png");
-	textures.LoadFromFile(Config::Texture::HelperBotPickup, "assets/sprites/pickups/helper_bot_pickup_v1_9.png");
-	textures.LoadFromFile(Config::Texture::PartToken, "assets/sprites/pickups/part_token_v1_8.png");
+	textures.LoadFromFile(Config::Texture::LaserPickup, "assets/sprites/pickups/laser_pickup.png");
+	textures.LoadFromFile(Config::Texture::TripleShotPickup, "assets/sprites/pickups/triple_shot_pickup.png");
+	textures.LoadFromFile(Config::Texture::HelperBotPickup, "assets/sprites/pickups/helper_bot_pickup.png");
+	textures.LoadFromFile(Config::Texture::PartToken, "assets/sprites/pickups/part_token.png");
 
 	textures.Get(Config::Texture::HealthPickup).setSmooth(true);
 	textures.Get(Config::Texture::ShieldPickup).setSmooth(true);
@@ -234,7 +234,7 @@ void Assets::InitializeTextures()
 	textures.Get(Config::Texture::HelperBotPickup).setSmooth(true);
 	textures.Get(Config::Texture::PartToken).setSmooth(true);
 
-	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship_v1_4.png");
+	textures.LoadFromFile(Config::Texture::PlayerShip, "assets/sprites/player/ship.png");
 	textures.Get(Config::Texture::PlayerShip).setSmooth(true);
 
 	textures.LoadFromFile(Config::Texture::HealthBarFrame, "assets/sprites/ui/hud/health_bar_frame.png");
@@ -269,16 +269,16 @@ void Assets::InitializeTextures()
 	loadControlIcon(Config::Texture::PlayStationBack, "assets/sprites/ui/controls/playstation_circle.png");
 	loadControlIcon(Config::Texture::PlayStationOptions, "assets/sprites/ui/controls/playstation_options.png");
 
-	textures.LoadFromFile(Config::Texture::BigEnemySaucer, "assets/sprites/enemies/kamikaze_saucer_v1_4.png");
-	textures.LoadFromFile(Config::Texture::SmallEnemySaucer, "assets/sprites/enemies/shooter_gunship_v1_4.png");
-	textures.LoadFromFile(Config::Texture::SpinnerPlatform, "assets/sprites/enemies/spinner_platform_v1_7.png");
-	textures.LoadFromFile(Config::Texture::MissileCarrier, "assets/sprites/enemies/missile_carrier_v1_7.png");
-	textures.LoadFromFile(Config::Texture::LaserTurret, "assets/sprites/enemies/laser_turret_v1_8.png");
-	textures.LoadFromFile(Config::Texture::ShooterStation, "assets/sprites/enemies/shooter_station_v1_8.png");
-	textures.LoadFromFile(Config::Texture::ReflectorGunship, "assets/sprites/enemies/reflector_gunship_v1_9.png");
-	textures.LoadFromFile(Config::Texture::BossCore, "assets/sprites/enemies/boss_core_v2_0.png");
-	textures.LoadFromFile(Config::Texture::BossDiamond, "assets/sprites/enemies/boss_diamond_v2_1.png");
-	textures.LoadFromFile(Config::Texture::BossOuterRing, "assets/sprites/enemies/boss_outer_ring_v2_2.png");
+	textures.LoadFromFile(Config::Texture::BigEnemySaucer, "assets/sprites/enemies/kamikaze_saucer.png");
+	textures.LoadFromFile(Config::Texture::SmallEnemySaucer, "assets/sprites/enemies/shooter_gunship.png");
+	textures.LoadFromFile(Config::Texture::SpinnerPlatform, "assets/sprites/enemies/spinner_platform.png");
+	textures.LoadFromFile(Config::Texture::MissileCarrier, "assets/sprites/enemies/missile_carrier.png");
+	textures.LoadFromFile(Config::Texture::LaserTurret, "assets/sprites/enemies/laser_turret.png");
+	textures.LoadFromFile(Config::Texture::ShooterStation, "assets/sprites/enemies/shooter_station.png");
+	textures.LoadFromFile(Config::Texture::ReflectorGunship, "assets/sprites/enemies/reflector_gunship.png");
+	textures.LoadFromFile(Config::Texture::BossCore, "assets/sprites/enemies/boss_core.png");
+	textures.LoadFromFile(Config::Texture::BossDiamond, "assets/sprites/enemies/boss_diamond.png");
+	textures.LoadFromFile(Config::Texture::BossOuterRing, "assets/sprites/enemies/boss_outer_ring.png");
 
 	textures.Get(Config::Texture::BigEnemySaucer).setSmooth(true);
 	textures.Get(Config::Texture::SmallEnemySaucer).setSmooth(true);
@@ -291,29 +291,29 @@ void Assets::InitializeTextures()
 	textures.Get(Config::Texture::BossDiamond).setSmooth(true);
 	textures.Get(Config::Texture::BossOuterRing).setSmooth(true);
 
-	textures.LoadFromFile(Config::Texture::BigMeteor1, "assets/sprites/meteors/large_asteroid_01_v1_4.png");
-	textures.LoadFromFile(Config::Texture::BigMeteor2, "assets/sprites/meteors/large_asteroid_02_v1_4.png");
-	textures.LoadFromFile(Config::Texture::BigMeteor3, "assets/sprites/meteors/large_asteroid_03_v1_4.png");
-	textures.LoadFromFile(Config::Texture::BigMeteor4, "assets/sprites/meteors/large_asteroid_04_v1_4.png");
+	textures.LoadFromFile(Config::Texture::BigMeteor1, "assets/sprites/meteors/large_asteroid_01.png");
+	textures.LoadFromFile(Config::Texture::BigMeteor2, "assets/sprites/meteors/large_asteroid_02.png");
+	textures.LoadFromFile(Config::Texture::BigMeteor3, "assets/sprites/meteors/large_asteroid_03.png");
+	textures.LoadFromFile(Config::Texture::BigMeteor4, "assets/sprites/meteors/large_asteroid_04.png");
 
 	textures.Get(Config::Texture::BigMeteor1).setSmooth(true);
 	textures.Get(Config::Texture::BigMeteor2).setSmooth(true);
 	textures.Get(Config::Texture::BigMeteor3).setSmooth(true);
 	textures.Get(Config::Texture::BigMeteor4).setSmooth(true);
 
-	textures.LoadFromFile(Config::Texture::SmallMeteor1, "assets/sprites/meteors/small_asteroid_01_v1_4.png");
-	textures.LoadFromFile(Config::Texture::SmallMeteor2, "assets/sprites/meteors/small_asteroid_02_v1_4.png");
-	textures.LoadFromFile(Config::Texture::SmallMeteor3, "assets/sprites/meteors/small_asteroid_03_v1_4.png");
-	textures.LoadFromFile(Config::Texture::SmallMeteor4, "assets/sprites/meteors/small_asteroid_04_v1_4.png");
+	textures.LoadFromFile(Config::Texture::SmallMeteor1, "assets/sprites/meteors/small_asteroid_01.png");
+	textures.LoadFromFile(Config::Texture::SmallMeteor2, "assets/sprites/meteors/small_asteroid_02.png");
+	textures.LoadFromFile(Config::Texture::SmallMeteor3, "assets/sprites/meteors/small_asteroid_03.png");
+	textures.LoadFromFile(Config::Texture::SmallMeteor4, "assets/sprites/meteors/small_asteroid_04.png");
 
 	textures.Get(Config::Texture::SmallMeteor1).setSmooth(true);
 	textures.Get(Config::Texture::SmallMeteor2).setSmooth(true);
 	textures.Get(Config::Texture::SmallMeteor3).setSmooth(true);
 	textures.Get(Config::Texture::SmallMeteor4).setSmooth(true);
 
-	textures.LoadFromFile(Config::Texture::PlayerShot, "assets/sprites/shots/player_projectile_v1_4.png");
-	textures.LoadFromFile(Config::Texture::EnemySaucerShot, "assets/sprites/shots/enemy_projectile_v1_4.png");
-	textures.LoadFromFile(Config::Texture::HomingMissile, "assets/sprites/shots/homing_missile_v1_7.png");
+	textures.LoadFromFile(Config::Texture::PlayerShot, "assets/sprites/shots/player_projectile.png");
+	textures.LoadFromFile(Config::Texture::EnemySaucerShot, "assets/sprites/shots/enemy_projectile.png");
+	textures.LoadFromFile(Config::Texture::HomingMissile, "assets/sprites/shots/homing_missile.png");
 
 	textures.Get(Config::Texture::PlayerShot).setSmooth(true);
 	textures.Get(Config::Texture::EnemySaucerShot).setSmooth(true);
