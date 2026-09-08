@@ -1,173 +1,208 @@
-# 🚀 Until Last Asteroid (C++ / SFML)
+<h1 align="center">Until Last Asteroid</h1>
 
-A fast-paced top-down space shooter built with **C++23** and **SFML 3.1.0**.
+<p align="center">
+  A fast twin-stick space shooter — C++20 / SFML 3.1, hand-built engine, no game framework.
+</p>
 
-Destroy asteroids, fight enemy ships, survive waves, and complete all levels.
+<p align="center">
+  <img src="https://img.shields.io/github/v/release/demianblogan/Until_Last_Asteroid?color=1f6feb" alt="Latest release">
+  <img src="https://img.shields.io/github/downloads/demianblogan/Until_Last_Asteroid/total?color=1f6feb" alt="Downloads">
+  <img src="https://img.shields.io/github/license/demianblogan/Until_Last_Asteroid?color=1f6feb" alt="License">
+  <img src="https://img.shields.io/badge/C%2B%2B-20%2F23-00599C?logo=cplusplus&logoColor=white" alt="C++ 20/23">
+  <img src="https://img.shields.io/badge/SFML-3.1.0-8CC445" alt="SFML 3.1.0">
+  <img src="https://img.shields.io/badge/platform-Windows%20x64-0078D6" alt="Windows x64">
+</p>
 
----
-
-## 🎮 Gameplay
-
-![Preview](https://github.com/user-attachments/assets/1c74a1c9-13ed-4ca6-a618-89a87a0a5df7)
-
----
-
-## 📦 Download & Play
-
-👉 [Download Latest Release](../../releases)
-
-Quick start:
-
-1. Download `.zip` from Releases
-2. Extract it
-3. Run `UntilLastAsteroid.exe`
+<p align="center">
+  <img src="docs/media/cover.jpg" alt="Until Last Asteroid" width="900">
+</p>
 
 ---
 
-## 🕹 Controls
+## What it is
 
-Default controls (all bindings can be changed in Options):
+You fly a lone ship into a collapsing asteroid frontier. Thrust, drift and
+twin-stick your way through ten levels of splitting meteors, hunter-killer
+saucers, shielded stations and a three-phase final boss — collecting ship Parts,
+spending them on upgrades, and chasing a clean run on the records board.
 
-| Action        | Input              |
-|--------------|-------------------|
-| Move         | W A S D           |
-| Aim          | Mouse             |
-| Shoot        | Left Mouse Button |
-| Pause        | ESC               |
+Three ways to play:
 
-Xbox and PlayStation-style controllers are also supported with twin-stick
-movement and aiming, trigger shooting, and D-pad menu navigation.
+- **Campaign** — 10 levels, each with its own space region, music theme and enemy mix
+- **Horde** — endless escalating waves with per-wave upgrades
+- **Run** — one hit and you are out; survive as long as you can
 
----
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/media/menu.gif" width="380"><br><sub>Intro &amp; main menu</sub></td>
+    <td align="center"><img src="docs/media/Gameplay1.gif" width="380"><br><sub>Campaign flight</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/media/Gameplay2.gif" width="380"><br><sub>Pickups &amp; bonuses</sub></td>
+    <td align="center"><img src="docs/media/Gameplay3.gif" width="380"><br><sub>Boss encounter</sub></td>
+  </tr>
+</table>
 
-## 🧠 Game Features
-
-- Campaign menu with persistent, versioned progress
-- Optional guided tutorial for movement, combat, scoring, armor, pickups, Parts,
-  and ship upgrades
-- Nine connected JSON-authored campaign levels with animated introductions
-- Endless Horde Mode with escalating waves and run-only cyclic upgrades
-- One-hit Run Mode with survival-time records and restricted defensive pickups
-- Finite collectible Parts and four functional ship-upgrade branches
-- Permanent per-level Records independent from campaign save progress
-- Health, shield, homing-bullet, time-slowdown, laser, triple-shot, and helper-bot
-  pickups with dynamic HUD feedback
-- Dynamic enemy waves system
-- Score system with scaling difficulty
-- Player physics (acceleration, damping, max speed)
-- Screen wrapping (Asteroids-style world)
-- Sound effects and background music
-- Health, damage, knockback, invulnerability, and score systems
-- HUD with score and a color-changing health bar
-- Nine unique 4K space backgrounds with animated star and dust parallax
-- High-resolution player, enemy, asteroid, and projectile artwork
-- Batched particles for engines, hits, explosions, smoke, sparks, and debris
-- Projectile glow, hit flashes, camera shake, and compound ship colliders
-- Configurable gameplay post-processing with bloom, color grading, vignette,
-  damage feedback, and explosion distortion
-- Animated score HUD, optional score popups, and polished Game Over, level
-  completion, and victory screens
-- Skippable company splash screen
-- Animated sci-fi main menu
-- Pause menu with Resume, Restart Level, Options, and Back to Main Menu
-- Persistent Graphics, Audio, and Controls settings
-- Fullscreen, Windowed, and Borderless display modes
-- Rebindable keyboard and mouse controls
-- Xbox and DualSense controller layouts with automatic input switching
-- Gameplay options for screen shake and score popups
-- Bloom-highlighted UI, menu cursor, and gameplay crosshair
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=LXShKttBFV4">
+    <img src="https://img.youtube.com/vi/LXShKttBFV4/maxresdefault.jpg" width="560" alt="Watch the full playthrough on YouTube">
+  </a>
+  <br>
+  ▶️ <a href="https://www.youtube.com/watch?v=LXShKttBFV4"><b>Watch the full playthrough (1080p60)</b></a>
+</p>
 
 ---
 
-## 👾 Enemies
+## Download & play
 
-### 🪨 Meteors
-- **Large** → slow, splits into two small asteroids (+100 pts)
-- **Small** → faster and does not split (+50 pts)
+**[⬇ Download the latest release](https://github.com/demianblogan/Until_Last_Asteroid/releases/latest)**
 
-### 🚀 Saucers
-- **Kamikaze** → spins while aggressively chasing the player (+200 pts)
-- **Shooter** → alternates fire between two cannons (+250 pts)
-- **Spinner** → follows a sinusoidal path while rotating and firing in three directions
-- **Missile Carrier** → launches slow, destructible homing missiles
-- **Laser Turret** → patrols a screen edge with a player-only sweeping beam
-- **Shooter Station** → shields its launch bay while constructing shooter ships
-- **Reflector Gunship** → fires twin cannons while alternating a reflective shield
+1. Download `UntilLastAsteroid-vX.Y.Z-win64.zip`
+2. Extract it anywhere
+3. Run `UntilLastAsteroid.exe` — the SFML DLLs are bundled
+
+Windows 10 / 11, 64-bit. A gamepad is optional; Xbox and DualSense layouts are
+built in.
 
 ---
 
-## 🧩 Levels
+## Features
 
-The current campaign contains **9 connected levels**, each with three authored waves:
+### Modes
+- **Campaign** — nine three-wave stages plus a dedicated boss stage, with a
+  persistent, versioned save
+- **Horde** — endless escalating rosters, one bonus per wave, cyclic run-only upgrades
+- **Run** — one-hit rules, survival-time record, defensive pickups only
+- Optional guided **tutorial** for movement, combat, scoring, armor, pickups,
+  Parts and ship upgrades
 
-- **Blue Frontier**
-- **Emerald Crossing**
-- **Shattered Belt**
-- **Rose Siege**
-- **Asteroid Wake**
-- **Frozen Graveyard**
-- **Crimson Entry**
-- **Ion Storm**
-- **Void Threshold**
+### Progression
+- Collectible **Parts** dropped by enemies, spent on four **ship-upgrade** branches
+- **9 achievements**
+- **Records** kept per campaign level and per survival mode, independent of the
+  campaign save
 
-Completed levels can be replayed through the Select Level menu without rewinding
-campaign progress.
+### Combat & effects
+- Twin-stick flight with acceleration, damping and Asteroids-style screen wrap
+- Seven timed pickups — health, shield, homing bullets, time-slow, laser,
+  triple-shot, helper bot
+- Batched particle FX, projectile glow, hit flashes, camera shake, compound colliders
+- Configurable post-processing: bloom, colour grading, vignette, damage feedback,
+  explosion distortion
+
+### Presentation
+- 10 space regions with 4K backgrounds and parallax star / dust layers
+- Three gameplay music themes plus a dedicated boss track
+- Animated sci-fi menu, level intros, and polished result / game-over / victory screens
+- Bloom-highlighted UI, custom menu cursor and gameplay crosshair
+
+### Options
+- **Graphics** — resolution, Fullscreen / Windowed / Borderless, V-Sync, FPS
+  counter, post-processing toggle
+- **Audio** — master, music and SFX volumes
+- **Controls** — full keyboard + mouse rebinding; Xbox and DualSense layouts with
+  automatic input switching; DualSense rumble, adaptive triggers and lightbar toggles
+- **Gameplay** — screen-shake and score-popup toggles
+
+Full breakdown: **[docs/GAMEPLAY.md](docs/GAMEPLAY.md)**
 
 ---
 
-## ⚙️ Requirements
+## Controls
 
-- C++23 compatible compiler
-- Visual Studio 2026
-- SFML 3.1.0 (64-bit)
+| Action | Keyboard & mouse | Gamepad |
+|---|---|---|
+| Move | `W` `A` `S` `D` | Left stick |
+| Aim | Mouse | Right stick |
+| Shoot | Left Mouse Button | Right trigger (RT / R2) |
+| Pause | `Esc` | Menu / Options button |
+| Menus | Arrows, mouse, `Enter`, `Esc` | D-pad, ✕ / A confirm, ○ / B back |
 
-📦 Setup guide:  
-👉 [SFML Setup](libs/SFML/README.md)
-
----
-
-## ▶️ Run
-
-1. Open `UntilLastAsteroid.slnx`
-2. Build the project (Debug or Release)
-3. Make sure SFML DLLs are available next to the executable
-   > DLLs can be found in the SFML `bin` folder
-5. Run the game
+All keyboard and mouse bindings can be reassigned in Options.
+Full layouts including DualSense extras: **[docs/CONTROLS.md](docs/CONTROLS.md)**
 
 ---
 
-## 📁 Project Structure
+## Enemies
+
+| Sprite | Enemy | Behaviour | Score |
+|:---:|---|---|:---:|
+| <img src="assets/sprites/meteors/large_asteroid_01.png" width="56"> | Large Meteor | Slow drift; splits into two small meteors when destroyed | 100 |
+| <img src="assets/sprites/meteors/small_asteroid_01.png" width="42"> | Small Meteor | Faster, does not split | 50 |
+| <img src="assets/sprites/enemies/kamikaze_saucer.png" width="56"> | Kamikaze Saucer | Spins and accelerates into a ramming run | 200 |
+| <img src="assets/sprites/enemies/shooter_gunship.png" width="56"> | Shooter | Holds range, alternates fire between two cannons | 250 |
+| <img src="assets/sprites/enemies/spinner_platform.png" width="56"> | Spinner | Sine-wave path while rotating and firing in three directions | 400 |
+| <img src="assets/sprites/enemies/missile_carrier.png" width="56"> | Missile Carrier | Launches slow, destructible homing missiles | 350 |
+| <img src="assets/sprites/enemies/laser_turret.png" width="56"> | Laser Turret | Patrols a screen edge with a player-only sweeping beam | 500 |
+| <img src="assets/sprites/enemies/shooter_station.png" width="66"> | Shooter Station | Shields its launch bay while constructing Shooters | 900 |
+| <img src="assets/sprites/enemies/reflector_gunship.png" width="56"> | Reflector Gunship | Fast twin cannons with a periodic bullet-reflecting shield | 750 |
+| <img src="assets/sprites/enemies/boss_core.png" width="66"> | **The Last Horizon** | Boss — three phases: outer ring, diamond frame, shielded core | — |
+
+Per-enemy stats and tactics: **[docs/GAMEPLAY.md#bestiary](docs/GAMEPLAY.md#bestiary)**
+
+---
+
+## Save data
+
+The game writes per-player data to:
 
 ```
-src/        → game source code
-assets/     → textures, sounds, fonts, shaders, data
-libs/       → external libraries (SFML)
-build/      → compiled binaries (ignored)
+%LOCALAPPDATA%\Alone Bull Company\Until Last Asteroid\
+```
+
+| File | Contents |
+|---|---|
+| `settings.json` | graphics, audio, control bindings, gameplay and language settings |
+| `campaign.json` | campaign progress, collected Parts, ship-upgrade ranks |
+| `records.json` | per-level scores, Horde best score / wave, Run best time |
+| `achievements.json` | unlocked achievements |
+
+If `%LOCALAPPDATA%` is unavailable, the game falls back to a `user_data\` folder
+next to the executable. Writes are atomic, and a file that fails to parse is
+quarantined as `<name>.corrupt` rather than overwritten.
+
+---
+
+## Building from source
+
+Requires **Visual Studio 2026** (toolset `v145`), the Windows 10 SDK, and
+**SFML 3.1.0 (64-bit)**. The project is a plain `.vcxproj` — no CMake or vcpkg.
+
+1. Build SFML 3.1.0 and drop its `include/` and `lib/` into `libs/SFML/` —
+   see **[libs/SFML/README.md](libs/SFML/README.md)**
+2. Open `UntilLastAsteroid.slnx`
+3. Build `x64` / `Release` (or `Debug`)
+   - Debug output → `build/`
+   - Release output → `Binaries/`
+4. Make sure the matching SFML DLLs sit next to the executable
+
+Prebuilt binaries are on the **[Releases page](https://github.com/demianblogan/Until_Last_Asteroid/releases)**.
+
+---
+
+## Architecture
+
+Hand-rolled state machine over an SFML render loop — no engine. Highlights:
+a `StateStack` with cached and transparent states, `World` split into seven
+focused systems, data-driven gameplay from `assets/data/gameplay/*.json`, and a
+dedicated `rendering/` layer with a multi-pass post-processor.
+
+Full write-up: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+
+```
+src/        game source code
+assets/     textures, sounds, fonts, shaders, JSON data
+libs/       external libraries (SFML, DualSenseWindows)
 ```
 
 ---
 
-## 💡 About the Project
+## Tech
 
-This project was created as a **portfolio piece** to demonstrate:
+C++20 / C++23 · SFML 3.1.0 · DualSenseWindows · MSBuild / Visual Studio 2026
 
-- Object-oriented game architecture
-- Input handling system (ActionMap + InputHandler)
-- Entity-based design
-- Real-time game loop and event processing
-- Resource management (AssetStore)
+## Author
 
----
+**Demian Blogan** — demianblogan@gmail.com
 
-## 📌 Tech Stack
-
-- **C++23**
-- **SFML 3.1.0**
-
----
-
-## 🧑‍💻 Author
-
-Demian Blogan
-- 📧 Email: demianblogan@gmail.com
-
+Licensed under the [MIT License](LICENSE).
