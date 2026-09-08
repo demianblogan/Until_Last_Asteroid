@@ -14,6 +14,14 @@
 </p>
 
 <p align="center">
+  <a href="https://demianblogan.itch.io/until-last-asteroid"><b>▶ Play / download on itch.io</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/demianblogan/Until_Last_Asteroid/releases/latest">Latest release</a>
+  &nbsp;·&nbsp;
+  <a href="https://www.youtube.com/watch?v=LXShKttBFV4">Full playthrough</a>
+</p>
+
+<p align="center">
   <img src="docs/media/cover.jpg" alt="Until Last Asteroid" width="900">
 </p>
 
@@ -55,7 +63,8 @@ Three ways to play:
 
 ## Download & play
 
-**[⬇ Download the latest release](https://github.com/demianblogan/Until_Last_Asteroid/releases/latest)**
+- **[Play on itch.io](https://demianblogan.itch.io/until-last-asteroid)** — store page with screenshots
+- **[Download the latest release from GitHub](https://github.com/demianblogan/Until_Last_Asteroid/releases/latest)**
 
 1. Download `UntilLastAsteroid-vX.Y.Z-win64.zip`
 2. Extract it anywhere
