@@ -4,6 +4,9 @@ No game engine. An SFML window and a variable-timestep loop drive a stack of
 screens; the gameplay screen runs a hand-written simulation that is configured
 entirely from JSON. Roughly 33k lines of C++20 across ~95 translation units.
 
+For how the common game-programming patterns map onto this code, see
+[PATTERNS.md](PATTERNS.md).
+
 ---
 
 ## The loop

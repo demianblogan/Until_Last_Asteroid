@@ -196,7 +196,8 @@ a `StateStack` with cached and transparent states, `World` split into seven
 focused systems, data-driven gameplay from `assets/data/gameplay/*.json`, and a
 dedicated `rendering/` layer with a multi-pass post-processor.
 
-Full write-up: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**
+Full write-up: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** ·
+design patterns used, mapped to the code: **[docs/PATTERNS.md](docs/PATTERNS.md)**
 
 ```
 src/        game source code
